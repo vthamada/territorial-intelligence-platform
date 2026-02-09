@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "territorial-intelligence-platform"
+version = "0.1.0"
+description = "Territorial Intelligence Platform for Diamantina/MG"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.116.0",
+  "uvicorn[standard]>=0.35.0",
+  "sqlalchemy>=2.0.43",
+  "psycopg[binary]>=3.2.9",
+  "pydantic-settings>=2.10.1",
+  "httpx>=0.28.1",
+  "pandas>=2.3.1",
+  "pyyaml>=6.0.2",
+  "structlog>=25.4.0",
+  "prefect>=3.4.12",
+  "geopandas>=1.1.1",
+  "shapely>=2.1.1",
+  "pyogrio>=0.11.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.4.1",
+  "pytest-cov>=6.2.1",
+  "ruff>=0.12.8",
+  "mypy>=1.17.1",
+  "types-PyYAML>=6.0.12.20250822",
+]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

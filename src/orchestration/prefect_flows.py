@@ -1,0 +1,169 @@
+from __future__ import annotations
+
+import os
+from pathlib import Path
+from tempfile import gettempdir
+from typing import Any
+
+# Ensure Prefect metadata storage is writable in local/dev environments.
+if "PREFECT_HOME" not in os.environ:
+    default_prefect_home = Path(gettempdir()) / "prefect-home"
+    default_prefect_home.mkdir(parents=True, exist_ok=True)
+    os.environ["PREFECT_HOME"] = str(default_prefect_home)
+
+# Ensure ephemeral Prefect API DB is also placed on a writable local-temp path.
+if "PREFECT_API_DATABASE_CONNECTION_URL" not in os.environ:
+    default_prefect_db = Path(gettempdir()) / "prefect-home" / "orion.db"
+    default_prefect_db.parent.mkdir(parents=True, exist_ok=True)
+    os.environ["PREFECT_API_DATABASE_CONNECTION_URL"] = (
+        f"sqlite+aiosqlite:///{default_prefect_db.as_posix()}"
+    )
+
+if "PREFECT_MEMO_STORE_PATH" not in os.environ:
+    default_memo_store = Path(os.environ["PREFECT_HOME"]) / "memo_store.toml"
+    default_memo_store.parent.mkdir(parents=True, exist_ok=True)
+    os.environ["PREFECT_MEMO_STORE_PATH"] = str(default_memo_store)
+
+from prefect import flow
+
+from app.logging import configure_logging
+from app.settings import get_settings
+from pipelines.datasus_health import run as run_datasus_health
+from pipelines.dbt_build import run as run_dbt_build
+from pipelines.ibge_admin import run as run_ibge_admin
+from pipelines.ibge_geometries import run as run_ibge_geometries
+from pipelines.ibge_indicators import run as run_ibge_indicators
+from pipelines.inep_education import run as run_inep_education
+from pipelines.mte_labor import run as run_mte_labor
+from pipelines.quality_suite import run as run_quality_suite
+from pipelines.siconfi_finance import run as run_siconfi_finance
+from pipelines.tse_catalog import run as run_tse_catalog
+from pipelines.tse_electorate import run as run_tse_electorate
+from pipelines.tse_results import run as run_tse_results
+
+settings = get_settings()
+configure_logging(settings.log_level)
+
+
+@flow(name="ibge_admin_fetch")
+def ibge_admin_fetch(
+    reference_period: str,
+    force: bool = False,
+    dry_run: bool = False,
+    max_retries: int = 3,
+    timeout_seconds: int = 30,
+) -> dict[str, Any]:
+    return run_ibge_admin(
+        reference_period=reference_period,
+        force=force,
+        dry_run=dry_run,
+        max_retries=max_retries,
+        timeout_seconds=timeout_seconds,
+    )
+
+
+@flow(name="territorial_mvp_flow")
+def run_mvp_all(
+    reference_period: str,
+    force: bool = False,
+    dry_run: bool = False,
+    max_retries: int = 3,
+    timeout_seconds: int = 30,
+) -> dict[str, Any]:
+    common_kwargs = {
+        "reference_period": reference_period,
+        "force": force,
+        "dry_run": dry_run,
+        "max_retries": max_retries,
+        "timeout_seconds": timeout_seconds,
+    }
+    results = {
+        "ibge_admin_fetch": run_ibge_admin(**common_kwargs),
+        "ibge_geometries_fetch": run_ibge_geometries(**common_kwargs),
+        "ibge_indicators_fetch": run_ibge_indicators(**common_kwargs),
+        "tse_catalog_discovery": run_tse_catalog(**common_kwargs),
+        "tse_electorate_fetch": run_tse_electorate(**common_kwargs),
+        "tse_results_fetch": run_tse_results(**common_kwargs),
+        "education_inep_fetch": run_inep_education(**common_kwargs),
+        "health_datasus_fetch": run_datasus_health(**common_kwargs),
+        "finance_siconfi_fetch": run_siconfi_finance(**common_kwargs),
+        "labor_mte_fetch": run_mte_labor(**common_kwargs),
+        "dbt_build": run_dbt_build(**common_kwargs),
+        "quality_suite": run_quality_suite(**common_kwargs),
+    }
+    return results
+
+
+@flow(name="territorial_mvp_wave_1")
+def run_mvp_wave_1(
+    reference_period: str,
+    force: bool = False,
+    dry_run: bool = False,
+    max_retries: int = 3,
+    timeout_seconds: int = 30,
+) -> dict[str, Any]:
+    common_kwargs = {
+        "reference_period": reference_period,
+        "force": force,
+        "dry_run": dry_run,
+        "max_retries": max_retries,
+        "timeout_seconds": timeout_seconds,
+    }
+    return {
+        "ibge_admin_fetch": run_ibge_admin(**common_kwargs),
+        "ibge_geometries_fetch": run_ibge_geometries(**common_kwargs),
+        "ibge_indicators_fetch": run_ibge_indicators(**common_kwargs),
+        "dbt_build": run_dbt_build(**common_kwargs),
+        "quality_suite": run_quality_suite(**common_kwargs),
+    }
+
+
+@flow(name="territorial_mvp_wave_2")
+def run_mvp_wave_2(
+    reference_period: str,
+    force: bool = False,
+    dry_run: bool = False,
+    max_retries: int = 3,
+    timeout_seconds: int = 30,
+) -> dict[str, Any]:
+    common_kwargs = {
+        "reference_period": reference_period,
+        "force": force,
+        "dry_run": dry_run,
+        "max_retries": max_retries,
+        "timeout_seconds": timeout_seconds,
+    }
+    return {
+        "tse_catalog_discovery": run_tse_catalog(**common_kwargs),
+        "tse_electorate_fetch": run_tse_electorate(**common_kwargs),
+        "tse_results_fetch": run_tse_results(**common_kwargs),
+        "quality_suite": run_quality_suite(**common_kwargs),
+    }
+
+
+@flow(name="territorial_mvp_wave_3")
+def run_mvp_wave_3(
+    reference_period: str,
+    force: bool = False,
+    dry_run: bool = False,
+    max_retries: int = 3,
+    timeout_seconds: int = 30,
+) -> dict[str, Any]:
+    common_kwargs = {
+        "reference_period": reference_period,
+        "force": force,
+        "dry_run": dry_run,
+        "max_retries": max_retries,
+        "timeout_seconds": timeout_seconds,
+    }
+    return {
+        "education_inep_fetch": run_inep_education(**common_kwargs),
+        "health_datasus_fetch": run_datasus_health(**common_kwargs),
+        "finance_siconfi_fetch": run_siconfi_finance(**common_kwargs),
+        "labor_mte_fetch": run_mte_labor(**common_kwargs),
+        "quality_suite": run_quality_suite(**common_kwargs),
+    }
+
+
+def run_mvp(*args, **kwargs) -> dict[str, Any]:
+    return run_mvp_all(*args, **kwargs)

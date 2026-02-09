@@ -1,0 +1,61 @@
+connectors:
+  - connector_name: ibge_admin_fetch
+    source: IBGE
+    wave: MVP-1
+    status: implemented
+    notes: Municipality and district discovery with Silver upsert.
+  - connector_name: ibge_geometries_fetch
+    source: IBGE
+    wave: MVP-1
+    status: implemented
+    notes: Municipality, district and census sector geometries loaded into PostGIS.
+  - connector_name: ibge_indicators_fetch
+    source: IBGE
+    wave: MVP-1
+    status: implemented
+    notes: YAML-driven IBGE indicators extraction with idempotent Silver upsert.
+  - connector_name: tse_catalog_discovery
+    source: TSE
+    wave: MVP-2
+    status: implemented
+    notes: CKAN package discovery with Bronze snapshot for electorate and results queries.
+  - connector_name: tse_electorate_fetch
+    source: TSE
+    wave: MVP-2
+    status: implemented
+    notes: CKAN discovery + ZIP parse in chunks + idempotent load into fact_electorate.
+  - connector_name: tse_results_fetch
+    source: TSE
+    wave: MVP-2
+    status: implemented
+    notes: CKAN discovery + municipal-zone detail parsing + idempotent load into fact_election_result.
+  - connector_name: education_inep_fetch
+    source: INEP
+    wave: MVP-3
+    status: implemented
+    notes: Baseline source-probe ingestion with indicator upsert and Bronze tracking.
+  - connector_name: health_datasus_fetch
+    source: DATASUS
+    wave: MVP-3
+    status: implemented
+    notes: Baseline source-probe ingestion with indicator upsert and Bronze tracking.
+  - connector_name: finance_siconfi_fetch
+    source: SICONFI
+    wave: MVP-3
+    status: implemented
+    notes: Baseline source-probe ingestion with indicator upsert and Bronze tracking.
+  - connector_name: labor_mte_fetch
+    source: MTE
+    wave: MVP-3
+    status: implemented
+    notes: Baseline source-probe ingestion with indicator upsert and Bronze tracking.
+  - connector_name: dbt_build
+    source: INTERNAL
+    wave: MVP-1
+    status: implemented
+    notes: Gold SQL models built from dbt_project with ops + Bronze tracking.
+  - connector_name: quality_suite
+    source: INTERNAL
+    wave: MVP-1
+    status: implemented
+    notes: Threshold-aware checks with ops logging.

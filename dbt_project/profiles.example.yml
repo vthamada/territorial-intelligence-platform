@@ -1,0 +1,12 @@
+territorial_intelligence:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      user: postgres
+      password: postgres
+      port: 5432
+      dbname: territorial_intelligence
+      schema: gold
+      threads: 4

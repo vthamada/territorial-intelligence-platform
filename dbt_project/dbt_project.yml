@@ -1,0 +1,13 @@
+name: territorial_intelligence
+version: 1.0.0
+config-version: 2
+
+profile: territorial_intelligence
+
+model-paths: ["models"]
+
+models:
+  territorial_intelligence:
+    gold:
+      +schema: gold
+      +materialized: view

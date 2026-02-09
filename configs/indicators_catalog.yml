@@ -1,0 +1,17 @@
+indicators:
+  - indicator_code: PIB_TOTAL
+    endpoint: https://servicodados.ibge.gov.br/api/v3/agregados/5938/periodos/{year}/variaveis/37?localidades=N6[{municipality_ibge_code}]
+    unit: BRL
+    periodicity: yearly
+    level: municipio
+    transform_rules:
+      value_path: "0.resultados.0.series.0.serie.{year}"
+      indicator_name: "PIB total"
+  - indicator_code: POPULACAO_ESTIMADA
+    endpoint: https://servicodados.ibge.gov.br/api/v3/agregados/6579/periodos/{year}/variaveis/9324?localidades=N6[{municipality_ibge_code}]
+    unit: pessoas
+    periodicity: yearly
+    level: municipio
+    transform_rules:
+      value_path: "0.resultados.0.series.0.serie.{year}"
+      indicator_name: "Populacao estimada"

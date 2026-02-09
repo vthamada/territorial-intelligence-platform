@@ -1,0 +1,22 @@
+defaults:
+  min_rows_after_filter: 1
+  max_missing_ratio: 0.00
+  max_negative_rows: 0
+
+dim_territory:
+  min_district_count: 1
+  max_geometry_missing_ratio: 0.00
+  max_empty_geometry_rows: 0
+  max_invalid_geometry_rows: 0
+
+fact_electorate:
+  min_rows_after_filter: 1
+  max_negative_rows: 0
+  max_missing_ratio: 0.00
+
+fact_election_result:
+  max_negative_rows: 0
+  max_missing_ratio: 0.00
+
+fact_indicator:
+  max_missing_ratio: 0.00

@@ -1,0 +1,50 @@
+defaults:
+  force: false
+  dry_run: false
+  max_retries: 3
+  timeout_seconds: 30
+
+waves:
+  MVP-1:
+    - ibge_admin_fetch
+    - ibge_geometries_fetch
+    - ibge_indicators_fetch
+    - dbt_build
+    - quality_suite
+  MVP-2:
+    - tse_catalog_discovery
+    - tse_electorate_fetch
+    - tse_results_fetch
+    - quality_suite
+  MVP-3:
+    - education_inep_fetch
+    - health_datasus_fetch
+    - finance_siconfi_fetch
+    - labor_mte_fetch
+    - quality_suite
+
+jobs:
+  ibge_admin_fetch:
+    reference_period: "2026"
+  ibge_geometries_fetch:
+    reference_period: "2026"
+  ibge_indicators_fetch:
+    reference_period: "2026"
+  tse_catalog_discovery:
+    reference_period: "2024"
+  tse_electorate_fetch:
+    reference_period: "2024"
+  tse_results_fetch:
+    reference_period: "2024"
+  education_inep_fetch:
+    reference_period: "2025"
+  health_datasus_fetch:
+    reference_period: "2025"
+  finance_siconfi_fetch:
+    reference_period: "2025"
+  labor_mte_fetch:
+    reference_period: "2025"
+  dbt_build:
+    reference_period: "2026"
+  quality_suite:
+    reference_period: "2026"

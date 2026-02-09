@@ -1,0 +1,31 @@
+waves:
+  MVP-1:
+    goal: Foundational territorial layer and operational contracts.
+    includes:
+      - ibge_admin_fetch
+      - ibge_geometries_fetch
+      - ibge_indicators_fetch
+      - dbt_build
+      - quality_suite
+    exit_criteria:
+      - silver.dim_territory has municipality 3121606 and at least one district.
+      - API v1 endpoints return paginated responses with stable schema.
+      - ops.pipeline_runs and ops.pipeline_checks populated for executed jobs.
+  MVP-2:
+    goal: Electoral analytics layer.
+    includes:
+      - tse_catalog_discovery
+      - tse_electorate_fetch
+      - tse_results_fetch
+    exit_criteria:
+      - Electoral datasets filtered to MG and Diamantina.
+      - fact_electorate and fact_election_result populated and quality checks passing.
+  MVP-3:
+    goal: Social and economic expansion.
+    includes:
+      - education_inep_fetch
+      - health_datasus_fetch
+      - finance_siconfi_fetch
+      - labor_mte_fetch
+    exit_criteria:
+      - fact_indicator expanded with education, health, finance, and labor domains.
