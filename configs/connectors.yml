@@ -33,22 +33,22 @@ connectors:
     source: INEP
     wave: MVP-3
     status: implemented
-    notes: Baseline source-probe ingestion with indicator upsert and Bronze tracking.
+    notes: Real INEP sinopse ZIP extraction with municipality row parsing and fact_indicator upsert.
   - connector_name: health_datasus_fetch
     source: DATASUS
     wave: MVP-3
     status: implemented
-    notes: Baseline source-probe ingestion with indicator upsert and Bronze tracking.
+    notes: Real CNES extraction via DATASUS API with municipality filtering and fact_indicator upsert.
   - connector_name: finance_siconfi_fetch
     source: SICONFI
     wave: MVP-3
     status: implemented
-    notes: Baseline source-probe ingestion with indicator upsert and Bronze tracking.
+    notes: Real DCA extraction via SICONFI API with year fallback, Bronze snapshot, and fact_indicator upsert.
   - connector_name: labor_mte_fetch
     source: MTE
     wave: MVP-3
-    status: implemented
-    notes: Baseline source-probe ingestion with indicator upsert and Bronze tracking.
+    status: partial
+    notes: Blocked-aware connector with remote login probe and manual CSV/ZIP fallback from data/manual/mte.
   - connector_name: dbt_build
     source: INTERNAL
     wave: MVP-1

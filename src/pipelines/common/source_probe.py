@@ -60,6 +60,15 @@ def _extract_html_probe_value(text_payload: str) -> int:
     return len(matches)
 
 
+def _status_from_min_threshold(
+    observed_value: int,
+    threshold_value: int,
+    *,
+    failing_status: str = "fail",
+) -> str:
+    return "pass" if observed_value >= threshold_value else failing_status
+
+
 def run_source_probe_job(
     *,
     job_name: str,
@@ -215,13 +224,21 @@ def run_source_probe_job(
         checks = [
             {
                 "name": "probe_success_count",
-                "status": "pass" if successful_values else "warn",
+                "status": _status_from_min_threshold(
+                    len(successful_values),
+                    1,
+                    failing_status="warn",
+                ),
                 "details": f"{len(successful_values)} successful probes.",
+                "observed_value": len(successful_values),
+                "threshold_value": 1,
             },
             {
                 "name": "indicator_value_non_negative",
-                "status": "pass" if observed_value >= 0 else "fail",
+                "status": _status_from_min_threshold(observed_value, 0),
                 "details": f"Observed value={observed_value}.",
+                "observed_value": observed_value,
+                "threshold_value": 0,
             },
         ]
         artifact = persist_raw_bytes(
