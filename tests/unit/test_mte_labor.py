@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import os
+import shutil
 from decimal import Decimal
+from uuid import uuid4
+from types import SimpleNamespace
+from pathlib import Path
 
 import pandas as pd
 
@@ -8,6 +13,8 @@ from pipelines.mte_labor import (
     _build_indicator_rows,
     _compute_mte_metrics,
     _filter_municipality_rows,
+    _list_bronze_cached_candidates,
+    _load_bronze_cached_dataframe,
     _parse_reference_period,
     _parse_root_candidates,
     _select_best_ftp_file,
@@ -118,3 +125,50 @@ def test_parse_root_candidates_uses_default_when_empty() -> None:
 def test_parse_root_candidates_splits_and_trims() -> None:
     parsed = _parse_root_candidates(" /a , /b,/c ")
     assert parsed == ("/a", "/b", "/c")
+
+
+def test_list_bronze_cached_candidates_orders_by_mtime() -> None:
+    root = Path("data") / f"mte_cache_test_{uuid4().hex}"
+    root.mkdir(parents=True, exist_ok=True)
+    try:
+        bronze_root = root / "data" / "bronze"
+        base = bronze_root / "mte" / "mte_novo_caged" / "2024"
+        older = base / "extracted_at=2026-02-10T10-00-00Z" / "raw.csv"
+        newer = base / "extracted_at=2026-02-10T11-00-00Z" / "raw.txt"
+        older.parent.mkdir(parents=True, exist_ok=True)
+        newer.parent.mkdir(parents=True, exist_ok=True)
+        older.write_text("a;b\n1;2\n", encoding="utf-8")
+        newer.write_text("a;b\n3;4\n", encoding="utf-8")
+        os.utime(older, (1_700_000_000, 1_700_000_000))
+        os.utime(newer, (1_700_000_060, 1_700_000_060))
+
+        settings = SimpleNamespace(bronze_root=bronze_root)
+        candidates = _list_bronze_cached_candidates(settings, "2024")
+
+        assert [path.name for path in candidates] == ["raw.txt", "raw.csv"]
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def test_load_bronze_cached_dataframe_skips_invalid_candidate() -> None:
+    root = Path("data") / f"mte_cache_test_{uuid4().hex}"
+    root.mkdir(parents=True, exist_ok=True)
+    try:
+        invalid = root / "raw.zip"
+        valid = root / "raw.csv"
+        invalid.write_text("not-a-zip", encoding="utf-8")
+        valid.write_text("municipio;uf;admissoes\nDiamantina;MG;10\n", encoding="utf-8")
+
+        dataframe, source_uri, source_file_name, raw_bytes, suffix, warnings = _load_bronze_cached_dataframe(
+            [invalid, valid]
+        )
+
+        assert dataframe is not None
+        assert len(dataframe) == 1
+        assert source_uri == valid.as_posix()
+        assert source_file_name == "raw.csv"
+        assert suffix == ".csv"
+        assert raw_bytes is not None
+        assert len(warnings) >= 1
+    finally:
+        shutil.rmtree(root, ignore_errors=True)

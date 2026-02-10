@@ -247,6 +247,21 @@ def check_fact_election_result(
             threshold_value=max_missing_ratio,
         )
     )
+
+    territory_missing_ratio = _missing_ratio(
+        session,
+        "silver.fact_election_result",
+        "territory_id IS NULL",
+    )
+    results.append(
+        CheckResult(
+            name="territory_id_missing_ratio",
+            status="pass" if territory_missing_ratio <= max_missing_ratio else "fail",
+            details="territory_id must be resolved.",
+            observed_value=territory_missing_ratio,
+            threshold_value=max_missing_ratio,
+        )
+    )
     return results
 
 
@@ -286,6 +301,36 @@ def check_fact_indicator(
             threshold_value=max_missing_ratio,
         )
     )
+
+    missing_value_ratio = _missing_ratio(
+        session,
+        "silver.fact_indicator",
+        "value IS NULL",
+    )
+    results.append(
+        CheckResult(
+            name="value_missing_ratio",
+            status="pass" if missing_value_ratio <= max_missing_ratio else "fail",
+            details="value must be populated.",
+            observed_value=missing_value_ratio,
+            threshold_value=max_missing_ratio,
+        )
+    )
+
+    missing_territory_ratio = _missing_ratio(
+        session,
+        "silver.fact_indicator",
+        "territory_id IS NULL",
+    )
+    results.append(
+        CheckResult(
+            name="territory_id_missing_ratio",
+            status="pass" if missing_territory_ratio <= max_missing_ratio else "fail",
+            details="territory_id must be resolved.",
+            observed_value=missing_territory_ratio,
+            threshold_value=max_missing_ratio,
+        )
+    )
     return results
 
 
@@ -308,22 +353,13 @@ def check_ops_pipeline_runs(
     )
 
     for job_name in jobs:
-        if job_name == "labor_mte_fetch":
-            sql = """
-                SELECT COUNT(*)
-                FROM ops.pipeline_runs
-                WHERE job_name = :job_name
-                  AND reference_period = :reference_period
-                  AND status IN ('success', 'blocked')
-            """
-        else:
-            sql = """
-                SELECT COUNT(*)
-                FROM ops.pipeline_runs
-                WHERE job_name = :job_name
-                  AND reference_period = :reference_period
-                  AND status = 'success'
-            """
+        sql = """
+            SELECT COUNT(*)
+            FROM ops.pipeline_runs
+            WHERE job_name = :job_name
+              AND reference_period = :reference_period
+              AND status = 'success'
+        """
 
         successful_runs = _scalar(
             session,

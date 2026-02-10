@@ -48,6 +48,14 @@ def _normalize_text(value: str) -> str:
     return "".join(ch for ch in normalized if not unicodedata.combining(ch))
 
 
+def _safe_log(logger: Any, level: str, event: str, **kwargs: Any) -> None:
+    try:
+        getattr(logger, level)(event, **kwargs)
+    except Exception:
+        # Logging should never break pipeline control flow.
+        pass
+
+
 def _normalize_column_name(value: str) -> str:
     base = _normalize_text(value)
     return re.sub(r"[^a-z0-9]+", "_", base).strip("_")
@@ -189,6 +197,49 @@ def _load_dataframe_from_bytes(raw_bytes: bytes, *, suffix: str) -> pd.DataFrame
 
 def _load_manual_dataframe(path: Path) -> pd.DataFrame:
     return _load_dataframe_from_bytes(path.read_bytes(), suffix=path.suffix)
+
+
+def _load_manual_source(path: Path) -> tuple[pd.DataFrame, bytes, str]:
+    raw_bytes = path.read_bytes()
+    suffix = path.suffix.casefold()
+    return _load_dataframe_from_bytes(raw_bytes, suffix=suffix), raw_bytes, suffix
+
+
+def _list_bronze_cached_candidates(settings: Settings, reference_year: str) -> list[Path]:
+    cache_root = settings.bronze_root / SOURCE.casefold() / DATASET_NAME / reference_year
+    if not cache_root.exists():
+        return []
+    candidates = [
+        path
+        for path in cache_root.rglob("raw.*")
+        if path.is_file() and _is_tabular_candidate(path.name)
+    ]
+    return sorted(candidates, key=lambda p: p.stat().st_mtime, reverse=True)
+
+
+def _load_bronze_cached_dataframe(
+    candidates: list[Path],
+) -> tuple[pd.DataFrame | None, str | None, str | None, bytes | None, str | None, list[str]]:
+    warnings: list[str] = []
+    for candidate in candidates:
+        try:
+            raw_bytes = candidate.read_bytes()
+            suffix = candidate.suffix.casefold()
+            dataframe = _load_dataframe_from_bytes(raw_bytes, suffix=suffix)
+            return (
+                dataframe,
+                candidate.as_posix(),
+                candidate.name,
+                raw_bytes,
+                suffix,
+                warnings,
+            )
+        except Exception as exc:
+            warnings.append(f"MTE Bronze cache parse failed for '{candidate.name}': {exc}")
+
+    if candidates:
+        warnings.append("No valid tabular file could be loaded from MTE Bronze cache.")
+    return None, None, None, None, None, warnings
 
 
 def _ftp_path_join(base_path: str, entry_name: str) -> str:
@@ -365,7 +416,7 @@ def _load_ftp_dataframe(
     root_candidates: tuple[str, ...],
     max_depth: int,
     max_dirs: int,
-) -> tuple[pd.DataFrame | None, str | None, list[str]]:
+) -> tuple[pd.DataFrame | None, str | None, str | None, bytes | None, str | None, list[str]]:
     warnings: list[str] = []
     ftp = ftplib.FTP()
     try:
@@ -380,18 +431,19 @@ def _load_ftp_dataframe(
         )
         if root is None:
             warnings.append("MTE FTP root path not reachable.")
-            return None, None, warnings
+            return None, None, None, None, None, warnings
         selected_path = _select_best_ftp_file(candidate_paths, reference_year)
         if selected_path is None:
             warnings.append("No MTE FTP dataset file was discovered for the requested period.")
-            return None, None, warnings
+            return None, None, None, None, None, warnings
         raw_bytes = _download_ftp_file(ftp, selected_path)
-        dataframe = _load_dataframe_from_bytes(raw_bytes, suffix=Path(selected_path).suffix)
+        suffix = Path(selected_path).suffix.casefold()
+        dataframe = _load_dataframe_from_bytes(raw_bytes, suffix=suffix)
         source_uri = f"ftp://{ftp_host}{selected_path}"
-        return dataframe, source_uri, warnings
+        return dataframe, source_uri, Path(selected_path).name, raw_bytes, suffix, warnings
     except Exception as exc:
         warnings.append(f"MTE FTP access failed: {exc}")
-        return None, None, warnings
+        return None, None, None, None, None, warnings
     finally:
         try:
             ftp.quit()
@@ -629,8 +681,12 @@ def run(
         source_type: str | None = None
         source_uri: str | None = None
         source_file_name: str | None = None
+        source_raw_bytes: bytes | None = None
+        source_suffix: str | None = None
 
-        raw_df, ftp_uri, ftp_warnings = _load_ftp_dataframe(
+        bronze_cache_candidates = _list_bronze_cached_candidates(settings, parsed_reference_period)
+
+        raw_df, ftp_uri, ftp_file_name, ftp_raw_bytes, ftp_suffix, ftp_warnings = _load_ftp_dataframe(
             reference_year=parsed_reference_period,
             timeout_seconds=timeout_seconds,
             ftp_host=ftp_host,
@@ -643,25 +699,47 @@ def run(
         if raw_df is not None:
             source_type = "ftp"
             source_uri = ftp_uri
+            source_file_name = ftp_file_name
+            source_raw_bytes = ftp_raw_bytes
+            source_suffix = ftp_suffix
+
+        if raw_df is None:
+            (
+                raw_df,
+                cache_uri,
+                cache_file_name,
+                cache_raw_bytes,
+                cache_suffix,
+                cache_warnings,
+            ) = _load_bronze_cached_dataframe(bronze_cache_candidates)
+            warnings.extend(cache_warnings)
+            if raw_df is not None:
+                source_type = "bronze_cache"
+                source_uri = cache_uri
+                source_file_name = cache_file_name
+                source_raw_bytes = cache_raw_bytes
+                source_suffix = cache_suffix
 
         manual_dir = settings.data_root / MANUAL_MTE_DIR.relative_to("data")
         manual_candidates = _list_manual_candidates(manual_dir)
         selected_manual_file = manual_candidates[0] if manual_candidates else None
 
         if raw_df is None and selected_manual_file is not None:
-            raw_df = _load_manual_dataframe(selected_manual_file)
+            raw_df, manual_raw_bytes, manual_suffix = _load_manual_source(selected_manual_file)
             source_type = "manual"
             source_uri = selected_manual_file.as_posix()
             source_file_name = selected_manual_file.name
+            source_raw_bytes = manual_raw_bytes
+            source_suffix = manual_suffix
 
         if raw_df is None:
             warning = (
-                "No MTE dataset available automatically (FTP) and no manual file "
+                "No MTE dataset available automatically (FTP/Bronze cache) and no manual file "
                 "found in data/manual/mte."
             )
             if remote_probe.get("requires_login"):
                 warning = (
-                    "MTE portal requires login and no FTP/manual dataset was available. "
+                    "MTE portal requires login and no FTP/Bronze cache/manual dataset was available. "
                     "Provide a CSV/TXT/ZIP in data/manual/mte."
                 )
             warnings.append(warning)
@@ -682,6 +760,13 @@ def run(
                     "name": "mte_ftp_dataset_available",
                     "status": "warn",
                     "details": "No FTP dataset file could be downloaded for the requested period.",
+                    "observed_value": 0,
+                    "threshold_value": 1,
+                },
+                {
+                    "name": "mte_bronze_cache_dataset_available",
+                    "status": "warn",
+                    "details": "No valid tabular dataset found in MTE Bronze cache.",
                     "observed_value": 0,
                     "threshold_value": 1,
                 },
@@ -708,6 +793,7 @@ def run(
                     "preview": {
                         "remote_probe": remote_probe,
                         "manual_dir": manual_dir.as_posix(),
+                        "bronze_cache_candidates": [path.name for path in bronze_cache_candidates],
                         "ftp_host": ftp_host,
                         "ftp_root_candidates": list(root_candidates),
                     },
@@ -719,6 +805,7 @@ def run(
                     "remote_probe": remote_probe,
                     "manual_dir": manual_dir.as_posix(),
                     "manual_candidates": [path.name for path in manual_candidates],
+                    "bronze_cache_candidates": [path.name for path in bronze_cache_candidates],
                     "ftp_host": ftp_host,
                     "ftp_root_candidates": list(root_candidates),
                     "warnings": warnings,
@@ -734,9 +821,9 @@ def run(
                 extension=".json",
                 uri=MTE_MICRODATA_URL,
                 territory_scope="municipality",
-                dataset_version="ftp-manual-fallback-v1",
+                dataset_version="ftp-bronze-manual-fallback-v2",
                 checks=checks,
-                notes="MTE connector blocked: no FTP dataset and no manual file available.",
+                notes="MTE connector blocked: no FTP, Bronze cache, or manual dataset available.",
                 run_id=run_id,
                 tables_written=[],
                 rows_written=[],
@@ -765,6 +852,7 @@ def run(
                     details={
                         "remote_probe": remote_probe,
                         "manual_dir": manual_dir.as_posix(),
+                        "bronze_cache_candidates": [path.name for path in bronze_cache_candidates],
                         "ftp_host": ftp_host,
                         "ftp_root_candidates": list(root_candidates),
                     },
@@ -815,6 +903,7 @@ def run(
                 "preview": {
                     "source_type": source_type,
                     "source_uri": source_uri,
+                    "source_file_name": source_file_name,
                     "raw_rows": len(raw_df),
                     "filtered_rows": len(filtered_df),
                     "indicator_codes": [row["indicator_code"] for row in load_rows],
@@ -912,19 +1001,26 @@ def run(
                 for row in load_rows
             ],
         }
-        raw_bytes = json.dumps(bronze_payload, ensure_ascii=False).encode("utf-8")
+        bronze_raw_bytes: bytes
+        bronze_extension: str
+        if source_raw_bytes is not None and source_suffix is not None:
+            bronze_raw_bytes = source_raw_bytes
+            bronze_extension = source_suffix
+        else:
+            bronze_raw_bytes = json.dumps(bronze_payload, ensure_ascii=False).encode("utf-8")
+            bronze_extension = ".json"
         artifact = persist_raw_bytes(
             settings=settings,
             source=SOURCE,
             dataset=DATASET_NAME,
             reference_period=parsed_reference_period,
-            raw_bytes=raw_bytes,
-            extension=".json",
+            raw_bytes=bronze_raw_bytes,
+            extension=bronze_extension,
             uri=source_uri or MTE_MICRODATA_URL,
             territory_scope="municipality",
-            dataset_version="ftp-manual-fallback-v1",
+            dataset_version="ftp-bronze-manual-fallback-v2",
             checks=checks,
-            notes="MTE dataset parsed (FTP or manual fallback) and indicators upserted.",
+            notes="MTE dataset parsed (FTP, Bronze cache, or manual fallback) and indicators upserted.",
             run_id=run_id,
             tables_written=["silver.fact_indicator"],
             rows_written=[{"table": "silver.fact_indicator", "rows": rows_written}],
@@ -953,6 +1049,7 @@ def run(
                 details={
                     "source_type": source_type,
                     "source_uri": source_uri,
+                    "source_file_name": source_file_name,
                     "rows_raw": len(raw_df),
                     "rows_filtered": len(filtered_df),
                 },
@@ -960,7 +1057,9 @@ def run(
             replace_pipeline_checks_from_dicts(session=session, run_id=run_id, checks=checks)
 
         elapsed = time.perf_counter() - started_at
-        logger.info(
+        _safe_log(
+            logger,
+            "info",
             "MTE labor job finished.",
             run_id=run_id,
             source_type=source_type,
@@ -1002,12 +1101,16 @@ def run(
                         details={"error": str(exc)},
                     )
             except Exception:
-                logger.exception(
+                _safe_log(
+                    logger,
+                    "exception",
                     "Could not persist failed pipeline run in ops tables.",
                     run_id=run_id,
                 )
 
-        logger.exception(
+        _safe_log(
+            logger,
+            "exception",
             "MTE labor job failed.",
             run_id=run_id,
             duration_seconds=round(elapsed, 2),

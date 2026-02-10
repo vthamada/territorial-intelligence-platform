@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Operar o conector `labor_mte_fetch` com prioridade para ingestao automatica via FTP e fallback manual.
+Operar o conector `labor_mte_fetch` com automacao via FTP, fallback por cache Bronze e fallback manual apenas em contingencia.
 
 ## Fonte primaria
 
@@ -23,8 +23,9 @@ Operar o conector `labor_mte_fetch` com prioridade para ingestao automatica via 
 
 1. Faz probe da pagina web do MTE (apenas observabilidade de bloqueio/login).
 2. Tenta descobrir e baixar arquivo de dados no FTP para o ano de `reference_period`.
-3. Se FTP nao retornar arquivo utilizavel, tenta fallback manual em `data/manual/mte`.
-4. Se nao houver FTP nem arquivo manual, retorna `status=blocked`.
+3. Se FTP nao retornar arquivo utilizavel, tenta reutilizar ultimo arquivo tabular valido do Bronze para o mesmo `reference_period`.
+4. Se ainda nao houver dado utilizavel, tenta fallback manual em `data/manual/mte`.
+5. Se nao houver FTP, cache Bronze nem arquivo manual, retorna `status=blocked`.
 
 ## Formatos aceitos
 
@@ -47,9 +48,22 @@ python -c "import json; from pipelines.mte_labor import run; print(json.dumps(ru
 python -c "import json; from pipelines.mte_labor import run; print(json.dumps(run(reference_period='2024', dry_run=False), ensure_ascii=False, indent=2, default=str))"
 ```
 
+3. Validacao P0 (3 execucoes reais consecutivas):
+
+```powershell
+python scripts/validate_mte_p0.py --reference-period 2025 --runs 3 --bootstrap-municipality --output-json
+```
+
+Opcional via Makefile:
+
+```powershell
+make validate-mte-p0
+```
+
 ## Interpretacao rapida do resultado
 
 - `status=success` e `preview/source_type=ftp`: ingestao automatica via FTP.
+- `status=success` e `preview/source_type=bronze_cache`: FTP indisponivel, mas foi usado cache Bronze automaticamente.
 - `status=success` e `preview/source_type=manual`: fallback manual usado.
 - `status=blocked`: nao encontrou dado no FTP e nao havia arquivo manual.
 
@@ -75,7 +89,8 @@ Dica operacional:
 
 1. `No MTE FTP dataset file was discovered...`
    - Verifique conectividade FTP no ambiente.
-   - Rode com fallback manual.
+   - O conector tentara cache Bronze automaticamente.
+   - Se ainda falhar, rode com fallback manual.
 
 2. `Could not parse tabular file...`
    - Validar delimitador e encoding do arquivo.
