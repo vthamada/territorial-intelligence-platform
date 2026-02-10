@@ -77,8 +77,8 @@ def list_pipeline_runs(
                     CAST(:reference_period AS TEXT) IS NULL
                     OR reference_period = CAST(:reference_period AS TEXT)
                   )
-              AND (:started_from IS NULL OR started_at_utc >= :started_from)
-              AND (:started_to IS NULL OR started_at_utc <= :started_to)
+              AND (CAST(:started_from AS TIMESTAMPTZ) IS NULL OR started_at_utc >= CAST(:started_from AS TIMESTAMPTZ))
+              AND (CAST(:started_to AS TIMESTAMPTZ) IS NULL OR started_at_utc <= CAST(:started_to AS TIMESTAMPTZ))
             """
         ),
         params,
@@ -117,8 +117,8 @@ def list_pipeline_runs(
                     CAST(:reference_period AS TEXT) IS NULL
                     OR reference_period = CAST(:reference_period AS TEXT)
                   )
-              AND (:started_from IS NULL OR started_at_utc >= :started_from)
-              AND (:started_to IS NULL OR started_at_utc <= :started_to)
+              AND (CAST(:started_from AS TIMESTAMPTZ) IS NULL OR started_at_utc >= CAST(:started_from AS TIMESTAMPTZ))
+              AND (CAST(:started_to AS TIMESTAMPTZ) IS NULL OR started_at_utc <= CAST(:started_to AS TIMESTAMPTZ))
             ORDER BY started_at_utc DESC, run_id DESC
             LIMIT :limit OFFSET :offset
             """
@@ -168,8 +168,8 @@ def list_pipeline_checks(
               AND (CAST(:job_name AS TEXT) IS NULL OR pr.job_name = CAST(:job_name AS TEXT))
               AND (CAST(:status AS TEXT) IS NULL OR pc.status = CAST(:status AS TEXT))
               AND (CAST(:check_name AS TEXT) IS NULL OR pc.check_name = CAST(:check_name AS TEXT))
-              AND (:created_from IS NULL OR pc.created_at_utc >= :created_from)
-              AND (:created_to IS NULL OR pc.created_at_utc <= :created_to)
+              AND (CAST(:created_from AS TIMESTAMPTZ) IS NULL OR pc.created_at_utc >= CAST(:created_from AS TIMESTAMPTZ))
+              AND (CAST(:created_to AS TIMESTAMPTZ) IS NULL OR pc.created_at_utc <= CAST(:created_to AS TIMESTAMPTZ))
             """
         ),
         params,
@@ -198,8 +198,8 @@ def list_pipeline_checks(
               AND (CAST(:job_name AS TEXT) IS NULL OR pr.job_name = CAST(:job_name AS TEXT))
               AND (CAST(:status AS TEXT) IS NULL OR pc.status = CAST(:status AS TEXT))
               AND (CAST(:check_name AS TEXT) IS NULL OR pc.check_name = CAST(:check_name AS TEXT))
-              AND (:created_from IS NULL OR pc.created_at_utc >= :created_from)
-              AND (:created_to IS NULL OR pc.created_at_utc <= :created_to)
+              AND (CAST(:created_from AS TIMESTAMPTZ) IS NULL OR pc.created_at_utc >= CAST(:created_from AS TIMESTAMPTZ))
+              AND (CAST(:created_to AS TIMESTAMPTZ) IS NULL OR pc.created_at_utc <= CAST(:created_to AS TIMESTAMPTZ))
             ORDER BY pc.created_at_utc DESC, pc.check_id DESC
             LIMIT :limit OFFSET :offset
             """
@@ -251,8 +251,8 @@ def list_connector_registry(
               AND (CAST(:source AS TEXT) IS NULL OR source = CAST(:source AS TEXT))
               AND (CAST(:wave AS TEXT) IS NULL OR wave = CAST(:wave AS TEXT))
               AND (CAST(:status AS TEXT) IS NULL OR status::text = CAST(:status AS TEXT))
-              AND (:updated_from IS NULL OR updated_at_utc >= :updated_from)
-              AND (:updated_to IS NULL OR updated_at_utc <= :updated_to)
+              AND (CAST(:updated_from AS TIMESTAMPTZ) IS NULL OR updated_at_utc >= CAST(:updated_from AS TIMESTAMPTZ))
+              AND (CAST(:updated_to AS TIMESTAMPTZ) IS NULL OR updated_at_utc <= CAST(:updated_to AS TIMESTAMPTZ))
             """
         ),
         params,
@@ -276,8 +276,8 @@ def list_connector_registry(
               AND (CAST(:source AS TEXT) IS NULL OR source = CAST(:source AS TEXT))
               AND (CAST(:wave AS TEXT) IS NULL OR wave = CAST(:wave AS TEXT))
               AND (CAST(:status AS TEXT) IS NULL OR status::text = CAST(:status AS TEXT))
-              AND (:updated_from IS NULL OR updated_at_utc >= :updated_from)
-              AND (:updated_to IS NULL OR updated_at_utc <= :updated_to)
+              AND (CAST(:updated_from AS TIMESTAMPTZ) IS NULL OR updated_at_utc >= CAST(:updated_from AS TIMESTAMPTZ))
+              AND (CAST(:updated_to AS TIMESTAMPTZ) IS NULL OR updated_at_utc <= CAST(:updated_to AS TIMESTAMPTZ))
             ORDER BY wave, connector_name
             LIMIT :limit OFFSET :offset
             """
@@ -342,8 +342,8 @@ def get_ops_summary(
                     OR pr.reference_period = CAST(:reference_period AS TEXT)
                   )
               AND (CAST(:run_status AS TEXT) IS NULL OR pr.status = CAST(:run_status AS TEXT))
-              AND (:started_from IS NULL OR pr.started_at_utc >= :started_from)
-              AND (:started_to IS NULL OR pr.started_at_utc <= :started_to)
+              AND (CAST(:started_from AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc >= CAST(:started_from AS TIMESTAMPTZ))
+              AND (CAST(:started_to AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc <= CAST(:started_to AS TIMESTAMPTZ))
             """
         ),
         params,
@@ -363,8 +363,8 @@ def get_ops_summary(
                     OR pr.reference_period = CAST(:reference_period AS TEXT)
                   )
               AND (CAST(:run_status AS TEXT) IS NULL OR pr.status = CAST(:run_status AS TEXT))
-              AND (:started_from IS NULL OR pr.started_at_utc >= :started_from)
-              AND (:started_to IS NULL OR pr.started_at_utc <= :started_to)
+              AND (CAST(:started_from AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc >= CAST(:started_from AS TIMESTAMPTZ))
+              AND (CAST(:started_to AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc <= CAST(:started_to AS TIMESTAMPTZ))
             GROUP BY pr.status
             ORDER BY pr.status
             """
@@ -386,8 +386,8 @@ def get_ops_summary(
                     OR pr.reference_period = CAST(:reference_period AS TEXT)
                   )
               AND (CAST(:run_status AS TEXT) IS NULL OR pr.status = CAST(:run_status AS TEXT))
-              AND (:started_from IS NULL OR pr.started_at_utc >= :started_from)
-              AND (:started_to IS NULL OR pr.started_at_utc <= :started_to)
+              AND (CAST(:started_from AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc >= CAST(:started_from AS TIMESTAMPTZ))
+              AND (CAST(:started_to AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc <= CAST(:started_to AS TIMESTAMPTZ))
             GROUP BY COALESCE(pr.wave, 'unknown')
             ORDER BY wave
             """
@@ -409,8 +409,8 @@ def get_ops_summary(
                     OR pr.reference_period = CAST(:reference_period AS TEXT)
                   )
               AND (CAST(:run_status AS TEXT) IS NULL OR pr.status = CAST(:run_status AS TEXT))
-              AND (:started_from IS NULL OR pr.started_at_utc >= :started_from)
-              AND (:started_to IS NULL OR pr.started_at_utc <= :started_to)
+              AND (CAST(:started_from AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc >= CAST(:started_from AS TIMESTAMPTZ))
+              AND (CAST(:started_to AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc <= CAST(:started_to AS TIMESTAMPTZ))
             """
         ),
         params,
@@ -432,10 +432,10 @@ def get_ops_summary(
                   )
               AND (CAST(:run_status AS TEXT) IS NULL OR pr.status = CAST(:run_status AS TEXT))
               AND (CAST(:check_status AS TEXT) IS NULL OR pc.status = CAST(:check_status AS TEXT))
-              AND (:started_from IS NULL OR pr.started_at_utc >= :started_from)
-              AND (:started_to IS NULL OR pr.started_at_utc <= :started_to)
-              AND (:created_from IS NULL OR pc.created_at_utc >= :created_from)
-              AND (:created_to IS NULL OR pc.created_at_utc <= :created_to)
+              AND (CAST(:started_from AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc >= CAST(:started_from AS TIMESTAMPTZ))
+              AND (CAST(:started_to AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc <= CAST(:started_to AS TIMESTAMPTZ))
+              AND (CAST(:created_from AS TIMESTAMPTZ) IS NULL OR pc.created_at_utc >= CAST(:created_from AS TIMESTAMPTZ))
+              AND (CAST(:created_to AS TIMESTAMPTZ) IS NULL OR pc.created_at_utc <= CAST(:created_to AS TIMESTAMPTZ))
             """
         ),
         params,
@@ -457,10 +457,10 @@ def get_ops_summary(
                   )
               AND (CAST(:run_status AS TEXT) IS NULL OR pr.status = CAST(:run_status AS TEXT))
               AND (CAST(:check_status AS TEXT) IS NULL OR pc.status = CAST(:check_status AS TEXT))
-              AND (:started_from IS NULL OR pr.started_at_utc >= :started_from)
-              AND (:started_to IS NULL OR pr.started_at_utc <= :started_to)
-              AND (:created_from IS NULL OR pc.created_at_utc >= :created_from)
-              AND (:created_to IS NULL OR pc.created_at_utc <= :created_to)
+              AND (CAST(:started_from AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc >= CAST(:started_from AS TIMESTAMPTZ))
+              AND (CAST(:started_to AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc <= CAST(:started_to AS TIMESTAMPTZ))
+              AND (CAST(:created_from AS TIMESTAMPTZ) IS NULL OR pc.created_at_utc >= CAST(:created_from AS TIMESTAMPTZ))
+              AND (CAST(:created_to AS TIMESTAMPTZ) IS NULL OR pc.created_at_utc <= CAST(:created_to AS TIMESTAMPTZ))
             GROUP BY pc.status
             ORDER BY pc.status
             """
@@ -484,10 +484,10 @@ def get_ops_summary(
                   )
               AND (CAST(:run_status AS TEXT) IS NULL OR pr.status = CAST(:run_status AS TEXT))
               AND (CAST(:check_status AS TEXT) IS NULL OR pc.status = CAST(:check_status AS TEXT))
-              AND (:started_from IS NULL OR pr.started_at_utc >= :started_from)
-              AND (:started_to IS NULL OR pr.started_at_utc <= :started_to)
-              AND (:created_from IS NULL OR pc.created_at_utc >= :created_from)
-              AND (:created_to IS NULL OR pc.created_at_utc <= :created_to)
+              AND (CAST(:started_from AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc >= CAST(:started_from AS TIMESTAMPTZ))
+              AND (CAST(:started_to AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc <= CAST(:started_to AS TIMESTAMPTZ))
+              AND (CAST(:created_from AS TIMESTAMPTZ) IS NULL OR pc.created_at_utc >= CAST(:created_from AS TIMESTAMPTZ))
+              AND (CAST(:created_to AS TIMESTAMPTZ) IS NULL OR pc.created_at_utc <= CAST(:created_to AS TIMESTAMPTZ))
             """
         ),
         params,
@@ -504,8 +504,8 @@ def get_ops_summary(
                     CAST(:connector_status AS TEXT) IS NULL
                     OR cr.status::text = CAST(:connector_status AS TEXT)
                   )
-              AND (:updated_from IS NULL OR cr.updated_at_utc >= :updated_from)
-              AND (:updated_to IS NULL OR cr.updated_at_utc <= :updated_to)
+              AND (CAST(:updated_from AS TIMESTAMPTZ) IS NULL OR cr.updated_at_utc >= CAST(:updated_from AS TIMESTAMPTZ))
+              AND (CAST(:updated_to AS TIMESTAMPTZ) IS NULL OR cr.updated_at_utc <= CAST(:updated_to AS TIMESTAMPTZ))
             """
         ),
         params,
@@ -522,8 +522,8 @@ def get_ops_summary(
                     CAST(:connector_status AS TEXT) IS NULL
                     OR cr.status::text = CAST(:connector_status AS TEXT)
                   )
-              AND (:updated_from IS NULL OR cr.updated_at_utc >= :updated_from)
-              AND (:updated_to IS NULL OR cr.updated_at_utc <= :updated_to)
+              AND (CAST(:updated_from AS TIMESTAMPTZ) IS NULL OR cr.updated_at_utc >= CAST(:updated_from AS TIMESTAMPTZ))
+              AND (CAST(:updated_to AS TIMESTAMPTZ) IS NULL OR cr.updated_at_utc <= CAST(:updated_to AS TIMESTAMPTZ))
             GROUP BY cr.status::text
             ORDER BY status
             """
@@ -542,8 +542,8 @@ def get_ops_summary(
                     CAST(:connector_status AS TEXT) IS NULL
                     OR cr.status::text = CAST(:connector_status AS TEXT)
                   )
-              AND (:updated_from IS NULL OR cr.updated_at_utc >= :updated_from)
-              AND (:updated_to IS NULL OR cr.updated_at_utc <= :updated_to)
+              AND (CAST(:updated_from AS TIMESTAMPTZ) IS NULL OR cr.updated_at_utc >= CAST(:updated_from AS TIMESTAMPTZ))
+              AND (CAST(:updated_to AS TIMESTAMPTZ) IS NULL OR cr.updated_at_utc <= CAST(:updated_to AS TIMESTAMPTZ))
             GROUP BY cr.wave
             ORDER BY cr.wave
             """
@@ -562,8 +562,8 @@ def get_ops_summary(
                     CAST(:connector_status AS TEXT) IS NULL
                     OR cr.status::text = CAST(:connector_status AS TEXT)
                   )
-              AND (:updated_from IS NULL OR cr.updated_at_utc >= :updated_from)
-              AND (:updated_to IS NULL OR cr.updated_at_utc <= :updated_to)
+              AND (CAST(:updated_from AS TIMESTAMPTZ) IS NULL OR cr.updated_at_utc >= CAST(:updated_from AS TIMESTAMPTZ))
+              AND (CAST(:updated_to AS TIMESTAMPTZ) IS NULL OR cr.updated_at_utc <= CAST(:updated_to AS TIMESTAMPTZ))
             """
         ),
         params,
@@ -666,8 +666,8 @@ def get_ops_sla(
                     OR pr.reference_period = CAST(:reference_period AS TEXT)
                   )
               AND (CAST(:run_status AS TEXT) IS NULL OR pr.status = CAST(:run_status AS TEXT))
-              AND (:started_from IS NULL OR pr.started_at_utc >= :started_from)
-              AND (:started_to IS NULL OR pr.started_at_utc <= :started_to)
+              AND (CAST(:started_from AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc >= CAST(:started_from AS TIMESTAMPTZ))
+              AND (CAST(:started_to AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc <= CAST(:started_to AS TIMESTAMPTZ))
             GROUP BY
                 pr.job_name,
                 COALESCE(pr.source, 'unknown'),
@@ -761,8 +761,8 @@ def get_ops_timeseries(
                         OR pr.reference_period = CAST(:reference_period AS TEXT)
                       )
                   AND (CAST(:run_status AS TEXT) IS NULL OR pr.status = CAST(:run_status AS TEXT))
-                  AND (:started_from IS NULL OR pr.started_at_utc >= :started_from)
-                  AND (:started_to IS NULL OR pr.started_at_utc <= :started_to)
+                  AND (CAST(:started_from AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc >= CAST(:started_from AS TIMESTAMPTZ))
+                  AND (CAST(:started_to AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc <= CAST(:started_to AS TIMESTAMPTZ))
                 GROUP BY bucket_start_utc, pr.status
                 ORDER BY bucket_start_utc ASC, pr.status ASC
                 """
@@ -792,10 +792,10 @@ def get_ops_timeseries(
                         CAST(:check_status AS TEXT) IS NULL
                         OR pc.status = CAST(:check_status AS TEXT)
                       )
-                  AND (:started_from IS NULL OR pr.started_at_utc >= :started_from)
-                  AND (:started_to IS NULL OR pr.started_at_utc <= :started_to)
-                  AND (:created_from IS NULL OR pc.created_at_utc >= :created_from)
-                  AND (:created_to IS NULL OR pc.created_at_utc <= :created_to)
+                  AND (CAST(:started_from AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc >= CAST(:started_from AS TIMESTAMPTZ))
+                  AND (CAST(:started_to AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc <= CAST(:started_to AS TIMESTAMPTZ))
+                  AND (CAST(:created_from AS TIMESTAMPTZ) IS NULL OR pc.created_at_utc >= CAST(:created_from AS TIMESTAMPTZ))
+                  AND (CAST(:created_to AS TIMESTAMPTZ) IS NULL OR pc.created_at_utc <= CAST(:created_to AS TIMESTAMPTZ))
                 GROUP BY bucket_start_utc, pc.status
                 ORDER BY bucket_start_utc ASC, pc.status ASC
                 """
@@ -808,3 +808,4 @@ def get_ops_timeseries(
         "granularity": granularity,
         "items": _aggregate_timeseries_rows([dict(row) for row in rows]),
     }
+
