@@ -7,14 +7,15 @@ from uuid import uuid4
 from app.db import session_scope
 from app.logging import get_logger
 from app.settings import get_settings
+from pipelines.common.observability import replace_pipeline_checks, upsert_pipeline_run
 from pipelines.common.quality import (
     CheckResult,
     check_dim_territory,
     check_fact_election_result,
     check_fact_electorate,
     check_fact_indicator,
+    check_ops_pipeline_runs,
 )
-from pipelines.common.observability import replace_pipeline_checks, upsert_pipeline_run
 from pipelines.common.quality_thresholds import load_quality_thresholds
 
 JOB_NAME = "quality_suite"
@@ -63,6 +64,7 @@ def run(
         results.extend(check_fact_electorate(session, settings.municipality_ibge_code, thresholds))
         results.extend(check_fact_election_result(session, thresholds))
         results.extend(check_fact_indicator(session, thresholds))
+        results.extend(check_ops_pipeline_runs(session, reference_period, thresholds))
 
     has_fail = any(result.status == "fail" for result in results)
     finished_at = datetime.now(UTC)

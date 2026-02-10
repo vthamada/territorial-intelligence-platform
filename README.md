@@ -27,6 +27,13 @@ MVP bootstrap for the Diamantina/MG territorial intelligence platform, aligned w
 
 - Versioned base path: `/v1`
 - Health endpoint: `/v1/health`
+- Ops endpoints:
+  - `/v1/ops/pipeline-runs`
+  - `/v1/ops/pipeline-checks`
+  - `/v1/ops/connector-registry`
+  - `pipeline-runs` supports `started_from` and `started_to` filters
+  - `pipeline-checks` supports `created_from` and `created_to` filters
+  - `connector-registry` supports `updated_from` and `updated_to` filters
 - Standard error payload:
   - `{\"error\": {\"code\": \"...\", \"message\": \"...\", \"details\": {...}, \"request_id\": \"...\"}}`
 
@@ -34,8 +41,21 @@ MVP bootstrap for the Diamantina/MG territorial intelligence platform, aligned w
 
 - Foundation and schema are implemented with English physical table names.
 - Compatibility views exist for previous Portuguese table names.
-- `ibge_admin_fetch` is implemented (municipality + district discovery and upsert).
-- Remaining source connectors are scaffolded and return `not_implemented`.
+- MVP-1 connectors implemented:
+  - `ibge_admin_fetch`
+  - `ibge_geometries_fetch`
+  - `ibge_indicators_fetch`
+  - `dbt_build`
+  - `quality_suite`
+- MVP-2 connectors implemented:
+  - `tse_catalog_discovery`
+  - `tse_electorate_fetch`
+  - `tse_results_fetch`
+- MVP-3 connectors:
+  - `education_inep_fetch`: implemented with real ingestion
+  - `health_datasus_fetch`: implemented with real ingestion
+  - `finance_siconfi_fetch`: implemented with real ingestion
+  - `labor_mte_fetch`: partial, with FTP-first ingestion (configurable via `.env`) and manual fallback
 - API endpoints from the minimum contract are available under `/v1`.
 - `quality_suite` runs with configurable thresholds.
 - Operational metadata is persisted in `ops.pipeline_runs` and `ops.pipeline_checks`.
@@ -48,6 +68,7 @@ MVP bootstrap for the Diamantina/MG territorial intelligence platform, aligned w
 - Wave definitions: `configs/waves.yml`
 - Connector status registry seed: `configs/connectors.yml`
 - Bronze operating policy: `docs/BRONZE_POLICY.md`
+- MTE operation runbook: `docs/MTE_RUNBOOK.md`
 
 ## Run a flow (example)
 

@@ -1,6 +1,6 @@
 # Territorial Intelligence Platform - Handoff
 
-Data de referencia: 2026-02-09
+Data de referencia: 2026-02-10
 
 ## 1) O que foi implementado ate agora
 
@@ -16,6 +16,15 @@ Data de referencia: 2026-02-09
   - payload padrao `validation_error|http_error|internal_error`
   - cabecalho `x-request-id` garantido em respostas de erro (incluindo 500)
 - Novos testes de contrato em `tests/unit/test_api_contract.py`.
+- Endpoints de observabilidade operacional adicionados:
+  - `GET /v1/ops/pipeline-runs`
+  - `GET /v1/ops/pipeline-checks`
+  - `GET /v1/ops/connector-registry`
+  - filtros + paginacao sobre metadados de `ops.pipeline_runs` e `ops.pipeline_checks`
+  - filtros temporais:
+    - `pipeline-runs`: `started_from` e `started_to`
+    - `pipeline-checks`: `created_from` e `created_to`
+    - `connector-registry`: `updated_from` e `updated_to`
 
 ### Conectores IBGE e TSE
 - Mantidos como implementados e estaveis:
@@ -34,13 +43,16 @@ Data de referencia: 2026-02-09
   - carga de indicadores em `silver.fact_indicator`
 - `labor_mte_fetch`:
   - conector em modo `partial` (bloqueio de login no portal)
-  - probe remoto + fallback manual por `data/manual/mte` (CSV/ZIP)
-  - carga de indicadores quando dataset manual esta disponivel
+  - tentativa automatica via FTP `ftp://ftp.mtps.gov.br/pdet/microdados/`
+  - fallback manual por `data/manual/mte` (CSV/TXT/ZIP)
+  - suporte a derivacao de admissoes/desligamentos/saldo a partir de `saldomovimentacao`
+  - configuracao via `.env` para host/porta/raizes/profundidade/limite de varredura FTP
 
 ### Registro de conectores
 - `configs/connectors.yml` atualizado:
   - `labor_mte_fetch` marcado como `partial`
-  - nota operacional com fallback manual documentado
+  - nota operacional com tentativa FTP + fallback manual documentado
+- runbook operacional adicionado em `docs/MTE_RUNBOOK.md`
 
 ### Testes e ambiente
 - `requirements.txt` adicionado para instalacao no ambiente local.
@@ -50,7 +62,10 @@ Data de referencia: 2026-02-09
   - `tests/unit/test_siconfi_finance.py`
   - `tests/unit/test_mte_labor.py`
   - `tests/unit/test_api_contract.py`
-- Suite validada: `43 passed`.
+  - `tests/unit/test_ops_routes.py`
+  - `tests/unit/test_quality_ops_pipeline_runs.py`
+  - `tests/unit/test_prefect_wave3_flow.py`
+- Suite validada: `58 passed`.
 
 ## 2) Estado operacional atual
 
@@ -58,7 +73,7 @@ Data de referencia: 2026-02-09
 - Conectores MVP-1 e MVP-2: `implemented`.
 - Conectores MVP-3:
   - INEP, DATASUS, SICONFI: `implemented` com ingestao real.
-  - MTE: `partial` por restricao de autenticacao no portal web; operacao via fallback manual.
+  - MTE: `partial` por restricao de autenticacao no portal web; operacao via FTP e fallback manual.
 - `pip check`: sem dependencias quebradas.
 
 ## 3) Arquivos-chave alterados neste ciclo
@@ -68,13 +83,24 @@ Data de referencia: 2026-02-09
 - `src/pipelines/inep_education.py`
 - `src/pipelines/siconfi_finance.py`
 - `src/pipelines/mte_labor.py`
+- `src/app/api/routes_ops.py`
+- `src/app/api/main.py`
+- `src/pipelines/common/quality.py`
+- `src/pipelines/quality_suite.py`
+- `src/app/settings.py`
 - `configs/connectors.yml`
+- `configs/quality_thresholds.yml`
 - `requirements.txt`
 - `tests/unit/test_api_contract.py`
 - `tests/unit/test_datasus_health.py`
 - `tests/unit/test_inep_education.py`
 - `tests/unit/test_siconfi_finance.py`
 - `tests/unit/test_mte_labor.py`
+- `tests/unit/test_ops_routes.py`
+- `tests/unit/test_quality_ops_pipeline_runs.py`
+- `tests/unit/test_prefect_wave3_flow.py`
+- `docs/MTE_RUNBOOK.md`
+- `README.md`
 
 ## 4) Como operar agora (resumo)
 
@@ -90,17 +116,18 @@ Data de referencia: 2026-02-09
 2. `pytest -q -p no:cacheprovider`
 
 ### 4.3 MTE (fluxo atual)
-1. Obter arquivo manual de Novo CAGED (CSV/ZIP) e salvar em `data/manual/mte`.
-2. Executar `labor_mte_fetch`:
+1. O conector tenta baixar automaticamente via FTP do MTE.
+2. Se nao encontrar arquivo via FTP, usar arquivo manual de Novo CAGED (CSV/TXT/ZIP) em `data/manual/mte`.
+3. Executar `labor_mte_fetch`:
    - `dry_run=True` para validar
    - `dry_run=False` para gravar Silver/Bronze/ops
 
 ## 5) Proximos passos recomendados
 
 ### Prioridade alta
-1. Implementar ingestao automatica do MTE via FTP `ftp://ftp.mtps.gov.br/pdet/microdados/` (sem depender de pagina restrita).
-2. Adicionar parser padrao para microdados Novo CAGED bruto (TXT delimitado por `;`) com agregacao municipal.
-3. Criar runbook operacional do MTE (manual + fallback) em `docs/`.
+1. Validar em ambiente real o padrao de nomes de arquivos do FTP para otimizar a selecao automatica.
+2. Adicionar endpoint consolidado de resumo (ex: runs por status e por wave).
+3. Expandir os testes de integracao para tambem cobrir `run_mvp_all`.
 
 ### Prioridade media
 1. Evoluir `dbt_build` para execucao dbt completa (profiles/materializations).

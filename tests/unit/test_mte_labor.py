@@ -6,8 +6,11 @@ import pandas as pd
 
 from pipelines.mte_labor import (
     _build_indicator_rows,
+    _compute_mte_metrics,
     _filter_municipality_rows,
     _parse_reference_period,
+    _parse_root_candidates,
+    _select_best_ftp_file,
 )
 
 
@@ -67,3 +70,51 @@ def test_build_indicator_rows_aggregates_manual_metrics() -> None:
     assert by_code["MTE_NOVO_CAGED_SALDO_TOTAL"]["value"] == Decimal("650")
     assert by_code["MTE_NOVO_CAGED_REGISTROS_TOTAL"]["value"] == Decimal("2")
 
+
+def test_compute_mte_metrics_derives_totals_from_saldo_movimentacao() -> None:
+    df = pd.DataFrame(
+        [
+            {"saldomovimentacao": 1},
+            {"saldomovimentacao": 1},
+            {"saldomovimentacao": -1},
+            {"saldomovimentacao": -1},
+            {"saldomovimentacao": -1},
+        ]
+    )
+    admissions, dismissals, balance = _compute_mte_metrics(df)
+    assert admissions == Decimal("2")
+    assert dismissals == Decimal("3")
+    assert balance == Decimal("-1")
+
+
+def test_select_best_ftp_file_prefers_latest_for_reference_year() -> None:
+    paths = [
+        "/pdet/microdados/NOVO CAGED/2024/CAGEDMOV202401.txt",
+        "/pdet/microdados/NOVO CAGED/2024/CAGEDMOV202402.txt",
+        "/pdet/microdados/NOVO CAGED/2023/CAGEDMOV202312.txt",
+    ]
+    selected = _select_best_ftp_file(paths, "2024")
+    assert selected is not None
+    assert selected.endswith("202402.txt")
+
+
+def test_select_best_ftp_file_matches_reference_year_in_directory() -> None:
+    paths = [
+        "/pdet/microdados/NOVO CAGED/2024/cagedmov.txt",
+        "/pdet/microdados/NOVO CAGED/2023/cagedmov202312.txt",
+    ]
+    selected = _select_best_ftp_file(paths, "2024")
+    assert selected is not None
+    assert "/2024/" in selected
+
+
+def test_parse_root_candidates_uses_default_when_empty() -> None:
+    assert _parse_root_candidates("") == (
+        "/pdet/microdados/NOVO CAGED",
+        "/pdet/microdados/NOVO_CAGED",
+    )
+
+
+def test_parse_root_candidates_splits_and_trims() -> None:
+    parsed = _parse_root_candidates(" /a , /b,/c ")
+    assert parsed == ("/a", "/b", "/c")

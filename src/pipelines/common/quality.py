@@ -84,8 +84,12 @@ def check_dim_territory(
             SELECT
                 COUNT(*) AS total_rows,
                 COUNT(*) FILTER (WHERE geometry IS NULL) AS missing_geometry_rows,
-                COUNT(*) FILTER (WHERE geometry IS NOT NULL AND ST_IsEmpty(geometry)) AS empty_geometry_rows,
-                COUNT(*) FILTER (WHERE geometry IS NOT NULL AND NOT ST_IsValid(geometry)) AS invalid_geometry_rows
+                COUNT(*) FILTER (
+                    WHERE geometry IS NOT NULL AND ST_IsEmpty(geometry)
+                ) AS empty_geometry_rows,
+                COUNT(*) FILTER (
+                    WHERE geometry IS NOT NULL AND NOT ST_IsValid(geometry)
+                ) AS invalid_geometry_rows
             FROM silver.dim_territory
             WHERE municipality_ibge_code = :code
               AND level IN ('municipality', 'district', 'census_sector')
@@ -130,7 +134,11 @@ def check_dim_territory(
         )
     )
 
-    max_invalid_geometry_rows = thresholds.get("dim_territory", "max_invalid_geometry_rows", fallback=0)
+    max_invalid_geometry_rows = thresholds.get(
+        "dim_territory",
+        "max_invalid_geometry_rows",
+        fallback=0,
+    )
     results.append(
         CheckResult(
             name="geometry_invalid_rows",
@@ -278,6 +286,64 @@ def check_fact_indicator(
             threshold_value=max_missing_ratio,
         )
     )
+    return results
+
+
+def check_ops_pipeline_runs(
+    session: Session,
+    reference_period: str,
+    thresholds: QualityThresholds,
+) -> list[CheckResult]:
+    results: list[CheckResult] = []
+    min_successful_runs = thresholds.get(
+        "ops_pipeline_runs",
+        "min_successful_runs_per_job",
+        fallback=1,
+    )
+    jobs = (
+        "education_inep_fetch",
+        "health_datasus_fetch",
+        "finance_siconfi_fetch",
+        "labor_mte_fetch",
+    )
+
+    for job_name in jobs:
+        if job_name == "labor_mte_fetch":
+            sql = """
+                SELECT COUNT(*)
+                FROM ops.pipeline_runs
+                WHERE job_name = :job_name
+                  AND reference_period = :reference_period
+                  AND status IN ('success', 'blocked')
+            """
+        else:
+            sql = """
+                SELECT COUNT(*)
+                FROM ops.pipeline_runs
+                WHERE job_name = :job_name
+                  AND reference_period = :reference_period
+                  AND status = 'success'
+            """
+
+        successful_runs = _scalar(
+            session,
+            sql,
+            {"job_name": job_name, "reference_period": reference_period},
+        )
+        status = "pass" if successful_runs >= min_successful_runs else "warn"
+        results.append(
+            CheckResult(
+                name=f"mvp3_pipeline_run_{job_name}",
+                status=status,
+                details=(
+                    f"Expected at least {min_successful_runs} successful run(s) for "
+                    f"{job_name} in reference period {reference_period}."
+                ),
+                observed_value=successful_runs,
+                threshold_value=min_successful_runs,
+            )
+        )
+
     return results
 
 

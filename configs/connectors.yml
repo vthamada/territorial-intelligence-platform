@@ -48,7 +48,7 @@ connectors:
     source: MTE
     wave: MVP-3
     status: partial
-    notes: Blocked-aware connector with remote login probe and manual CSV/ZIP fallback from data/manual/mte.
+    notes: Tries automatic FTP ingestion first and falls back to manual CSV/TXT/ZIP in data/manual/mte.
   - connector_name: dbt_build
     source: INTERNAL
     wave: MVP-1
