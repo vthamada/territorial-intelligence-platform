@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     app_env: str = "local"
     log_level: str = "INFO"
     api_version_prefix: str = "/v1"
+    cors_allow_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/territorial_intelligence"
     municipality_ibge_code: str = "3121605"
@@ -40,6 +41,10 @@ class Settings(BaseSettings):
     mte_ftp_root_candidates: str = "/pdet/microdados/NOVO CAGED,/pdet/microdados/NOVO_CAGED"
     mte_ftp_max_depth: int = 4
     mte_ftp_max_dirs: int = 300
+
+    @property
+    def cors_allow_origins_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_allow_origins.split(",") if origin.strip()]
 
     @property
     def bronze_root(self) -> Path:

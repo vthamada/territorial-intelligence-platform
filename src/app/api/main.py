@@ -5,6 +5,7 @@ from uuid import uuid4
 from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.middleware.cors import CORSMiddleware
 
 from app.api.error_handlers import (
     http_exception_handler,
@@ -25,6 +26,13 @@ settings = get_settings()
 configure_logging(settings.log_level)
 
 app = FastAPI(title=settings.app_name)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_allow_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 api_v1_router = APIRouter(prefix=settings.api_version_prefix)
 api_v1_router.include_router(territories_router)
 api_v1_router.include_router(indicators_router)
