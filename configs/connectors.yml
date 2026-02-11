@@ -49,6 +49,31 @@ connectors:
     wave: MVP-3
     status: implemented
     notes: Automatic FTP ingestion with Bronze cache fallback is operational; manual file remains contingency-only.
+  - connector_name: sidra_indicators_fetch
+    source: SIDRA
+    wave: MVP-4
+    status: implemented
+    notes: Real SIDRA values API extraction with configurable catalog, Bronze snapshot, and Silver upsert.
+  - connector_name: senatran_fleet_fetch
+    source: SENATRAN
+    wave: MVP-4
+    status: implemented
+    notes: Real tabular fleet ingestion with configurable remote catalog, manual fallback, Bronze snapshot, and Silver upsert.
+  - connector_name: sejusp_public_safety_fetch
+    source: SEJUSP_MG
+    wave: MVP-4
+    status: implemented
+    notes: Real tabular public safety ingestion with configurable remote catalog, manual fallback, Bronze snapshot, and Silver upsert.
+  - connector_name: siops_health_finance_fetch
+    source: SIOPS
+    wave: MVP-4
+    status: implemented
+    notes: Real tabular health finance ingestion with configurable remote catalog, manual fallback, Bronze snapshot, and Silver upsert.
+  - connector_name: snis_sanitation_fetch
+    source: SNIS
+    wave: MVP-4
+    status: implemented
+    notes: Real tabular sanitation ingestion with configurable remote catalog, manual fallback, Bronze snapshot, and Silver upsert.
   - connector_name: dbt_build
     source: INTERNAL
     wave: MVP-1

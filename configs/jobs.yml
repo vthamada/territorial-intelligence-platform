@@ -22,6 +22,13 @@ waves:
     - finance_siconfi_fetch
     - labor_mte_fetch
     - quality_suite
+  MVP-4:
+    - sidra_indicators_fetch
+    - senatran_fleet_fetch
+    - sejusp_public_safety_fetch
+    - siops_health_finance_fetch
+    - snis_sanitation_fetch
+    - quality_suite
 
 jobs:
   ibge_admin_fetch:
@@ -43,6 +50,16 @@ jobs:
   finance_siconfi_fetch:
     reference_period: "2025"
   labor_mte_fetch:
+    reference_period: "2025"
+  sidra_indicators_fetch:
+    reference_period: "2025"
+  senatran_fleet_fetch:
+    reference_period: "2025"
+  sejusp_public_safety_fetch:
+    reference_period: "2025"
+  siops_health_finance_fetch:
+    reference_period: "2025"
+  snis_sanitation_fetch:
     reference_period: "2025"
   dbt_build:
     reference_period: "2026"

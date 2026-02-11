@@ -14,6 +14,7 @@ from pipelines.common.quality import (
     check_fact_election_result,
     check_fact_electorate,
     check_fact_indicator,
+    check_fact_indicator_source_rows,
     check_ops_pipeline_runs,
 )
 from pipelines.common.quality_thresholds import load_quality_thresholds
@@ -64,6 +65,7 @@ def run(
         results.extend(check_fact_electorate(session, settings.municipality_ibge_code, thresholds))
         results.extend(check_fact_election_result(session, thresholds))
         results.extend(check_fact_indicator(session, thresholds))
+        results.extend(check_fact_indicator_source_rows(session, reference_period, thresholds))
         results.extend(check_ops_pipeline_runs(session, reference_period, thresholds))
 
     has_fail = any(result.status == "fail" for result in results)

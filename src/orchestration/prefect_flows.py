@@ -36,7 +36,12 @@ from pipelines.ibge_indicators import run as run_ibge_indicators
 from pipelines.inep_education import run as run_inep_education
 from pipelines.mte_labor import run as run_mte_labor
 from pipelines.quality_suite import run as run_quality_suite
+from pipelines.sejusp_public_safety import run as run_sejusp_public_safety
+from pipelines.senatran_fleet import run as run_senatran_fleet
 from pipelines.siconfi_finance import run as run_siconfi_finance
+from pipelines.sidra_indicators import run as run_sidra_indicators
+from pipelines.siops_health_finance import run as run_siops_health_finance
+from pipelines.snis_sanitation import run as run_snis_sanitation
 from pipelines.tse_catalog import run as run_tse_catalog
 from pipelines.tse_electorate import run as run_tse_electorate
 from pipelines.tse_results import run as run_tse_results
@@ -88,6 +93,11 @@ def run_mvp_all(
         "health_datasus_fetch": run_datasus_health(**common_kwargs),
         "finance_siconfi_fetch": run_siconfi_finance(**common_kwargs),
         "labor_mte_fetch": run_mte_labor(**common_kwargs),
+        "sidra_indicators_fetch": run_sidra_indicators(**common_kwargs),
+        "senatran_fleet_fetch": run_senatran_fleet(**common_kwargs),
+        "sejusp_public_safety_fetch": run_sejusp_public_safety(**common_kwargs),
+        "siops_health_finance_fetch": run_siops_health_finance(**common_kwargs),
+        "snis_sanitation_fetch": run_snis_sanitation(**common_kwargs),
         "dbt_build": run_dbt_build(**common_kwargs),
         "quality_suite": run_quality_suite(**common_kwargs),
     }
@@ -161,6 +171,31 @@ def run_mvp_wave_3(
         "health_datasus_fetch": run_datasus_health(**common_kwargs),
         "finance_siconfi_fetch": run_siconfi_finance(**common_kwargs),
         "labor_mte_fetch": run_mte_labor(**common_kwargs),
+        "quality_suite": run_quality_suite(**common_kwargs),
+    }
+
+
+@flow(name="territorial_mvp_wave_4")
+def run_mvp_wave_4(
+    reference_period: str,
+    force: bool = False,
+    dry_run: bool = False,
+    max_retries: int = 3,
+    timeout_seconds: int = 30,
+) -> dict[str, Any]:
+    common_kwargs = {
+        "reference_period": reference_period,
+        "force": force,
+        "dry_run": dry_run,
+        "max_retries": max_retries,
+        "timeout_seconds": timeout_seconds,
+    }
+    return {
+        "sidra_indicators_fetch": run_sidra_indicators(**common_kwargs),
+        "senatran_fleet_fetch": run_senatran_fleet(**common_kwargs),
+        "sejusp_public_safety_fetch": run_sejusp_public_safety(**common_kwargs),
+        "siops_health_finance_fetch": run_siops_health_finance(**common_kwargs),
+        "snis_sanitation_fetch": run_snis_sanitation(**common_kwargs),
         "quality_suite": run_quality_suite(**common_kwargs),
     }
 

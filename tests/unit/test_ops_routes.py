@@ -288,6 +288,50 @@ class _OpsSlaSession:
         )
 
 
+class _FrontendEventsIngestSession:
+    def __init__(self) -> None:
+        self.last_params: dict[str, Any] | None = None
+
+    def execute(self, *_args: Any, **_kwargs: Any) -> _CountResult:
+        params = _kwargs.get("params")
+        if params is None and len(_args) >= 2 and isinstance(_args[1], dict):
+            params = _args[1]
+        if isinstance(params, dict):
+            self.last_params = params
+        return _CountResult(123)
+
+
+class _FrontendEventsListSession:
+    def __init__(self) -> None:
+        self._execute_calls = 0
+        self.last_params: dict[str, Any] | None = None
+
+    def execute(self, *_args: Any, **_kwargs: Any) -> _CountResult | _RowsResult:
+        params = _kwargs.get("params")
+        if params is None and len(_args) >= 2 and isinstance(_args[1], dict):
+            params = _args[1]
+        if isinstance(params, dict):
+            self.last_params = params
+        self._execute_calls += 1
+        if self._execute_calls == 1:
+            return _CountResult(1)
+        return _RowsResult(
+            [
+                {
+                    "event_id": 123,
+                    "category": "api_request",
+                    "name": "api_request_failed",
+                    "severity": "error",
+                    "attributes": {"status": 500},
+                    "event_timestamp_utc": datetime(2026, 2, 11, 18, 0, tzinfo=UTC),
+                    "received_at_utc": datetime(2026, 2, 11, 18, 0, 1, tzinfo=UTC),
+                    "request_id": "req-123",
+                    "user_agent": "vitest",
+                }
+            ]
+        )
+
+
 def _runs_db() -> Generator[_PipelineRunsSession, None, None]:
     yield _PipelineRunsSession()
 
@@ -310,6 +354,14 @@ def _timeseries_db() -> Generator[_OpsTimeseriesSession, None, None]:
 
 def _sla_db() -> Generator[_OpsSlaSession, None, None]:
     yield _OpsSlaSession()
+
+
+def _frontend_events_ingest_db() -> Generator[_FrontendEventsIngestSession, None, None]:
+    yield _FrontendEventsIngestSession()
+
+
+def _frontend_events_list_db() -> Generator[_FrontendEventsListSession, None, None]:
+    yield _FrontendEventsListSession()
 
 
 def test_pipeline_runs_endpoint_returns_paginated_payload() -> None:
@@ -472,6 +524,79 @@ def test_pipeline_runs_endpoint_rejects_invalid_started_from() -> None:
     assert response.status_code == 422
     payload = response.json()
     assert payload["error"]["code"] == "validation_error"
+    app.dependency_overrides.clear()
+
+
+def test_frontend_events_ingest_endpoint_accepts_payload() -> None:
+    session = _FrontendEventsIngestSession()
+
+    def _db() -> Generator[_FrontendEventsIngestSession, None, None]:
+        yield session
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.post(
+        "/v1/ops/frontend-events",
+        json={
+            "category": "api_request",
+            "name": "api_request_failed",
+            "severity": "error",
+            "attributes": {"status": 500},
+            "timestamp_utc": "2026-02-11T18:00:00Z",
+        },
+    )
+
+    assert response.status_code == 202
+    payload = response.json()
+    assert payload["status"] == "accepted"
+    assert payload["event_id"] == 123
+    assert session.last_params is not None
+    assert session.last_params["category"] == "api_request"
+    assert session.last_params["severity"] == "error"
+    assert session.last_params["event_timestamp_utc"] == datetime(2026, 2, 11, 18, 0, tzinfo=UTC)
+    assert session.last_params["request_id"] is not None
+    app.dependency_overrides.clear()
+
+
+def test_frontend_events_endpoint_returns_paginated_payload() -> None:
+    app.dependency_overrides[get_db] = _frontend_events_list_db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/ops/frontend-events?page=1&page_size=10&category=api_request")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["page"] == 1
+    assert payload["page_size"] == 10
+    assert payload["total"] == 1
+    assert len(payload["items"]) == 1
+    assert payload["items"][0]["event_id"] == 123
+    assert payload["items"][0]["category"] == "api_request"
+    app.dependency_overrides.clear()
+
+
+def test_frontend_events_endpoint_accepts_temporal_filters() -> None:
+    session = _FrontendEventsListSession()
+
+    def _db() -> Generator[_FrontendEventsListSession, None, None]:
+        yield session
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get(
+        "/v1/ops/frontend-events"
+        "?severity=error"
+        "&event_from=2026-02-11T00:00:00Z"
+        "&event_to=2026-02-11T23:59:59Z"
+    )
+
+    assert response.status_code == 200
+    assert session.last_params is not None
+    assert session.last_params["severity"] == "error"
+    assert session.last_params["event_from"] == datetime(2026, 2, 11, 0, 0, tzinfo=UTC)
+    assert session.last_params["event_to"] == datetime(2026, 2, 11, 23, 59, 59, tzinfo=UTC)
     app.dependency_overrides.clear()
 
 

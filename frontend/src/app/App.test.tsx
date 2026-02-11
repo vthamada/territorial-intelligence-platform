@@ -13,12 +13,20 @@ describe("App shell", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText("Painel Operacional")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Saude Ops" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Execucoes" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Checks" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Conectores" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Territorios e Indicadores" })).toBeInTheDocument();
+    expect(screen.getByText("QG Estrategico")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Visao Geral" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Prioridades" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Mapa" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Insights" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Cenarios" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Briefs" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Territorio 360" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Eleitorado" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Admin" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Pular para o conteudo principal" })).toBeInTheDocument();
+    const main = screen.getByRole("main");
+    expect(main).toHaveAttribute("id", "main-content");
+    expect(main).toHaveFocus();
     expect(screen.getByText("Conteudo de teste")).toBeInTheDocument();
   });
 });

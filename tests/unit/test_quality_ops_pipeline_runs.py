@@ -30,6 +30,11 @@ def test_check_ops_pipeline_runs_marks_warn_when_job_has_no_successful_run() -> 
             "health_datasus_fetch": 1,
             "finance_siconfi_fetch": 0,
             "labor_mte_fetch": 1,
+            "sidra_indicators_fetch": 1,
+            "senatran_fleet_fetch": 1,
+            "sejusp_public_safety_fetch": 1,
+            "siops_health_finance_fetch": 1,
+            "snis_sanitation_fetch": 1,
         }
     )
     thresholds = QualityThresholds(
@@ -47,3 +52,8 @@ def test_check_ops_pipeline_runs_marks_warn_when_job_has_no_successful_run() -> 
     assert by_name["mvp3_pipeline_run_finance_siconfi_fetch"].status == "warn"
     assert by_name["mvp3_pipeline_run_education_inep_fetch"].status == "pass"
     assert by_name["mvp3_pipeline_run_labor_mte_fetch"].status == "pass"
+    assert by_name["mvp4_pipeline_run_sidra_indicators_fetch"].status == "pass"
+    assert by_name["mvp4_pipeline_run_senatran_fleet_fetch"].status == "pass"
+    assert by_name["mvp4_pipeline_run_sejusp_public_safety_fetch"].status == "pass"
+    assert by_name["mvp4_pipeline_run_siops_health_finance_fetch"].status == "pass"
+    assert by_name["mvp4_pipeline_run_snis_sanitation_fetch"].status == "pass"

@@ -29,3 +29,13 @@ waves:
       - labor_mte_fetch
     exit_criteria:
       - fact_indicator expanded with education, health, finance, and labor domains.
+  MVP-4:
+    goal: Onda A strategic sources discovery and ingestion hardening.
+    includes:
+      - sidra_indicators_fetch
+      - senatran_fleet_fetch
+      - sejusp_public_safety_fetch
+      - siops_health_finance_fetch
+      - snis_sanitation_fetch
+    exit_criteria:
+      - New source jobs persist Bronze + Silver + ops runs/checks with idempotent behavior.

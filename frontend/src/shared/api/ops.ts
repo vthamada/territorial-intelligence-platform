@@ -1,6 +1,7 @@
 import { requestJson } from "./http";
 import type {
   ConnectorRegistryItem,
+  FrontendEventItem,
   OpsSlaResponse,
   OpsSummaryResponse,
   OpsTimeseriesResponse,
@@ -31,4 +32,8 @@ export function getPipelineChecks(query?: Record<string, string | number | boole
 
 export function getConnectorRegistry(query?: Record<string, string | number | boolean | undefined>) {
   return requestJson<PaginatedResponse<ConnectorRegistryItem>>("/ops/connector-registry", { query });
+}
+
+export function getFrontendEvents(query?: Record<string, string | number | boolean | undefined>) {
+  return requestJson<PaginatedResponse<FrontendEventItem>>("/ops/frontend-events", { query });
 }

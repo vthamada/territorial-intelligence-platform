@@ -7,9 +7,115 @@ Contrato tecnico principal: `CONTRATO.md`
 ## Atualizacao rapida (2026-02-11)
 
 - Backend funcionalmente pronto para avancar no frontend (API + pipelines + checks + scripts operacionais).
+- Sprint 0 do QG iniciado no backend com contratos de API para Home/Prioridades/Insights:
+  - `GET /v1/kpis/overview`
+  - `GET /v1/priority/list`
+  - `GET /v1/priority/summary`
+  - `GET /v1/insights/highlights`
+- Sprint 2 do QG avancou no backend com contratos de API para Perfil/Comparacao e Eleitorado executivo:
+  - `GET /v1/territory/{id}/profile`
+  - `GET /v1/territory/{id}/compare`
+  - `GET /v1/electorate/summary`
+  - `GET /v1/electorate/map`
+- Extensao v1.1 iniciada no backend:
+  - `POST /v1/scenarios/simulate` (simulacao simplificada por variacao percentual).
+  - simulacao evoluida para calcular ranking antes/depois por indicador e delta de posicao.
+  - `POST /v1/briefs` para geracao de brief executivo com resumo e evidencias.
+- Sprint 3/4 (Onda A) iniciado no backend:
+  - `sidra_indicators_fetch` evoluido para ingestao real via SIDRA API (`implemented`).
+  - `senatran_fleet_fetch` evoluido para ingestao real tabular (`implemented`).
+  - `sejusp_public_safety_fetch` evoluido para ingestao real tabular (`implemented`).
+  - `siops_health_finance_fetch` evoluido para ingestao real tabular (`implemented`).
+  - `snis_sanitation_fetch` evoluido para ingestao real tabular (`implemented`).
+  - Onda A de conectores concluida no backend em modo implementado.
+  - todos integrados no orquestrador em `run_mvp_wave_4` e `run_mvp_all`.
+- Frontend integrado ao novo contrato QG:
+  - rota inicial (`/`) com `QgOverviewPage` consumindo `kpis/overview`, `priority/summary` e `insights/highlights`.
+  - rota `prioridades` com `QgPrioritiesPage` consumindo `priority/list`.
+  - rota `mapa` com `QgMapPage` consumindo `geo/choropleth`.
+  - `mapa` agora possui visualizacao geografica simplificada (SVG) com escala de valor e selecao de territorio.
+  - rota `insights` com `QgInsightsPage` consumindo `insights/highlights`.
+  - rota `cenarios` com `QgScenariosPage` consumindo `POST /v1/scenarios/simulate`.
+  - tela de cenarios passou a exibir score e ranking antes/depois com impacto estimado.
+  - rota `briefs` com `QgBriefsPage` consumindo `POST /v1/briefs`.
+  - Home QG passou a exibir `Top prioridades` (previsualizacao) e `Acoes rapidas` para fluxo de decisao.
+  - acao `Ver no mapa` da Home passou a abrir diretamente o recorte da prioridade mais critica.
+  - `Territorio 360` passou a oferecer atalhos para `briefs` e `cenarios` com territorio/periodo pre-preenchidos.
+  - `QgBriefsPage` e `QgScenariosPage` passaram a aceitar query string para prefill de filtros.
+  - `QgPrioritiesPage` passou a oferecer ordenacao local e exportacao CSV da lista priorizada.
+  - `PriorityItemCard` ganhou deep-link `Ver no mapa` para recorte de indicador/periodo/territorio.
+  - `QgMapPage` passou a aceitar query string para prefill de filtros e selecao territorial inicial.
+  - `QgMapPage` ganhou exportacao CSV do ranking territorial.
+  - `QgMapPage` ganhou exportacao visual do mapa em `SVG` e `PNG`.
+  - endpoint `GET /v1/territory/{id}/profile` evoluiu com score/status/tendencia agregados do territorio:
+    - `overall_score`
+    - `overall_status`
+    - `overall_trend`
+  - `TerritoryProfilePage` passou a exibir card executivo de status geral com score consolidado e tendencia.
+  - endpoint `GET /v1/territory/{id}/peers` adicionado para sugerir comparacoes por similaridade de indicadores.
+  - `TerritoryProfilePage` passou a exibir painel de pares recomendados com acao direta `Comparar`.
+  - `QgBriefsPage` passou a suportar exportacao do brief em `HTML` e impressao para `PDF` pelo navegador.
+  - rota `territorio/perfil` (alias legado: `territory/profile`) com `TerritoryProfilePage` (profile + compare).
+  - rota dinamica `territorio/:territoryId` (alias legado: `territory/:territoryId`) com `TerritoryProfileRoutePage`.
+  - rota `eleitorado` (alias legado: `electorate/executive`) com `ElectorateExecutivePage` (summary + map).
+  - links de contexto (`Abrir perfil`) adicionados em `Mapa` e `Prioridades` para navegação direta ao perfil territorial.
+  - rota `admin` adicionada como hub tecnico, separando links operacionais (`ops/*`) do menu principal executivo.
+  - metadados de fonte/atualizacao/cobertura expostos nas telas executivas com `SourceFreshnessBadge`.
+  - Home QG evoluida para usar `StrategicIndexCard` na secao de situacao geral.
+  - lista de prioridades evoluida para `PriorityItemCard` (cards com score, racional, evidencia e acao).
+  - cliente dedicado em `frontend/src/shared/api/qg.ts` e tipagens QG em `frontend/src/shared/api/types.ts`.
+  - cobertura de teste de pagina adicionada para fluxo QG em:
+    - `frontend/src/modules/qg/pages/QgPages.test.tsx`
+    - `frontend/src/modules/territory/pages/TerritoryProfilePage.test.tsx`
+    - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx`
+  - wrappers de teste com `MemoryRouter` adicionados nas paginas com navegacao interna.
+  - testes QG ampliados para validar prefill por query string no mapa e deep-links de prioridade.
+- Hardening frontend (Sprint 5) iniciado:
+  - acessibilidade minima no shell: `skip link` para conteudo principal e foco visivel padronizado.
+  - foco programatico no conteudo principal (`main`) em trocas de rota.
+  - observabilidade basica frontend:
+    - captura de `window.error` e `unhandledrejection`.
+    - captura de metricas de performance/web-vitals (paint, LCP, CLS e navigation timing).
+    - evento de navegacao por troca de rota (`route_change`).
+  - endpoint de telemetria configuravel por `VITE_FRONTEND_OBSERVABILITY_URL`.
+  - cliente HTTP passou a emitir telemetria de chamadas API:
+    - `api_request_success`
+    - `api_request_retry`
+    - `api_request_failed`
+    com `method`, `path`, `status`, `request_id`, `duration_ms` e tentativas.
+- Validacao frontend:
+  - `npm --prefix frontend run typecheck`: `OK`.
+  - `npm --prefix frontend run typecheck` (apos telemetria de API no cliente HTTP): `OK`.
+  - `npm --prefix frontend run typecheck` (apos hardening de a11y/observabilidade): `OK`.
+  - `npm --prefix frontend run typecheck` (apos exportacao SVG/PNG): `OK`.
+  - `npm --prefix frontend run typecheck` (apos exportacao de briefs HTML/PDF): `OK`.
+  - `npm --prefix frontend run test`/`build`: bloqueados no ambiente atual por erro `spawn EPERM` ao carregar Vite.
+  - `npm --prefix frontend run test -- src/shared/api/http.test.ts src/shared/observability/telemetry.test.ts`:
+    bloqueado no ambiente atual por `spawn EPERM` ao carregar Vite.
+- Validacao backend do contrato QG:
+  - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider`: `15 passed`.
+- Router QG integrado ao app em `src/app/api/main.py`.
+- Schemas dedicados do QG adicionados em `src/app/schemas/qg.py`.
+- Testes unitarios de contrato do QG adicionados em `tests/unit/test_qg_routes.py` e validados.
+  - estado atual local: `14 passed` (incluindo cenarios e briefs).
+- Testes de orquestracao e conectores Onda A adicionados/atualizados:
+  - `tests/unit/test_prefect_wave3_flow.py`
+  - `tests/unit/test_onda_a_connectors.py`
+  - `tests/unit/test_quality_ops_pipeline_runs.py`
+  - validacao local: `35 passed` em `test_onda_a_connectors + test_quality_ops_pipeline_runs + test_prefect_wave3_flow + test_qg_routes`.
+  - validacao local consolidada: `62 passed` em
+    `test_qg_routes + test_onda_a_connectors + test_quality_core_checks + test_quality_ops_pipeline_runs + test_prefect_wave3_flow + test_ops_routes`.
 - Hardening aplicado no backend:
   - alias `run_status` em `/v1/ops/pipeline-runs` (compatibilidade com `status`).
   - check `source_probe_rows` no `quality_suite` com threshold versionado.
+  - checks de cobertura por fonte Onda A no `quality_suite` (SIDRA, SENATRAN, SEJUSP_MG, SIOPS e SNIS)
+    por `reference_period`.
+  - thresholds da `fact_indicator` calibrados com minimo de linhas por fonte Onda A.
+  - novos indices SQL incrementais para consultas QG/OPS em `db/sql/004_qg_ops_indexes.sql`.
+  - telemetria frontend persistida no backend:
+    - `POST /v1/ops/frontend-events` (ingestao)
+    - `GET /v1/ops/frontend-events` (consulta paginada)
+    - tabela `ops.frontend_events` em `db/sql/005_frontend_observability.sql`.
   - scripts de operacao: readiness, backfill de checks e cleanup de legados.
   - `dbt_build` persiste check de falha em `ops.pipeline_checks` quando run falha.
   - logging robusto para execucao local em Windows (sem quebra por encoding).
@@ -23,6 +129,7 @@ Contrato tecnico principal: `CONTRATO.md`
   - filtros de `runs`, `checks` e `connectors` com aplicacao explicita via botao.
   - botao `Limpar` nos formularios de filtros.
   - contrato de filtro de runs alinhado para `run_status`.
+  - nova tela tecnica `/ops/frontend-events` com filtros/paginacao para telemetria do frontend.
   - testes de paginas ops adicionados em `frontend/src/modules/ops/pages/OpsPages.test.tsx`.
 - Frontend F3 (territorio e indicadores) evoluido:
   - filtros territoriais com paginacao e aplicacao explicita.
@@ -116,6 +223,8 @@ Contrato tecnico principal: `CONTRATO.md`
 - Testes do `dbt_build` ampliados para validar modo de execucao (`auto|dbt|sql_direct`) em `tests/unit/test_dbt_build.py`.
 - Cobertura de orquestracao expandida em `tests/unit/test_prefect_wave3_flow.py` para `run_mvp_wave_3` e `run_mvp_all`.
 - Suite validada: `78 passed`.
+- Suite unit completa atualizada: `91 passed`.
+- Suite unit completa atualizada apos endpoints QG adicionais: `96 passed`.
 - Suite de `ops` com summary/timeseries/sla validada: `pytest -q tests/unit/test_ops_routes.py -p no:cacheprovider` (`16 passed`).
 - Suite de fluxos + ops validada: `pytest -q tests/unit/test_ops_routes.py tests/unit/test_prefect_wave3_flow.py -p no:cacheprovider`.
 - Suite de `ops` com timeseries validada no mesmo arquivo `tests/unit/test_ops_routes.py`.
@@ -154,7 +263,13 @@ Contrato tecnico principal: `CONTRATO.md`
 - `src/pipelines/inep_education.py`
 - `src/pipelines/siconfi_finance.py`
 - `src/pipelines/mte_labor.py`
+- `src/pipelines/sidra_indicators.py`
+- `src/pipelines/senatran_fleet.py`
+- `src/pipelines/sejusp_public_safety.py`
+- `src/pipelines/siops_health_finance.py`
+- `src/pipelines/snis_sanitation.py`
 - `src/app/api/routes_ops.py`
+- `src/app/api/routes_qg.py`
 - `src/app/api/main.py`
 - `src/pipelines/common/quality.py`
 - `src/pipelines/dbt_build.py`
@@ -162,6 +277,11 @@ Contrato tecnico principal: `CONTRATO.md`
 - `src/app/settings.py`
 - `.env.example`
 - `configs/connectors.yml`
+- `configs/sidra_indicators_catalog.yml`
+- `configs/senatran_fleet_catalog.yml`
+- `configs/sejusp_public_safety_catalog.yml`
+- `configs/siops_health_finance_catalog.yml`
+- `configs/snis_sanitation_catalog.yml`
 - `configs/quality_thresholds.yml`
 - `requirements.txt`
 - `tests/unit/test_api_contract.py`
@@ -171,10 +291,47 @@ Contrato tecnico principal: `CONTRATO.md`
 - `tests/unit/test_siconfi_finance.py`
 - `tests/unit/test_mte_labor.py`
 - `tests/unit/test_ops_routes.py`
+- `tests/unit/test_qg_routes.py`
 - `tests/unit/test_quality_ops_pipeline_runs.py`
 - `tests/unit/test_prefect_wave3_flow.py`
+- `tests/unit/test_onda_a_connectors.py`
 - `docs/MTE_RUNBOOK.md`
 - `README.md`
+- `src/app/schemas/qg.py`
+- `frontend/src/shared/api/qg.ts`
+- `frontend/src/shared/api/types.ts`
+- `frontend/src/modules/admin/pages/AdminHubPage.tsx`
+- `frontend/src/modules/qg/pages/QgOverviewPage.tsx`
+- `frontend/src/modules/qg/pages/QgPrioritiesPage.tsx`
+- `frontend/src/modules/qg/pages/QgMapPage.tsx`
+- `frontend/src/modules/qg/pages/QgInsightsPage.tsx`
+- `frontend/src/modules/qg/pages/QgScenariosPage.tsx`
+- `frontend/src/modules/qg/pages/QgBriefsPage.tsx`
+- `frontend/src/modules/territory/pages/TerritoryProfilePage.tsx`
+- `frontend/src/modules/territory/pages/TerritoryProfileRoutePage.tsx`
+- `frontend/src/modules/territory/pages/TerritoryProfilePage.test.tsx`
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx`
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx`
+- `frontend/src/modules/qg/pages/QgPages.test.tsx`
+- `frontend/src/shared/ui/ChoroplethMiniMap.tsx`
+- `frontend/src/shared/ui/ChoroplethMiniMap.test.tsx`
+- `frontend/src/shared/ui/SourceFreshnessBadge.tsx`
+- `frontend/src/shared/ui/SourceFreshnessBadge.test.tsx`
+- `frontend/src/shared/ui/StrategicIndexCard.tsx`
+- `frontend/src/shared/ui/StrategicIndexCard.test.tsx`
+- `frontend/src/shared/ui/PriorityItemCard.tsx`
+- `frontend/src/shared/ui/PriorityItemCard.test.tsx`
+- `frontend/src/shared/observability/telemetry.ts`
+- `frontend/src/shared/observability/bootstrap.ts`
+- `frontend/src/shared/observability/telemetry.test.ts`
+- `frontend/src/shared/api/http.ts`
+- `frontend/src/shared/api/http.test.ts`
+- `frontend/src/app/router.tsx`
+- `frontend/src/app/App.tsx`
+- `frontend/src/app/App.test.tsx`
+- `frontend/src/app/router.smoke.test.tsx`
+- `frontend/src/main.tsx`
+- `frontend/.env.example`
 
 ## 4) Como operar agora (resumo)
 
@@ -229,4 +386,8 @@ Contrato tecnico principal: `CONTRATO.md`
   - `python scripts/sync_connector_registry.py`
 - Rodar qualidade:
   - `python -c "from pipelines.quality_suite import run; print(run(reference_period='2024', dry_run=False))"`
+- Subir API + frontend no Windows sem `make`:
+  - `powershell -ExecutionPolicy Bypass -File scripts/dev_up.ps1`
+- Encerrar API + frontend iniciados pelo launcher:
+  - `powershell -ExecutionPolicy Bypass -File scripts/dev_down.ps1`
 

@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from pipelines.common.quality import check_fact_election_result, check_fact_indicator
+from pipelines.common.quality import (
+    check_fact_election_result,
+    check_fact_indicator,
+    check_fact_indicator_source_rows,
+)
 from pipelines.common.quality_thresholds import QualityThresholds
 
 
@@ -32,7 +36,15 @@ def _default_thresholds() -> QualityThresholds:
         defaults={},
         by_table={
             "fact_election_result": {"max_negative_rows": 0, "max_missing_ratio": 0.0},
-            "fact_indicator": {"max_missing_ratio": 0.0, "max_source_probe_rows": 0},
+            "fact_indicator": {
+                "max_missing_ratio": 0.0,
+                "max_source_probe_rows": 0,
+                "min_rows_sidra": 1,
+                "min_rows_senatran": 1,
+                "min_rows_sejusp_mg": 1,
+                "min_rows_siops": 1,
+                "min_rows_snis": 1,
+            },
         },
     )
 
@@ -95,3 +107,41 @@ def test_check_fact_indicator_warns_when_source_probe_rows_are_present() -> None
     assert by_name["value_missing_ratio"].status == "fail"
     assert by_name["territory_id_missing_ratio"].status == "fail"
     assert by_name["source_probe_rows"].status == "warn"
+
+
+def test_check_fact_indicator_source_rows_passes_when_sources_have_minimum_rows() -> None:
+    # calls: SIDRA, SENATRAN, SEJUSP_MG, SIOPS, SNIS
+    session = _SequenceSession([2, 3, 1, 4, 5])
+
+    results = check_fact_indicator_source_rows(
+        session=session,
+        reference_period="2025",
+        thresholds=_default_thresholds(),
+    )
+
+    assert [result.name for result in results] == [
+        "source_rows_sidra",
+        "source_rows_senatran",
+        "source_rows_sejusp_mg",
+        "source_rows_siops",
+        "source_rows_snis",
+    ]
+    assert all(result.status == "pass" for result in results)
+
+
+def test_check_fact_indicator_source_rows_warns_when_source_is_below_threshold() -> None:
+    # calls: SIDRA, SENATRAN, SEJUSP_MG, SIOPS, SNIS
+    session = _SequenceSession([2, 0, 1, 4, 5])
+
+    results = check_fact_indicator_source_rows(
+        session=session,
+        reference_period="2025",
+        thresholds=_default_thresholds(),
+    )
+
+    by_name = {result.name: result for result in results}
+    assert by_name["source_rows_sidra"].status == "pass"
+    assert by_name["source_rows_senatran"].status == "warn"
+    assert by_name["source_rows_sejusp_mg"].status == "pass"
+    assert by_name["source_rows_siops"].status == "pass"
+    assert by_name["source_rows_snis"].status == "pass"

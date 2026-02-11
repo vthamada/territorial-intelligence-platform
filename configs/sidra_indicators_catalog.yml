@@ -1,0 +1,13 @@
+indicators:
+  - indicator_code: SIDRA_POPULACAO_ESTIMADA
+    indicator_name: Populacao estimada (SIDRA)
+    endpoint: https://apisidra.ibge.gov.br/values/t/6579/n6/{municipality_ibge_code}/v/9324/p/{reference_period}
+    fallback_endpoint: https://apisidra.ibge.gov.br/values/t/6579/n6/{municipality_ibge_code}/v/9324/p/{fallback_period}
+    unit: pessoas
+    category: demografia
+  - indicator_code: SIDRA_PIB_TOTAL
+    indicator_name: PIB total (SIDRA)
+    endpoint: https://apisidra.ibge.gov.br/values/t/5938/n6/{municipality_ibge_code}/v/37/p/{reference_period}
+    fallback_endpoint: https://apisidra.ibge.gov.br/values/t/5938/n6/{municipality_ibge_code}/v/37/p/{fallback_period}
+    unit: BRL
+    category: economia

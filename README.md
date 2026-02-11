@@ -30,6 +30,15 @@ MVP bootstrap for the Diamantina/MG territorial intelligence platform, aligned w
    - `make frontend-test`
    - `make frontend-build`
 
+### Windows quick start (without `make`)
+
+1. Activate venv:
+   - `.\.venv\Scripts\Activate.ps1`
+2. Start API + frontend together:
+   - `powershell -ExecutionPolicy Bypass -File scripts/dev_up.ps1`
+3. Stop local environment:
+   - `powershell -ExecutionPolicy Bypass -File scripts/dev_down.ps1`
+
 ## API contract
 
 - Versioned base path: `/v1`
@@ -38,6 +47,7 @@ MVP bootstrap for the Diamantina/MG territorial intelligence platform, aligned w
   - `/v1/ops/pipeline-runs`
   - `/v1/ops/pipeline-checks`
   - `/v1/ops/connector-registry`
+  - `/v1/ops/frontend-events` (POST ingest + GET list)
   - `/v1/ops/summary`
   - `/v1/ops/timeseries`
   - `/v1/ops/sla`
@@ -120,6 +130,7 @@ Note:
 - Stack: React + Vite + TypeScript + React Router + TanStack Query
 - Environment:
   - copy `frontend/.env.example` to `frontend/.env` and adjust `VITE_API_BASE_URL` if needed
+  - `VITE_FRONTEND_OBSERVABILITY_URL` defaults to `http://localhost:8000/v1/ops/frontend-events`
 - Commands:
   - `cd frontend && npm run dev`
   - `cd frontend && npm test`

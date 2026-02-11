@@ -104,6 +104,19 @@ def test_run_mvp_all_propagates_common_kwargs_to_all_jobs(monkeypatch) -> None:
     monkeypatch.setattr(prefect_flows, "run_datasus_health", _stub("health_datasus_fetch"))
     monkeypatch.setattr(prefect_flows, "run_siconfi_finance", _stub("finance_siconfi_fetch"))
     monkeypatch.setattr(prefect_flows, "run_mte_labor", _stub("labor_mte_fetch"))
+    monkeypatch.setattr(prefect_flows, "run_sidra_indicators", _stub("sidra_indicators_fetch"))
+    monkeypatch.setattr(prefect_flows, "run_senatran_fleet", _stub("senatran_fleet_fetch"))
+    monkeypatch.setattr(
+        prefect_flows,
+        "run_sejusp_public_safety",
+        _stub("sejusp_public_safety_fetch"),
+    )
+    monkeypatch.setattr(
+        prefect_flows,
+        "run_siops_health_finance",
+        _stub("siops_health_finance_fetch"),
+    )
+    monkeypatch.setattr(prefect_flows, "run_snis_sanitation", _stub("snis_sanitation_fetch"))
     monkeypatch.setattr(prefect_flows, "run_dbt_build", _stub("dbt_build"))
     monkeypatch.setattr(prefect_flows, "run_quality_suite", _stub("quality_suite"))
 
@@ -126,6 +139,11 @@ def test_run_mvp_all_propagates_common_kwargs_to_all_jobs(monkeypatch) -> None:
         "health_datasus_fetch",
         "finance_siconfi_fetch",
         "labor_mte_fetch",
+        "sidra_indicators_fetch",
+        "senatran_fleet_fetch",
+        "sejusp_public_safety_fetch",
+        "siops_health_finance_fetch",
+        "snis_sanitation_fetch",
         "dbt_build",
         "quality_suite",
     }
@@ -187,6 +205,27 @@ def test_run_mvp_all_returns_each_job_result_payload(monkeypatch) -> None:
     monkeypatch.setattr(prefect_flows, "run_datasus_health", _run_datasus)
     monkeypatch.setattr(prefect_flows, "run_siconfi_finance", _run_siconfi)
     monkeypatch.setattr(prefect_flows, "run_mte_labor", _run_mte)
+
+    def _run_sidra(**_kwargs: Any) -> dict[str, Any]:
+        return {"job": "sidra_indicators_fetch", "status": "success", "rows_written": 10}
+
+    def _run_senatran(**_kwargs: Any) -> dict[str, Any]:
+        return {"job": "senatran_fleet_fetch", "status": "success", "rows_written": 11}
+
+    def _run_sejusp(**_kwargs: Any) -> dict[str, Any]:
+        return {"job": "sejusp_public_safety_fetch", "status": "success", "rows_written": 12}
+
+    def _run_siops(**_kwargs: Any) -> dict[str, Any]:
+        return {"job": "siops_health_finance_fetch", "status": "success", "rows_written": 13}
+
+    def _run_snis(**_kwargs: Any) -> dict[str, Any]:
+        return {"job": "snis_sanitation_fetch", "status": "success", "rows_written": 14}
+
+    monkeypatch.setattr(prefect_flows, "run_sidra_indicators", _run_sidra)
+    monkeypatch.setattr(prefect_flows, "run_senatran_fleet", _run_senatran)
+    monkeypatch.setattr(prefect_flows, "run_sejusp_public_safety", _run_sejusp)
+    monkeypatch.setattr(prefect_flows, "run_siops_health_finance", _run_siops)
+    monkeypatch.setattr(prefect_flows, "run_snis_sanitation", _run_snis)
     monkeypatch.setattr(prefect_flows, "run_dbt_build", _run_dbt)
     monkeypatch.setattr(prefect_flows, "run_quality_suite", _run_quality)
 
@@ -202,5 +241,62 @@ def test_run_mvp_all_returns_each_job_result_payload(monkeypatch) -> None:
     assert result["health_datasus_fetch"]["rows_written"] == 8
     assert result["finance_siconfi_fetch"]["rows_written"] == 9
     assert result["labor_mte_fetch"]["status"] == "blocked"
+    assert result["sidra_indicators_fetch"]["rows_written"] == 10
+    assert result["senatran_fleet_fetch"]["rows_written"] == 11
+    assert result["sejusp_public_safety_fetch"]["rows_written"] == 12
+    assert result["siops_health_finance_fetch"]["rows_written"] == 13
+    assert result["snis_sanitation_fetch"]["rows_written"] == 14
     assert result["dbt_build"]["models_built"] == 3
     assert result["quality_suite"]["job"] == "quality_suite"
+
+
+def test_run_mvp_wave_4_propagates_common_kwargs_to_all_jobs(monkeypatch) -> None:
+    calls: dict[str, dict[str, Any]] = {}
+
+    def _stub(job_name: str):
+        def _run(**kwargs: Any) -> dict[str, Any]:
+            calls[job_name] = kwargs
+            return {"job": job_name, "status": "success", "rows_written": 1}
+
+        return _run
+
+    monkeypatch.setattr(prefect_flows, "run_sidra_indicators", _stub("sidra_indicators_fetch"))
+    monkeypatch.setattr(prefect_flows, "run_senatran_fleet", _stub("senatran_fleet_fetch"))
+    monkeypatch.setattr(
+        prefect_flows,
+        "run_sejusp_public_safety",
+        _stub("sejusp_public_safety_fetch"),
+    )
+    monkeypatch.setattr(
+        prefect_flows,
+        "run_siops_health_finance",
+        _stub("siops_health_finance_fetch"),
+    )
+    monkeypatch.setattr(prefect_flows, "run_snis_sanitation", _stub("snis_sanitation_fetch"))
+    monkeypatch.setattr(prefect_flows, "run_quality_suite", _stub("quality_suite"))
+
+    result = prefect_flows.run_mvp_wave_4.fn(
+        reference_period="2025",
+        force=True,
+        dry_run=False,
+        max_retries=5,
+        timeout_seconds=45,
+    )
+
+    assert set(result.keys()) == {
+        "sidra_indicators_fetch",
+        "senatran_fleet_fetch",
+        "sejusp_public_safety_fetch",
+        "siops_health_finance_fetch",
+        "snis_sanitation_fetch",
+        "quality_suite",
+    }
+    expected_kwargs = {
+        "reference_period": "2025",
+        "force": True,
+        "dry_run": False,
+        "max_retries": 5,
+        "timeout_seconds": 45,
+    }
+    for job_name in result:
+        assert calls[job_name] == expected_kwargs

@@ -360,6 +360,55 @@ def check_fact_indicator(
     return results
 
 
+def check_fact_indicator_source_rows(
+    session: Session,
+    reference_period: str | None,
+    thresholds: QualityThresholds,
+) -> list[CheckResult]:
+    results: list[CheckResult] = []
+    source_map = (
+        ("sidra", "SIDRA"),
+        ("senatran", "SENATRAN"),
+        ("sejusp_mg", "SEJUSP_MG"),
+        ("siops", "SIOPS"),
+        ("snis", "SNIS"),
+    )
+
+    for source_key, source_name in source_map:
+        min_rows = thresholds.get(
+            "fact_indicator",
+            f"min_rows_{source_key}",
+            fallback=0,
+        )
+        rows = _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM silver.fact_indicator
+            WHERE source = :source
+              AND (
+                    CAST(:reference_period AS TEXT) IS NULL
+                    OR reference_period = CAST(:reference_period AS TEXT)
+                  )
+            """,
+            {"source": source_name, "reference_period": reference_period},
+        )
+        results.append(
+            CheckResult(
+                name=f"source_rows_{source_key}",
+                status="pass" if rows >= min_rows else "warn",
+                details=(
+                    f"Expected at least {min_rows} row(s) for source {source_name} "
+                    f"in reference period {reference_period}."
+                ),
+                observed_value=rows,
+                threshold_value=min_rows,
+            )
+        )
+
+    return results
+
+
 def check_ops_pipeline_runs(
     session: Session,
     reference_period: str,
@@ -372,13 +421,18 @@ def check_ops_pipeline_runs(
         fallback=1,
     )
     jobs = (
-        "education_inep_fetch",
-        "health_datasus_fetch",
-        "finance_siconfi_fetch",
-        "labor_mte_fetch",
+        ("education_inep_fetch", "MVP-3"),
+        ("health_datasus_fetch", "MVP-3"),
+        ("finance_siconfi_fetch", "MVP-3"),
+        ("labor_mte_fetch", "MVP-3"),
+        ("sidra_indicators_fetch", "MVP-4"),
+        ("senatran_fleet_fetch", "MVP-4"),
+        ("sejusp_public_safety_fetch", "MVP-4"),
+        ("siops_health_finance_fetch", "MVP-4"),
+        ("snis_sanitation_fetch", "MVP-4"),
     )
 
-    for job_name in jobs:
+    for job_name, wave in jobs:
         sql = """
             SELECT COUNT(*)
             FROM ops.pipeline_runs
@@ -393,9 +447,10 @@ def check_ops_pipeline_runs(
             {"job_name": job_name, "reference_period": reference_period},
         )
         status = "pass" if successful_runs >= min_successful_runs else "warn"
+        wave_token = wave.lower().replace("-", "")
         results.append(
             CheckResult(
-                name=f"mvp3_pipeline_run_{job_name}",
+                name=f"{wave_token}_pipeline_run_{job_name}",
                 status=status,
                 details=(
                     f"Expected at least {min_successful_runs} successful run(s) for "

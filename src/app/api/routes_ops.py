@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
+from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -12,6 +13,21 @@ from app.api.utils import normalize_pagination
 from app.schemas.responses import PaginatedResponse
 
 router = APIRouter(prefix="/ops", tags=["ops"])
+
+
+class FrontendEventIn(BaseModel):
+    category: str = Field(
+        pattern="^(frontend_error|web_vital|performance|lifecycle|api_request)$"
+    )
+    name: str = Field(min_length=1, max_length=120)
+    severity: str = Field(pattern="^(info|warn|error)$")
+    attributes: dict[str, Any] | None = None
+    timestamp_utc: datetime
+
+
+class FrontendEventIngestResponse(BaseModel):
+    status: str
+    event_id: int
 
 
 def _aggregate_timeseries_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -122,6 +138,131 @@ def list_pipeline_runs(
               AND (CAST(:started_from AS TIMESTAMPTZ) IS NULL OR started_at_utc >= CAST(:started_from AS TIMESTAMPTZ))
               AND (CAST(:started_to AS TIMESTAMPTZ) IS NULL OR started_at_utc <= CAST(:started_to AS TIMESTAMPTZ))
             ORDER BY started_at_utc DESC, run_id DESC
+            LIMIT :limit OFFSET :offset
+            """
+        ),
+        params,
+    ).mappings().all()
+
+    return PaginatedResponse(
+        page=page,
+        page_size=page_size,
+        total=total,
+        items=[dict(row) for row in rows],
+    )
+
+
+@router.post("/frontend-events", status_code=202, response_model=FrontendEventIngestResponse)
+def ingest_frontend_event(
+    payload: FrontendEventIn,
+    request: Request,
+    db: Session = Depends(get_db),  # noqa: B008
+) -> FrontendEventIngestResponse:
+    event_id = db.execute(
+        text(
+            """
+            INSERT INTO ops.frontend_events (
+                category,
+                name,
+                severity,
+                attributes,
+                event_timestamp_utc,
+                request_id,
+                user_agent
+            ) VALUES (
+                :category,
+                :name,
+                :severity,
+                CAST(:attributes AS JSONB),
+                CAST(:event_timestamp_utc AS TIMESTAMPTZ),
+                CAST(:request_id AS TEXT),
+                CAST(:user_agent AS TEXT)
+            )
+            RETURNING event_id
+            """
+        ),
+        {
+            "category": payload.category,
+            "name": payload.name,
+            "severity": payload.severity,
+            "attributes": payload.attributes or {},
+            "event_timestamp_utc": payload.timestamp_utc,
+            "request_id": getattr(request.state, "request_id", None),
+            "user_agent": request.headers.get("user-agent"),
+        },
+    ).scalar_one()
+    return FrontendEventIngestResponse(status="accepted", event_id=int(event_id))
+
+
+@router.get("/frontend-events", response_model=PaginatedResponse)
+def list_frontend_events(
+    category: str | None = Query(default=None),
+    severity: str | None = Query(default=None),
+    name: str | None = Query(default=None),
+    event_from: datetime | None = Query(default=None),  # noqa: B008
+    event_to: datetime | None = Query(default=None),  # noqa: B008
+    page: int = Query(default=1),
+    page_size: int = Query(default=100),
+    db: Session = Depends(get_db),  # noqa: B008
+) -> PaginatedResponse:
+    page, page_size, offset = normalize_pagination(page, page_size)
+    params = {
+        "category": category,
+        "severity": severity,
+        "name": name,
+        "event_from": event_from,
+        "event_to": event_to,
+        "limit": page_size,
+        "offset": offset,
+    }
+
+    total = db.execute(
+        text(
+            """
+            SELECT COUNT(*)
+            FROM ops.frontend_events fe
+            WHERE (CAST(:category AS TEXT) IS NULL OR fe.category = CAST(:category AS TEXT))
+              AND (CAST(:severity AS TEXT) IS NULL OR fe.severity = CAST(:severity AS TEXT))
+              AND (CAST(:name AS TEXT) IS NULL OR fe.name = CAST(:name AS TEXT))
+              AND (
+                    CAST(:event_from AS TIMESTAMPTZ) IS NULL
+                    OR fe.event_timestamp_utc >= CAST(:event_from AS TIMESTAMPTZ)
+                  )
+              AND (
+                    CAST(:event_to AS TIMESTAMPTZ) IS NULL
+                    OR fe.event_timestamp_utc <= CAST(:event_to AS TIMESTAMPTZ)
+                  )
+            """
+        ),
+        params,
+    ).scalar_one()
+
+    rows = db.execute(
+        text(
+            """
+            SELECT
+                fe.event_id,
+                fe.category,
+                fe.name,
+                fe.severity,
+                fe.attributes,
+                fe.event_timestamp_utc,
+                fe.received_at_utc,
+                fe.request_id,
+                fe.user_agent
+            FROM ops.frontend_events fe
+            WHERE (CAST(:category AS TEXT) IS NULL OR fe.category = CAST(:category AS TEXT))
+              AND (CAST(:severity AS TEXT) IS NULL OR fe.severity = CAST(:severity AS TEXT))
+              AND (CAST(:name AS TEXT) IS NULL OR fe.name = CAST(:name AS TEXT))
+              AND (
+                    CAST(:event_from AS TIMESTAMPTZ) IS NULL
+                    OR fe.event_timestamp_utc >= CAST(:event_from AS TIMESTAMPTZ)
+                  )
+              AND (
+                    CAST(:event_to AS TIMESTAMPTZ) IS NULL
+                    OR fe.event_timestamp_utc <= CAST(:event_to AS TIMESTAMPTZ)
+                  )
+            ORDER BY fe.event_timestamp_utc DESC, fe.event_id DESC
             LIMIT :limit OFFSET :offset
             """
         ),

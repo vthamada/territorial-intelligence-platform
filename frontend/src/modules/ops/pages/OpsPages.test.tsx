@@ -5,13 +5,15 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OpsChecksPage } from "./OpsChecksPage";
 import { OpsConnectorsPage } from "./OpsConnectorsPage";
+import { OpsFrontendEventsPage } from "./OpsFrontendEventsPage";
 import { OpsRunsPage } from "./OpsRunsPage";
-import { getConnectorRegistry, getPipelineChecks, getPipelineRuns } from "../../../shared/api/ops";
+import { getConnectorRegistry, getFrontendEvents, getPipelineChecks, getPipelineRuns } from "../../../shared/api/ops";
 
 vi.mock("../../../shared/api/ops", () => ({
   getPipelineRuns: vi.fn(),
   getPipelineChecks: vi.fn(),
-  getConnectorRegistry: vi.fn()
+  getConnectorRegistry: vi.fn(),
+  getFrontendEvents: vi.fn()
 }));
 
 function renderWithQueryClient(ui: ReactElement) {
@@ -43,6 +45,12 @@ describe("Ops pages filters", () => {
       items: []
     });
     vi.mocked(getConnectorRegistry).mockResolvedValue({
+      page: 1,
+      page_size: 20,
+      total: 0,
+      items: []
+    });
+    vi.mocked(getFrontendEvents).mockResolvedValue({
       page: 1,
       page_size: 20,
       total: 0,
@@ -97,6 +105,27 @@ describe("Ops pages filters", () => {
 
     expect(vi.mocked(getConnectorRegistry).mock.calls[1]?.[0]).toMatchObject({
       connector_name: "labor_mte_fetch",
+      page: 1,
+      page_size: 20
+    });
+  });
+
+  it("applies frontend events filters only when submitting form", async () => {
+    renderWithQueryClient(<OpsFrontendEventsPage />);
+    await waitFor(() => expect(getFrontendEvents).toHaveBeenCalledTimes(1));
+
+    await userEvent.selectOptions(screen.getByLabelText("Categoria"), "api_request");
+    await userEvent.selectOptions(screen.getByLabelText("Severidade"), "error");
+    await userEvent.type(screen.getByLabelText("Evento"), "api_request_failed");
+    expect(getFrontendEvents).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+    await waitFor(() => expect(getFrontendEvents).toHaveBeenCalledTimes(2));
+
+    expect(vi.mocked(getFrontendEvents).mock.calls[1]?.[0]).toMatchObject({
+      category: "api_request",
+      severity: "error",
+      name: "api_request_failed",
       page: 1,
       page_size: 20
     });

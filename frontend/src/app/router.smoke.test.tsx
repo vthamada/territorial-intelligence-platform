@@ -38,6 +38,12 @@ vi.mock("../shared/api/ops", () => ({
     page_size: 20,
     total: 0,
     items: []
+  }),
+  getFrontendEvents: vi.fn().mockResolvedValue({
+    page: 1,
+    page_size: 20,
+    total: 0,
+    items: []
   })
 }));
 
@@ -52,6 +58,236 @@ vi.mock("../shared/api/domain", () => ({
     page: 1,
     page_size: 20,
     total: 0,
+    items: []
+  }),
+  getChoropleth: vi.fn().mockResolvedValue({
+    page: 1,
+    page_size: 1000,
+    total: 1,
+    items: [
+      {
+        territory_id: "3121605",
+        territory_name: "Diamantina",
+        level: "municipio",
+        metric: "MTE_NOVO_CAGED_SALDO_TOTAL",
+        reference_period: "2025",
+        value: 120,
+        geometry: null
+      }
+    ]
+  })
+}));
+
+vi.mock("../shared/api/qg", () => ({
+  getKpisOverview: vi.fn().mockResolvedValue({
+    period: "2025",
+    metadata: {
+      source_name: "silver.fact_indicator",
+      updated_at: null,
+      coverage_note: "territorial_aggregated",
+      unit: null,
+      notes: "mock"
+    },
+    items: [
+      {
+        domain: "saude",
+        indicator_code: "DATASUS_APS_COBERTURA",
+        indicator_name: "Cobertura APS",
+        value: 80,
+        unit: "%",
+        delta: null,
+        status: "stable",
+        territory_level: "municipio"
+      }
+    ]
+  }),
+  getPrioritySummary: vi.fn().mockResolvedValue({
+    period: "2025",
+    metadata: {
+      source_name: "silver.fact_indicator",
+      updated_at: null,
+      coverage_note: "territorial_aggregated",
+      unit: null,
+      notes: "mock"
+    },
+    total_items: 1,
+    by_status: { critical: 0, attention: 1, stable: 0 },
+    by_domain: { saude: 1 },
+    top_territories: ["Diamantina"]
+  }),
+  getPriorityList: vi.fn().mockResolvedValue({
+    period: "2025",
+    level: "municipio",
+    domain: null,
+    metadata: {
+      source_name: "silver.fact_indicator",
+      updated_at: null,
+      coverage_note: "territorial_aggregated",
+      unit: null,
+      notes: "mock"
+    },
+    items: [
+      {
+        territory_id: "3121605",
+        territory_name: "Diamantina",
+        territory_level: "municipio",
+        domain: "saude",
+        indicator_code: "DATASUS_APS_COBERTURA",
+        indicator_name: "Cobertura APS",
+        value: 80,
+        unit: "%",
+        score: 90,
+        trend: "stable",
+        status: "critical",
+        rationale: ["Item critico de teste"],
+        evidence: {
+          indicator_code: "DATASUS_APS_COBERTURA",
+          reference_period: "2025",
+          source: "DATASUS",
+          dataset: "datasus_health"
+        }
+      }
+    ]
+  }),
+  getInsightsHighlights: vi.fn().mockResolvedValue({
+    period: "2025",
+    domain: null,
+    severity: null,
+    metadata: {
+      source_name: "silver.fact_indicator",
+      updated_at: null,
+      coverage_note: "territorial_aggregated",
+      unit: null,
+      notes: "mock"
+    },
+    items: []
+  }),
+  postScenarioSimulate: vi.fn().mockResolvedValue({
+    territory_id: "3121605",
+    territory_name: "Diamantina",
+    territory_level: "municipio",
+    period: "2025",
+    domain: "saude",
+    indicator_code: "DATASUS_APS_COBERTURA",
+    indicator_name: "Cobertura APS",
+    base_value: 70,
+    simulated_value: 77,
+    delta_value: 7,
+    adjustment_percent: 10,
+    base_score: 90,
+    simulated_score: 99,
+    peer_count: 10,
+    base_rank: 3,
+    simulated_rank: 2,
+    rank_delta: 1,
+    status_before: "critical",
+    status_after: "critical",
+    impact: "unchanged",
+    metadata: {
+      source_name: "silver.fact_indicator",
+      updated_at: null,
+      coverage_note: "territorial_aggregated",
+      unit: "%",
+      notes: "mock"
+    },
+    explanation: ["mock"]
+  }),
+  postBriefGenerate: vi.fn().mockResolvedValue({
+    brief_id: "brief-mock-001",
+    title: "Brief Executivo - Diamantina",
+    generated_at: "2026-02-11T12:00:00Z",
+    period: "2025",
+    level: "municipio",
+    territory_id: "3121605",
+    domain: null,
+    summary_lines: ["Resumo mock"],
+    recommended_actions: ["Acao mock"],
+    evidences: [
+      {
+        territory_id: "3121605",
+        territory_name: "Diamantina",
+        territory_level: "municipio",
+        domain: "saude",
+        indicator_code: "DATASUS_APS_COBERTURA",
+        indicator_name: "Cobertura APS",
+        value: 70,
+        unit: "%",
+        score: 90,
+        status: "critical",
+        source: "DATASUS",
+        dataset: "datasus_health",
+        reference_period: "2025"
+      }
+    ],
+    metadata: {
+      source_name: "silver.fact_indicator",
+      updated_at: null,
+      coverage_note: "territorial_aggregated",
+      unit: null,
+      notes: "mock"
+    }
+  }),
+  getTerritoryProfile: vi.fn().mockResolvedValue({
+    territory_id: "3106200",
+    territory_name: "Belo Horizonte",
+    territory_level: "municipio",
+    period: "2025",
+    metadata: {
+      source_name: "silver.fact_indicator",
+      updated_at: null,
+      coverage_note: "territorial_aggregated",
+      unit: null,
+      notes: "mock"
+    },
+    highlights: ["Destaque de teste"],
+    domains: []
+  }),
+  getTerritoryCompare: vi.fn().mockResolvedValue({
+    territory_id: "3121605",
+    territory_name: "Diamantina",
+    compare_with_id: "3106200",
+    compare_with_name: "Belo Horizonte",
+    period: "2025",
+    metadata: {
+      source_name: "silver.fact_indicator",
+      updated_at: null,
+      coverage_note: "territorial_aggregated",
+      unit: null,
+      notes: "mock"
+    },
+    items: []
+  }),
+  getElectorateSummary: vi.fn().mockResolvedValue({
+    level: "municipio",
+    year: 2024,
+    metadata: {
+      source_name: "silver.fact_electorate",
+      updated_at: null,
+      coverage_note: "territorial_aggregated",
+      unit: "voters",
+      notes: "mock"
+    },
+    total_voters: 1000,
+    turnout: null,
+    turnout_rate: 80,
+    abstention_rate: 20,
+    blank_rate: 2,
+    null_rate: 3,
+    by_sex: [],
+    by_age: [],
+    by_education: []
+  }),
+  getElectorateMap: vi.fn().mockResolvedValue({
+    level: "municipio",
+    metric: "voters",
+    year: 2024,
+    metadata: {
+      source_name: "silver.fact_electorate",
+      updated_at: null,
+      coverage_note: "territorial_aggregated",
+      unit: "voters",
+      notes: "mock"
+    },
     items: []
   })
 }));
@@ -82,19 +318,61 @@ describe("Router smoke", () => {
       </QueryClientProvider>
     );
 
-    await screen.findByText("Status geral");
+    await screen.findByText("Situacao geral");
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("link", { name: "Execucoes" }));
+    await user.click(screen.getByRole("link", { name: "Prioridades" }));
+    await screen.findByText("Prioridades estrategicas");
+
+    await user.click(screen.getByRole("link", { name: "Mapa" }));
+    await screen.findByText("Mapa estrategico");
+    await user.click(screen.getByRole("link", { name: "Abrir perfil" }));
+    await screen.findByText("Belo Horizonte");
+
+    await user.click(screen.getByRole("link", { name: "Insights" }));
+    await screen.findByText("Insights estrategicos");
+
+    await user.click(screen.getByRole("link", { name: "Cenarios" }));
+    await screen.findByText("Cenarios estrategicos");
+
+    await user.click(screen.getByRole("link", { name: "Briefs" }));
+    await screen.findByText("Briefs executivos");
+
+    await user.click(screen.getByRole("link", { name: "Territorio 360" }));
+    await screen.findByText("Perfil 360 do territorio");
+
+    await user.click(screen.getByRole("link", { name: "Eleitorado" }));
+    await screen.findByText("Eleitorado e participacao");
+
+    await user.click(screen.getByRole("link", { name: "Admin" }));
+    await screen.findByText("Admin tecnico");
+
+    await user.click(screen.getByRole("link", { name: "Abrir Saude Ops" }));
+    await screen.findByText("Status geral");
+
+    await user.click(screen.getByRole("link", { name: "Admin" }));
+    await screen.findByText("Admin tecnico");
+    await user.click(screen.getByRole("link", { name: "Abrir Execucoes" }));
     await screen.findByText("Execucoes de pipeline");
 
-    await user.click(screen.getByRole("link", { name: "Checks" }));
+    await user.click(screen.getByRole("link", { name: "Admin" }));
+    await screen.findByText("Admin tecnico");
+    await user.click(screen.getByRole("link", { name: "Abrir Checks" }));
     await screen.findByText("Checks de pipeline");
 
-    await user.click(screen.getByRole("link", { name: "Conectores" }));
+    await user.click(screen.getByRole("link", { name: "Admin" }));
+    await screen.findByText("Admin tecnico");
+    await user.click(screen.getByRole("link", { name: "Abrir Conectores" }));
     await screen.findByText("Registry de conectores");
 
-    await user.click(screen.getByRole("link", { name: "Territorios e Indicadores" }));
+    await user.click(screen.getByRole("link", { name: "Admin" }));
+    await screen.findByText("Admin tecnico");
+    await user.click(screen.getByRole("link", { name: "Abrir Eventos Frontend" }));
+    await screen.findByText("Eventos frontend");
+
+    await user.click(screen.getByRole("link", { name: "Admin" }));
+    await screen.findByText("Admin tecnico");
+    await user.click(screen.getByRole("link", { name: "Abrir Territorios e Indicadores" }));
     await screen.findByText("Territorios");
     await screen.findByText("Indicadores");
   });

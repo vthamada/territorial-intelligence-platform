@@ -5,6 +5,46 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 ## 2026-02-11
 
 ### Changed
+- API v1 passou a incluir o novo router QG (`routes_qg`) com contratos iniciais para Home/Prioridades/Insights.
+- API `ops` evoluiu para receber e consultar telemetria frontend:
+  - `POST /v1/ops/frontend-events`
+  - `GET /v1/ops/frontend-events`
+- Frontend evoluiu de foco exclusivamente operacional para fluxo QG:
+  - rota inicial (`/`) agora usa visao executiva (`QgOverviewPage`).
+  - nova rota `prioridades` com consumo de `GET /v1/priority/list`.
+  - nova rota `mapa` com consumo de `GET /v1/geo/choropleth`.
+  - `mapa` evoluido com renderizacao visual (SVG/GeoJSON) via `ChoroplethMiniMap`, mantendo visao tabular de apoio.
+  - nova rota `insights` com consumo de `GET /v1/insights/highlights`.
+  - nova rota `territory/profile` com consumo de `GET /v1/territory/{id}/profile` e `GET /v1/territory/{id}/compare`.
+  - nova rota `electorate/executive` com consumo de `GET /v1/electorate/summary` e `GET /v1/electorate/map`.
+  - navegacao principal atualizada para incluir Visao Geral, Territorio 360 e Eleitorado.
+  - navegacao tecnica separada em hub dedicado (`/admin`), removendo links operacionais do menu principal.
+  - aliases de rota em portugues adicionados para fluxo executivo:
+    - `/territorio/perfil`
+    - `/territorio/:territoryId`
+    - `/eleitorado`
+  - navegação QG endurecida com deep-link para perfil territorial a partir de `Prioridades` e `Mapa` (`Abrir perfil`).
+  - telas executivas do QG passaram a exibir metadados de fonte/frescor/cobertura com `SourceFreshnessBadge`.
+  - `Situacao geral` da Home passou a usar card executivo reutilizavel (`StrategicIndexCard`).
+  - `Prioridades` passou de tabela unica para cards executivos reutilizaveis (`PriorityItemCard`) com foco em racional/evidencia.
+  - rota executiva `/cenarios` adicionada para simulacao simplificada de impacto territorial.
+  - motor de cenarios evoluido para calcular ranking antes/depois por indicador, com delta de posicao.
+  - rota executiva `/briefs` adicionada para geracao de brief com resumo e evidencias priorizadas.
+  - Home QG evoluida com acoes rapidas para `prioridades`, `mapa` e `territorio critico`.
+  - acao rapida `Ver no mapa` na Home passou a abrir o recorte da prioridade mais critica.
+  - Home QG passou a exibir previa real de Top prioridades (limit 5) com cards executivos.
+  - `Territorio 360` ganhou atalhos para `briefs` e `cenarios` com contexto do territorio selecionado.
+  - `Briefs` e `Cenarios` passaram a aceitar pre-preenchimento por query string (`territory_id`, `period`, etc.).
+  - `Prioridades` ganhou ordenacao executiva local (criticidade, tendencia e territorio) e exportacao `CSV`.
+  - cards de prioridade ganharam acao `Ver no mapa` com deep-link por `metric/period/territory_id`.
+  - `Mapa` passou a aceitar prefill por query string (`metric`, `period`, `level`, `territory_id`).
+  - `Mapa` ganhou exportacao `CSV` do ranking territorial atual.
+  - `Mapa` ganhou exportacao visual direta em `SVG` e `PNG` (download local do recorte atual).
+  - contrato de `GET /v1/territory/{id}/profile` evoluiu com `overall_score`, `overall_status` e `overall_trend`.
+  - `Territorio 360` passou a exibir card executivo de status geral com score agregado e tendencia.
+  - `Territorio 360` passou a incluir painel de pares recomendados para comparacao rapida.
+  - `Briefs` passou a suportar exportacao em `HTML` e impressao para `PDF` (via dialogo nativo do navegador).
+  - cliente HTTP frontend passou a suportar metodos com payload JSON (POST/PUT/PATCH/DELETE), mantendo retries apenas para GET.
 - Endpoint `GET /v1/ops/pipeline-runs` passou a aceitar filtro `run_status` (preferencial) mantendo
   compatibilidade com `status`.
 - `quality_suite` ganhou check adicional para legado em `silver.fact_indicator`:
@@ -20,6 +60,8 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - filtros de `runs`, `checks` e `connectors` passam a aplicar somente ao submeter o formulario.
   - botao `Limpar` adicionado nos formularios de filtros das telas de operacao.
   - tela de `runs` atualizada para usar `run_status` no contrato de consulta.
+  - nova tela `/ops/frontend-events` para observabilidade de eventos do cliente
+    (categoria, severidade, nome e janela temporal).
   - ajustes de textos/labels para evitar ruido de encoding em runtime.
 - Frontend F3 (territorio e indicadores) evoluido:
   - filtros de territorios com aplicacao explicita e paginacao.
@@ -30,12 +72,132 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - rotas convertidas para lazy-loading com fallback de pagina.
   - smoke test de navegacao entre rotas principais via `RouterProvider` e router em memoria.
   - bootstrap inicial com chunks por pagina gerados no build (reduzindo carga inicial do bundle principal).
+  - shell da aplicacao com foco programatico no `main` a cada troca de rota para melhorar navegacao por teclado/leitores.
+- Observabilidade frontend ampliada no cliente HTTP:
+  - emissao de telemetria para chamadas API com eventos `api_request_success`,
+    `api_request_retry` e `api_request_failed`.
+  - payload de telemetria com `method`, `path`, `status`, `request_id`, `duration_ms`,
+    tentativa atual e maximo de tentativas.
+- Orquestracao backend evoluida com Onda A inicial:
+  - novo fluxo `run_mvp_wave_4` em `src/orchestration/prefect_flows.py`.
+  - `run_mvp_all` passou a incluir os conectores da Onda A.
+- Configuracao operacional atualizada para Onda A:
+  - novos jobs em `configs/jobs.yml` (`MVP-4`).
+  - nova onda em `configs/waves.yml`.
+  - conectores da Onda A adicionados no `configs/connectors.yml` (SIDRA, SENATRAN, SEJUSP, SIOPS e SNIS em `implemented`).
+- `sidra_indicators_fetch` evoluido de discovery para ingestao real:
+  - leitura de catalogo configuravel (`configs/sidra_indicators_catalog.yml`)
+  - extracao via SIDRA `/values` com fallback de periodo
+  - persistencia Bronze + upsert em `silver.fact_indicator`
+  - status `blocked` quando nao ha valor numerico para o periodo/configuracao.
+- Check operacional `ops_pipeline_runs` ampliado para incluir `sidra_indicators_fetch` (`mvp4`).
+- `senatran_fleet_fetch` evoluido de discovery para ingestao real tabular:
+  - catalogo configuravel (`configs/senatran_fleet_catalog.yml`) para fontes remotas.
+  - fallback manual em `data/manual/senatran` para operacao local.
+  - parser CSV/TXT/XLSX/ZIP com identificacao de linha municipal por codigo/nome.
+  - persistencia Bronze + upsert em `silver.fact_indicator`.
+  - status `blocked` quando fonte existe mas nao ha linha/valor municipal utilizavel.
+- Check operacional `ops_pipeline_runs` ampliado para incluir `senatran_fleet_fetch` (`mvp4`).
+- `sejusp_public_safety_fetch` evoluido de discovery para ingestao real tabular:
+  - catalogo configuravel (`configs/sejusp_public_safety_catalog.yml`) para fontes remotas.
+  - fallback manual em `data/manual/sejusp` para operacao local.
+  - parser CSV/TXT/XLSX/ZIP com identificacao de linha municipal por codigo/nome.
+  - persistencia Bronze + upsert em `silver.fact_indicator`.
+  - status `blocked` quando fonte existe mas nao ha linha/valor municipal utilizavel.
+- Check operacional `ops_pipeline_runs` ampliado para incluir `sejusp_public_safety_fetch` (`mvp4`).
+- `siops_health_finance_fetch` evoluido de discovery para ingestao real tabular:
+  - catalogo configuravel (`configs/siops_health_finance_catalog.yml`) para fontes remotas.
+  - fallback manual em `data/manual/siops` para operacao local.
+  - parser CSV/TXT/XLSX/ZIP com identificacao de linha municipal por codigo/nome.
+  - persistencia Bronze + upsert em `silver.fact_indicator`.
+  - status `blocked` quando fonte existe mas nao ha linha/valor municipal utilizavel.
+- `snis_sanitation_fetch` evoluido de discovery para ingestao real tabular:
+  - catalogo configuravel (`configs/snis_sanitation_catalog.yml`) para fontes remotas.
+  - fallback manual em `data/manual/snis` para operacao local.
+  - parser CSV/TXT/XLSX/ZIP com identificacao de linha municipal por codigo/nome.
+  - persistencia Bronze + upsert em `silver.fact_indicator`.
+  - status `blocked` quando fonte existe mas nao ha linha/valor municipal utilizavel.
+- Check operacional `ops_pipeline_runs` ampliado para incluir `siops_health_finance_fetch` e `snis_sanitation_fetch` (`mvp4`).
+- `quality_suite` passou a validar cobertura por fonte da Onda A na `silver.fact_indicator`
+  por `reference_period`, com checks dedicados para `SIDRA`, `SENATRAN`, `SEJUSP_MG`,
+  `SIOPS` e `SNIS`.
+- Thresholds de qualidade da `fact_indicator` ampliados com minimos por fonte Onda A:
+  - `min_rows_sidra`
+  - `min_rows_senatran`
+  - `min_rows_sejusp_mg`
+  - `min_rows_siops`
+  - `min_rows_snis`
+- Performance de consultas QG/OPS endurecida com novos indices SQL incrementais em
+  `db/sql/004_qg_ops_indexes.sql` para filtros por periodo/territorio/fonte e ordenacao
+  temporal de execucoes.
 
 ### Added
+- Novos endpoints executivos do QG:
+  - `GET /v1/kpis/overview`
+  - `GET /v1/priority/list`
+  - `GET /v1/priority/summary`
+  - `GET /v1/insights/highlights`
+  - `POST /v1/scenarios/simulate`
+  - `POST /v1/briefs`
+  - `GET /v1/territory/{id}/profile`
+  - `GET /v1/territory/{id}/compare`
+  - `GET /v1/territory/{id}/peers`
+  - `GET /v1/electorate/summary`
+  - `GET /v1/electorate/map`
+- Novos schemas de resposta em `src/app/schemas/qg.py`.
+- Nova suite de testes unitarios para o contrato QG:
+  - `tests/unit/test_qg_routes.py`
+- Cliente API frontend para QG em `frontend/src/shared/api/qg.ts`.
+- Novas paginas frontend:
+  - `frontend/src/modules/qg/pages/QgOverviewPage.tsx`
+  - `frontend/src/modules/qg/pages/QgPrioritiesPage.tsx`
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx`
+  - `frontend/src/modules/qg/pages/QgInsightsPage.tsx`
+  - `frontend/src/modules/qg/pages/QgScenariosPage.tsx`
+  - `frontend/src/modules/qg/pages/QgBriefsPage.tsx`
+  - `frontend/src/modules/admin/pages/AdminHubPage.tsx`
+  - `frontend/src/modules/territory/pages/TerritoryProfilePage.tsx`
+  - `frontend/src/modules/territory/pages/TerritoryProfileRoutePage.tsx`
+  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx`
+  - `frontend/src/modules/ops/pages/OpsFrontendEventsPage.tsx`
+- Tipagens frontend para contratos QG adicionadas em `frontend/src/shared/api/types.ts`.
+- Testes de pagina frontend adicionados para o QG:
+  - `frontend/src/modules/qg/pages/QgPages.test.tsx`
+  - `frontend/src/modules/territory/pages/TerritoryProfilePage.test.tsx`
+  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx`
+  - wrappers de teste atualizados para `MemoryRouter` em paginas com `Link`/`search params`.
+  - novo teste de preload por query string em `QgBriefsPage`.
+  - novo teste de preload por query string em `QgMapPage`.
+- Novo componente de mapa e teste unitario:
+  - `frontend/src/shared/ui/ChoroplethMiniMap.tsx`
+  - `frontend/src/shared/ui/ChoroplethMiniMap.test.tsx`
+- Novo componente de metadados de fonte e teste unitario:
+  - `frontend/src/shared/ui/SourceFreshnessBadge.tsx`
+  - `frontend/src/shared/ui/SourceFreshnessBadge.test.tsx`
+- Novos componentes base de UI executiva e testes:
+  - `frontend/src/shared/ui/StrategicIndexCard.tsx`
+  - `frontend/src/shared/ui/StrategicIndexCard.test.tsx`
+  - `frontend/src/shared/ui/PriorityItemCard.tsx`
+  - `frontend/src/shared/ui/PriorityItemCard.test.tsx`
+- Novas tipagens/contratos de simulacao:
+  - `ScenarioSimulateRequest`
+  - `ScenarioSimulateResponse`
+- Novas tipagens/contratos de brief:
+  - `BriefGenerateRequest`
+  - `BriefGenerateResponse`
+  - `BriefEvidenceItem`
+- Testes de contrato QG ampliados para cenarios no arquivo:
+  - `tests/unit/test_qg_routes.py`
+- Testes de contrato QG ampliados para briefs no arquivo:
+  - `tests/unit/test_qg_routes.py`
+- Teste do cliente HTTP ampliado para payload JSON:
+  - `frontend/src/shared/api/http.test.ts`
 - Scripts operacionais:
   - `scripts/backend_readiness.py`
   - `scripts/backfill_missing_pipeline_checks.py`
   - `scripts/cleanup_legacy_source_probe_indicators.py`
+- Persistencia de telemetria frontend:
+  - `db/sql/005_frontend_observability.sql` (tabela `ops.frontend_events` + indices)
 - Documento de planejamento de fontes futuras para Diamantina:
   - `docs/PLANO_FONTES_DADOS_DIAMANTINA.md`
   - catalogo por ondas (A/B/C), risco e criterio de aceite por fonte.
@@ -46,14 +208,57 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - persistencia de check em falha de `dbt_build`
 - Testes frontend de filtros das paginas de operacao:
   - `frontend/src/modules/ops/pages/OpsPages.test.tsx`
+  - cobertura ampliada para `/ops/frontend-events`
 - Testes frontend da pagina territorial:
   - `frontend/src/modules/territory/pages/TerritoryIndicatorsPage.test.tsx`
 - Teste smoke de navegacao:
   - `frontend/src/app/router.smoke.test.tsx`
+- Testes do cliente HTTP ampliados para validar emissao de telemetria de API:
+  - `frontend/src/shared/api/http.test.ts`
 - Novo threshold em `configs/quality_thresholds.yml`:
   - `fact_indicator.max_source_probe_rows: 0`
+- Novos conectores backend (Onda A - fase discovery):
+  - `src/pipelines/sidra_indicators.py`
+  - `src/pipelines/senatran_fleet.py`
+  - `src/pipelines/sejusp_public_safety.py`
+  - `src/pipelines/siops_health_finance.py`
+  - `src/pipelines/snis_sanitation.py`
+- Novo catalogo SIDRA para ingestao real:
+  - `configs/sidra_indicators_catalog.yml`
+- Novo catalogo SENATRAN para fontes remotas configuraveis:
+  - `configs/senatran_fleet_catalog.yml`
+- Novo catalogo SEJUSP para fontes remotas configuraveis:
+  - `configs/sejusp_public_safety_catalog.yml`
+- Novo catalogo SIOPS para fontes remotas configuraveis:
+  - `configs/siops_health_finance_catalog.yml`
+- Novo catalogo SNIS para fontes remotas configuraveis:
+  - `configs/snis_sanitation_catalog.yml`
+- Nova cobertura de teste para conectores Onda A:
+  - `tests/unit/test_onda_a_connectors.py`
+  - testes SIDRA atualizados para parse e dry-run com catalogo real.
+  - testes SENATRAN atualizados para parse municipal, construcao de indicadores e dry-run.
+  - testes SEJUSP atualizados para parse municipal, construcao de indicadores e dry-run.
+  - testes SIOPS e SNIS atualizados para parse municipal, construcao de indicadores e dry-run.
 
 ### Verified
+- `pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider`: `10 passed`.
+- `pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider` (apos adicionar cenarios): `12 passed`.
+- `pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider` (apos adicionar briefs): `14 passed`.
+- `pytest -q tests/unit/test_ops_routes.py -p no:cacheprovider`: `18 passed`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_ops_routes.py -p no:cacheprovider`: `21 passed`.
+- `pytest -q tests/unit -p no:cacheprovider`: `96 passed`.
+- `npm --prefix frontend run typecheck`: `OK`.
+- `npm --prefix frontend run typecheck` (apos atalhos e prefill por query string): `OK`.
+- `npm --prefix frontend run typecheck` (apos exportacao CSV e deep-links Prioridades->Mapa): `OK`.
+- `npm --prefix frontend run typecheck` (apos status geral territorial): `OK`.
+- `npm --prefix frontend run typecheck` (apos exportacao de mapa SVG/PNG): `OK`.
+- `npm --prefix frontend run typecheck` (apos pares recomendados no Territorio 360): `OK`.
+- `npm --prefix frontend run typecheck` (apos exportacao de briefs HTML/PDF): `OK`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider`: `14 passed`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider` (apos endpoint peers): `15 passed`.
+- `npm --prefix frontend run typecheck` (revalidacao apos separacao de `/admin` e aliases PT-BR): `OK`.
+- `npm --prefix frontend run test`: bloqueado no ambiente atual por `spawn EPERM` ao carregar `vite.config.ts`.
+- `npm --prefix frontend run build`: bloqueado no ambiente atual por `spawn EPERM` ao carregar `vite.config.ts`.
 - `pytest -q tests/unit/test_logging_setup.py tests/unit/test_dbt_build.py tests/unit/test_ops_routes.py tests/unit/test_quality_core_checks.py -p no:cacheprovider`: `31 passed`.
 - `python scripts/backend_readiness.py --output-json`: `READY` com `hard_failures=0` e `warnings=1` (`SLO-1` historico abaixo de 95% na janela de 7 dias).
 - `python scripts/backfill_missing_pipeline_checks.py --window-days 7 --apply`: checks faltantes preenchidos para runs implementados.
@@ -71,12 +276,22 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - `python scripts/backend_readiness.py --output-json`: `READY` com `hard_failures=0` e `warnings=0`.
 - `python scripts/backend_readiness.py --output-json` (revalidacao final local): `READY` com
   `hard_failures=0` e `warnings=0`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_prefect_wave3_flow.py tests/unit/test_onda_a_connectors.py -p no:cacheprovider`: `8 passed`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_onda_a_connectors.py -p no:cacheprovider`: `23 passed`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_onda_a_connectors.py tests/unit/test_quality_ops_pipeline_runs.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_qg_routes.py -p no:cacheprovider`: `24 passed`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_onda_a_connectors.py tests/unit/test_quality_ops_pipeline_runs.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_qg_routes.py -p no:cacheprovider`: `27 passed`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_onda_a_connectors.py tests/unit/test_quality_ops_pipeline_runs.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_qg_routes.py -p no:cacheprovider`: `30 passed`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_onda_a_connectors.py tests/unit/test_quality_ops_pipeline_runs.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_qg_routes.py -p no:cacheprovider`: `35 passed`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py tests/unit/test_onda_a_connectors.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_ops_pipeline_runs.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_ops_routes.py -p no:cacheprovider`: `62 passed`.
 - `npm --prefix frontend test`: `10 passed`.
 - `npm --prefix frontend run build`: build concluido (`vite v6.4.1`).
 - `npm --prefix frontend test` (com F3): `12 passed`.
 - `npm --prefix frontend run build` (com F3): build concluido (`vite v6.4.1`).
 - `npm --prefix frontend test` (com F4): `13 passed`.
 - `npm --prefix frontend run build` (com F4): build concluido com code-splitting por pagina.
+- `npm --prefix frontend run typecheck` (apos telemetria de API no cliente HTTP): `OK`.
+- `npm --prefix frontend run test -- src/shared/api/http.test.ts src/shared/observability/telemetry.test.ts`:
+  bloqueado no ambiente atual por `spawn EPERM` ao carregar `vite.config.ts`.
 - Instalacao de `dbt-core`/`dbt-postgres` bloqueada no ambiente atual por `PIP_NO_INDEX=1`.
 - Instalacao de `dbt-core`/`dbt-postgres` continua bloqueada no ambiente local por permissao em diretorios
   temporarios do `pip` (erro de `Permission denied` em `pip-unpack-*`).
@@ -155,6 +370,11 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - Teste unitario do check operacional em `tests/unit/test_quality_ops_pipeline_runs.py`.
 - Testes de integracao de fluxo para `run_mvp_wave_3` em `tests/unit/test_prefect_wave3_flow.py`.
 - Testes de integracao de fluxo para `run_mvp_all` em `tests/unit/test_prefect_wave3_flow.py`.
+- Cobertura de testes da qualidade ampliada para checks por fonte da Onda A:
+  - `tests/unit/test_quality_core_checks.py`
+- Launcher local para Windows sem `make`:
+  - `scripts/dev_up.ps1` (sobe API + frontend)
+  - `scripts/dev_down.ps1` (encerra processos iniciados pelo launcher)
 - Base frontend F1 adicionada em `frontend/`:
   - React + Vite + TypeScript
   - React Router + TanStack Query
