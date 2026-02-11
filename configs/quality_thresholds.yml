@@ -20,6 +20,7 @@ fact_election_result:
 
 fact_indicator:
   max_missing_ratio: 0.00
+  max_source_probe_rows: 0
 
 ops_pipeline_runs:
   min_successful_runs_per_job: 1

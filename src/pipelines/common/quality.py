@@ -331,6 +331,32 @@ def check_fact_indicator(
             threshold_value=max_missing_ratio,
         )
     )
+
+    max_source_probe_rows = thresholds.get(
+        "fact_indicator",
+        "max_source_probe_rows",
+        fallback=0,
+    )
+    source_probe_rows = _scalar(
+        session,
+        """
+        SELECT COUNT(*)
+        FROM silver.fact_indicator
+        WHERE indicator_code LIKE '%_SOURCE_PROBE'
+        """,
+    )
+    results.append(
+        CheckResult(
+            name="source_probe_rows",
+            status="pass" if source_probe_rows <= max_source_probe_rows else "warn",
+            details=(
+                "Legacy SOURCE_PROBE indicators should be zero after real connectors "
+                "are stabilized."
+            ),
+            observed_value=source_probe_rows,
+            threshold_value=max_source_probe_rows,
+        )
+    )
     return results
 
 

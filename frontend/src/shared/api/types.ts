@@ -31,6 +31,31 @@ export type PipelineRun = {
   errors_count: number;
 };
 
+export type PipelineCheck = {
+  check_id: number;
+  run_id: string;
+  job_name: string;
+  source: string;
+  dataset: string;
+  wave: string;
+  reference_period: string;
+  check_name: string;
+  status: string;
+  details: string;
+  observed_value: number | null;
+  threshold_value: number | null;
+  created_at_utc: string;
+};
+
+export type ConnectorRegistryItem = {
+  connector_name: string;
+  source: string;
+  wave: string;
+  status: string;
+  notes: string | null;
+  updated_at_utc: string;
+};
+
 export type OpsSummaryResponse = {
   runs: {
     total: number;

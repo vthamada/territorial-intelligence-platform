@@ -1,54 +1,57 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getPipelineRuns } from "../../../shared/api/ops";
+import { getPipelineChecks } from "../../../shared/api/ops";
 import { formatApiError } from "../../../shared/api/http";
 import { Panel } from "../../../shared/ui/Panel";
 import { StateBlock } from "../../../shared/ui/StateBlock";
 
 const PAGE_SIZE = 20;
 
-type RunsFilters = {
+type ChecksFilters = {
+  runId: string;
   jobName: string;
-  runStatus: string;
-  wave: string;
-  startedFrom: string;
-  startedTo: string;
+  status: string;
+  checkName: string;
+  createdFrom: string;
+  createdTo: string;
 };
 
-function makeEmptyFilters(): RunsFilters {
+function makeEmptyFilters(): ChecksFilters {
   return {
+    runId: "",
     jobName: "",
-    runStatus: "",
-    wave: "",
-    startedFrom: "",
-    startedTo: ""
+    status: "",
+    checkName: "",
+    createdFrom: "",
+    createdTo: ""
   };
 }
 
-export function OpsRunsPage() {
-  const [draftFilters, setDraftFilters] = useState<RunsFilters>(makeEmptyFilters);
-  const [appliedFilters, setAppliedFilters] = useState<RunsFilters>(makeEmptyFilters);
+export function OpsChecksPage() {
+  const [draftFilters, setDraftFilters] = useState<ChecksFilters>(makeEmptyFilters);
+  const [appliedFilters, setAppliedFilters] = useState<ChecksFilters>(makeEmptyFilters);
   const [page, setPage] = useState(1);
 
   const queryParams = useMemo(
     () => ({
+      run_id: appliedFilters.runId || undefined,
       job_name: appliedFilters.jobName || undefined,
-      run_status: appliedFilters.runStatus || undefined,
-      wave: appliedFilters.wave || undefined,
-      started_from: appliedFilters.startedFrom || undefined,
-      started_to: appliedFilters.startedTo || undefined,
+      status: appliedFilters.status || undefined,
+      check_name: appliedFilters.checkName || undefined,
+      created_from: appliedFilters.createdFrom || undefined,
+      created_to: appliedFilters.createdTo || undefined,
       page,
       page_size: PAGE_SIZE
     }),
     [appliedFilters, page]
   );
 
-  const runsQuery = useQuery({
-    queryKey: ["ops", "pipeline-runs", queryParams],
-    queryFn: () => getPipelineRuns(queryParams)
+  const checksQuery = useQuery({
+    queryKey: ["ops", "pipeline-checks", queryParams],
+    queryFn: () => getPipelineChecks(queryParams)
   });
 
-  const totalPages = runsQuery.data ? Math.max(1, Math.ceil(runsQuery.data.total / PAGE_SIZE)) : 1;
+  const totalPages = checksQuery.data ? Math.max(1, Math.ceil(checksQuery.data.total / PAGE_SIZE)) : 1;
 
   function applyFilters() {
     setPage(1);
@@ -64,7 +67,7 @@ export function OpsRunsPage() {
 
   return (
     <div className="page-grid">
-      <Panel title="Execucoes de pipeline" subtitle="Filtros por job, status e janela temporal">
+      <Panel title="Checks de pipeline" subtitle="Filtros por run, job, check e janela temporal">
         <form
           className="filter-grid"
           onSubmit={(event) => {
@@ -72,6 +75,14 @@ export function OpsRunsPage() {
             applyFilters();
           }}
         >
+          <label>
+            Run ID
+            <input
+              value={draftFilters.runId}
+              onChange={(event) => setDraftFilters((old) => ({ ...old, runId: event.target.value }))}
+              placeholder="UUID da execucao"
+            />
+          </label>
           <label>
             Job
             <input
@@ -82,39 +93,35 @@ export function OpsRunsPage() {
           </label>
           <label>
             Status
-            <select
-              value={draftFilters.runStatus}
-              onChange={(event) => setDraftFilters((old) => ({ ...old, runStatus: event.target.value }))}
-            >
+            <select value={draftFilters.status} onChange={(event) => setDraftFilters((old) => ({ ...old, status: event.target.value }))}>
               <option value="">Todos</option>
-              <option value="success">success</option>
-              <option value="blocked">blocked</option>
-              <option value="failed">failed</option>
+              <option value="pass">pass</option>
+              <option value="warn">warn</option>
+              <option value="fail">fail</option>
             </select>
           </label>
           <label>
-            Wave
-            <select value={draftFilters.wave} onChange={(event) => setDraftFilters((old) => ({ ...old, wave: event.target.value }))}>
-              <option value="">Todas</option>
-              <option value="MVP-1">MVP-1</option>
-              <option value="MVP-2">MVP-2</option>
-              <option value="MVP-3">MVP-3</option>
-            </select>
-          </label>
-          <label>
-            Inicio em
+            Check
             <input
-              type="datetime-local"
-              value={draftFilters.startedFrom}
-              onChange={(event) => setDraftFilters((old) => ({ ...old, startedFrom: event.target.value }))}
+              value={draftFilters.checkName}
+              onChange={(event) => setDraftFilters((old) => ({ ...old, checkName: event.target.value }))}
+              placeholder="mte_data_source_resolved"
             />
           </label>
           <label>
-            Inicio ate
+            Criado em
             <input
               type="datetime-local"
-              value={draftFilters.startedTo}
-              onChange={(event) => setDraftFilters((old) => ({ ...old, startedTo: event.target.value }))}
+              value={draftFilters.createdFrom}
+              onChange={(event) => setDraftFilters((old) => ({ ...old, createdFrom: event.target.value }))}
+            />
+          </label>
+          <label>
+            Criado ate
+            <input
+              type="datetime-local"
+              value={draftFilters.createdTo}
+              onChange={(event) => setDraftFilters((old) => ({ ...old, createdTo: event.target.value }))}
             />
           </label>
           <div className="filter-actions">
@@ -125,48 +132,48 @@ export function OpsRunsPage() {
           </div>
         </form>
 
-        {runsQuery.isPending ? (
-          <StateBlock tone="loading" title="Carregando execucoes" message="Consultando /v1/ops/pipeline-runs." />
-        ) : runsQuery.error ? (
+        {checksQuery.isPending ? (
+          <StateBlock tone="loading" title="Carregando checks" message="Consultando /v1/ops/pipeline-checks." />
+        ) : checksQuery.error ? (
           (() => {
-            const { message, requestId } = formatApiError(runsQuery.error);
+            const { message, requestId } = formatApiError(checksQuery.error);
             return (
               <StateBlock
                 tone="error"
-                title="Falha ao carregar execucoes"
+                title="Falha ao carregar checks"
                 message={message}
                 requestId={requestId}
-                onRetry={() => void runsQuery.refetch()}
+                onRetry={() => void checksQuery.refetch()}
               />
             );
           })()
-        ) : runsQuery.data && runsQuery.data.items.length === 0 ? (
-          <StateBlock tone="empty" title="Sem execucoes" message="Nenhum registro encontrado para os filtros aplicados." />
+        ) : checksQuery.data && checksQuery.data.items.length === 0 ? (
+          <StateBlock tone="empty" title="Sem checks" message="Nenhum check encontrado para os filtros aplicados." />
         ) : (
           <>
             <div className="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Inicio</th>
+                    <th>Criado</th>
                     <th>Job</th>
+                    <th>Check</th>
                     <th>Status</th>
-                    <th>Wave</th>
-                    <th>Rows loaded</th>
-                    <th>Duracao (s)</th>
+                    <th>Valor</th>
+                    <th>Threshold</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {runsQuery.data?.items.map((item) => (
-                    <tr key={item.run_id}>
-                      <td>{new Date(item.started_at_utc).toLocaleString("pt-BR")}</td>
+                  {checksQuery.data?.items.map((item) => (
+                    <tr key={item.check_id}>
+                      <td>{new Date(item.created_at_utc).toLocaleString("pt-BR")}</td>
                       <td>{item.job_name}</td>
+                      <td>{item.check_name}</td>
                       <td>
                         <span className={`status-chip status-${item.status}`}>{item.status}</span>
                       </td>
-                      <td>{item.wave}</td>
-                      <td>{item.rows_loaded}</td>
-                      <td>{item.duration_seconds ?? "-"}</td>
+                      <td>{item.observed_value ?? "-"}</td>
+                      <td>{item.threshold_value ?? "-"}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -53,7 +54,20 @@ def _resolve_requested_build_mode() -> str:
 
 
 def _dbt_cli_available() -> bool:
-    return shutil.which("dbt") is not None
+    return _resolve_dbt_executable() is not None
+
+
+def _resolve_dbt_executable() -> str | None:
+    on_path = shutil.which("dbt")
+    if on_path:
+        return on_path
+
+    scripts_dir = Path(sys.executable).resolve().parent
+    candidates = [scripts_dir / "dbt", scripts_dir / "dbt.exe"]
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+    return None
 
 
 def _decide_effective_build_mode(requested_mode: str, dbt_available: bool) -> str:
@@ -67,7 +81,8 @@ def _decide_effective_build_mode(requested_mode: str, dbt_available: bool) -> st
 
 
 def _build_dbt_base_command() -> list[str]:
-    command = ["dbt", "run", "--project-dir", DBT_PROJECT_DIR.as_posix()]
+    executable = _resolve_dbt_executable() or "dbt"
+    command = [executable, "run", "--project-dir", DBT_PROJECT_DIR.as_posix()]
 
     profiles_dir = os.getenv("DBT_PROFILES_DIR", "").strip()
     if profiles_dir:
@@ -354,6 +369,17 @@ def run(
                         warnings_count=len(warnings),
                         errors_count=1,
                         details={"error": str(exc)},
+                    )
+                    replace_pipeline_checks_from_dicts(
+                        session=session,
+                        run_id=run_id,
+                        checks=[
+                            {
+                                "name": "dbt_build_execution",
+                                "status": "fail",
+                                "details": f"dbt_build failed: {exc}",
+                            }
+                        ],
                     )
             except Exception:
                 logger.exception(

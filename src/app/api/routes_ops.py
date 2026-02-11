@@ -36,6 +36,7 @@ def _aggregate_timeseries_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any
 def list_pipeline_runs(
     run_id: str | None = Query(default=None),
     job_name: str | None = Query(default=None),
+    run_status: str | None = Query(default=None),
     status: str | None = Query(default=None),
     source: str | None = Query(default=None),
     dataset: str | None = Query(default=None),
@@ -48,10 +49,11 @@ def list_pipeline_runs(
     db: Session = Depends(get_db),  # noqa: B008
 ) -> PaginatedResponse:
     page, page_size, offset = normalize_pagination(page, page_size)
+    effective_status = run_status if run_status is not None else status
     params = {
         "run_id": run_id,
         "job_name": job_name,
-        "status": status,
+        "status": effective_status,
         "source": source,
         "dataset": dataset,
         "wave": wave,

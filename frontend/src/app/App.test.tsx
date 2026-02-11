@@ -16,6 +16,8 @@ describe("App shell", () => {
     expect(screen.getByText("Painel Operacional")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Saude Ops" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Execucoes" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Checks" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Conectores" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Territorios e Indicadores" })).toBeInTheDocument();
     expect(screen.getByText("Conteudo de teste")).toBeInTheDocument();
   });

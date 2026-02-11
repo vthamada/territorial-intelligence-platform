@@ -247,6 +247,14 @@ label {
   overflow-x: auto;
 }
 
+.table-wrap table {
+  min-width: 640px;
+}
+
+.territory-selected-row {
+  background: #eef7ff;
+}
+
 .filter-grid {
   display: grid;
   gap: 0.7rem;
@@ -261,6 +269,8 @@ label {
 .filter-actions {
   display: flex;
   align-items: flex-end;
+  gap: 0.55rem;
+  flex-wrap: wrap;
 }
 
 .pagination-row {
@@ -291,6 +301,36 @@ label {
 .status-failed {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.status-fail {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-pass {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-implemented {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-partial {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.status-planned {
+  background: #e2e8f0;
+  color: #334155;
 }
 
 .state-block {
@@ -388,5 +428,11 @@ label {
 
   .trend-list li {
     flex-direction: column;
+  }
+
+  thead th,
+  tbody td {
+    padding: 0.62rem 0.55rem;
+    font-size: 0.84rem;
   }
 }

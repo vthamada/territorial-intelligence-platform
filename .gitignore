@@ -38,3 +38,5 @@ frontend/.vite/
 .npm-cache/
 .tmp/
 .piptmp/
+dbt_project/target/
+dbt_project/logs/

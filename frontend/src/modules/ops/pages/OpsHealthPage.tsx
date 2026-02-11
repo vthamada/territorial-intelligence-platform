@@ -94,7 +94,7 @@ export function OpsHealthPage() {
         </div>
       </Panel>
 
-      <Panel title="SLA por job" subtitle="Taxa de sucesso e duracao média">
+      <Panel title="SLA por job" subtitle="Taxa de sucesso e duracao media">
         {sla.items.length === 0 ? (
           <StateBlock tone="empty" title="Sem dados de SLA" message="Nenhum job encontrado para os filtros atuais." />
         ) : (
@@ -125,7 +125,7 @@ export function OpsHealthPage() {
         )}
       </Panel>
 
-      <Panel title="Tendencia de runs" subtitle="Buckets diários agregados por status">
+      <Panel title="Tendencia de runs" subtitle="Buckets diarios agregados por status">
         {timeseries.items.length === 0 ? (
           <StateBlock tone="empty" title="Sem dados de serie temporal" message="Execute pipelines para alimentar os buckets." />
         ) : (
@@ -136,7 +136,7 @@ export function OpsHealthPage() {
                   <strong>{new Date(bucket.bucket_start_utc).toLocaleString("pt-BR")}</strong>
                   <p>Total: {bucket.total}</p>
                 </div>
-                <small>{Object.entries(bucket.by_status).map(([status, value]) => `${status}: ${value}`).join(" · ")}</small>
+                <small>{Object.entries(bucket.by_status).map(([status, value]) => `${status}: ${value}`).join(" | ")}</small>
               </li>
             ))}
           </ul>
@@ -145,3 +145,4 @@ export function OpsHealthPage() {
     </div>
   );
 }
+

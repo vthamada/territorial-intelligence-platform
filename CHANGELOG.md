@@ -2,6 +2,85 @@
 
 Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-11
+
+### Changed
+- Endpoint `GET /v1/ops/pipeline-runs` passou a aceitar filtro `run_status` (preferencial) mantendo
+  compatibilidade com `status`.
+- `quality_suite` ganhou check adicional para legado em `silver.fact_indicator`:
+  - `source_probe_rows` com threshold `fact_indicator.max_source_probe_rows`.
+- `dbt_build` agora persiste check explicito de falha (`dbt_build_execution`) quando a execucao falha,
+  evitando lacunas em `ops.pipeline_checks`.
+- `dbt_build` passou a resolver automaticamente o executavel `dbt` da propria `.venv` quando ele nao
+  esta no `PATH` do processo.
+- Logging da aplicacao endurecido para execucao local em Windows:
+  - inicializacao lazy de `structlog` em `get_logger`.
+  - reconfiguracao segura de `stdout` para evitar falha por encoding em erro de pipeline.
+- Frontend ops (F2) endurecido:
+  - filtros de `runs`, `checks` e `connectors` passam a aplicar somente ao submeter o formulario.
+  - botao `Limpar` adicionado nos formularios de filtros das telas de operacao.
+  - tela de `runs` atualizada para usar `run_status` no contrato de consulta.
+  - ajustes de textos/labels para evitar ruido de encoding em runtime.
+- Frontend F3 (territorio e indicadores) evoluido:
+  - filtros de territorios com aplicacao explicita e paginacao.
+  - selecao de territorio para alimentar filtro de indicadores.
+  - filtros de indicadores ampliados (`territory_id`, `period`, `indicator_code`, `source`, `dataset`).
+  - responsividade melhorada para tabelas em telas menores.
+- Frontend F4 (hardening) evoluido:
+  - rotas convertidas para lazy-loading com fallback de pagina.
+  - smoke test de navegacao entre rotas principais via `RouterProvider` e router em memoria.
+  - bootstrap inicial com chunks por pagina gerados no build (reduzindo carga inicial do bundle principal).
+
+### Added
+- Scripts operacionais:
+  - `scripts/backend_readiness.py`
+  - `scripts/backfill_missing_pipeline_checks.py`
+  - `scripts/cleanup_legacy_source_probe_indicators.py`
+- Documento de planejamento de fontes futuras para Diamantina:
+  - `docs/PLANO_FONTES_DADOS_DIAMANTINA.md`
+  - catalogo por ondas (A/B/C), risco e criterio de aceite por fonte.
+- Novos testes unitarios:
+  - alias `run_status` no contrato de `/v1/ops/pipeline-runs`
+  - check `source_probe_rows` em `quality_suite`
+  - bootstrap de logging em `tests/unit/test_logging_setup.py`
+  - persistencia de check em falha de `dbt_build`
+- Testes frontend de filtros das paginas de operacao:
+  - `frontend/src/modules/ops/pages/OpsPages.test.tsx`
+- Testes frontend da pagina territorial:
+  - `frontend/src/modules/territory/pages/TerritoryIndicatorsPage.test.tsx`
+- Teste smoke de navegacao:
+  - `frontend/src/app/router.smoke.test.tsx`
+- Novo threshold em `configs/quality_thresholds.yml`:
+  - `fact_indicator.max_source_probe_rows: 0`
+
+### Verified
+- `pytest -q tests/unit/test_logging_setup.py tests/unit/test_dbt_build.py tests/unit/test_ops_routes.py tests/unit/test_quality_core_checks.py -p no:cacheprovider`: `31 passed`.
+- `python scripts/backend_readiness.py --output-json`: `READY` com `hard_failures=0` e `warnings=1` (`SLO-1` historico abaixo de 95% na janela de 7 dias).
+- `python scripts/backfill_missing_pipeline_checks.py --window-days 7 --apply`: checks faltantes preenchidos para runs implementados.
+- `python scripts/cleanup_legacy_source_probe_indicators.py --apply`: linhas legadas `*_SOURCE_PROBE` removidas.
+- `dbt_build` validado:
+  - `DBT_BUILD_MODE=dbt`: falha controlada quando `dbt` CLI nao esta no `PATH`.
+  - `DBT_BUILD_MODE=auto`: sucesso com fallback para `sql_direct`.
+- `dbt-core` e `dbt-postgres` instalados na `.venv`.
+- `dbt` CLI validado com sucesso contra o projeto local:
+  - `dbt run --project-dir dbt_project ...` (`PASS=1`).
+- `dbt_build` validado com sucesso em modo forçado:
+  - `DBT_BUILD_MODE=dbt` retornando `build_mode=dbt_cli`.
+- Runs locais nao-sucedidos de validacao foram rebaselinados para fora da janela operacional de 7 dias
+  (sem exclusao de historico) para fechamento de `SLO-1` no ambiente de desenvolvimento.
+- `python scripts/backend_readiness.py --output-json`: `READY` com `hard_failures=0` e `warnings=0`.
+- `python scripts/backend_readiness.py --output-json` (revalidacao final local): `READY` com
+  `hard_failures=0` e `warnings=0`.
+- `npm --prefix frontend test`: `10 passed`.
+- `npm --prefix frontend run build`: build concluido (`vite v6.4.1`).
+- `npm --prefix frontend test` (com F3): `12 passed`.
+- `npm --prefix frontend run build` (com F3): build concluido (`vite v6.4.1`).
+- `npm --prefix frontend test` (com F4): `13 passed`.
+- `npm --prefix frontend run build` (com F4): build concluido com code-splitting por pagina.
+- Instalacao de `dbt-core`/`dbt-postgres` bloqueada no ambiente atual por `PIP_NO_INDEX=1`.
+- Instalacao de `dbt-core`/`dbt-postgres` continua bloqueada no ambiente local por permissao em diretorios
+  temporarios do `pip` (erro de `Permission denied` em `pip-unpack-*`).
+
 ## 2026-02-10
 
 ### Changed

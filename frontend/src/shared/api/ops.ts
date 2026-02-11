@@ -1,9 +1,11 @@
 import { requestJson } from "./http";
 import type {
+  ConnectorRegistryItem,
   OpsSlaResponse,
   OpsSummaryResponse,
   OpsTimeseriesResponse,
   PaginatedResponse,
+  PipelineCheck,
   PipelineRun
 } from "./types";
 
@@ -21,4 +23,12 @@ export function getOpsTimeseries(query?: Record<string, string | number | boolea
 
 export function getPipelineRuns(query?: Record<string, string | number | boolean | undefined>) {
   return requestJson<PaginatedResponse<PipelineRun>>("/ops/pipeline-runs", { query });
+}
+
+export function getPipelineChecks(query?: Record<string, string | number | boolean | undefined>) {
+  return requestJson<PaginatedResponse<PipelineCheck>>("/ops/pipeline-checks", { query });
+}
+
+export function getConnectorRegistry(query?: Record<string, string | number | boolean | undefined>) {
+  return requestJson<PaginatedResponse<ConnectorRegistryItem>>("/ops/connector-registry", { query });
 }

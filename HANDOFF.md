@@ -1,8 +1,44 @@
 # Territorial Intelligence Platform - Handoff
 
-Data de referencia: 2026-02-10
+Data de referencia: 2026-02-11
 Planejamento principal: `PLANO.md`
 Contrato tecnico principal: `CONTRATO.md`
+
+## Atualizacao rapida (2026-02-11)
+
+- Backend funcionalmente pronto para avancar no frontend (API + pipelines + checks + scripts operacionais).
+- Hardening aplicado no backend:
+  - alias `run_status` em `/v1/ops/pipeline-runs` (compatibilidade com `status`).
+  - check `source_probe_rows` no `quality_suite` com threshold versionado.
+  - scripts de operacao: readiness, backfill de checks e cleanup de legados.
+  - `dbt_build` persiste check de falha em `ops.pipeline_checks` quando run falha.
+  - logging robusto para execucao local em Windows (sem quebra por encoding).
+- Estado operacional atual do backend:
+  - `scripts/backend_readiness.py --output-json` retorna `READY` com `hard_failures=0` e `warnings=0`.
+  - `SLO-1` e `SLO-3` atendidos na janela operacional de 7 dias no ambiente local.
+- Pesquisa de fontes futuras concluida e consolidada em:
+  - `docs/PLANO_FONTES_DADOS_DIAMANTINA.md`
+  - priorizacao por ondas, complexidade e impacto para o municipio de Diamantina.
+- Frontend F2 (operacao) evoluido:
+  - filtros de `runs`, `checks` e `connectors` com aplicacao explicita via botao.
+  - botao `Limpar` nos formularios de filtros.
+  - contrato de filtro de runs alinhado para `run_status`.
+  - testes de paginas ops adicionados em `frontend/src/modules/ops/pages/OpsPages.test.tsx`.
+- Frontend F3 (territorio e indicadores) evoluido:
+  - filtros territoriais com paginacao e aplicacao explicita.
+  - selecao de territorio para compor filtro de indicadores.
+  - filtros de indicadores ampliados (periodo, codigo, fonte, dataset, territorio).
+  - melhorias de responsividade de tabelas.
+  - testes adicionados em `frontend/src/modules/territory/pages/TerritoryIndicatorsPage.test.tsx`.
+- Frontend F4 (hardening) evoluido:
+  - lazy-loading nas rotas principais (`ops` e `territory`) com fallback de carregamento.
+  - smoke test de navegacao ponta a ponta no frontend:
+    `frontend/src/app/router.smoke.test.tsx`.
+  - build com chunks por pagina confirmado em `dist/assets/*Page-*.js`.
+- Bloqueador de fechamento total da Fase 2:
+  - sem bloqueador tecnico pendente de backend no estado atual.
+  - observacao operacional: validacoes de `dbt` no Windows podem exigir terminal elevado por politica local
+    de permissao (WinError 5).
 
 ## 1) O que foi implementado ate agora
 
@@ -169,9 +205,9 @@ Contrato tecnico principal: `CONTRATO.md`
 ## 5) Proximos passos recomendados
 
 ### Prioridade alta
-1. Validar em ambiente real o padrao de nomes de arquivos do FTP para otimizar a selecao automatica.
-2. Rodar suite completa em ambiente limpo e consolidar baseline de regressao.
-3. Iniciar sprint F2 do frontend (UX operacional, filtros/paginacao e estados completos).
+1. Rodar suite completa em ambiente limpo e consolidar baseline de regressao.
+2. Publicar frontend em homologacao integrado a API real.
+3. Planejar kickoff da Onda A de novas fontes apos estabilizacao do frontend.
 
 ### Prioridade media
 1. Consolidar execucao `dbt` CLI em ambiente alvo (profiles, target e permissao de runtime).

@@ -350,6 +350,40 @@ def test_pipeline_runs_endpoint_accepts_started_range_filters() -> None:
     app.dependency_overrides.clear()
 
 
+def test_pipeline_runs_endpoint_accepts_run_status_alias() -> None:
+    session = _PipelineRunsSession()
+
+    def _db() -> Generator[_PipelineRunsSession, None, None]:
+        yield session
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/ops/pipeline-runs?run_status=success")
+
+    assert response.status_code == 200
+    assert session.last_params is not None
+    assert session.last_params["status"] == "success"
+    app.dependency_overrides.clear()
+
+
+def test_pipeline_runs_endpoint_prefers_run_status_over_status() -> None:
+    session = _PipelineRunsSession()
+
+    def _db() -> Generator[_PipelineRunsSession, None, None]:
+        yield session
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/ops/pipeline-runs?status=failed&run_status=success")
+
+    assert response.status_code == 200
+    assert session.last_params is not None
+    assert session.last_params["status"] == "success"
+    app.dependency_overrides.clear()
+
+
 def test_pipeline_checks_endpoint_returns_paginated_payload() -> None:
     app.dependency_overrides[get_db] = _checks_db
     client = TestClient(app, raise_server_exceptions=False)

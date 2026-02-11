@@ -32,7 +32,7 @@ def _default_thresholds() -> QualityThresholds:
         defaults={},
         by_table={
             "fact_election_result": {"max_negative_rows": 0, "max_missing_ratio": 0.0},
-            "fact_indicator": {"max_missing_ratio": 0.0},
+            "fact_indicator": {"max_missing_ratio": 0.0, "max_source_probe_rows": 0},
         },
     )
 
@@ -64,26 +64,34 @@ def test_check_fact_election_result_fails_when_thresholds_are_violated() -> None
     assert by_name["territory_id_missing_ratio"].status == "fail"
 
 
-def test_check_fact_indicator_returns_four_checks_and_passes() -> None:
-    # calls: total/missing for indicator_code, reference_period, value, territory_id
-    session = _SequenceSession([10, 0, 10, 0, 10, 0, 10, 0])
+def test_check_fact_indicator_returns_five_checks_and_passes() -> None:
+    # calls: total/missing for indicator_code, reference_period, value,
+    # territory_id, source_probe_rows
+    session = _SequenceSession([10, 0, 10, 0, 10, 0, 10, 0, 0])
 
     results = check_fact_indicator(session, _default_thresholds())
 
-    assert len(results) == 4
+    assert len(results) == 5
     assert [result.name for result in results] == [
         "indicator_code_missing_ratio",
         "reference_period_missing_ratio",
         "value_missing_ratio",
         "territory_id_missing_ratio",
+        "source_probe_rows",
     ]
     assert all(result.status == "pass" for result in results)
 
 
-def test_check_fact_indicator_fails_when_thresholds_are_violated() -> None:
-    # calls: total/missing for indicator_code, reference_period, value, territory_id
-    session = _SequenceSession([10, 1, 10, 1, 10, 1, 10, 1])
+def test_check_fact_indicator_warns_when_source_probe_rows_are_present() -> None:
+    # calls: total/missing for indicator_code, reference_period, value,
+    # territory_id, source_probe_rows
+    session = _SequenceSession([10, 1, 10, 1, 10, 1, 10, 1, 3])
 
     results = check_fact_indicator(session, _default_thresholds())
 
-    assert all(result.status == "fail" for result in results)
+    by_name = {result.name: result for result in results}
+    assert by_name["indicator_code_missing_ratio"].status == "fail"
+    assert by_name["reference_period_missing_ratio"].status == "fail"
+    assert by_name["value_missing_ratio"].status == "fail"
+    assert by_name["territory_id_missing_ratio"].status == "fail"
+    assert by_name["source_probe_rows"].status == "warn"

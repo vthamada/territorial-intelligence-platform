@@ -7,6 +7,13 @@ import structlog
 
 
 def configure_logging(level: str = "INFO") -> None:
+    # Ensure structured logs never crash on Windows console encoding mismatches.
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
+        except (ValueError, OSError):
+            pass
+
     logging_level = getattr(logging, level.upper(), logging.INFO)
     logging.basicConfig(level=logging_level, format="%(message)s", stream=sys.stdout)
 
@@ -26,4 +33,6 @@ def configure_logging(level: str = "INFO") -> None:
 
 
 def get_logger(name: str):
+    if not structlog.is_configured():
+        configure_logging()
     return structlog.get_logger(name)
