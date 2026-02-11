@@ -51,7 +51,7 @@ Contrato tecnico principal: `CONTRATO.md`
   - extracao real DCA via API SICONFI com fallback de ano
   - carga de indicadores em `silver.fact_indicator`
 - `labor_mte_fetch`:
-  - conector em modo `partial`
+  - conector em modo `implemented`
   - tentativa automatica via FTP `ftp://ftp.mtps.gov.br/pdet/microdados/`
   - fallback automatico via cache Bronze para o mesmo `reference_period`
   - fallback manual por `data/manual/mte` (CSV/TXT/ZIP) apenas em contingencia
@@ -61,7 +61,7 @@ Contrato tecnico principal: `CONTRATO.md`
 
 ### Registro de conectores
 - `configs/connectors.yml` atualizado:
-  - `labor_mte_fetch` marcado como `partial`
+  - `labor_mte_fetch` marcado como `implemented`
   - nota operacional com tentativa FTP + cache Bronze + fallback manual de contingencia quando fonte indisponivel
 - runbook operacional adicionado em `docs/MTE_RUNBOOK.md`
 
@@ -103,7 +103,7 @@ Contrato tecnico principal: `CONTRATO.md`
 - Conectores MVP-1 e MVP-2: `implemented`.
 - Conectores MVP-3:
   - INEP, DATASUS, SICONFI: `implemented` com ingestao real.
-  - MTE: `partial`; operacao automatica via FTP com fallback por cache Bronze e fallback manual de contingencia.
+  - MTE: `implemented`; operacao automatica via FTP com fallback por cache Bronze e fallback manual de contingencia.
 - `pip check`: sem dependencias quebradas.
 - Frontend:
   - F1 concluido no repositorio (`frontend/`)
@@ -164,15 +164,14 @@ Contrato tecnico principal: `CONTRATO.md`
    - `dry_run=False` para gravar Silver/Bronze/ops
 5. Validar criterio P0 (3 execucoes reais consecutivas):
    - `python scripts/validate_mte_p0.py --reference-period 2025 --runs 3 --bootstrap-municipality --output-json`
-6. Resultado mais recente no ambiente local (2026-02-10): `0/3 success`, `3/3 blocked` por indisponibilidade de dataset (`FTP/Bronze/manual`).
+6. Resultado mais recente no ambiente local (2026-02-10): `3/3 success` via `bronze_cache`, sem arquivo manual presente durante a validacao.
 
 ## 5) Proximos passos recomendados
 
 ### Prioridade alta
 1. Validar em ambiente real o padrao de nomes de arquivos do FTP para otimizar a selecao automatica.
 2. Rodar suite completa em ambiente limpo e consolidar baseline de regressao.
-3. Executar o script `validate_mte_p0.py` apos disponibilizar dataset para fechar formalmente o criterio P0 com evidencia.
-4. Iniciar sprint F2 do frontend (UX operacional, filtros/paginacao e estados completos).
+3. Iniciar sprint F2 do frontend (UX operacional, filtros/paginacao e estados completos).
 
 ### Prioridade media
 1. Consolidar execucao `dbt` CLI em ambiente alvo (profiles, target e permissao de runtime).

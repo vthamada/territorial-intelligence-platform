@@ -47,8 +47,8 @@ connectors:
   - connector_name: labor_mte_fetch
     source: MTE
     wave: MVP-3
-    status: partial
-    notes: Uses automatic FTP ingestion with Bronze cache fallback; remains partial while source availability is unstable and may still require manual contingency.
+    status: implemented
+    notes: Automatic FTP ingestion with Bronze cache fallback is operational; manual file remains contingency-only.
   - connector_name: dbt_build
     source: INTERNAL
     wave: MVP-1

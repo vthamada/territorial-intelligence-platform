@@ -124,7 +124,7 @@ class _ConnectorRegistrySession:
                     "connector_name": "labor_mte_fetch",
                     "source": "MTE",
                     "wave": "MVP-3",
-                    "status": "partial",
+                    "status": "implemented",
                     "notes": "FTP first + manual fallback",
                     "updated_at_utc": "2026-02-10T12:00:00+00:00",
                 }
@@ -174,8 +174,7 @@ class _OpsSummarySession:
         if "from ops.connector_registry cr" in sql and "group by cr.status::text" in sql:
             return _RowsResult(
                 [
-                    {"status": "implemented", "count": 3},
-                    {"status": "partial", "count": 1},
+                    {"status": "implemented", "count": 4},
                 ]
             )
         if "from ops.connector_registry cr" in sql and "group by cr.wave" in sql:
@@ -404,7 +403,7 @@ def test_connector_registry_endpoint_returns_paginated_payload() -> None:
     assert payload["total"] == 1
     assert len(payload["items"]) == 1
     assert payload["items"][0]["connector_name"] == "labor_mte_fetch"
-    assert payload["items"][0]["status"] == "partial"
+    assert payload["items"][0]["status"] == "implemented"
     app.dependency_overrides.clear()
 
 
@@ -456,7 +455,7 @@ def test_ops_summary_endpoint_returns_aggregated_payload() -> None:
     assert payload["checks"]["total"] == 5
     assert payload["checks"]["by_status"]["fail"] == 1
     assert payload["connectors"]["total"] == 4
-    assert payload["connectors"]["by_status"]["partial"] == 1
+    assert payload["connectors"]["by_status"]["implemented"] == 4
     app.dependency_overrides.clear()
 
 

@@ -68,7 +68,7 @@ MVP bootstrap for the Diamantina/MG territorial intelligence platform, aligned w
   - `education_inep_fetch`: implemented with real ingestion
   - `health_datasus_fetch`: implemented with real ingestion
   - `finance_siconfi_fetch`: implemented with real ingestion
-  - `labor_mte_fetch`: partial, with FTP-first ingestion, Bronze cache fallback, and manual fallback for contingency
+  - `labor_mte_fetch`: implemented, with FTP-first ingestion, Bronze cache fallback, and manual fallback for contingency
 - API endpoints from the minimum contract are available under `/v1`.
 - `quality_suite` runs with configurable thresholds.
 - Operational metadata is persisted in `ops.pipeline_runs` and `ops.pipeline_checks`.

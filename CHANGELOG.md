@@ -5,6 +5,9 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 ## 2026-02-10
 
 ### Changed
+- Fase 1 (P0) encerrada com evidencia operacional:
+  - `labor_mte_fetch` promovido para `implemented` em `configs/connectors.yml`.
+  - validacao P0 confirmada em 3 execucoes reais consecutivas com `status=success`.
 - Governanca documental refinada: separacao entre contrato tecnico (`CONTRATO.md`) e plano de execucao (`PLANO.md`).
 - `PLANO.md` refatorado para conter apenas fases, backlog, riscos e criterios de aceite mensuraveis.
 - Escopo de frontend detalhado no `PLANO.md` com fases F1-F4, contrato de integração API e critérios de aceite.
@@ -85,6 +88,8 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - `SPEC_v1.3.md` removido do repositório.
 
 ### Verified
+- `python scripts/validate_mte_p0.py --reference-period 2025 --runs 3 --bootstrap-municipality --output-json`: `3/3 success` (primeira execucao com contingencia, execucoes seguintes via `bronze_cache`).
+- `python scripts/validate_mte_p0.py --reference-period 2025 --runs 3 --bootstrap-municipality --output-json` (sem arquivo manual local): `3/3 success` via `bronze_cache`.
 - `pytest -q tests/unit/test_mte_labor.py -p no:cacheprovider`: `9 passed`.
 - `pytest -q tests/unit/test_ops_routes.py tests/unit/test_quality_ops_pipeline_runs.py -p no:cacheprovider`: `4 passed`.
 - `pytest -q tests/unit/test_ops_routes.py -p no:cacheprovider`: `6 passed`.

@@ -25,6 +25,11 @@ data/silver/*
 data/_tmp/
 data/mte_cache_test_*/
 mte_cache_test_*/
+data/manual/*
+!data/manual/.gitkeep
+!data/manual/mte/
+data/manual/mte/*
+!data/manual/mte/.gitkeep
 
 node_modules/
 frontend/node_modules/
