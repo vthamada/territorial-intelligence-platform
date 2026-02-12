@@ -1,137 +1,159 @@
-# Territorial Intelligence Platform
+# Plataforma de Inteligencia Territorial
 
-MVP bootstrap for the Diamantina/MG territorial intelligence platform, aligned with `CONTRATO.md` and `PLANO.md`.
+Plataforma de inteligencia territorial para Diamantina/MG, alinhada ao contrato tecnico em `CONTRATO.md` e ao plano de execucao em `PLANO.md`.
+
+## Estado atual (12/02/2026)
+
+- Backend e frontend estaveis em desenvolvimento local.
+- API versionada em `/v1` com saude operacional, QG executivo, geografia e observabilidade.
+- Conectores implementados ate `MVP-5` (ondas A e B/C) com persistencia em Bronze/Silver e metadados operacionais em `ops`.
+- Frontend executivo ativo com paginas de:
+  - Visao geral (QG)
+  - Prioridades
+  - Mapa
+  - Insights
+  - Cenarios
+  - Briefs
+  - Territorio 360
+  - Eleitorado
+  - Hub tecnico/Admin (ops)
+- Readiness local: `READY` (com warning historico de SLO-1 na janela de 7 dias).
+- Validacoes recentes:
+  - `pytest -q -p no:cacheprovider`: `152 passed`
+  - `npm --prefix frontend run test`: `35 passed`
+  - `npm --prefix frontend run build`: `OK`
 
 ## Stack
 
 - Python 3.11+
 - PostgreSQL 16 + PostGIS
-- Prefect (job orchestration)
-- FastAPI (internal API)
-- SQLAlchemy + psycopg
-- Frontend oficial (planejado): React + Vite + TypeScript + React Router + TanStack Query
+- FastAPI + SQLAlchemy + psycopg
+- Prefect (orquestracao)
+- React + Vite + TypeScript + React Router + TanStack Query
 
-## Quick start
+## Conectores por onda
 
-1. Copy environment variables:
-   - `cp .env.example .env` (PowerShell: `Copy-Item .env.example .env`)
-2. Start database:
-   - `make up`
-3. Install dependencies:
-   - `make install`
-4. Initialize DB schema:
-   - `make db-init`
-5. Run API:
-   - `make run-api`
-6. Validate MTE P0 acceptance (3 real runs):
-   - `make validate-mte-p0`
-7. Frontend F1 bootstrap:
-   - `make frontend-install`
-   - `make frontend-test`
-   - `make frontend-build`
-
-### Windows quick start (without `make`)
-
-1. Activate venv:
-   - `.\.venv\Scripts\Activate.ps1`
-2. Start API + frontend together:
-   - `powershell -ExecutionPolicy Bypass -File scripts/dev_up.ps1`
-3. Stop local environment:
-   - `powershell -ExecutionPolicy Bypass -File scripts/dev_down.ps1`
-
-## API contract
-
-- Versioned base path: `/v1`
-- Health endpoint: `/v1/health`
-- Ops endpoints:
-  - `/v1/ops/pipeline-runs`
-  - `/v1/ops/pipeline-checks`
-  - `/v1/ops/connector-registry`
-  - `/v1/ops/frontend-events` (POST ingest + GET list)
-  - `/v1/ops/summary`
-  - `/v1/ops/timeseries`
-  - `/v1/ops/sla`
-  - `pipeline-runs` supports `started_from` and `started_to` filters
-  - `pipeline-checks` supports `created_from` and `created_to` filters
-  - `connector-registry` supports `updated_from` and `updated_to` filters
-  - `summary` returns aggregated totals and distributions for runs/checks/connectors
-  - `sla` returns success rate and duration percentiles grouped by job/wave
-  - `timeseries` returns bucketed trends (`day|hour`) for `runs` or `checks`
-- Standard error payload:
-  - `{\"error\": {\"code\": \"...\", \"message\": \"...\", \"details\": {...}, \"request_id\": \"...\"}}`
-
-## Current status
-
-- Foundation and schema are implemented with English physical table names.
-- Compatibility views exist for previous Portuguese table names.
-- MVP-1 connectors implemented:
+- `MVP-1`
   - `ibge_admin_fetch`
   - `ibge_geometries_fetch`
   - `ibge_indicators_fetch`
   - `dbt_build`
   - `quality_suite`
-- MVP-2 connectors implemented:
+- `MVP-2`
   - `tse_catalog_discovery`
   - `tse_electorate_fetch`
   - `tse_results_fetch`
-- MVP-3 connectors:
-  - `education_inep_fetch`: implemented with real ingestion
-  - `health_datasus_fetch`: implemented with real ingestion
-  - `finance_siconfi_fetch`: implemented with real ingestion
-  - `labor_mte_fetch`: implemented, with FTP-first ingestion, Bronze cache fallback, and manual fallback for contingency
-- API endpoints from the minimum contract are available under `/v1`.
-- `quality_suite` runs with configurable thresholds.
-- Operational metadata is persisted in `ops.pipeline_runs` and `ops.pipeline_checks`.
-- Frontend is in official scope via `PLANO.md`, with F1 already implemented in `frontend/` and next phases planned (F2-F4).
-- `dbt_build` now supports:
-  - `DBT_BUILD_MODE=auto` (default): tries `dbt` CLI first and falls back to `sql_direct`
-  - `DBT_BUILD_MODE=dbt`: requires `dbt` CLI in `PATH`
-  - `DBT_BUILD_MODE=sql_direct`: keeps SQL view build mode
+- `MVP-3`
+  - `education_inep_fetch`
+  - `health_datasus_fetch`
+  - `finance_siconfi_fetch`
+  - `labor_mte_fetch`
+- `MVP-4` (Onda A)
+  - `sidra_indicators_fetch`
+  - `senatran_fleet_fetch`
+  - `sejusp_public_safety_fetch`
+  - `siops_health_finance_fetch`
+  - `snis_sanitation_fetch`
+- `MVP-5` (Onda B/C)
+  - `inmet_climate_fetch`
+  - `inpe_queimadas_fetch`
+  - `ana_hydrology_fetch`
+  - `anatel_connectivity_fetch`
+  - `aneel_energy_fetch`
 
-## Paths
+## Setup rapido (Windows)
 
-- Raw data: `data/bronze/{source}/{dataset}/{reference_period}/extracted_at={iso_ts}/`
-- Manifests: `data/manifests/{source}/{dataset}/{reference_period}/extracted_at={iso_ts}.yml`
-- SQL schema: `db/sql/`
-- Wave definitions: `configs/waves.yml`
-- Connector status registry seed: `configs/connectors.yml`
-- Bronze operating policy: `docs/BRONZE_POLICY.md`
-- MTE operation runbook: `docs/MTE_RUNBOOK.md`
-- Technical contract source of truth: `CONTRATO.md`
-- Execution plan source of truth: `PLANO.md`
+1. Copiar ambiente:
+   - `Copy-Item .env.example .env`
+2. Criar e ativar venv (se necessario):
+   - `python -m venv .venv`
+   - `.\.venv\Scripts\Activate.ps1`
+3. Instalar dependencias:
+   - `python -m pip install -e .[dev]`
+4. Subir banco:
+   - `docker compose up -d postgres`
+5. Inicializar schema:
+   - `python scripts/init_db.py`
+6. Sincronizar registry de conectores:
+   - `python scripts/sync_connector_registry.py`
+7. Subir API:
+   - `python -m uvicorn app.api.main:app --app-dir src --reload --host 0.0.0.0 --port 8000`
+8. Subir frontend (novo terminal):
+   - `npm --prefix frontend install`
+   - `npm --prefix frontend run dev`
 
-## Run a flow (example)
+## Setup rapido (Linux/macOS com make)
 
-```bash
-python -c "from orchestration.prefect_flows import ibge_admin_fetch; print(ibge_admin_fetch(reference_period='2026', dry_run=True))"
-```
+- `make up`
+- `make install`
+- `make db-init`
+- `make sync-connectors`
+- `make run-api`
+- `make frontend-install`
+- `make frontend-test`
+- `make frontend-build`
 
-Note:
-- `src/orchestration/prefect_flows.py` sets safe local defaults for Prefect runtime state in temporary storage (`PREFECT_HOME`, `PREFECT_API_DATABASE_CONNECTION_URL`, `PREFECT_MEMO_STORE_PATH`) when these env vars are not defined.
+## Endpoints principais
 
-## Wave-oriented execution
+- Saude:
+  - `GET /v1/health`
+- Territorio e indicadores:
+  - `GET /v1/territories`
+  - `GET /v1/territories/{territory_id}`
+  - `GET /v1/indicators`
+  - `GET /v1/geo/choropleth`
+- QG executivo:
+  - `GET /v1/kpis/overview`
+  - `GET /v1/priority/list`
+  - `GET /v1/priority/summary`
+  - `GET /v1/insights/highlights`
+  - `POST /v1/scenarios/simulate`
+  - `POST /v1/briefs`
+  - `GET /v1/territory/{territory_id}/profile`
+  - `GET /v1/territory/{territory_id}/compare`
+  - `GET /v1/territory/{territory_id}/peers`
+  - `GET /v1/electorate/summary`
+  - `GET /v1/electorate/map`
+- Operacao/observabilidade:
+  - `GET /v1/ops/pipeline-runs`
+  - `GET /v1/ops/pipeline-checks`
+  - `GET /v1/ops/connector-registry`
+  - `GET /v1/ops/summary`
+  - `GET /v1/ops/source-coverage`
+  - `GET /v1/ops/sla`
+  - `GET /v1/ops/timeseries`
+  - `POST /v1/ops/frontend-events`
+  - `GET /v1/ops/frontend-events`
 
-- Wave 1 flow:
-  - `python -c "from orchestration.prefect_flows import run_mvp_wave_1; print(run_mvp_wave_1(reference_period='2026', dry_run=True))"`
-- Wave 2 flow:
-  - `python -c "from orchestration.prefect_flows import run_mvp_wave_2; print(run_mvp_wave_2(reference_period='2024', dry_run=True))"`
-- Wave 3 flow:
-  - `python -c "from orchestration.prefect_flows import run_mvp_wave_3; print(run_mvp_wave_3(reference_period='2025', dry_run=True))"`
+## Qualidade e validacao
 
-## MTE P0 validation
+- Suite backend:
+  - `python -m pytest -q -p no:cacheprovider`
+- Suite frontend:
+  - `npm --prefix frontend run test`
+- Build frontend:
+  - `npm --prefix frontend run build`
+- Readiness backend:
+  - `python scripts/backend_readiness.py --output-json`
 
-- Dedicated script for P0 acceptance:
-  - `python scripts/validate_mte_p0.py --reference-period 2025 --runs 3 --bootstrap-municipality --output-json`
-- The script can bootstrap municipality context (`ibge_admin_fetch`) before MTE runs.
+## Execucao de fluxos (exemplos)
 
-## Frontend (F1)
+- Onda 4:
+  - `python -c "from orchestration.prefect_flows import run_mvp_wave_4; print(run_mvp_wave_4(reference_period='2025', dry_run=False))"`
+- Onda 5:
+  - `python -c "from orchestration.prefect_flows import run_mvp_wave_5; print(run_mvp_wave_5(reference_period='2025', dry_run=False))"`
+- Fluxo completo:
+  - `python -c "from orchestration.prefect_flows import run_mvp_all; print(run_mvp_all(reference_period='2025', dry_run=False))"`
 
-- Location: `frontend/`
-- Stack: React + Vite + TypeScript + React Router + TanStack Query
-- Environment:
-  - copy `frontend/.env.example` to `frontend/.env` and adjust `VITE_API_BASE_URL` if needed
-  - `VITE_FRONTEND_OBSERVABILITY_URL` defaults to `http://localhost:8000/v1/ops/frontend-events`
-- Commands:
-  - `cd frontend && npm run dev`
-  - `cd frontend && npm test`
-  - `cd frontend && npm run build`
+## Estrutura importante
+
+- SQL incremental e schema: `db/sql/`
+- Configuracoes de ondas/jobs/conectores: `configs/`
+- Pipelines: `src/pipelines/`
+- API: `src/app/api/`
+- Frontend: `frontend/`
+- Dados Bronze: `data/bronze/`
+- Manifestos Bronze: `data/manifests/`
+- Fallback/manual de fontes: `data/manual/`
+- Handoff tecnico: `HANDOFF.md`
+- Historico de mudancas: `CHANGELOG.md`
