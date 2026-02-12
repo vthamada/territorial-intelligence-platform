@@ -482,6 +482,14 @@ class _ElectorateMapSession:
         raise AssertionError(f"Unexpected SQL in electorate map test: {sql}")
 
 
+class _ElectorateSummaryOutlierYearSession:
+    def execute(self, *_args: Any, **_kwargs: Any) -> _ScalarResult:
+        sql = str(_args[0]).lower() if _args else ""
+        if "select max(fe.reference_year)" in sql:
+            return _ScalarResult(9999)
+        raise AssertionError(f"Unexpected SQL in electorate outlier year test: {sql}")
+
+
 def _qg_db() -> Generator[_QgSession, None, None]:
     yield _QgSession()
 
@@ -739,6 +747,23 @@ def test_electorate_summary_returns_breakdowns_and_rates() -> None:
     assert payload["turnout_rate"] == 82.0
     assert payload["abstention_rate"] == 18.0
     assert len(payload["by_sex"]) == 2
+    app.dependency_overrides.clear()
+
+
+def test_electorate_summary_ignores_outlier_year_and_returns_empty() -> None:
+    def _db() -> Generator[_ElectorateSummaryOutlierYearSession, None, None]:
+        yield _ElectorateSummaryOutlierYearSession()
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/electorate/summary?level=municipio")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["year"] is None
+    assert payload["total_voters"] == 0
+    assert payload["by_sex"] == []
     app.dependency_overrides.clear()
 
 

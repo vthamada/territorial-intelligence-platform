@@ -59,7 +59,7 @@ def get_choropleth(
                 dt.level::text AS level,
                 fi.indicator_code AS metric,
                 fi.reference_period,
-                fi.value,
+                fi.value::double precision AS value,
                 ST_AsGeoJSON(dt.geometry)::jsonb AS geometry
             FROM silver.fact_indicator fi
             JOIN silver.dim_territory dt ON dt.territory_id = fi.territory_id

@@ -1,258 +1,164 @@
 # Plano Integrado de Implementacao (Backend + Frontend QG)
 
-Data de referencia: 2026-02-11  
-Status: ativo  
-Escopo: plano executavel para fechar o QG estrategico com entregas verticalizadas.
+Data de referencia: 2026-02-12  
+Status: execucao ativa (fase de hardening + go-live controlado)  
+Escopo: plano executavel para consolidar QG estrategico em producao com dados reais.
 
 ## 1) Objetivo
 
-Entregar um QG estrategico municipal para Diamantina/MG, com:
+Entregar e estabilizar o QG estrategico municipal de Diamantina/MG, com:
 
-1. Diagnostico rapido da cidade (Home executiva).
-2. Priorizacao territorial e por dominio (lista explicavel).
-3. Analise espacial por mapa (coropletico com drill-down quando existir).
-4. Perfil 360 por territorio (historico + comparacao + evidencias).
-5. Camada institucional de eleitorado/participacao.
-6. Camada tecnica separada para operacao de dados (`/admin`).
+1. Home executiva para leitura rapida.
+2. Priorizacao territorial explicavel.
+3. Mapa analitico com recorte por indicador/periodo.
+4. Territorio 360 com comparacao orientada.
+5. Camada institucional de eleitorado.
+6. Fluxo tecnico isolado em `/admin`.
+7. Extensoes operacionais de decisao (`/cenarios` e `/briefs`).
 
-## 2) Decisoes fechadas para execucao
+## 2) Premissas e decisoes vigentes
 
-1. Fonte de verdade tecnica permanece em `CONTRATO.md`.
-2. `docs/FRONTEND_SPEC.md` e documento de produto/implementacao frontend, nao substitui contrato tecnico.
-3. Camada tecnica fica separada da experiencia principal (sem foco em auth nesta fase).
-4. QG v1 usara as fontes novas da Onda A:
-   - SIDRA
-   - SENATRAN
-   - SEJUSP-MG
-   - SIOPS
-   - SNIS/SINISA
-5. Implementacao sera vertical (API + dados + UI por bloco de valor), nao por camada isolada.
+1. Fonte de verdade tecnica: `CONTRATO.md`.
+2. `docs/FRONTEND_SPEC.MD` permanece como referencia de produto, sem substituir contrato tecnico.
+3. Camada tecnica segue separada da UX executiva (sem foco em auth nesta fase).
+4. Entrega segue vertical (API + pipeline + UI + teste), por bloco de valor.
+5. Modelo principal de integracao de dados continua em `silver.fact_indicator`, com rastreabilidade de `source`, `dataset`, `reference_period` e metadados.
 
-## 3) Estado atual (baseline)
+## 3) Estado consolidado atual
 
-1. Backend pronto e estavel para evolucao (ops, quality, dbt, conectores MVP implementados).
-2. Frontend com base operacional pronta (F1/F2/F3/F4) e integrado com API.
-3. MTE ja promovido para `implemented`.
-4. Contratos executivos QG ja implementados na API (Home/Prioridades/Mapa/Perfil/Insights/Eleitorado + extensoes).
-5. Lacuna principal atual: fechar hardening QG v1 no frontend (E2E/homologacao/acessibilidade final), com qualidade/performance backend da Onda A ja calibradas por checks e indices.
+## 3.1 Backend/API
 
-## 4) Escopo alvo do QG v1
-
-## 4.1 Rotas frontend alvo
-
-1. `/` (Home executiva).
-2. `/prioridades`.
-3. `/mapa`.
-4. `/territorio/:territory_id`.
-5. `/insights`.
-6. `/eleitorado`.
-7. `/admin` (tecnico, separado).
-
-Nota: `/cenarios` e `briefs` ficam como extensao v1.1 (apos QG v1 em producao).
-
-## 4.2 Endpoints backend alvo
-
-## Reuso imediato (ja existem)
-
-1. `GET /v1/territories`
-2. `GET /v1/territories/{id}`
-3. `GET /v1/indicators`
-4. `GET /v1/electorate`
-5. `GET /v1/elections/results`
-6. `GET /v1/geo/choropleth`
-7. `GET /v1/ops/*`
-
-## Novos endpoints obrigatorios (QG v1)
-
-1. `GET /v1/kpis/overview`
-2. `GET /v1/priority/list`
-3. `GET /v1/priority/summary`
-4. `GET /v1/territory/{id}/profile`
-5. `GET /v1/territory/{id}/compare`
-6. `GET /v1/insights/highlights`
-7. `GET /v1/electorate/summary`
-8. `GET /v1/electorate/map`
-
-## Extensao v1.1
-
-1. `POST /v1/scenarios/simulate`
-2. `POST /v1/briefs` (opcional)
-
-## 5) Modelo de dados para acelerar entrega
-
-Abordagem pragmatica para reduzir tempo de implementacao:
-
-1. Indicadores agregados das novas fontes entram primeiro em `silver.fact_indicator`.
-2. Campos obrigatorios por linha:
-   - `territory_id`
-   - `reference_period`
-   - `source`
-   - `dataset`
-   - `indicator_code`
-   - `indicator_name`
-   - `value`
-   - `metadata_json` (fonte, cobertura, notas, unidade)
-3. Tabelas dedicadas so entram quando agregacao em `fact_indicator` nao suportar necessidade analitica.
-
-## 6) Roadmap executavel (6 sprints)
-
-Duracao sugerida: 1 semana por sprint, com demo no final de cada sprint.
-
-## Sprint 0 - Preparacao e contratos (1 semana)
-
-Backend:
-1. Definir schemas de resposta para endpoints novos em `src/app/schemas`.
-2. Definir contrato de score/criticidade/status (formula e thresholds).
-3. Definir padrao de metadados obrigatorios (`source_name`, `updated_at`, `coverage_note`, `unit`, `notes`).
-
-Frontend:
-1. Definir IA final de navegacao do QG (menu principal + admin separado).
-2. Definir componentes base: `StrategicIndexCard`, `PriorityItem`, `SourceFreshnessBadge`.
-
-Dados:
-1. Definir mapeamento de indicadores para Onda A.
-2. Definir chaves canonicamente estaveis para `indicator_code`.
-
-Aceite:
-1. Contratos de endpoint versionados e testados.
-2. Sem decisoes pendentes para Sprint 1.
-
-## Sprint 1 - Home QG + Prioridades basicas (1 semana)
-
-Backend:
-1. Implementar `GET /v1/kpis/overview`.
-2. Implementar `GET /v1/priority/list` e `GET /v1/priority/summary` (com dados atuais disponiveis).
-
-Frontend:
-1. Entregar Home (`/`) com:
-   - faixa de situacao geral
-   - KPIs executivos
-   - preview de prioridades
-2. Entregar tela `/prioridades` com filtros e ordenacao.
-
-Aceite:
-1. Home responde pergunta "como esta a cidade e o que piorou".
-2. Prioridades exibem justificativa curta por item.
-
-## Sprint 2 - Mapa QG + Perfil 360 (1 semana)
-
-Backend:
-1. Endurecer `GET /v1/geo/choropleth` para metadados e consistencia por nivel.
-2. Implementar `GET /v1/territory/{id}/profile`.
-3. Implementar `GET /v1/territory/{id}/compare`.
-
-Frontend:
-1. Entregar `/mapa` com legenda, tooltip rico e drawer.
-2. Entregar `/territorio/:territory_id` com secoes por dominio e comparacao.
-
-Aceite:
-1. Navegacao Home -> Mapa -> Perfil sem friccao.
-2. Todas as telas mostram metadados de fonte/frescor.
-
-## Sprint 3 - Onda A dados (parte 1) + Insights basicos (1 semana)
-
-Backend (pipelines):
-1. Implementar conectores:
-   - `sidra_indicators_fetch`
-   - `senatran_fleet_fetch`
-   - `sejusp_public_safety_fetch`
-2. Upsert em `silver.fact_indicator` + checks de qualidade + ops logs.
-3. Implementar `GET /v1/insights/highlights` (versao inicial baseada em regras).
-
-Frontend:
-1. Entregar `/insights` com filtros (dominio, severidade, periodo).
-
-Aceite:
-1. 3 novas fontes em execucao idempotente.
-2. Insights com evidencias navegaveis.
-
-## Sprint 4 - Onda A dados (parte 2) + Eleitorado executivo (1 semana)
-
-Backend (pipelines):
-1. Implementar conectores:
-   - `siops_health_finance_fetch`
-   - `snis_sanitation_fetch`
-2. Implementar:
+1. Contratos QG implementados e ativos:
+   - `GET /v1/kpis/overview`
+   - `GET /v1/priority/list`
+   - `GET /v1/priority/summary`
+   - `GET /v1/insights/highlights`
+   - `GET /v1/geo/choropleth`
+   - `GET /v1/territory/{id}/profile`
+   - `GET /v1/territory/{id}/compare`
+   - `GET /v1/territory/{id}/peers`
    - `GET /v1/electorate/summary`
    - `GET /v1/electorate/map`
+   - `POST /v1/scenarios/simulate`
+   - `POST /v1/briefs`
+2. Camada ops/observabilidade ativa:
+   - `GET /v1/ops/*`
+   - `POST /v1/ops/frontend-events`
+   - `GET /v1/ops/frontend-events`
+   - `GET /v1/ops/source-coverage`
+3. Readiness local atual: `READY` com `hard_failures=0` e `warnings=1` (SLO-1 historico na janela de 7 dias).
 
-Frontend:
-1. Entregar `/eleitorado` com visao institucional e mapas tematicos.
-2. Integrar novas fontes nos blocos de Home, Prioridades e Perfil.
+## 3.2 Frontend
 
-Aceite:
-1. Onda A completa com checks e historico minimo.
-2. Camada eleitorado integrada ao fluxo executivo.
+1. Rotas executivas ativas:
+   - `/`
+   - `/prioridades`
+   - `/mapa`
+   - `/territorio/:territoryId`
+   - `/insights`
+   - `/eleitorado`
+   - `/cenarios`
+   - `/briefs`
+   - `/admin`
+2. Recursos ja entregues:
+   - deep-link por query string (mapa/prioridades/insights/briefs/cenarios).
+   - exportacoes no mapa (CSV/SVG/PNG).
+   - exportacao de brief (HTML + print para PDF).
+   - metadados de fonte/frescor/cobertura nas telas executivas.
+   - padronizacao de dominios e rotulos amigaveis (QG e Territorio 360).
+3. Testes e build do frontend estaveis no ciclo atual.
 
-## Sprint 5 - Hardening QG v1 (1 semana)
+## 3.3 Pipelines e fontes
 
-Backend:
-1. Revisar performance das queries executivas.
-2. Revisar cobertura de testes de contrato para endpoints novos.
-3. Ajustar thresholds finais de qualidade por fonte/dominio.
+1. Ondas Onda A e Onda B/C implementadas e integradas no orquestrador (`run_mvp_wave_4`, `run_mvp_wave_5`, `run_mvp_all`).
+2. Estado de conectores sincronizado em `ops.connector_registry` com 22 conectores `implemented`.
+3. Fluxos reais recentes executados com sucesso para ondas 4 e 5.
 
-Frontend:
-1. E2E dos fluxos criticos:
-   - Home -> Prioridades -> Mapa -> Perfil -> Eleitorado
-2. Acessibilidade minima (teclado/foco/contraste).
-3. Observabilidade basica de frontend (erros e web vitals).
+## 4) Status por sprint
 
-Aceite:
-1. Build e testes estaveis em homologacao.
-2. QG v1 pronto para uso decisorio.
+1. Sprint 0 (contratos e base): concluida.
+2. Sprint 1 (Home + Prioridades): concluida.
+3. Sprint 2 (Mapa + Territorio 360): concluida.
+4. Sprint 3 (Onda A parte 1 + Insights): concluida.
+5. Sprint 4 (Onda A parte 2 + Eleitorado): concluida.
+6. Sprint 5 (hardening QG v1): em andamento.
+7. Sprint 6 (extensoes v1.1: cenarios/briefs): concluida.
 
-## Sprint 6 - Extensao v1.1 (opcional recomendado)
+## 5) Escopo de proxima execucao (Sprint 5 em fechamento)
 
-1. `POST /v1/scenarios/simulate`.
-2. `/cenarios` no frontend.
-3. `POST /v1/briefs` + export simples.
+## 5.1 Prioridade alta
 
-## 7) Matriz de implementacao por fonte (QG v1)
+1. Fechar homologacao ponta a ponta com dados reais (API + frontend).
+2. Cobrir fluxo critico com E2E:
+   - Home -> Prioridades -> Mapa -> Territorio -> Eleitorado -> Cenarios/Briefs.
+3. Consolidar SLO-1 operacional sem ruido historico:
+   - ajustar janela/estrategia de leitura para separar historico legado de estado corrente.
+   - status 2026-02-12: parcial entregue no `scripts/backend_readiness.py` com
+     `--health-window-days` e bloco `slo1_current`; pendente refletir o mesmo
+     padrao nas visoes de frontend operacional.
+   - status 2026-02-12 (iteracao atual): monitor comparativo de janela (`7d` vs `1d`)
+     entregue na `OpsHealthPage` e endpoint dedicado `GET /v1/ops/readiness`
+     implementado para consumo direto por dashboards externos.
+   - proximo passo: padronizar o consumo desse endpoint em todas as visoes tecnicas
+     (incluindo `/admin`) para eliminar calculos duplicados de saude operacional.
+4. Revisar performance das queries executivas mais usadas (`overview`, `priority`, `mapa`, `territory profile`).
 
-1. SIDRA:
-   - pipeline: `sidra_indicators_fetch`
-   - consumo: Home, Prioridades, Perfil
-2. SENATRAN:
-   - pipeline: `senatran_fleet_fetch`
-   - consumo: Home, Perfil, Insights
-3. SEJUSP-MG:
-   - pipeline: `sejusp_public_safety_fetch`
-   - consumo: Home, Mapa, Prioridades
-4. SIOPS:
-   - pipeline: `siops_health_finance_fetch`
-   - consumo: Home, Perfil, Insights
-5. SNIS/SINISA:
-   - pipeline: `snis_sanitation_fetch`
-   - consumo: Home, Mapa, Perfil
+## 5.2 Prioridade media
 
-## 8) Criterios de aceite globais (go-live QG v1)
+1. Completar hardening de acessibilidade nas telas executivas (teclado, foco e contraste em todos os estados).
+2. Revisar cobertura de testes de contrato backend para casos limite dos endpoints QG.
+3. Revisar thresholds de qualidade por dominio/fonte com base no comportamento real das ondas 4 e 5.
 
-1. Novos endpoints executivos implementados e cobertos por testes.
-2. Onda A de fontes em producao local com:
+## 5.3 Prioridade baixa
+
+1. Refinar UX de observabilidade no `/admin` para acelerar diagnostico operacional.
+2. Consolidar runbooks de operacao para ambiente de homologacao/producao.
+
+## 6) Matriz de fontes e consumo no QG
+
+## Onda A
+
+1. SIDRA (`sidra_indicators_fetch`): Home, Prioridades, Perfil.
+2. SENATRAN (`senatran_fleet_fetch`): Home, Perfil, Insights.
+3. SEJUSP-MG (`sejusp_public_safety_fetch`): Home, Mapa, Prioridades.
+4. SIOPS (`siops_health_finance_fetch`): Home, Perfil, Insights.
+5. SNIS (`snis_sanitation_fetch`): Home, Mapa, Perfil.
+
+## Onda B/C
+
+1. INMET (`inmet_climate_fetch`): Home, Insights, Perfil.
+2. INPE Queimadas (`inpe_queimadas_fetch`): Home, Mapa, Insights.
+3. ANA (`ana_hydrology_fetch`): Home, Mapa, Perfil.
+4. ANATEL (`anatel_connectivity_fetch`): Home, Perfil, Prioridades.
+5. ANEEL (`aneel_energy_fetch`): Home, Perfil, Insights.
+
+## 7) Criterios de aceite para go-live controlado
+
+1. Endpoints executivos e extensoes (`cenarios`/`briefs`) estaveis com testes de contrato.
+2. Ondas A e B/C operando com:
    - Bronze + manifesto/checksum
    - Silver com `territory_id`
-   - quality checks ativos
-   - logs em `ops.pipeline_runs` e `ops.pipeline_checks`
-3. Frontend executa fluxos principais sem SQL manual.
-4. Metadados de fonte/frescor/cobertura visiveis nas telas executivas.
-5. `/admin` separado do fluxo principal.
-6. Build + testes backend/frontend estaveis em homologacao.
+   - checks de qualidade ativos
+   - rastreio em `ops.pipeline_runs` e `ops.pipeline_checks`
+3. Frontend com testes e build estaveis no ciclo de entrega.
+4. Fluxo executivo separado da camada tecnica (`/admin`).
+5. Homologacao executada com dados reais e sem bloqueador critico aberto.
 
-## 9) Riscos de execucao e mitigacao
+## 8) Riscos atuais e mitigacoes
 
-1. Quebra de layout de fonte externa:
-   - mitigacao: parser resiliente + testes de contrato de conector.
-2. Latencia em endpoints executivos:
-   - mitigacao: agregacoes pre-computadas e cache por chave de filtro.
+1. Instabilidade eventual de fonte externa:
+   - mitigacao: fallback por catalogo/manual + bronze cache + testes de conector.
+2. SLO operacional distorcido por historico antigo:
+   - mitigacao: separar leitura de saude corrente e historica nos relatorios.
 3. Divergencia entre narrativa e dado:
-   - mitigacao: regras de prioridade/insight versionadas no backend.
-4. Escopo inflado:
-   - mitigacao: manter cenarios/briefs em v1.1.
+   - mitigacao: manter regras de prioridade/insight versionadas e auditaveis no backend.
+4. Regressao de UX em evolucoes rapidas:
+   - mitigacao: ampliar E2E dos caminhos de decisao e manter smoke de roteamento.
 
-## 10) Ordem de inicio recomendada (acao imediata)
+## 9) Ordem recomendada para os proximos passos
 
-1. Sprint 0: contratos de endpoint + regras de score/criticidade.
-2. Sprint 1: Home + Prioridades com APIs novas.
-3. Sprint 2: Mapa + Perfil 360.
-4. Sprint 3/4: Onda A completa.
-5. Sprint 5: hardening e go-live QG v1.
+1. Fechar E2E dos fluxos executivos e registrar baseline de homologacao.
+2. Rodar bateria completa em ambiente limpo e publicar relatorio unico de readiness.
+3. Ajustar pendencias de performance/thresholds detectadas na homologacao.
+4. Congelar contrato v1.0 do QG para operacao assistida.
+5. Planejar proximo ciclo incremental (novas fontes e refinamentos analiticos).

@@ -1,17 +1,11 @@
 import { Link } from "react-router-dom";
 import type { PriorityItem } from "../api/types";
 import { getQgDomainLabel } from "../../modules/qg/domainCatalog";
+import { formatLevelLabel, formatStatusLabel, formatTrendLabel, formatValueWithUnit } from "./presentation";
 
 type PriorityItemCardProps = {
   item: PriorityItem;
 };
-
-function formatValue(value: number, unit: string | null) {
-  if (unit) {
-    return `${value.toFixed(2)} ${unit}`;
-  }
-  return value.toFixed(2);
-}
 
 function statusClass(status: string) {
   if (status === "critical") {
@@ -38,22 +32,25 @@ export function PriorityItemCard({ item }: PriorityItemCardProps) {
           <p>
             {getQgDomainLabel(item.domain)} | {item.indicator_name}
           </p>
+          <small className="priority-item-meta">
+            Nivel {formatLevelLabel(item.territory_level)} | Periodo {item.evidence.reference_period}
+          </small>
         </div>
-        <span className={statusClass(item.status)}>{item.status}</span>
+        <span className={statusClass(item.status)}>{formatStatusLabel(item.status)}</span>
       </header>
 
       <div className="priority-item-kpis">
         <div>
-          <span>valor</span>
-          <strong>{formatValue(item.value, item.unit)}</strong>
+          <span>Valor</span>
+          <strong>{formatValueWithUnit(item.value, item.unit)}</strong>
         </div>
         <div>
-          <span>score</span>
-          <strong>{item.score.toFixed(2)}</strong>
+          <span>Score</span>
+          <strong>{formatValueWithUnit(item.score, null)}</strong>
         </div>
         <div>
-          <span>tendencia</span>
-          <strong>{item.trend}</strong>
+          <span>Tendencia</span>
+          <strong>{formatTrendLabel(item.trend)}</strong>
         </div>
       </div>
 
@@ -64,7 +61,7 @@ export function PriorityItemCard({ item }: PriorityItemCardProps) {
       </ul>
 
       <p className="priority-item-evidence">
-        evidencia: {item.evidence.source} / {item.evidence.dataset} / {item.evidence.reference_period}
+        Evidencia: {item.evidence.source} / {item.evidence.dataset}
       </p>
 
       <div className="priority-item-actions">

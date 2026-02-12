@@ -6,13 +6,15 @@ import { getChoropleth } from "../../../shared/api/domain";
 import { formatApiError } from "../../../shared/api/http";
 import { ChoroplethMiniMap } from "../../../shared/ui/ChoroplethMiniMap";
 import { Panel } from "../../../shared/ui/Panel";
+import { formatDecimal, formatLevelLabel, toNumber } from "../../../shared/ui/presentation";
 import { StateBlock } from "../../../shared/ui/StateBlock";
 
-function formatNumber(value: number | null) {
-  if (value === null) {
+function formatNumber(value: unknown) {
+  const numeric = toNumber(value);
+  if (numeric === null) {
     return "-";
   }
-  return value.toFixed(2);
+  return formatDecimal(numeric);
 }
 
 function normalizeMapLevel(value: string | null) {
@@ -222,7 +224,13 @@ export function QgMapPage() {
   }
 
   const choropleth = choroplethQuery.data!;
-  const sortedItems = [...choropleth.items].sort((a, b) => (b.value ?? Number.NEGATIVE_INFINITY) - (a.value ?? Number.NEGATIVE_INFINITY));
+  const normalizedItems = choropleth.items.map((item) => ({
+    ...item,
+    value: toNumber(item.value),
+  }));
+  const sortedItems = [...normalizedItems].sort(
+    (a, b) => (b.value ?? Number.NEGATIVE_INFINITY) - (a.value ?? Number.NEGATIVE_INFINITY)
+  );
   const selectedItem =
     sortedItems.find((item) => item.territory_id === selectedTerritoryId) ??
     sortedItems[0];
@@ -248,8 +256,8 @@ export function QgMapPage() {
           <label>
             Nivel territorial
             <select value={level} onChange={(event) => setLevel(event.target.value)}>
-              <option value="municipio">municipio</option>
-              <option value="distrito">distrito</option>
+              <option value="municipio">Municipio</option>
+              <option value="distrito">Distrito</option>
             </select>
           </label>
           <div className="filter-actions">
@@ -320,7 +328,7 @@ export function QgMapPage() {
                     onClick={() => setSelectedTerritoryId(item.territory_id)}
                   >
                     <td>{item.territory_name}</td>
-                    <td>{item.level}</td>
+                    <td>{formatLevelLabel(item.level)}</td>
                     <td>{item.metric}</td>
                     <td>{item.reference_period}</td>
                     <td>{formatNumber(item.value)}</td>

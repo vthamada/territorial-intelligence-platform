@@ -7,15 +7,9 @@ import { getQgDomainLabel, QG_ONDA_BC_SPOTLIGHT } from "../domainCatalog";
 import { Panel } from "../../../shared/ui/Panel";
 import { PriorityItemCard } from "../../../shared/ui/PriorityItemCard";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
+import { formatLevelLabel, formatStatusLabel, formatValueWithUnit } from "../../../shared/ui/presentation";
 import { StrategicIndexCard } from "../../../shared/ui/StrategicIndexCard";
 import { StateBlock } from "../../../shared/ui/StateBlock";
-
-function formatValue(value: number, unit: string | null) {
-  if (unit) {
-    return `${value.toFixed(2)} ${unit}`;
-  }
-  return value.toFixed(2);
-}
 
 export function QgOverviewPage() {
   const [period, setPeriod] = useState("");
@@ -123,11 +117,11 @@ export function QgOverviewPage() {
           <label>
             Nivel territorial
             <select value={level} onChange={(event) => setLevel(event.target.value)}>
-              <option value="municipality">municipality</option>
-              <option value="district">district</option>
-              <option value="census_sector">census_sector</option>
-              <option value="electoral_zone">electoral_zone</option>
-              <option value="electoral_section">electoral_section</option>
+              <option value="municipality">{formatLevelLabel("municipality")}</option>
+              <option value="district">{formatLevelLabel("district")}</option>
+              <option value="census_sector">{formatLevelLabel("census_sector")}</option>
+              <option value="electoral_zone">{formatLevelLabel("electoral_zone")}</option>
+              <option value="electoral_section">{formatLevelLabel("electoral_section")}</option>
             </select>
           </label>
           <div className="filter-actions">
@@ -272,8 +266,8 @@ export function QgOverviewPage() {
                     <td>{item.source ?? "-"}</td>
                     <td>{item.indicator_code}</td>
                     <td>{item.indicator_name}</td>
-                    <td>{formatValue(item.value, item.unit)}</td>
-                    <td>{item.territory_level}</td>
+                    <td>{formatValueWithUnit(item.value, item.unit)}</td>
+                    <td>{formatLevelLabel(item.territory_level)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -294,7 +288,7 @@ export function QgOverviewPage() {
                   <p>{item.explanation[0] ?? "Sem explicacao."}</p>
                 </div>
                 <small>
-                  severidade: {item.severity} | robustez: {item.robustness}
+                  severidade: {formatStatusLabel(item.severity)} | robustez: {item.robustness}
                 </small>
               </li>
             ))}

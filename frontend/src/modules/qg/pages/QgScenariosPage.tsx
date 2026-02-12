@@ -6,15 +6,45 @@ import { formatApiError } from "../../../shared/api/http";
 import { postScenarioSimulate } from "../../../shared/api/qg";
 import { getQgDomainLabel, normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
 import { Panel } from "../../../shared/ui/Panel";
+import { formatDecimal, formatInteger, formatLevelLabel, formatStatusLabel, toNumber } from "../../../shared/ui/presentation";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
 import { StateBlock } from "../../../shared/ui/StateBlock";
 import { StrategicIndexCard } from "../../../shared/ui/StrategicIndexCard";
 
-function formatSigned(value: number) {
-  if (value > 0) {
-    return `+${value.toFixed(2)}`;
+type ScenarioFormSnapshot = {
+  territoryId: string;
+  period: string;
+  level: string;
+  domain: string;
+  indicatorCode: string;
+  adjustmentPercent: string;
+};
+
+function normalizeNumber(value: unknown, fallback = 0): number {
+  const numeric = toNumber(value);
+  return numeric === null ? fallback : numeric;
+}
+
+function formatSigned(value: unknown) {
+  const parsed = normalizeNumber(value);
+  if (parsed === 0) {
+    return formatDecimal(0);
   }
-  return value.toFixed(2);
+  if (parsed > 0) {
+    return `+${formatDecimal(parsed)}`;
+  }
+  return `-${formatDecimal(Math.abs(parsed))}`;
+}
+
+function formatSignedInteger(value: unknown) {
+  const rounded = Math.trunc(normalizeNumber(value));
+  if (rounded === 0) {
+    return "0";
+  }
+  if (rounded > 0) {
+    return `+${formatInteger(rounded)}`;
+  }
+  return `-${formatInteger(Math.abs(rounded))}`;
 }
 
 function impactStatus(impact: string): "critical" | "attention" | "stable" | "info" {
@@ -38,6 +68,8 @@ export function QgScenariosPage() {
   const [domain, setDomain] = useState(normalizeQgDomain(searchParams.get("domain")));
   const [indicatorCode, setIndicatorCode] = useState(searchParams.get("indicator_code") || "");
   const [adjustmentPercent, setAdjustmentPercent] = useState("10");
+  const [lastSubmittedSnapshot, setLastSubmittedSnapshot] = useState<ScenarioFormSnapshot | null>(null);
+  const [lastSubmittedIndicatorCode, setLastSubmittedIndicatorCode] = useState<string>("");
 
   const territoriesQuery = useQuery({
     queryKey: ["territories", "scenario-picker"],
@@ -74,6 +106,15 @@ export function QgScenariosPage() {
       indicator_code: indicatorCode.trim() || undefined,
       adjustment_percent: parsedAdjustment,
     });
+    setLastSubmittedSnapshot({
+      territoryId,
+      period: period.trim(),
+      level,
+      domain: domain.trim(),
+      indicatorCode: indicatorCode.trim(),
+      adjustmentPercent: adjustmentPercent.trim(),
+    });
+    setLastSubmittedIndicatorCode(indicatorCode.trim());
   }
 
   function clearForm() {
@@ -83,6 +124,9 @@ export function QgScenariosPage() {
     setDomain("");
     setIndicatorCode("");
     setAdjustmentPercent("10");
+    setLastSubmittedSnapshot(null);
+    setLastSubmittedIndicatorCode("");
+    simulationMutation.reset();
   }
 
   if (territoriesQuery.isPending) {
@@ -103,6 +147,14 @@ export function QgScenariosPage() {
   }
 
   const simulation = simulationMutation.data;
+  const hasFormChangesAfterSimulation =
+    Boolean(simulation && lastSubmittedSnapshot) &&
+    (lastSubmittedSnapshot?.territoryId !== territoryId ||
+      lastSubmittedSnapshot?.period !== period.trim() ||
+      lastSubmittedSnapshot?.level !== level ||
+      lastSubmittedSnapshot?.domain !== domain.trim() ||
+      lastSubmittedSnapshot?.indicatorCode !== indicatorCode.trim() ||
+      lastSubmittedSnapshot?.adjustmentPercent !== adjustmentPercent.trim());
 
   return (
     <div className="page-grid">
@@ -131,8 +183,8 @@ export function QgScenariosPage() {
           <label>
             Nivel
             <select value={level} onChange={(event) => setLevel(event.target.value)}>
-              <option value="municipality">municipality</option>
-              <option value="district">district</option>
+              <option value="municipality">{formatLevelLabel("municipality")}</option>
+              <option value="district">{formatLevelLabel("district")}</option>
             </select>
           </label>
           <label>
@@ -151,8 +203,14 @@ export function QgScenariosPage() {
             <input value={indicatorCode} onChange={(event) => setIndicatorCode(event.target.value)} placeholder="DATASUS_APS_COBERTURA" />
           </label>
           <label>
-            Ajuste percentual
-            <input value={adjustmentPercent} onChange={(event) => setAdjustmentPercent(event.target.value)} placeholder="10" />
+            Percentual de ajuste
+            <input
+              type="number"
+              step="0.01"
+              value={adjustmentPercent}
+              onChange={(event) => setAdjustmentPercent(event.target.value)}
+              placeholder="10"
+            />
           </label>
           <div className="filter-actions">
             <button type="submit" disabled={simulationMutation.isPending}>
@@ -184,11 +242,27 @@ export function QgScenariosPage() {
           title={`Resultado: ${simulation.territory_name}`}
           subtitle={`${getQgDomainLabel(simulation.domain)} | ${simulation.indicator_code}`}
         >
+          {hasFormChangesAfterSimulation ? (
+            <StateBlock
+              tone="empty"
+              title="Filtros alterados apos a simulacao"
+              message="Os resultados abaixo refletem o ultimo envio. Clique em Simular para atualizar com os filtros atuais."
+            />
+          ) : null}
+
+          {lastSubmittedIndicatorCode && lastSubmittedIndicatorCode !== simulation.indicator_code ? (
+            <StateBlock
+              tone="empty"
+              title="Indicador ajustado automaticamente"
+              message={`O indicador informado nao foi encontrado no recorte. Resultado calculado com ${simulation.indicator_code}.`}
+            />
+          ) : null}
+
           <div className="kpi-grid">
-            <StrategicIndexCard label="Score base" value={simulation.base_score.toFixed(2)} status="info" />
+            <StrategicIndexCard label="Score base" value={formatDecimal(normalizeNumber(simulation.base_score))} status="info" />
             <StrategicIndexCard
               label="Score simulado"
-              value={simulation.simulated_score.toFixed(2)}
+              value={formatDecimal(normalizeNumber(simulation.simulated_score))}
               status={impactStatus(simulation.impact)}
             />
             <StrategicIndexCard
@@ -203,12 +277,16 @@ export function QgScenariosPage() {
             />
             <StrategicIndexCard
               label="Delta de ranking"
-              value={formatSigned(simulation.rank_delta)}
+              value={formatSignedInteger(simulation.rank_delta)}
               status={impactStatus(simulation.impact)}
               helper="valor positivo indica melhora de posicao"
             />
-            <StrategicIndexCard label="Status antes" value={simulation.status_before} status="info" />
-            <StrategicIndexCard label="Status apos" value={simulation.status_after} status={impactStatus(simulation.impact)} />
+            <StrategicIndexCard label="Status antes" value={formatStatusLabel(simulation.status_before)} status="info" />
+            <StrategicIndexCard
+              label="Status apos"
+              value={formatStatusLabel(simulation.status_after)}
+              status={impactStatus(simulation.impact)}
+            />
             <StrategicIndexCard
               label="Delta de valor"
               value={formatSigned(simulation.delta_value)}
@@ -216,7 +294,7 @@ export function QgScenariosPage() {
             />
             <StrategicIndexCard
               label="Impacto"
-              value={simulation.impact}
+              value={formatStatusLabel(simulation.impact)}
               status={impactStatus(simulation.impact)}
               helper="estimativa simplificada baseada em variacao percentual"
             />

@@ -68,6 +68,8 @@ _ELECTORATE_BREAKDOWN_COLUMNS = {
     "age": "fe.age_range",
     "education": "fe.education",
 }
+_MIN_ALLOWED_YEAR = 1900
+_MAX_ALLOWED_YEAR_OFFSET = 1
 
 
 def _qg_metadata(updated_at: datetime | None, notes: str | None = None, unit: str | None = None) -> QgMetadata:
@@ -273,6 +275,7 @@ def _fetch_territory_indicator_scores(
                     fi.indicator_code,
                     fi.reference_period,
                     fi.value::double precision AS value,
+                    fi.updated_at,
                     ROW_NUMBER() OVER (
                         PARTITION BY dt.territory_id, fi.indicator_code
                         ORDER BY fi.reference_period DESC, fi.updated_at DESC
@@ -335,6 +338,11 @@ def _resolve_available_year(
     requested_year: int | None,
     table_kind: str,
 ) -> int | None:
+    max_allowed_year = datetime.now(UTC).year + _MAX_ALLOWED_YEAR_OFFSET
+
+    if requested_year is not None and not (_MIN_ALLOWED_YEAR <= requested_year <= max_allowed_year):
+        return None
+
     if table_kind == "electorate":
         if requested_year is not None:
             count = db.execute(
@@ -351,17 +359,24 @@ def _resolve_available_year(
             ).scalar_one()
             return requested_year if count > 0 else None
 
-        return db.execute(
+        latest_year = db.execute(
             text(
                 """
                 SELECT MAX(fe.reference_year)
                 FROM silver.fact_electorate fe
                 JOIN silver.dim_territory dt ON dt.territory_id = fe.territory_id
                 WHERE dt.level::text = :level
+                  AND fe.reference_year BETWEEN :min_year AND :max_year
                 """
             ),
-            {"level": level},
+            {"level": level, "min_year": _MIN_ALLOWED_YEAR, "max_year": max_allowed_year},
         ).scalar_one()
+        if latest_year is None:
+            return None
+        latest_year_int = int(latest_year)
+        if not (_MIN_ALLOWED_YEAR <= latest_year_int <= max_allowed_year):
+            return None
+        return latest_year_int
 
     if requested_year is not None:
         count = db.execute(
@@ -378,17 +393,24 @@ def _resolve_available_year(
         ).scalar_one()
         return requested_year if count > 0 else None
 
-    return db.execute(
+    latest_year = db.execute(
         text(
             """
             SELECT MAX(fr.election_year)
             FROM silver.fact_election_result fr
             JOIN silver.dim_territory dt ON dt.territory_id = fr.territory_id
             WHERE dt.level::text = :level
+              AND fr.election_year BETWEEN :min_year AND :max_year
             """
         ),
-        {"level": level},
+        {"level": level, "min_year": _MIN_ALLOWED_YEAR, "max_year": max_allowed_year},
     ).scalar_one()
+    if latest_year is None:
+        return None
+    latest_year_int = int(latest_year)
+    if not (_MIN_ALLOWED_YEAR <= latest_year_int <= max_allowed_year):
+        return None
+    return latest_year_int
 
 
 def _fetch_electorate_breakdown(

@@ -342,6 +342,29 @@ describe("QG pages", () => {
     });
   });
 
+  it("renders choropleth values when API returns numeric string", async () => {
+    vi.mocked(getChoropleth).mockResolvedValueOnce({
+      page: 1,
+      page_size: 1000,
+      total: 1,
+      items: [
+        {
+          territory_id: "3121605",
+          territory_name: "Diamantina",
+          level: "municipio",
+          metric: "MTE_NOVO_CAGED_SALDO_TOTAL",
+          reference_period: "2025",
+          value: "100.5" as unknown as number,
+          geometry: null
+        }
+      ]
+    });
+
+    renderWithQueryClient(<QgMapPage />);
+    await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("100,50")).toBeInTheDocument();
+  });
+
   it("applies insights filters only on submit", async () => {
     renderWithQueryClient(<QgInsightsPage />);
     await waitFor(() => expect(getInsightsHighlights).toHaveBeenCalledTimes(1));
@@ -365,10 +388,10 @@ describe("QG pages", () => {
   it("submits scenario simulation and renders result", async () => {
     renderWithQueryClient(<QgScenariosPage />);
     await waitFor(() => expect(getTerritories).toHaveBeenCalledTimes(1));
-    await screen.findByLabelText("Ajuste percentual");
+    await screen.findByLabelText("Percentual de ajuste");
 
-    await userEvent.clear(screen.getByLabelText("Ajuste percentual"));
-    await userEvent.type(screen.getByLabelText("Ajuste percentual"), "10");
+    await userEvent.clear(screen.getByLabelText("Percentual de ajuste"));
+    await userEvent.type(screen.getByLabelText("Percentual de ajuste"), "10");
     await userEvent.click(screen.getByRole("button", { name: "Simular" }));
 
     await waitFor(() => expect(postScenarioSimulate).toHaveBeenCalledTimes(1));

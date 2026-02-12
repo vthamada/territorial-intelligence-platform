@@ -1,19 +1,32 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getOpsSla, getOpsSummary, getOpsTimeseries } from "../../../shared/api/ops";
+import { getOpsReadiness, getOpsSla, getOpsSummary, getOpsTimeseries } from "../../../shared/api/ops";
 import { formatApiError, requestJson } from "../../../shared/api/http";
 import { Panel } from "../../../shared/ui/Panel";
 import { StateBlock } from "../../../shared/ui/StateBlock";
+import type { OpsReadinessResponse } from "../../../shared/api/types";
 
 type HealthResponse = {
   status: string;
   db: string | boolean;
 };
 
+const HISTORICAL_WINDOW_DAYS = 7;
+const CURRENT_HEALTH_WINDOW_DAYS = 1;
+
 function formatPercent(value: number) {
   return `${(value * 100).toFixed(1)}%`;
 }
 
+function isoDaysAgo(days: number): string {
+  const now = new Date();
+  now.setUTCDate(now.getUTCDate() - days);
+  return now.toISOString();
+}
+
 export function OpsHealthPage() {
+  const historicalStartedFrom = useMemo(() => isoDaysAgo(HISTORICAL_WINDOW_DAYS), []);
+
   const healthQuery = useQuery({
     queryKey: ["health"],
     queryFn: () => requestJson<HealthResponse>("/health")
@@ -23,16 +36,39 @@ export function OpsHealthPage() {
     queryFn: () => getOpsSummary()
   });
   const slaQuery = useQuery({
-    queryKey: ["ops", "sla"],
-    queryFn: () => getOpsSla({ min_total_runs: 1 })
+    queryKey: ["ops", "sla", "historical", historicalStartedFrom],
+    queryFn: () =>
+      getOpsSla({
+        min_total_runs: 1,
+        started_from: historicalStartedFrom
+      })
+  });
+  const readinessQuery = useQuery({
+    queryKey: ["ops", "readiness", HISTORICAL_WINDOW_DAYS, CURRENT_HEALTH_WINDOW_DAYS],
+    queryFn: () =>
+      getOpsReadiness({
+        window_days: HISTORICAL_WINDOW_DAYS,
+        health_window_days: CURRENT_HEALTH_WINDOW_DAYS,
+        slo1_target_pct: 95
+      })
   });
   const timeseriesQuery = useQuery({
     queryKey: ["ops", "timeseries"],
     queryFn: () => getOpsTimeseries({ entity: "runs", granularity: "day" })
   });
 
-  const isLoading = healthQuery.isPending || summaryQuery.isPending || slaQuery.isPending || timeseriesQuery.isPending;
-  const firstError = healthQuery.error ?? summaryQuery.error ?? slaQuery.error ?? timeseriesQuery.error;
+  const isLoading =
+    healthQuery.isPending ||
+    summaryQuery.isPending ||
+    slaQuery.isPending ||
+    readinessQuery.isPending ||
+    timeseriesQuery.isPending;
+  const firstError =
+    healthQuery.error ??
+    summaryQuery.error ??
+    slaQuery.error ??
+    readinessQuery.error ??
+    timeseriesQuery.error;
 
   if (isLoading) {
     return (
@@ -56,6 +92,7 @@ export function OpsHealthPage() {
           void healthQuery.refetch();
           void summaryQuery.refetch();
           void slaQuery.refetch();
+          void readinessQuery.refetch();
           void timeseriesQuery.refetch();
         }}
       />
@@ -65,7 +102,15 @@ export function OpsHealthPage() {
   const health = healthQuery.data as HealthResponse;
   const summary = summaryQuery.data!;
   const sla = slaQuery.data!;
+  const readiness = readinessQuery.data as OpsReadinessResponse;
   const timeseries = timeseriesQuery.data!;
+  const historicalRate = readiness.slo1.total_runs > 0 ? readiness.slo1.successful_runs / readiness.slo1.total_runs : null;
+  const currentHealthRate =
+    readiness.slo1_current.total_runs > 0
+      ? readiness.slo1_current.successful_runs / readiness.slo1_current.total_runs
+      : null;
+  const historicalBelowTargetJobs = readiness.slo1.below_target_jobs.length;
+  const currentHealthBelowTargetJobs = readiness.slo1_current.below_target_jobs.length;
 
   return (
     <div className="page-grid">
@@ -92,6 +137,35 @@ export function OpsHealthPage() {
             <strong>{summary.connectors.total}</strong>
           </article>
         </div>
+      </Panel>
+
+      <Panel title="Monitor SLO-1" subtitle="Comparativo entre historico recente (7 dias) e saude corrente (1 dia)">
+        <div className="kpi-grid">
+          <article>
+            <span>SLO-1 (7d)</span>
+            <strong>{historicalRate === null ? "-" : formatPercent(historicalRate)}</strong>
+          </article>
+          <article>
+            <span>Jobs abaixo da meta (7d)</span>
+            <strong>{historicalBelowTargetJobs}</strong>
+          </article>
+          <article>
+            <span>SLO-1 (1d)</span>
+            <strong>{currentHealthRate === null ? "-" : formatPercent(currentHealthRate)}</strong>
+          </article>
+          <article>
+            <span>Jobs abaixo da meta (1d)</span>
+            <strong>{currentHealthBelowTargetJobs}</strong>
+          </article>
+          <article>
+            <span>Status readiness</span>
+            <strong>{readiness.status}</strong>
+          </article>
+        </div>
+        {readiness.hard_failures.length > 0 ? (
+          <p className="map-export-error">Hard failures: {readiness.hard_failures.join(" | ")}</p>
+        ) : null}
+        {readiness.warnings.length > 0 ? <p className="panel-subtitle">Warnings: {readiness.warnings.join(" | ")}</p> : null}
       </Panel>
 
       <Panel title="SLA por job" subtitle="Taxa de sucesso e duracao media">

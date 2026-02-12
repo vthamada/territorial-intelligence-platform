@@ -6,18 +6,12 @@ import { formatApiError } from "../../../shared/api/http";
 import { getTerritoryCompare, getTerritoryPeers, getTerritoryProfile } from "../../../shared/api/qg";
 import { getQgDomainLabel } from "../../qg/domainCatalog";
 import { Panel } from "../../../shared/ui/Panel";
+import { formatDecimal, formatLevelLabel, formatStatusLabel, formatValueWithUnit, toNumber } from "../../../shared/ui/presentation";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
 import { StrategicIndexCard } from "../../../shared/ui/StrategicIndexCard";
 import { StateBlock } from "../../../shared/ui/StateBlock";
 
 const DEFAULT_TERRITORY_ID = "3121605";
-
-function formatValue(value: number, unit: string | null) {
-  if (unit) {
-    return `${value.toFixed(2)} ${unit}`;
-  }
-  return value.toFixed(2);
-}
 
 function toStrategicStatus(status: string): "critical" | "attention" | "stable" | "info" {
   if (status === "critical") {
@@ -37,6 +31,11 @@ function toStrategicTrend(trend: string): "up" | "down" | "flat" {
     return trend;
   }
   return "flat";
+}
+
+function formatUnknownDecimal(value: unknown, fractionDigits = 2): string {
+  const numeric = toNumber(value);
+  return numeric === null ? "-" : formatDecimal(numeric, fractionDigits);
 }
 
 type TerritoryProfilePageProps = {
@@ -96,12 +95,8 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
       })
   });
 
-  const firstError = territoryListQuery.error ?? profileQuery.error ?? compareQuery.error ?? peersQuery.error;
-  const isLoading =
-    territoryListQuery.isPending ||
-    profileQuery.isPending ||
-    peersQuery.isPending ||
-    (compareQuery.isPending && Boolean(appliedCompareWithId));
+  const firstError = territoryListQuery.error ?? profileQuery.error;
+  const isLoading = territoryListQuery.isPending || profileQuery.isPending;
 
   const territoryOptions = useMemo(() => territoryListQuery.data?.items ?? [], [territoryListQuery.data]);
 
@@ -152,7 +147,8 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
 
   const profile = profileQuery.data!;
   const compare = compareQuery.data;
-  const peers = peersQuery.data!;
+  const peers = peersQuery.data;
+  const overallScore = toNumber(profile.overall_score);
 
   function applyPeerComparison(peerId: string) {
     setCompareWithId(peerId);
@@ -228,7 +224,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
         <div className="kpi-grid">
           <StrategicIndexCard
             label="Score territorial"
-            value={profile.overall_score === null ? "-" : profile.overall_score.toFixed(2)}
+            value={overallScore === null ? "-" : formatDecimal(overallScore)}
             status={toStrategicStatus(profile.overall_status)}
             trend={toStrategicTrend(profile.overall_trend)}
             helper="score agregado dos dominios com dados disponiveis"
@@ -248,7 +244,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
         </div>
       </Panel>
 
-      <Panel title={profile.territory_name} subtitle={`Nivel ${profile.territory_level} - evidencias por dominio`}>
+      <Panel title={profile.territory_name} subtitle={`Nivel ${formatLevelLabel(profile.territory_level)} - evidencias por dominio`}>
         <ul className="trend-list">
           {profile.highlights.map((item) => (
             <li key={item}>
@@ -262,7 +258,17 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
       </Panel>
 
       <Panel title="Pares recomendados" subtitle="Territorios similares para comparacao rapida">
-        {peers.items.length === 0 ? (
+        {peersQuery.isPending ? (
+          <StateBlock tone="loading" title="Carregando pares" message="Calculando territorios similares para comparacao." />
+        ) : peersQuery.error ? (
+          <StateBlock
+            tone="error"
+            title="Falha ao carregar pares recomendados"
+            message={formatApiError(peersQuery.error).message}
+            requestId={formatApiError(peersQuery.error).requestId}
+            onRetry={() => void peersQuery.refetch()}
+          />
+        ) : !peers || peers.items.length === 0 ? (
           <StateBlock tone="empty" title="Sem pares sugeridos" message="Nao ha pares com indicadores compartilhados no recorte." />
         ) : (
           <div className="table-wrap">
@@ -281,10 +287,10 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
                 {peers.items.map((item) => (
                   <tr key={item.territory_id}>
                     <td>{item.territory_name}</td>
-                    <td>{item.territory_level}</td>
-                    <td>{item.similarity_score.toFixed(2)}</td>
+                    <td>{formatLevelLabel(item.territory_level)}</td>
+                    <td>{formatUnknownDecimal(item.similarity_score)}</td>
                     <td>{item.shared_indicators}</td>
-                    <td>{item.status}</td>
+                    <td>{formatStatusLabel(item.status)}</td>
                     <td>
                       <button type="button" className="button-secondary" onClick={() => applyPeerComparison(item.territory_id)}>
                         Comparar
@@ -296,7 +302,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
             </table>
           </div>
         )}
-        <SourceFreshnessBadge metadata={peers.metadata} />
+        {peers ? <SourceFreshnessBadge metadata={peers.metadata} /> : null}
       </Panel>
 
       <Panel title="Dominios e indicadores" subtitle="Visao consolidada do recorte atual">
@@ -322,7 +328,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
                       <td>{indicator.indicator_name}</td>
                       <td>{indicator.indicator_code}</td>
                       <td>{indicator.reference_period}</td>
-                      <td>{formatValue(indicator.value, indicator.unit)}</td>
+                      <td>{formatValueWithUnit(indicator.value, indicator.unit)}</td>
                     </tr>
                   ))
                 )}
@@ -334,7 +340,17 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
 
       {appliedCompareWithId ? (
         <Panel title="Comparacao territorial" subtitle="Deltas entre territorio base e territorio de referencia">
-          {!compare || compare.items.length === 0 ? (
+          {compareQuery.isPending ? (
+            <StateBlock tone="loading" title="Carregando comparacao" message="Buscando indicadores compartilhados." />
+          ) : compareQuery.error ? (
+            <StateBlock
+              tone="error"
+              title="Falha ao carregar comparacao"
+              message={formatApiError(compareQuery.error).message}
+              requestId={formatApiError(compareQuery.error).requestId}
+              onRetry={() => void compareQuery.refetch()}
+            />
+          ) : !compare || compare.items.length === 0 ? (
             <StateBlock tone="empty" title="Sem comparacao" message="Nao ha indicadores compartilhados para comparacao." />
           ) : (
             <div className="table-wrap">
@@ -350,16 +366,16 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
                   </tr>
                 </thead>
                 <tbody>
-                  {compare.items.map((item) => (
-                    <tr key={`${item.indicator_code}-${item.direction}`}>
-                      <td>{getQgDomainLabel(item.domain)}</td>
-                      <td>{item.indicator_name}</td>
-                      <td>{formatValue(item.base_value, item.unit)}</td>
-                      <td>{formatValue(item.compare_value, item.unit)}</td>
-                      <td>{item.delta.toFixed(2)}</td>
-                      <td>{item.direction}</td>
-                    </tr>
-                  ))}
+                {compare.items.map((item) => (
+                  <tr key={`${item.indicator_code}-${item.direction}`}>
+                    <td>{getQgDomainLabel(item.domain)}</td>
+                    <td>{item.indicator_name}</td>
+                    <td>{formatValueWithUnit(item.base_value, item.unit)}</td>
+                    <td>{formatValueWithUnit(item.compare_value, item.unit)}</td>
+                    <td>{formatUnknownDecimal(item.delta)}</td>
+                    <td>{formatStatusLabel(item.direction)}</td>
+                  </tr>
+                ))}
                 </tbody>
               </table>
             </div>

@@ -1,6 +1,7 @@
 import { Suspense, lazy, type ReactNode } from "react";
 import { createBrowserRouter, createMemoryRouter, type RouteObject } from "react-router-dom";
 import { App } from "./App";
+import { RouteErrorPage } from "./RouteErrorPage";
 
 const routerFutureFlags = {
   v7_startTransition: true,
@@ -71,6 +72,11 @@ export const appRoutes: RouteObject[] = [
   {
     path: "/",
     element: <App />,
+    errorElement: (
+      <App>
+        <RouteErrorPage />
+      </App>
+    ),
     children: [
       { index: true, element: withPageFallback(<QgOverviewPage />) },
       { path: "prioridades", element: withPageFallback(<QgPrioritiesPage />) },

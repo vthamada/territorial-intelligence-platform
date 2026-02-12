@@ -6,6 +6,7 @@ import { getPriorityList } from "../../../shared/api/qg";
 import { getQgDomainLabel, normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
 import { Panel } from "../../../shared/ui/Panel";
 import { PriorityItemCard } from "../../../shared/ui/PriorityItemCard";
+import { formatLevelLabel } from "../../../shared/ui/presentation";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
 import { StateBlock } from "../../../shared/ui/StateBlock";
 
@@ -121,6 +122,14 @@ export function QgPrioritiesPage() {
     items.sort((a, b) => b.score - a.score);
     return items;
   }, [appliedSortBy, filteredItems]);
+  const activeFilterSummary = useMemo(() => {
+    const tokens: string[] = [];
+    if (appliedPeriod) tokens.push(`Periodo ${appliedPeriod}`);
+    if (appliedDomain) tokens.push(`Dominio ${getQgDomainLabel(appliedDomain)}`);
+    if (appliedOnlyCritical) tokens.push("Somente criticos");
+    if (appliedLevel) tokens.push(`Nivel ${formatLevelLabel(appliedLevel)}`);
+    return tokens;
+  }, [appliedDomain, appliedLevel, appliedOnlyCritical, appliedPeriod]);
 
   if (prioritiesQuery.isPending) {
     return (
@@ -208,11 +217,11 @@ export function QgPrioritiesPage() {
           <label>
             Nivel territorial
             <select value={level} onChange={(event) => setLevel(event.target.value)}>
-              <option value="municipality">municipality</option>
-              <option value="district">district</option>
-              <option value="census_sector">census_sector</option>
-              <option value="electoral_zone">electoral_zone</option>
-              <option value="electoral_section">electoral_section</option>
+              <option value="municipality">{formatLevelLabel("municipality")}</option>
+              <option value="district">{formatLevelLabel("district")}</option>
+              <option value="census_sector">{formatLevelLabel("census_sector")}</option>
+              <option value="electoral_zone">{formatLevelLabel("electoral_zone")}</option>
+              <option value="electoral_section">{formatLevelLabel("electoral_section")}</option>
             </select>
           </label>
           <label>
@@ -258,6 +267,10 @@ export function QgPrioritiesPage() {
             Exportar CSV
           </button>
         </div>
+        <p className="priority-summary">
+          Mostrando {sortedItems.length} de {priorities!.items.length} prioridade(s).
+          {activeFilterSummary.length > 0 ? ` Filtros ativos: ${activeFilterSummary.join(" | ")}.` : ""}
+        </p>
         {sortedItems.length === 0 ? (
           <StateBlock tone="empty" title="Sem prioridades" message="Nenhuma prioridade encontrada para os filtros aplicados." />
         ) : (

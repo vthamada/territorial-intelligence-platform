@@ -5,6 +5,24 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 ## 2026-02-12
 
 ### Changed
+- Readiness operacional unificado em modulo compartilhado:
+  - nova camada `src/app/ops_readiness.py` para centralizar calculos de `required_tables`,
+    `connector_registry`, `slo1`, `slo1_current`, `slo3` e `source_probe`.
+  - `scripts/backend_readiness.py` refatorado para reutilizar o mesmo nucleo da API.
+- Monitor de saude operacional do frontend atualizado para consumir readiness dedicado:
+  - `OpsHealthPage` passou a consultar `GET /v1/ops/readiness` para status consolidado
+    (`READY|NOT_READY`), `hard_failures` e `warnings`.
+  - painel de SLO-1 mantido com comparativo historico (`7d`) vs corrente (`1d`) usando
+    o payload de readiness como fonte principal.
+- `scripts/backend_readiness.py` evoluido para separar saude corrente de historico no SLO-1:
+  - novo parametro `--health-window-days` (default: `1`).
+  - novo bloco `slo1_current` no JSON de saida com `window_role=current_health`.
+  - warning de SLO-1 agora inclui contexto combinado (`last 7d` vs janela corrente),
+    reduzindo ambiguidade de diagnostico por heranca historica.
+- `OpsHealthPage` evoluida para exibir comparativo de SLO-1 historico vs corrente:
+  - novo painel `Monitor SLO-1` com taxa agregada em `7d` e `1d`.
+  - contagem de jobs abaixo da meta em ambas as janelas para leitura operacional imediata.
+  - consulta de SLA passou a rodar em duas janelas com `started_from` dedicado.
 - Filtros de dominio do QG padronizados com catalogo unico no frontend:
   - `Prioridades`, `Insights`, `Briefs` e `Cenarios` migrados de input livre para `select` com opcoes consistentes.
   - normalizacao de query string para dominio via `normalizeQgDomain` (evita valores invalidos no estado inicial).
@@ -43,12 +61,27 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - tabela de dominios e comparacao agora usa `getQgDomainLabel`, removendo exibicao de codigos tecnicos crus.
 
 ### Added
+- Novo endpoint de readiness operacional na API:
+  - `GET /v1/ops/readiness` com parametros `window_days`, `health_window_days`,
+    `slo1_target_pct`, `include_blocked_as_success` e `strict`.
+  - contrato retornando status consolidado, `slo1` historico, `slo1_current`,
+    `slo3`, cobertura de tabelas obrigatorias e diagnosticos (`hard_failures`/`warnings`).
+- Cliente e tipagens frontend para readiness:
+  - `getOpsReadiness` em `frontend/src/shared/api/ops.ts`.
+  - `OpsReadinessResponse` e tipos derivados em `frontend/src/shared/api/types.ts`.
 - Cobertura de testes ampliada para bootstrap Onda B/C:
   - caso de sanitizacao de nome de arquivo com query string.
   - casos de mapeamento municipal com colunas `CDMUN`/`NMMUN`.
   - caso de alias ANA para vazao total.
 
 ### Verified
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_ops_routes.py tests/unit/test_qg_routes.py -p no:cacheprovider`: `41 passed`.
+- `npm --prefix frontend run test`: `14 passed` / `38 passed`.
+- `npm --prefix frontend run build`: `OK` (Vite build concluido com integracao de readiness em `OpsHealthPage`).
+- `.\.venv\Scripts\python.exe scripts/backend_readiness.py --help`: `OK` (novo parametro `--health-window-days` visivel).
+- `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json`: `READY` com novo bloco `slo1_current` e warning contextualizado.
+- `npm --prefix frontend run test`: `14 passed` / `38 passed` (inclui cobertura de `OpsHealthPage` com monitor de janela 7d/1d).
+- `npm --prefix frontend run build`: `OK` (Vite build concluido apos evolucao do monitor SLO-1).
 - `npm --prefix frontend run test`: `14 passed` / `35 passed` (inclui padronizacao de filtros de dominio + prefill por query string em `Prioridades` e `Insights`).
 - `npm --prefix frontend run build`: `OK` (Vite build concluido, revalidado apos padronizacao de filtros e deep-links).
 - `npm --prefix frontend run test`: `14 passed` / `35 passed` (revalidado apos rotulos amigaveis de dominio no QG).

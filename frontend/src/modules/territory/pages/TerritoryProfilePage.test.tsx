@@ -162,7 +162,7 @@ describe("TerritoryProfilePage", () => {
     expect(getTerritoryCompare).not.toHaveBeenCalled();
     expect(screen.getByRole("heading", { name: "Diamantina" })).toBeInTheDocument();
     expect(screen.getByText("Status geral do territorio")).toBeInTheDocument();
-    expect(screen.getByText("74.50")).toBeInTheDocument();
+    expect(screen.getByText("74,50")).toBeInTheDocument();
     expect(screen.getByText("Saude")).toBeInTheDocument();
     expect(screen.getByText("Pares recomendados")).toBeInTheDocument();
     expect(screen.getAllByText("Belo Horizonte").length).toBeGreaterThan(0);
@@ -178,5 +178,19 @@ describe("TerritoryProfilePage", () => {
       limit: 80
     });
     expect(screen.getByText("Comparacao territorial")).toBeInTheDocument();
+  });
+
+  it("keeps profile visible when peers endpoint fails", async () => {
+    vi.mocked(getTerritoryPeers).mockRejectedValueOnce(new Error("Peers unavailable"));
+
+    renderWithQueryClient(<TerritoryProfilePage />);
+
+    await waitFor(() => expect(getTerritories).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getTerritoryProfile).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getTerritoryPeers).toHaveBeenCalledTimes(1));
+
+    expect(screen.getByRole("heading", { name: "Status geral do territorio" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Diamantina" })).toBeInTheDocument();
+    expect(screen.getByText("Falha ao carregar pares recomendados")).toBeInTheDocument();
   });
 });

@@ -177,8 +177,20 @@ Contrato tecnico principal: `CONTRATO.md`
   - contrato de filtro de runs alinhado para `run_status`.
   - nova tela tecnica `/ops/frontend-events` com filtros/paginacao para telemetria do frontend.
   - nova tela tecnica `/ops/source-coverage` para auditar disponibilidade real de dados por fonte.
+  - `OpsHealthPage` passou a exibir monitor comparativo de SLO-1:
+    - taxa agregada e jobs abaixo da meta em janela historica (7d).
+    - taxa agregada e jobs abaixo da meta em janela corrente (1d).
+  - `OpsHealthPage` passou a consumir `GET /v1/ops/readiness` para status consolidado
+    (`READY|NOT_READY`), `hard_failures` e `warnings`, reduzindo divergencia entre
+    script de readiness e leitura de saude no frontend.
   - filtros de wave em `ops` atualizados para incluir `MVP-5`.
   - testes de paginas ops adicionados em `frontend/src/modules/ops/pages/OpsPages.test.tsx`.
+- Endpoint tecnico de readiness operacional adicionado:
+  - `GET /v1/ops/readiness`
+  - parametros: `window_days`, `health_window_days`, `slo1_target_pct`,
+    `include_blocked_as_success`, `strict`.
+  - nucleo compartilhado de calculo em `src/app/ops_readiness.py`,
+    reutilizado tambem por `scripts/backend_readiness.py`.
 - Frontend F3 (territorio e indicadores) evoluido:
   - filtros territoriais com paginacao e aplicacao explicita.
   - selecao de territorio para compor filtro de indicadores.
@@ -243,12 +255,27 @@ Contrato tecnico principal: `CONTRATO.md`
   - `scripts/backend_readiness.py --output-json` => `READY`.
   - `hard_failures=0`.
   - `warnings=1` por `SLO-1` historico na janela de 7 dias (`72.31% < 95%`).
+  - script de readiness evoluido para separar leitura historica e saude corrente:
+    - novo parametro `--health-window-days` (default `1`).
+    - novo bloco `slo1_current` no JSON para diagnostico de estado operacional atual.
+    - warning de SLO-1 agora traz contexto combinado (`last 7d` vs janela corrente).
   - observacao: este warning e herdado de runs antigos `blocked/failed`; o estado corrente de execucao das ondas 4 e 5 esta estavel.
 - Validacao final executada em 2026-02-12:
   - `pytest -q -p no:cacheprovider`: `152 passed`.
   - `npm --prefix frontend run test`: `14 passed` / `33 passed`.
   - `npm --prefix frontend run build`: `OK` (Vite build concluido).
   - warnings de `future flags` do React Router removidos da suite de testes.
+
+## Proximos passos imediatos (apos iteracao readiness API)
+
+1. Expor `GET /v1/ops/readiness` tambem no painel tecnico `/admin` como card de status unico
+   para triagem rapida de ambiente.
+2. Adicionar teste E2E curto cobrindo o fluxo `OpsHealthPage` com transicao
+   `READY -> NOT_READY` por mocks de readiness.
+3. Consolidar janela operacional padrao do time (historico x corrente) em `CONTRATO.md`
+   para evitar divergencia de leitura entre scripts, API e frontend.
+4. Avancar no fechamento de UX/QG (error boundaries por rota + mensagens de estado)
+   antes do go-live controlado.
 
 ## 1) O que foi implementado ate agora
 

@@ -7,6 +7,7 @@ import { postBriefGenerate } from "../../../shared/api/qg";
 import type { BriefGenerateResponse } from "../../../shared/api/types";
 import { getQgDomainLabel, normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
 import { Panel } from "../../../shared/ui/Panel";
+import { formatLevelLabel, formatStatusLabel, formatValueWithUnit } from "../../../shared/ui/presentation";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
 import { StateBlock } from "../../../shared/ui/StateBlock";
 
@@ -40,9 +41,9 @@ function buildBriefHtml(brief: BriefGenerateResponse) {
           <td>${escapeHtml(item.territory_name)}</td>
           <td>${escapeHtml(getQgDomainLabel(item.domain))}</td>
           <td>${escapeHtml(item.indicator_name)}</td>
-          <td>${escapeHtml(item.unit ? `${item.value.toFixed(2)} ${item.unit}` : item.value.toFixed(2))}</td>
-          <td>${escapeHtml(item.score.toFixed(2))}</td>
-          <td>${escapeHtml(item.status)}</td>
+          <td>${escapeHtml(formatValueWithUnit(item.value, item.unit))}</td>
+          <td>${escapeHtml(formatValueWithUnit(item.score, null))}</td>
+          <td>${escapeHtml(formatStatusLabel(item.status))}</td>
           <td>${escapeHtml(`${item.source} / ${item.dataset}`)}</td>
           <td>${escapeHtml(item.reference_period)}</td>
         </tr>
@@ -71,7 +72,7 @@ function buildBriefHtml(brief: BriefGenerateResponse) {
   <body>
     <h1>${escapeHtml(brief.title)}</h1>
     <p class="meta">Brief ID: ${escapeHtml(brief.brief_id)} | Gerado em: ${escapeHtml(brief.generated_at)}</p>
-    <p class="meta">Periodo: ${escapeHtml(brief.period ?? "-")} | Nivel: ${escapeHtml(brief.level ?? "-")} | Dominio: ${escapeHtml(getQgDomainLabel(brief.domain))}</p>
+    <p class="meta">Periodo: ${escapeHtml(brief.period ?? "-")} | Nivel: ${escapeHtml(formatLevelLabel(brief.level))} | Dominio: ${escapeHtml(getQgDomainLabel(brief.domain))}</p>
 
     <h2>Resumo executivo</h2>
     <ul>${summaryItems}</ul>
@@ -231,8 +232,8 @@ export function QgBriefsPage() {
           <label>
             Nivel
             <select value={level} onChange={(event) => setLevel(event.target.value)}>
-              <option value="municipality">municipality</option>
-              <option value="district">district</option>
+              <option value="municipality">{formatLevelLabel("municipality")}</option>
+              <option value="district">{formatLevelLabel("district")}</option>
             </select>
           </label>
           <label>
@@ -340,9 +341,9 @@ export function QgBriefsPage() {
                       <td>{item.territory_name}</td>
                       <td>{getQgDomainLabel(item.domain)}</td>
                       <td>{item.indicator_name}</td>
-                      <td>{item.unit ? `${item.value.toFixed(2)} ${item.unit}` : item.value.toFixed(2)}</td>
-                      <td>{item.score.toFixed(2)}</td>
-                      <td>{item.status}</td>
+                      <td>{formatValueWithUnit(item.value, item.unit)}</td>
+                      <td>{formatValueWithUnit(item.score, null)}</td>
+                      <td>{formatStatusLabel(item.status)}</td>
                       <td>
                         {item.source} / {item.dataset}
                       </td>

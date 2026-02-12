@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.api.utils import normalize_pagination
+from app.ops_readiness import build_backend_readiness_report
 from app.schemas.responses import PaginatedResponse
 
 router = APIRouter(prefix="/ops", tags=["ops"])
@@ -866,6 +867,30 @@ def get_ops_source_coverage(
         "reference_period": reference_period,
         "include_internal": include_internal,
         "items": items,
+    }
+
+
+@router.get("/readiness")
+def get_ops_readiness(
+    window_days: int = Query(default=7, ge=1),
+    health_window_days: int = Query(default=1, ge=1),
+    slo1_target_pct: float = Query(default=95.0, ge=0, le=100),
+    include_blocked_as_success: bool = Query(default=False),
+    strict: bool = Query(default=False),
+    db: Session = Depends(get_db),  # noqa: B008
+) -> dict[str, Any]:
+    report = build_backend_readiness_report(
+        db,
+        window_days=window_days,
+        slo1_target_pct=slo1_target_pct,
+        health_window_days=health_window_days,
+        include_blocked_as_success=include_blocked_as_success,
+    )
+    is_ready = not report["hard_failures"] and (not strict or not report["warnings"])
+    return {
+        "status": "READY" if is_ready else "NOT_READY",
+        "strict": strict,
+        **report,
     }
 
 

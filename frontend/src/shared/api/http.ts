@@ -53,9 +53,18 @@ async function decodeError(response: Response): Promise<ApiClientError> {
 
 export function formatApiError(error: unknown): { message: string; requestId?: string } {
   if (error instanceof ApiClientError) {
+    if (error.message === "Request failed.") {
+      return {
+        message: `Falha na API (status ${error.status}). Consulte os logs do backend para mais detalhes.`,
+        requestId: error.requestId
+      };
+    }
     return { message: error.message, requestId: error.requestId };
   }
   if (error instanceof Error) {
+    if (error.message === "Failed to fetch") {
+      return { message: "Nao foi possivel conectar com a API. Verifique se o backend esta ativo." };
+    }
     return { message: error.message };
   }
   return { message: "Erro inesperado ao consultar API." };

@@ -79,7 +79,7 @@ describe("ElectorateExecutivePage", () => {
 
     await waitFor(() => expect(getElectorateSummary).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(getElectorateMap).toHaveBeenCalledTimes(1));
-    expect(screen.getAllByText("12000").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("12.000").length).toBeGreaterThan(0);
 
     await userEvent.type(screen.getByLabelText("Ano"), "2022");
     await userEvent.selectOptions(screen.getByLabelText("Metrica do mapa"), "abstention_rate");

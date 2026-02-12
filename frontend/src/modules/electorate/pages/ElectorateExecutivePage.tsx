@@ -4,6 +4,7 @@ import { formatApiError } from "../../../shared/api/http";
 import { getElectorateMap, getElectorateSummary } from "../../../shared/api/qg";
 import type { ElectorateMapResponse } from "../../../shared/api/types";
 import { Panel } from "../../../shared/ui/Panel";
+import { formatDecimal, formatInteger, formatLevelLabel } from "../../../shared/ui/presentation";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
 import { StateBlock } from "../../../shared/ui/StateBlock";
 
@@ -13,7 +14,33 @@ function formatPercent(value: number | null) {
   if (value === null) {
     return "-";
   }
-  return `${value.toFixed(2)}%`;
+  return `${formatDecimal(value)}%`;
+}
+
+function metricLabel(metric: ElectorateMetric) {
+  if (metric === "voters") {
+    return "Total de eleitores";
+  }
+  if (metric === "turnout") {
+    return "Comparecimento";
+  }
+  if (metric === "abstention_rate") {
+    return "Taxa de abstencao";
+  }
+  if (metric === "blank_rate") {
+    return "Taxa de brancos";
+  }
+  return "Taxa de nulos";
+}
+
+function breakdownGroupLabel(group: "sex" | "age" | "education") {
+  if (group === "sex") {
+    return "sexo";
+  }
+  if (group === "age") {
+    return "faixa etaria";
+  }
+  return "escolaridade";
 }
 
 export function ElectorateExecutivePage() {
@@ -98,11 +125,11 @@ export function ElectorateExecutivePage() {
           <label>
             Metrica do mapa
             <select value={metric} onChange={(event) => setMetric(event.target.value as ElectorateMetric)}>
-              <option value="voters">voters</option>
-              <option value="turnout">turnout</option>
-              <option value="abstention_rate">abstention_rate</option>
-              <option value="blank_rate">blank_rate</option>
-              <option value="null_rate">null_rate</option>
+              <option value="voters">{metricLabel("voters")}</option>
+              <option value="turnout">{metricLabel("turnout")}</option>
+              <option value="abstention_rate">{metricLabel("abstention_rate")}</option>
+              <option value="blank_rate">{metricLabel("blank_rate")}</option>
+              <option value="null_rate">{metricLabel("null_rate")}</option>
             </select>
           </label>
           <div className="filter-actions">
@@ -123,7 +150,7 @@ export function ElectorateExecutivePage() {
           </article>
           <article>
             <span>Total eleitores</span>
-            <strong>{summary.total_voters}</strong>
+            <strong>{formatInteger(summary.total_voters)}</strong>
           </article>
           <article>
             <span>Taxa comparecimento</span>
@@ -161,26 +188,26 @@ export function ElectorateExecutivePage() {
               <tbody>
                 {summary.by_sex.map((item) => (
                   <tr key={`sex-${item.label}`}>
-                    <td>sex</td>
+                    <td>{breakdownGroupLabel("sex")}</td>
                     <td>{item.label}</td>
-                    <td>{item.voters}</td>
-                    <td>{item.share_percent.toFixed(2)}%</td>
+                    <td>{formatInteger(item.voters)}</td>
+                    <td>{formatPercent(item.share_percent)}</td>
                   </tr>
                 ))}
                 {summary.by_age.map((item) => (
                   <tr key={`age-${item.label}`}>
-                    <td>age</td>
+                    <td>{breakdownGroupLabel("age")}</td>
                     <td>{item.label}</td>
-                    <td>{item.voters}</td>
-                    <td>{item.share_percent.toFixed(2)}%</td>
+                    <td>{formatInteger(item.voters)}</td>
+                    <td>{formatPercent(item.share_percent)}</td>
                   </tr>
                 ))}
                 {summary.by_education.map((item) => (
                   <tr key={`education-${item.label}`}>
-                    <td>education</td>
+                    <td>{breakdownGroupLabel("education")}</td>
                     <td>{item.label}</td>
-                    <td>{item.voters}</td>
-                    <td>{item.share_percent.toFixed(2)}%</td>
+                    <td>{formatInteger(item.voters)}</td>
+                    <td>{formatPercent(item.share_percent)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -189,7 +216,7 @@ export function ElectorateExecutivePage() {
         )}
       </Panel>
 
-      <Panel title="Mapa tabular por territorio" subtitle={`Metrica ${map.metric} por municipio`}>
+      <Panel title="Mapa tabular por territorio" subtitle={`${metricLabel(map.metric)} por ${formatLevelLabel(map.level)}`}>
         {map.items.length === 0 ? (
           <StateBlock tone="empty" title="Sem mapa eleitoral" message="Nenhum territorio retornado para a metrica selecionada." />
         ) : (
@@ -208,10 +235,16 @@ export function ElectorateExecutivePage() {
                 {map.items.map((item) => (
                   <tr key={`${item.territory_id}-${item.metric}`}>
                     <td>{item.territory_name}</td>
-                    <td>{item.territory_level}</td>
+                    <td>{formatLevelLabel(item.territory_level)}</td>
                     <td>{item.year ?? "-"}</td>
-                    <td>{item.metric}</td>
-                    <td>{item.value ?? "-"}</td>
+                    <td>{metricLabel(item.metric)}</td>
+                    <td>
+                      {item.value === null
+                        ? "-"
+                        : item.metric === "voters"
+                          ? formatInteger(item.value)
+                          : formatPercent(item.value)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

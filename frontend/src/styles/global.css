@@ -25,6 +25,9 @@ body {
   background: radial-gradient(circle at 12% 20%, #fff7dd 0%, transparent 40%),
     radial-gradient(circle at 92% 5%, #d0ecea 0%, transparent 38%), var(--bg-page);
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 #root {
@@ -61,6 +64,10 @@ tbody td {
   border-bottom: 1px solid #ecdfce;
   padding: 0.7rem 0.75rem;
   font-size: 0.92rem;
+}
+
+tbody tr:hover {
+  background: #f8f3ea;
 }
 
 button,
@@ -103,6 +110,15 @@ button {
   color: #fff;
   cursor: pointer;
   font-weight: 600;
+  transition: filter 140ms ease, transform 140ms ease;
+}
+
+button:hover {
+  filter: brightness(1.03);
+}
+
+button:active {
+  transform: translateY(1px);
 }
 
 button:disabled {
@@ -123,6 +139,11 @@ select {
   border: 1px solid var(--line);
   background: #fff;
   padding: 0.5rem 0.6rem;
+  min-height: 2.35rem;
+}
+
+input::placeholder {
+  color: #7b8a91;
 }
 
 label {
@@ -386,6 +407,10 @@ label {
   flex-wrap: wrap;
 }
 
+.filter-actions button {
+  min-width: 96px;
+}
+
 .pagination-row {
   margin-top: 0.8rem;
   display: flex;
@@ -553,6 +578,14 @@ label {
   font-size: 0.88rem;
 }
 
+.priority-item-meta {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+}
+
 .priority-item-kpis {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -595,10 +628,18 @@ label {
   gap: 0.75rem;
 }
 
+.priority-summary {
+  margin: 0 0 0.75rem;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+
 .panel-actions-row {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 0.8rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .admin-link-grid {

@@ -16,6 +16,42 @@ vi.mock("../shared/api/ops", () => ({
     min_total_runs: 1,
     items: []
   }),
+  getOpsReadiness: vi.fn().mockResolvedValue({
+    status: "READY",
+    strict: false,
+    generated_at_utc: "2026-02-12T20:30:00Z",
+    window_days: 7,
+    postgis: { installed: true, version: "3.5.2" },
+    required_tables: { required: [], found_count: 7, missing: [] },
+    connector_registry: { total: 1, by_status: { implemented: 1 }, implemented_jobs: ["sidra_indicators_fetch"] },
+    slo1: {
+      window_days: 7,
+      target_pct: 95,
+      include_blocked_as_success: false,
+      total_runs: 1,
+      successful_runs: 1,
+      success_rate_pct: 100,
+      meets_target: true,
+      below_target_jobs: [],
+      items: []
+    },
+    slo1_current: {
+      window_days: 1,
+      target_pct: 95,
+      include_blocked_as_success: false,
+      total_runs: 1,
+      successful_runs: 1,
+      success_rate_pct: 100,
+      meets_target: true,
+      below_target_jobs: [],
+      items: [],
+      window_role: "current_health"
+    },
+    slo3: { window_days: 7, total_runs: 1, runs_with_checks: 1, runs_missing_checks: 0, meets_target: true, sample_missing_run_ids: [] },
+    source_probe: { total_rows: 0, by_source: {} },
+    hard_failures: [],
+    warnings: []
+  }),
   getOpsTimeseries: vi.fn().mockResolvedValue({
     entity: "runs",
     granularity: "day",

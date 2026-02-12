@@ -17,15 +17,21 @@ class _CountResult:
     def scalar_one(self) -> Any:
         return self._value
 
+    def scalar_one_or_none(self) -> Any:
+        return self._value
+
 
 class _RowsResult:
-    def __init__(self, rows: list[dict[str, Any]]) -> None:
+    def __init__(self, rows: list[Any]) -> None:
         self._rows = rows
 
     def mappings(self) -> _RowsResult:
         return self
 
-    def all(self) -> list[dict[str, Any]]:
+    def all(self) -> list[Any]:
+        return self._rows
+
+    def fetchall(self) -> list[Any]:
         return self._rows
 
 
@@ -337,6 +343,60 @@ class _OpsSourceCoverageSession:
         )
 
 
+class _OpsReadinessSession:
+    def __init__(self) -> None:
+        self.last_params: dict[str, Any] | None = None
+        self.params_history: list[dict[str, Any]] = []
+
+    def execute(self, *_args: Any, **_kwargs: Any) -> _CountResult | _RowsResult:
+        params = _kwargs.get("params")
+        if params is None and len(_args) >= 2 and isinstance(_args[1], dict):
+            params = _args[1]
+        if isinstance(params, dict):
+            self.last_params = params
+            self.params_history.append(dict(params))
+
+        sql = str(_args[0]).lower() if _args else ""
+
+        if "from pg_extension" in sql:
+            return _CountResult("3.5.2")
+        if "from information_schema.tables" in sql:
+            return _RowsResult(
+                [
+                    ("silver", "dim_territory"),
+                    ("silver", "fact_indicator"),
+                    ("silver", "fact_electorate"),
+                    ("silver", "fact_election_result"),
+                    ("ops", "pipeline_runs"),
+                    ("ops", "pipeline_checks"),
+                    ("ops", "connector_registry"),
+                ]
+            )
+        if "from ops.connector_registry" in sql and "group by status::text" in sql:
+            return _RowsResult([("implemented", 22)])
+        if "where pr.started_at_utc >= now() - make_interval(days => :window_days)" in sql and "group by pr.job_name" in sql:
+            if params and params.get("window_days") == 1:
+                return _RowsResult([("sidra_indicators_fetch", 3, 3)])
+            return _RowsResult([("sidra_indicators_fetch", 10, 8)])
+        if (
+            "from ops.connector_registry" in sql
+            and "select connector_name" in sql
+            and "where status = 'implemented'" in sql
+            and "order by connector_name" in sql
+        ):
+            return _RowsResult([("sidra_indicators_fetch",)])
+        if "count(*)" in sql and "join implemented i on i.connector_name = pr.job_name" in sql and "join ops.pipeline_checks pc" not in sql:
+            return _CountResult(10)
+        if "count(distinct pr.run_id)" in sql:
+            return _CountResult(10)
+        if "left join ops.pipeline_checks pc on pc.run_id = pr.run_id" in sql:
+            return _RowsResult([])
+        if "from silver.fact_indicator" in sql and "source_probe" in sql:
+            return _RowsResult([])
+
+        raise AssertionError(f"Unexpected SQL in readiness test: {sql}")
+
+
 class _FrontendEventsIngestSession:
     def __init__(self) -> None:
         self.last_params: dict[str, Any] | None = None
@@ -407,6 +467,10 @@ def _sla_db() -> Generator[_OpsSlaSession, None, None]:
 
 def _source_coverage_db() -> Generator[_OpsSourceCoverageSession, None, None]:
     yield _OpsSourceCoverageSession()
+
+
+def _readiness_db() -> Generator[_OpsReadinessSession, None, None]:
+    yield _OpsReadinessSession()
 
 
 def _frontend_events_ingest_db() -> Generator[_FrontendEventsIngestSession, None, None]:
@@ -812,6 +876,51 @@ def test_ops_source_coverage_endpoint_accepts_filters() -> None:
     assert session.last_params["reference_period"] == "2025"
     assert session.last_params["include_internal"] is True
     assert session.last_params["started_from"] == datetime(2026, 2, 10, 0, 0, tzinfo=UTC)
+    app.dependency_overrides.clear()
+
+
+def test_ops_readiness_endpoint_returns_operational_snapshot() -> None:
+    app.dependency_overrides[get_db] = _readiness_db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/ops/readiness")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "READY"
+    assert payload["postgis"]["installed"] is True
+    assert payload["required_tables"]["missing"] == []
+    assert payload["connector_registry"]["total"] == 22
+    assert payload["slo1"]["window_days"] == 7
+    assert payload["slo1_current"]["window_days"] == 1
+    assert payload["slo3"]["runs_missing_checks"] == 0
+    assert isinstance(payload["warnings"], list)
+    app.dependency_overrides.clear()
+
+
+def test_ops_readiness_endpoint_accepts_custom_windows_and_strict_mode() -> None:
+    session = _OpsReadinessSession()
+
+    def _db() -> Generator[_OpsReadinessSession, None, None]:
+        yield session
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get(
+        "/v1/ops/readiness"
+        "?window_days=14"
+        "&health_window_days=2"
+        "&slo1_target_pct=90"
+        "&strict=true"
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "NOT_READY"
+    assert payload["strict"] is True
+    assert any(item.get("window_days") == 14 for item in session.params_history)
+    assert any(item.get("window_days") == 2 for item in session.params_history)
     app.dependency_overrides.clear()
 
 

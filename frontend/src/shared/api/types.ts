@@ -144,6 +144,64 @@ export type OpsSourceCoverageResponse = {
   items: OpsSourceCoverageItem[];
 };
 
+export type OpsReadinessSloItem = {
+  job_name: string;
+  total_runs: number;
+  successful_runs: number;
+  success_rate_pct: number;
+  meets_target: boolean;
+};
+
+export type OpsReadinessSlo = {
+  window_days: number;
+  target_pct: number;
+  include_blocked_as_success: boolean;
+  total_runs: number;
+  successful_runs: number;
+  success_rate_pct: number;
+  meets_target: boolean;
+  below_target_jobs: string[];
+  items: OpsReadinessSloItem[];
+  window_role?: "current_health" | string;
+};
+
+export type OpsReadinessResponse = {
+  status: "READY" | "NOT_READY";
+  strict: boolean;
+  generated_at_utc: string;
+  window_days: number;
+  postgis: {
+    installed: boolean;
+    version: string | null;
+  };
+  required_tables: {
+    required: Array<{ schema: string; table: string }>;
+    found_count: number;
+    missing: Array<{ schema: string; table: string }>;
+  };
+  connector_registry: {
+    total: number;
+    by_status: Record<string, number>;
+    implemented_jobs: string[];
+  };
+  slo1: OpsReadinessSlo;
+  slo1_current: OpsReadinessSlo;
+  slo3: {
+    window_days: number;
+    total_runs: number;
+    runs_with_checks: number;
+    runs_missing_checks: number;
+    meets_target: boolean;
+    sample_missing_run_ids: string[];
+  };
+  source_probe: {
+    total_rows: number;
+    by_source: Record<string, number>;
+  };
+  hard_failures: string[];
+  warnings: string[];
+};
+
 export type TerritoryItem = {
   territory_id: string;
   level: string;
