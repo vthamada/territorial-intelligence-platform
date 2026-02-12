@@ -1,0 +1,4 @@
+resources:
+  - name: inmet_historical_year_zip
+    uri: "https://portal.inmet.gov.br/uploads/dadoshistoricos/{reference_period}.zip"
+    extension: ".zip"

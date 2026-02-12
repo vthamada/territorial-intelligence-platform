@@ -15,6 +15,8 @@ class QgMetadata(BaseModel):
 
 class KpiOverviewItem(BaseModel):
     domain: str
+    source: str | None = None
+    dataset: str | None = None
     indicator_code: str
     indicator_name: str
     value: float

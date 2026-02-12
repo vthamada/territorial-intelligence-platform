@@ -34,6 +34,11 @@ const adminLinks: AdminRouteLink[] = [
     description: "Telemetria de erros, web vitals e chamadas API do cliente."
   },
   {
+    to: "/ops/source-coverage",
+    label: "Cobertura por Fonte",
+    description: "Mostra se as fontes implementadas estao com dados carregados no Silver."
+  },
+  {
     to: "/territory/indicators",
     label: "Territorios e Indicadores",
     description: "Consulta tecnica para depuracao de dados territoriais."

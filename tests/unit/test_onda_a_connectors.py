@@ -324,6 +324,22 @@ def test_snis_build_indicator_rows_uses_percent_columns() -> None:
     assert by_code["SNIS_ATENDIMENTO_ESGOTO_PERCENTUAL"]["value"] == Decimal("70")
 
 
+def test_snis_build_indicator_rows_ignores_nan_columns() -> None:
+    row = {
+        "agua_atendimento_percentual": float("nan"),
+        "esgoto_atendimento_percentual": float("nan"),
+        "perdas_agua_percentual": float("nan"),
+        "coleta_residuos_percentual": "87.5",
+    }
+    indicators = snis_sanitation._build_indicator_rows(
+        territory_id="00000000-0000-0000-0000-000000000000",
+        reference_period="2025",
+        municipality_row=row,
+    )
+    assert [item["indicator_code"] for item in indicators] == ["SNIS_COLETA_RESIDUOS_PERCENTUAL"]
+    assert indicators[0]["value"] == Decimal("87.5")
+
+
 def test_snis_dry_run_uses_resolved_dataset(monkeypatch) -> None:
     dataframe = pd.DataFrame([{"codigo_municipio": "3121605", "agua_atendimento_percentual": "93"}])
 

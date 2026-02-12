@@ -1,0 +1,4 @@
+resources:
+  - name: anatel_meu_municipio_zip
+    uri: "https://www.anatel.gov.br/dadosabertos/paineis_de_dados/meu_municipio/meu_municipio.zip"
+    extension: ".zip"

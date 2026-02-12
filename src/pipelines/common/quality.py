@@ -372,6 +372,11 @@ def check_fact_indicator_source_rows(
         ("sejusp_mg", "SEJUSP_MG"),
         ("siops", "SIOPS"),
         ("snis", "SNIS"),
+        ("inmet", "INMET"),
+        ("inpe_queimadas", "INPE_QUEIMADAS"),
+        ("ana", "ANA"),
+        ("anatel", "ANATEL"),
+        ("aneel", "ANEEL"),
     )
 
     for source_key, source_name in source_map:

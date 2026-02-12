@@ -23,6 +23,7 @@ WAVE = "MVP-3"
 CNES_ENDPOINT = "https://apidadosabertos.saude.gov.br/cnes/estabelecimentos"
 CNES_PAGE_SIZE = 20
 MAX_PAGES = 500
+_CNES_QUERY_PARAM_CANDIDATES: tuple[str, ...] = ("codigo_municipio", "municipio")
 
 
 def _parse_reference_year(reference_period: str) -> str:
@@ -73,6 +74,55 @@ def _fetch_establishments(
     client: HttpClient,
     *,
     municipality_cnes_code: str,
+    municipality_ibge_code: str,
+    page_size: int = CNES_PAGE_SIZE,
+) -> tuple[list[dict[str, Any]], dict[str, str]]:
+    municipality_code_candidates = [
+        municipality_cnes_code,
+        municipality_ibge_code,
+        f"0{municipality_cnes_code}",
+    ]
+    unique_codes = [code for idx, code in enumerate(municipality_code_candidates) if code and code not in municipality_code_candidates[:idx]]
+
+    first_empty_details: dict[str, str] | None = None
+    last_error: Exception | None = None
+
+    for query_param in _CNES_QUERY_PARAM_CANDIDATES:
+        for municipality_code in unique_codes:
+            try:
+                rows = _fetch_establishments_once(
+                    client,
+                    municipality_code=municipality_code,
+                    query_param=query_param,
+                    page_size=page_size,
+                )
+            except Exception as exc:
+                last_error = exc
+                continue
+
+            details = {
+                "query_param": query_param,
+                "municipality_code": municipality_code,
+            }
+            if rows:
+                return rows, details
+            if first_empty_details is None:
+                first_empty_details = details
+
+    if first_empty_details is not None:
+        return [], first_empty_details
+    if last_error is not None:
+        raise RuntimeError(
+            "DATASUS CNES request failed for all municipality query strategies."
+        ) from last_error
+    return [], {"query_param": "codigo_municipio", "municipality_code": municipality_cnes_code}
+
+
+def _fetch_establishments_once(
+    client: HttpClient,
+    *,
+    municipality_code: str,
+    query_param: str,
     page_size: int = CNES_PAGE_SIZE,
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
@@ -82,7 +132,7 @@ def _fetch_establishments(
         payload = client.get_json(
             CNES_ENDPOINT,
             params={
-                "codigo_municipio": municipality_cnes_code,
+                query_param: municipality_code,
                 "limit": str(page_size),
                 "offset": str(offset),
             },
@@ -214,14 +264,20 @@ def run(
     try:
         territory_id, municipality_ibge_code = _resolve_municipality_context(settings)
         municipality_cnes_code = _to_cnes_municipality_code(municipality_ibge_code)
-        establishments = _fetch_establishments(
+        establishments, query_details = _fetch_establishments(
             client,
             municipality_cnes_code=municipality_cnes_code,
+            municipality_ibge_code=municipality_ibge_code,
         )
         if not establishments:
             warnings.append(
                 f"No CNES establishments found for municipality code "
                 f"{municipality_cnes_code}."
+            )
+        if query_details["query_param"] != "codigo_municipio" or query_details["municipality_code"] != municipality_cnes_code:
+            warnings.append(
+                "DATASUS query fallback used: "
+                f"{query_details['query_param']}={query_details['municipality_code']}."
             )
 
         load_rows = _build_indicator_rows(
@@ -244,6 +300,7 @@ def run(
                 "preview": {
                     "municipality_ibge_code": municipality_ibge_code,
                     "municipality_cnes_code": municipality_cnes_code,
+                    "query_details": query_details,
                     "indicators": [
                         {
                             "indicator_code": row["indicator_code"],
@@ -325,6 +382,7 @@ def run(
             "job": JOB_NAME,
             "municipality_ibge_code": municipality_ibge_code,
             "municipality_cnes_code": municipality_cnes_code,
+            "query_details": query_details,
             "reference_period": parsed_reference_period,
             "rows_extracted": len(establishments),
             "sample_rows": establishments[:5],
@@ -377,6 +435,7 @@ def run(
                 details={
                     "municipality_ibge_code": municipality_ibge_code,
                     "municipality_cnes_code": municipality_cnes_code,
+                    "query_details": query_details,
                     "rows_written": rows_written,
                 },
             )

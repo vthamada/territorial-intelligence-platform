@@ -29,6 +29,13 @@ waves:
     - siops_health_finance_fetch
     - snis_sanitation_fetch
     - quality_suite
+  MVP-5:
+    - inmet_climate_fetch
+    - inpe_queimadas_fetch
+    - ana_hydrology_fetch
+    - anatel_connectivity_fetch
+    - aneel_energy_fetch
+    - quality_suite
 
 jobs:
   ibge_admin_fetch:
@@ -60,6 +67,16 @@ jobs:
   siops_health_finance_fetch:
     reference_period: "2025"
   snis_sanitation_fetch:
+    reference_period: "2025"
+  inmet_climate_fetch:
+    reference_period: "2025"
+  inpe_queimadas_fetch:
+    reference_period: "2025"
+  ana_hydrology_fetch:
+    reference_period: "2025"
+  anatel_connectivity_fetch:
+    reference_period: "2025"
+  aneel_energy_fetch:
     reference_period: "2025"
   dbt_build:
     reference_period: "2026"

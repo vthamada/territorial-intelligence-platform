@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import math
 import re
 import time
 import unicodedata
@@ -90,6 +91,8 @@ def _parse_numeric(value: Any) -> Decimal | None:
     if isinstance(value, Decimal):
         return value
     if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if isinstance(value, float) and (math.isnan(value) or not math.isfinite(value)):
+            return None
         return Decimal(str(value))
 
     token = str(value).strip()
@@ -101,7 +104,10 @@ def _parse_numeric(value: Any) -> Decimal | None:
     elif "," in normalized:
         normalized = normalized.replace(",", ".")
     try:
-        return Decimal(normalized)
+        parsed = Decimal(normalized)
+        if parsed.is_nan():
+            return None
+        return parsed
     except InvalidOperation:
         return None
 

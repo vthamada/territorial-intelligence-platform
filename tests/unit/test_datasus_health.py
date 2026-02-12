@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pipelines.datasus_health import (
+    _fetch_establishments,
     _build_indicator_rows,
     _is_truthy_flag,
     _to_cnes_municipality_code,
@@ -49,3 +50,24 @@ def test_build_indicator_rows_deduplicates_by_cnes() -> None:
     assert by_code["DATASUS_CNES_AMBULATORY_SUS_TOTAL"]["value"] == 1
     assert by_code["DATASUS_CNES_HOSPITAL_CARE_TOTAL"]["value"] == 1
     assert by_code["DATASUS_CNES_SURGERY_CENTER_TOTAL"]["value"] == 1
+
+
+def test_fetch_establishments_uses_fallback_query_param_when_primary_fails() -> None:
+    class _FakeClient:
+        def get_json(self, _url: str, *, params: dict[str, str]) -> dict[str, list[dict[str, str]]]:
+            if params.get("codigo_municipio") == "312160":
+                raise RuntimeError("503")
+            if params.get("municipio") == "312160":
+                return {"estabelecimentos": [{"codigo_cnes": "123"}]}
+            return {"estabelecimentos": []}
+
+    rows, details = _fetch_establishments(
+        _FakeClient(),  # type: ignore[arg-type]
+        municipality_cnes_code="312160",
+        municipality_ibge_code="3121605",
+        page_size=20,
+    )
+
+    assert len(rows) == 1
+    assert details["query_param"] == "municipio"
+    assert details["municipality_code"] == "312160"

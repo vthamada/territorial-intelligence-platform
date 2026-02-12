@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { formatApiError } from "../../../shared/api/http";
 import { getPriorityList } from "../../../shared/api/qg";
+import { normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
 import { Panel } from "../../../shared/ui/Panel";
 import { PriorityItemCard } from "../../../shared/ui/PriorityItemCard";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
@@ -28,17 +30,38 @@ function csvEscape(value: string) {
   return `"${escaped}"`;
 }
 
+function normalizeLevel(value: string | null) {
+  if (value === "district" || value === "census_sector" || value === "electoral_zone" || value === "electoral_section") {
+    return value;
+  }
+  return "municipality";
+}
+
+function normalizeSort(value: string | null): PrioritySort {
+  if (value === "criticality_desc" || value === "criticality_asc" || value === "territory_asc" || value === "trend_desc") {
+    return value;
+  }
+  return "criticality_desc";
+}
+
 export function QgPrioritiesPage() {
-  const [period, setPeriod] = useState("");
-  const [level, setLevel] = useState("municipality");
-  const [domain, setDomain] = useState("");
-  const [onlyCritical, setOnlyCritical] = useState(false);
-  const [sortBy, setSortBy] = useState<PrioritySort>("criticality_desc");
-  const [appliedPeriod, setAppliedPeriod] = useState("");
-  const [appliedLevel, setAppliedLevel] = useState("municipality");
-  const [appliedDomain, setAppliedDomain] = useState("");
-  const [appliedOnlyCritical, setAppliedOnlyCritical] = useState(false);
-  const [appliedSortBy, setAppliedSortBy] = useState<PrioritySort>("criticality_desc");
+  const [searchParams] = useSearchParams();
+  const initialPeriod = searchParams.get("period") || "";
+  const initialLevel = normalizeLevel(searchParams.get("level"));
+  const initialDomain = normalizeQgDomain(searchParams.get("domain"));
+  const initialOnlyCritical = searchParams.get("only_critical") === "true";
+  const initialSortBy = normalizeSort(searchParams.get("sort"));
+
+  const [period, setPeriod] = useState(initialPeriod);
+  const [level, setLevel] = useState(initialLevel);
+  const [domain, setDomain] = useState(initialDomain);
+  const [onlyCritical, setOnlyCritical] = useState(initialOnlyCritical);
+  const [sortBy, setSortBy] = useState<PrioritySort>(initialSortBy);
+  const [appliedPeriod, setAppliedPeriod] = useState(initialPeriod);
+  const [appliedLevel, setAppliedLevel] = useState(initialLevel);
+  const [appliedDomain, setAppliedDomain] = useState(initialDomain);
+  const [appliedOnlyCritical, setAppliedOnlyCritical] = useState(initialOnlyCritical);
+  const [appliedSortBy, setAppliedSortBy] = useState<PrioritySort>(initialSortBy);
 
   const query = useMemo(
     () => ({
@@ -76,6 +99,29 @@ export function QgPrioritiesPage() {
     setAppliedSortBy("criticality_desc");
   }
 
+  const priorities = prioritiesQuery.data;
+  const filteredItems = useMemo(() => {
+    if (!priorities) return [];
+    return appliedOnlyCritical ? priorities.items.filter((item) => item.status === "critical") : priorities.items;
+  }, [priorities, appliedOnlyCritical]);
+  const sortedItems = useMemo(() => {
+    const items = [...filteredItems];
+    if (appliedSortBy === "criticality_asc") {
+      items.sort((a, b) => a.score - b.score);
+      return items;
+    }
+    if (appliedSortBy === "territory_asc") {
+      items.sort((a, b) => a.territory_name.localeCompare(b.territory_name, "pt-BR"));
+      return items;
+    }
+    if (appliedSortBy === "trend_desc") {
+      items.sort((a, b) => trendWeight(b.trend) - trendWeight(a.trend) || b.score - a.score);
+      return items;
+    }
+    items.sort((a, b) => b.score - a.score);
+    return items;
+  }, [appliedSortBy, filteredItems]);
+
   if (prioritiesQuery.isPending) {
     return (
       <StateBlock tone="loading" title="Carregando prioridades" message="Consultando ranking de criticidade territorial." />
@@ -94,26 +140,6 @@ export function QgPrioritiesPage() {
       />
     );
   }
-
-  const priorities = prioritiesQuery.data!;
-  const filteredItems = appliedOnlyCritical ? priorities.items.filter((item) => item.status === "critical") : priorities.items;
-  const sortedItems = useMemo(() => {
-    const items = [...filteredItems];
-    if (appliedSortBy === "criticality_asc") {
-      items.sort((a, b) => a.score - b.score);
-      return items;
-    }
-    if (appliedSortBy === "territory_asc") {
-      items.sort((a, b) => a.territory_name.localeCompare(b.territory_name, "pt-BR"));
-      return items;
-    }
-    if (appliedSortBy === "trend_desc") {
-      items.sort((a, b) => trendWeight(b.trend) - trendWeight(a.trend) || b.score - a.score);
-      return items;
-    }
-    items.sort((a, b) => b.score - a.score);
-    return items;
-  }, [appliedSortBy, filteredItems]);
 
   function exportCsv() {
     if (sortedItems.length === 0) {
@@ -191,7 +217,14 @@ export function QgPrioritiesPage() {
           </label>
           <label>
             Dominio
-            <input value={domain} onChange={(event) => setDomain(event.target.value)} placeholder="saude" />
+            <select value={domain} onChange={(event) => setDomain(event.target.value)}>
+              <option value="">Todos</option>
+              {QG_DOMAIN_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </label>
           <label>
             Somente criticos
@@ -216,7 +249,7 @@ export function QgPrioritiesPage() {
             </button>
           </div>
         </form>
-        <SourceFreshnessBadge metadata={priorities.metadata} />
+        <SourceFreshnessBadge metadata={priorities!.metadata} />
       </Panel>
 
       <Panel title="Lista priorizada" subtitle="Itens com justificativa e evidencia para decisao">

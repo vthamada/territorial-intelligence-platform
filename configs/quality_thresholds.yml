@@ -26,6 +26,11 @@ fact_indicator:
   min_rows_sejusp_mg: 1
   min_rows_siops: 1
   min_rows_snis: 1
+  min_rows_inmet: 0
+  min_rows_inpe_queimadas: 0
+  min_rows_ana: 0
+  min_rows_anatel: 0
+  min_rows_aneel: 0
 
 ops_pipeline_runs:
   min_successful_runs_per_job: 1

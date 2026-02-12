@@ -74,6 +74,31 @@ connectors:
     wave: MVP-4
     status: implemented
     notes: Real tabular sanitation ingestion with configurable remote catalog, manual fallback, Bronze snapshot, and Silver upsert.
+  - connector_name: inmet_climate_fetch
+    source: INMET
+    wave: MVP-5
+    status: implemented
+    notes: Tabular climate ingestion with remote catalog and manual fallback, Bronze snapshot, and Silver upsert.
+  - connector_name: inpe_queimadas_fetch
+    source: INPE_QUEIMADAS
+    wave: MVP-5
+    status: implemented
+    notes: Tabular queimadas ingestion with remote catalog and manual fallback, Bronze snapshot, and Silver upsert.
+  - connector_name: ana_hydrology_fetch
+    source: ANA
+    wave: MVP-5
+    status: implemented
+    notes: Tabular hydrology ingestion with manual fallback path (remote catalog pending) and Silver indicator upsert.
+  - connector_name: anatel_connectivity_fetch
+    source: ANATEL
+    wave: MVP-5
+    status: implemented
+    notes: Tabular connectivity ingestion with official remote catalog (Meu Municipio) + manual fallback, Bronze snapshot, and Silver upsert.
+  - connector_name: aneel_energy_fetch
+    source: ANEEL
+    wave: MVP-5
+    status: implemented
+    notes: Tabular energy ingestion with remote catalog and manual fallback, Bronze snapshot, and Silver upsert.
   - connector_name: dbt_build
     source: INTERNAL
     wave: MVP-1

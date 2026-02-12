@@ -91,6 +91,8 @@ vi.mock("../shared/api/qg", () => ({
     items: [
       {
         domain: "saude",
+        source: "DATASUS",
+        dataset: "datasus_health",
         indicator_code: "DATASUS_APS_COBERTURA",
         indicator_name: "Cobertura APS",
         value: 80,

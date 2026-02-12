@@ -60,6 +60,8 @@ describe("QG pages", () => {
       items: [
         {
           domain: "saude",
+          source: "DATASUS",
+          dataset: "datasus_health",
           indicator_code: "DATASUS_APS_COBERTURA",
           indicator_name: "Cobertura APS",
           value: 80,
@@ -269,14 +271,18 @@ describe("QG pages", () => {
     expect(vi.mocked(getKpisOverview).mock.calls[1]?.[0]).toMatchObject({
       period: "2024",
       level: "district",
-      limit: 8
+      limit: 20
     });
     expect(vi.mocked(getPriorityList).mock.calls[1]?.[0]).toMatchObject({
       period: "2024",
       level: "district",
       limit: 5
     });
-    expect(screen.getByRole("link", { name: "Abrir prioridades" })).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByRole("link", { name: "Abrir prioridades" })
+        .some((link) => link.getAttribute("href") === "/prioridades")
+    ).toBe(true);
     expect(
       screen
         .getAllByRole("link", { name: "Ver no mapa" })
@@ -290,7 +296,7 @@ describe("QG pages", () => {
     await waitFor(() => expect(getPriorityList).toHaveBeenCalledTimes(1));
     await screen.findByLabelText("Dominio");
 
-    await userEvent.type(screen.getByLabelText("Dominio"), "saude");
+    await userEvent.selectOptions(screen.getByLabelText("Dominio"), "saude");
     await userEvent.selectOptions(screen.getByLabelText("Somente criticos"), "true");
     expect(getPriorityList).toHaveBeenCalledTimes(1);
 
@@ -341,7 +347,7 @@ describe("QG pages", () => {
     await waitFor(() => expect(getInsightsHighlights).toHaveBeenCalledTimes(1));
     await screen.findByLabelText("Dominio");
 
-    await userEvent.type(screen.getByLabelText("Dominio"), "saude");
+    await userEvent.selectOptions(screen.getByLabelText("Dominio"), "saude");
     await userEvent.selectOptions(screen.getByLabelText("Severidade"), "critical");
     expect(getInsightsHighlights).toHaveBeenCalledTimes(1);
 
@@ -419,5 +425,47 @@ describe("QG pages", () => {
     expect(screen.getByRole("button", { name: "Exportar CSV" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Exportar SVG" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Exportar PNG" })).toBeInTheDocument();
+  });
+
+  it("loads priority filters from URL query params", async () => {
+    renderWithQueryClient(
+      <QgPrioritiesPage />,
+      ["/prioridades?period=2024&level=district&domain=saude&only_critical=true&sort=trend_desc"]
+    );
+
+    await waitFor(() => expect(getPriorityList).toHaveBeenCalledTimes(1));
+    await screen.findByLabelText("Periodo");
+    expect(vi.mocked(getPriorityList).mock.calls[0]?.[0]).toMatchObject({
+      period: "2024",
+      level: "district",
+      domain: "saude",
+      limit: 100,
+    });
+
+    expect((screen.getByLabelText("Periodo") as HTMLInputElement).value).toBe("2024");
+    expect((screen.getByLabelText("Nivel territorial") as HTMLSelectElement).value).toBe("district");
+    expect((screen.getByLabelText("Dominio") as HTMLSelectElement).value).toBe("saude");
+    expect((screen.getByLabelText("Somente criticos") as HTMLSelectElement).value).toBe("true");
+    expect((screen.getByLabelText("Ordenar por") as HTMLSelectElement).value).toBe("trend_desc");
+  });
+
+  it("loads insights filters from URL query params", async () => {
+    renderWithQueryClient(
+      <QgInsightsPage />,
+      ["/insights?period=2024&domain=saude&severity=critical"]
+    );
+
+    await waitFor(() => expect(getInsightsHighlights).toHaveBeenCalledTimes(1));
+    await screen.findByLabelText("Periodo");
+    expect(vi.mocked(getInsightsHighlights).mock.calls[0]?.[0]).toMatchObject({
+      period: "2024",
+      domain: "saude",
+      severity: "critical",
+      limit: 50,
+    });
+
+    expect((screen.getByLabelText("Periodo") as HTMLInputElement).value).toBe("2024");
+    expect((screen.getByLabelText("Dominio") as HTMLSelectElement).value).toBe("saude");
+    expect((screen.getByLabelText("Severidade") as HTMLSelectElement).value).toBe("critical");
   });
 });

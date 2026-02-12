@@ -3,6 +3,7 @@ import type {
   ConnectorRegistryItem,
   FrontendEventItem,
   OpsSlaResponse,
+  OpsSourceCoverageResponse,
   OpsSummaryResponse,
   OpsTimeseriesResponse,
   PaginatedResponse,
@@ -20,6 +21,10 @@ export function getOpsSla(query?: Record<string, string | number | boolean | und
 
 export function getOpsTimeseries(query?: Record<string, string | number | boolean | undefined>) {
   return requestJson<OpsTimeseriesResponse>("/ops/timeseries", { query });
+}
+
+export function getOpsSourceCoverage(query?: Record<string, string | number | boolean | undefined>) {
+  return requestJson<OpsSourceCoverageResponse>("/ops/source-coverage", { query });
 }
 
 export function getPipelineRuns(query?: Record<string, string | number | boolean | undefined>) {

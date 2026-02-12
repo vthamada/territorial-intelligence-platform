@@ -7,13 +7,21 @@ import { OpsChecksPage } from "./OpsChecksPage";
 import { OpsConnectorsPage } from "./OpsConnectorsPage";
 import { OpsFrontendEventsPage } from "./OpsFrontendEventsPage";
 import { OpsRunsPage } from "./OpsRunsPage";
-import { getConnectorRegistry, getFrontendEvents, getPipelineChecks, getPipelineRuns } from "../../../shared/api/ops";
+import { OpsSourceCoveragePage } from "./OpsSourceCoveragePage";
+import {
+  getConnectorRegistry,
+  getFrontendEvents,
+  getOpsSourceCoverage,
+  getPipelineChecks,
+  getPipelineRuns
+} from "../../../shared/api/ops";
 
 vi.mock("../../../shared/api/ops", () => ({
   getPipelineRuns: vi.fn(),
   getPipelineChecks: vi.fn(),
   getConnectorRegistry: vi.fn(),
-  getFrontendEvents: vi.fn()
+  getFrontendEvents: vi.fn(),
+  getOpsSourceCoverage: vi.fn()
 }));
 
 function renderWithQueryClient(ui: ReactElement) {
@@ -54,6 +62,13 @@ describe("Ops pages filters", () => {
       page: 1,
       page_size: 20,
       total: 0,
+      items: []
+    });
+    vi.mocked(getOpsSourceCoverage).mockResolvedValue({
+      source: null,
+      wave: null,
+      reference_period: null,
+      include_internal: false,
       items: []
     });
   });
@@ -128,6 +143,24 @@ describe("Ops pages filters", () => {
       name: "api_request_failed",
       page: 1,
       page_size: 20
+    });
+  });
+
+  it("applies source coverage filters only when submitting form", async () => {
+    renderWithQueryClient(<OpsSourceCoveragePage />);
+    await waitFor(() => expect(getOpsSourceCoverage).toHaveBeenCalledTimes(1));
+
+    await userEvent.type(screen.getByLabelText("Fonte"), "MTE");
+    await userEvent.selectOptions(screen.getByLabelText("Wave"), "MVP-3");
+    expect(getOpsSourceCoverage).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+    await waitFor(() => expect(getOpsSourceCoverage).toHaveBeenCalledTimes(2));
+
+    expect(vi.mocked(getOpsSourceCoverage).mock.calls[1]?.[0]).toMatchObject({
+      source: "MTE",
+      wave: "MVP-3",
+      include_internal: false
     });
   });
 });

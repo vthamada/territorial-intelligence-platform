@@ -5,6 +5,23 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 ## 2026-02-12
 
 ### Changed
+- Filtros de dominio do QG padronizados com catalogo unico no frontend:
+  - `Prioridades`, `Insights`, `Briefs` e `Cenarios` migrados de input livre para `select` com opcoes consistentes.
+  - normalizacao de query string para dominio via `normalizeQgDomain` (evita valores invalidos no estado inicial).
+  - catalogo compartilhado consolidado em `frontend/src/modules/qg/domainCatalog.ts`.
+  - `Prioridades` e `Insights` passaram a consumir query string no carregamento inicial (deep-link funcional para filtros).
+- Home QG evoluida para destacar dominios Onda B/C na visao executiva:
+  - novo catalogo frontend em `frontend/src/modules/qg/domainCatalog.ts` com dominios `clima`, `meio_ambiente`, `recursos_hidricos`, `conectividade` e `energia`.
+  - novo painel `Dominios Onda B/C` na `QgOverviewPage` com atalhos de prioridade e mapa por dominio.
+  - query de KPI da Home ampliada para `limit: 20` para reduzir risco de truncamento de dominios ativos.
+- Contrato de KPI executivo expandido com evidencia de origem:
+  - `KpiOverviewItem` passou a expor `source` e `dataset` no backend e frontend.
+  - `GET /v1/kpis/overview` atualizado para retornar `fi.source` e `fi.dataset`.
+  - tabela de KPIs executivos na Home passou a exibir coluna `Fonte`.
+- Testes frontend endurecidos para o novo layout da Home QG:
+  - mocks alinhados com `source`/`dataset`.
+  - assercoes ajustadas para cenarios com multiplos links `Abrir prioridades`.
+  - expectativa de limite atualizada para `limit: 20`.
 - Operacao de readiness endurecida no ambiente local:
   - `scripts/backfill_missing_pipeline_checks.py --window-days 7 --apply` executado para preencher checks ausentes em runs historicos.
   - `scripts/backend_readiness.py --output-json` voltou para `READY` com `hard_failures=0`.
@@ -27,6 +44,11 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - caso de alias ANA para vazao total.
 
 ### Verified
+- `npm --prefix frontend run test`: `14 passed` / `35 passed` (inclui padronizacao de filtros de dominio + prefill por query string em `Prioridades` e `Insights`).
+- `npm --prefix frontend run build`: `OK` (Vite build concluido, revalidado apos padronizacao de filtros e deep-links).
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py tests/unit/test_ops_routes.py -p no:cacheprovider`: `38 passed`.
+- `npm --prefix frontend run test`: `14 passed` / `33 passed`.
+- `npm --prefix frontend run build`: `OK` (Vite build concluido).
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_bootstrap_manual_sources_snis.py tests/unit/test_bootstrap_manual_sources_onda_b.py tests/unit/test_onda_b_connectors.py tests/unit/test_quality_core_checks.py tests/unit/test_prefect_wave3_flow.py -p no:cacheprovider`: `34 passed`.
 - `.\.venv\Scripts\python.exe scripts/bootstrap_manual_sources.py --reference-year 2025 --municipality-name Diamantina --municipality-ibge-code 3121605 --skip-mte --skip-senatran --skip-sejusp --skip-siops --skip-snis`: `INMET/INPE_QUEIMADAS/ANA/ANATEL/ANEEL = ok`.
 - `run_mvp_wave_4(reference_period='2025', dry_run=False)`: todos os jobs `success`.

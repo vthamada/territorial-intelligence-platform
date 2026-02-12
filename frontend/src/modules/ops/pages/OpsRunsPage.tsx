@@ -99,6 +99,8 @@ export function OpsRunsPage() {
               <option value="MVP-1">MVP-1</option>
               <option value="MVP-2">MVP-2</option>
               <option value="MVP-3">MVP-3</option>
+              <option value="MVP-4">MVP-4</option>
+              <option value="MVP-5">MVP-5</option>
             </select>
           </label>
           <label>

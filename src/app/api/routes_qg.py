@@ -53,6 +53,11 @@ CASE
     WHEN fi.source = 'SEJUSP_MG' THEN 'seguranca'
     WHEN fi.source = 'SIOPS' THEN 'saude'
     WHEN fi.source = 'SNIS' THEN 'saneamento'
+    WHEN fi.source = 'INMET' THEN 'clima'
+    WHEN fi.source = 'INPE_QUEIMADAS' THEN 'meio_ambiente'
+    WHEN fi.source = 'ANA' THEN 'recursos_hidricos'
+    WHEN fi.source = 'ANATEL' THEN 'conectividade'
+    WHEN fi.source = 'ANEEL' THEN 'energia'
     WHEN fi.source = 'IBGE' THEN 'socioeconomico'
     ELSE 'geral'
 END
@@ -463,6 +468,8 @@ def get_kpis_overview(
             f"""
             SELECT
                 {_DOMAIN_CASE_SQL} AS domain,
+                fi.source,
+                fi.dataset,
                 fi.indicator_code,
                 fi.indicator_name,
                 AVG(fi.value)::double precision AS value,
@@ -475,6 +482,8 @@ def get_kpis_overview(
               AND (CAST(:level AS TEXT) IS NULL OR dt.level::text = CAST(:level AS TEXT))
             GROUP BY
                 domain,
+                fi.source,
+                fi.dataset,
                 fi.indicator_code,
                 fi.indicator_name,
                 fi.unit,
@@ -489,6 +498,8 @@ def get_kpis_overview(
     payload_items = [
         KpiOverviewItem(
             domain=row["domain"],
+            source=row.get("source"),
+            dataset=row.get("dataset"),
             indicator_code=row["indicator_code"],
             indicator_name=row["indicator_name"],
             value=float(row["value"]),

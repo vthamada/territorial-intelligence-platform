@@ -1,0 +1,4 @@
+resources:
+  - name: aneel_indger_dados_comerciais
+    uri: "https://dadosabertos.aneel.gov.br/dataset/7cacb2c4-b165-4591-a793-9ed20d1f167d/resource/fd10c9d4-cb76-4020-a322-e79afb13eaf7/download/indger-dados-comerciais.csv"
+    extension: ".csv"

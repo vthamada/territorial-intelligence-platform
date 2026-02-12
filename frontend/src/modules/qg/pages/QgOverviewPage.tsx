@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { formatApiError } from "../../../shared/api/http";
 import { getInsightsHighlights, getKpisOverview, getPriorityList, getPrioritySummary } from "../../../shared/api/qg";
+import { QG_ONDA_BC_SPOTLIGHT } from "../domainCatalog";
 import { Panel } from "../../../shared/ui/Panel";
 import { PriorityItemCard } from "../../../shared/ui/PriorityItemCard";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
@@ -32,7 +33,7 @@ export function QgOverviewPage() {
 
   const kpiQuery = useQuery({
     queryKey: ["qg", "kpis", baseQuery],
-    queryFn: () => getKpisOverview({ ...baseQuery, limit: 8 })
+    queryFn: () => getKpisOverview({ ...baseQuery, limit: 20 })
   });
   const summaryQuery = useQuery({
     queryKey: ["qg", "priority-summary", baseQuery],
@@ -102,6 +103,8 @@ export function QgOverviewPage() {
         topPriority.evidence.reference_period
       )}&territory_id=${encodeURIComponent(topPriority.territory_id)}`
     : "/mapa";
+  const resolvedPeriod = appliedPeriod || kpis.period || "2025";
+  const resolvedMapLevel = appliedLevel === "district" ? "distrito" : "municipio";
 
   return (
     <div className="page-grid">
@@ -188,6 +191,51 @@ export function QgOverviewPage() {
         </div>
       </Panel>
 
+      <Panel title="Dominios Onda B/C" subtitle="Atalhos para fontes novas com recorte aplicado">
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Dominio</th>
+                <th>Fonte</th>
+                <th>Itens no recorte</th>
+                <th>Metrica de mapa</th>
+                <th>Acoes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {QG_ONDA_BC_SPOTLIGHT.map((item) => {
+                const totalInDomain = summary.by_domain[item.domain] ?? 0;
+                const prioritiesLink = `/prioridades?domain=${encodeURIComponent(item.domain)}&period=${encodeURIComponent(
+                  resolvedPeriod
+                )}&level=${encodeURIComponent(appliedLevel)}`;
+                const mapLink = `/mapa?metric=${encodeURIComponent(item.defaultMetric)}&period=${encodeURIComponent(
+                  resolvedPeriod
+                )}&level=${encodeURIComponent(resolvedMapLevel)}`;
+
+                return (
+                  <tr key={item.domain}>
+                    <td>{item.label}</td>
+                    <td>{item.source}</td>
+                    <td>{totalInDomain}</td>
+                    <td>{item.defaultMetric}</td>
+                    <td>
+                      <Link className="inline-link" to={prioritiesLink}>
+                        Abrir prioridades
+                      </Link>{" "}
+                      |{" "}
+                      <Link className="inline-link" to={mapLink}>
+                        Ver no mapa
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+
       <Panel title="Top prioridades" subtitle="Previa dos itens mais criticos do recorte atual">
         {prioritiesPreview.items.length === 0 ? (
           <StateBlock tone="empty" title="Sem prioridades" message="Nenhuma prioridade encontrada para os filtros aplicados." />
@@ -210,6 +258,7 @@ export function QgOverviewPage() {
               <thead>
                 <tr>
                   <th>Dominio</th>
+                  <th>Fonte</th>
                   <th>Codigo</th>
                   <th>Indicador</th>
                   <th>Valor</th>
@@ -220,6 +269,7 @@ export function QgOverviewPage() {
                 {kpis.items.map((item) => (
                   <tr key={`${item.domain}-${item.indicator_code}`}>
                     <td>{item.domain}</td>
+                    <td>{item.source ?? "-"}</td>
                     <td>{item.indicator_code}</td>
                     <td>{item.indicator_name}</td>
                     <td>{formatValue(item.value, item.unit)}</td>

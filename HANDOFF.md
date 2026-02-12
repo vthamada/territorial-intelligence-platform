@@ -198,6 +198,24 @@ Contrato tecnico principal: `CONTRATO.md`
 
 ## Atualizacao operacional (2026-02-12)
 
+- Filtros de dominio no fluxo QG padronizados no frontend:
+  - `Prioridades`, `Insights`, `Briefs` e `Cenarios` agora usam `select` com catalogo unico.
+  - normalizacao de dominio por query string (`normalizeQgDomain`) aplicada para evitar estados invalidos.
+  - `Prioridades` e `Insights` agora carregam filtros iniciais a partir de query string (deep-links funcionais).
+  - arquivo de referencia compartilhada: `frontend/src/modules/qg/domainCatalog.ts`.
+- Home executiva do QG atualizada para refletir Onda B/C no frontend:
+  - novo painel `Dominios Onda B/C` na `QgOverviewPage` com atalhos de navegacao para `Prioridades` e `Mapa` por dominio.
+  - catalogo de dominios/fonte/metrica padrao centralizado em `frontend/src/modules/qg/domainCatalog.ts`.
+- Contrato de `GET /v1/kpis/overview` evoluido com rastreabilidade de origem:
+  - `KpiOverviewItem` agora inclui `source` e `dataset` (backend + frontend).
+  - tabela `KPIs executivos` na Home passou a exibir coluna `Fonte`.
+- Testes de regressao frontend reestabilizados apos a evolucao da Home:
+  - `QgPages.test.tsx` e `router.smoke.test.tsx` atualizados para novo shape e novos links.
+  - comportamento de filtros da Home mantido com aplicacao explicita via submit.
+- Validacao executada em 2026-02-12 (ciclo atual):
+  - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py tests/unit/test_ops_routes.py -p no:cacheprovider`: `38 passed`.
+  - `npm --prefix frontend run test`: `14 passed` / `35 passed` (inclui padronizacao de filtros de dominio e deep-links de `Prioridades`/`Insights`).
+  - `npm --prefix frontend run build`: `OK` (Vite build concluido com filtros padronizados + prefill por query string).
 - Saneamento operacional executado:
   - `scripts/backfill_missing_pipeline_checks.py --window-days 7 --apply` executado com sucesso.
   - 6 runs sem check foram corrigidos; `SLO-3` voltou a conformidade (`runs_missing_checks=0`).

@@ -24,7 +24,7 @@ export function OpsHealthPage() {
   });
   const slaQuery = useQuery({
     queryKey: ["ops", "sla"],
-    queryFn: () => getOpsSla({ wave: "MVP-3", min_total_runs: 1 })
+    queryFn: () => getOpsSla({ min_total_runs: 1 })
   });
   const timeseriesQuery = useQuery({
     queryKey: ["ops", "timeseries"],

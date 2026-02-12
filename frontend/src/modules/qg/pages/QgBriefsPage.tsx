@@ -5,6 +5,7 @@ import { getTerritories } from "../../../shared/api/domain";
 import { formatApiError } from "../../../shared/api/http";
 import { postBriefGenerate } from "../../../shared/api/qg";
 import type { BriefGenerateResponse } from "../../../shared/api/types";
+import { normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
 import { Panel } from "../../../shared/ui/Panel";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
 import { StateBlock } from "../../../shared/ui/StateBlock";
@@ -103,7 +104,7 @@ export function QgBriefsPage() {
   const [period, setPeriod] = useState(searchParams.get("period") || "2025");
   const [level, setLevel] = useState(normalizeLevel(searchParams.get("level")));
   const [territoryId, setTerritoryId] = useState(searchParams.get("territory_id") || "");
-  const [domain, setDomain] = useState(searchParams.get("domain") || "");
+  const [domain, setDomain] = useState(normalizeQgDomain(searchParams.get("domain")));
   const [limit, setLimit] = useState(searchParams.get("limit") || "20");
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -246,7 +247,14 @@ export function QgBriefsPage() {
           </label>
           <label>
             Dominio (opcional)
-            <input value={domain} onChange={(event) => setDomain(event.target.value)} placeholder="saude" />
+            <select value={domain} onChange={(event) => setDomain(event.target.value)}>
+              <option value="">Todos</option>
+              {QG_DOMAIN_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </label>
           <label>
             Limite de evidencias

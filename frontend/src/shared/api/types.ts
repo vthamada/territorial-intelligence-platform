@@ -119,6 +119,31 @@ export type OpsTimeseriesResponse = {
   items: OpsTimeseriesBucket[];
 };
 
+export type OpsSourceCoverageItem = {
+  source: string;
+  wave: string;
+  implemented_connectors: number;
+  runs_total: number;
+  runs_success: number;
+  runs_blocked: number;
+  runs_failed: number;
+  rows_loaded_total: number;
+  latest_run_started_at_utc: string | null;
+  latest_reference_period: string | null;
+  fact_indicator_rows: number;
+  fact_indicator_codes: number;
+  latest_indicator_updated_at: string | null;
+  coverage_status: "ready" | "idle" | "failed" | "blocked" | "no_fact_rows" | "partial" | string;
+};
+
+export type OpsSourceCoverageResponse = {
+  source: string | null;
+  wave: string | null;
+  reference_period: string | null;
+  include_internal: boolean;
+  items: OpsSourceCoverageItem[];
+};
+
 export type TerritoryItem = {
   territory_id: string;
   level: string;
@@ -149,6 +174,8 @@ export type QgMetadata = {
 
 export type KpiOverviewItem = {
   domain: string;
+  source: string | null;
+  dataset: string | null;
   indicator_code: string;
   indicator_name: string;
   value: number;

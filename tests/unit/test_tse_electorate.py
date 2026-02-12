@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from pipelines.tse_electorate import _normalize_text, _pick_electorate_resource, _safe_dimension
+import pytest
+
+from pipelines.tse_electorate import (
+    _normalize_text,
+    _pick_electorate_resource,
+    _resolve_electorate_columns,
+    _safe_dimension,
+)
 
 
 def test_normalize_text_removes_accents_and_case() -> None:
@@ -28,3 +35,24 @@ def test_pick_electorate_resource_prefers_perfil_eleitorado_zip() -> None:
     selected = _pick_electorate_resource(resources)
     assert selected is not None
     assert "perfil_eleitorado" in selected["url"]
+
+
+def test_resolve_electorate_columns_accepts_new_aliases() -> None:
+    columns = [
+        "ANO_ELEICAO",
+        "SG_UF",
+        "NM_MUNICIPIO",
+        "DS_GENERO",
+        "DS_FAIXA_ETARIA",
+        "DS_GRAU_INSTRUCAO",
+        "QT_ELEITORES",
+    ]
+    resolved = _resolve_electorate_columns(columns)
+    assert resolved["DS_GRAU_ESCOLARIDADE"] == "DS_GRAU_INSTRUCAO"
+    assert resolved["QT_ELEITORES_PERFIL"] == "QT_ELEITORES"
+
+
+def test_resolve_electorate_columns_raises_when_required_missing() -> None:
+    columns = ["ANO_ELEICAO", "SG_UF"]
+    with pytest.raises(ValueError):
+        _resolve_electorate_columns(columns)

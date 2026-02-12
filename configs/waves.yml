@@ -39,3 +39,13 @@ waves:
       - snis_sanitation_fetch
     exit_criteria:
       - New source jobs persist Bronze + Silver + ops runs/checks with idempotent behavior.
+  MVP-5:
+    goal: Onda B/C strategic sources integration for climate, environment, hydrology, connectivity and energy.
+    includes:
+      - inmet_climate_fetch
+      - inpe_queimadas_fetch
+      - ana_hydrology_fetch
+      - anatel_connectivity_fetch
+      - aneel_energy_fetch
+    exit_criteria:
+      - New source jobs persist Bronze + Silver + ops runs/checks with idempotent behavior.

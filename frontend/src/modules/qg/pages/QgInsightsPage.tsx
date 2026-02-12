@@ -1,18 +1,32 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { formatApiError } from "../../../shared/api/http";
 import { getInsightsHighlights } from "../../../shared/api/qg";
+import { normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
 import { Panel } from "../../../shared/ui/Panel";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
 import { StateBlock } from "../../../shared/ui/StateBlock";
 
+function normalizeSeverity(value: string | null) {
+  if (value === "critical" || value === "attention" || value === "info") {
+    return value;
+  }
+  return "";
+}
+
 export function QgInsightsPage() {
-  const [period, setPeriod] = useState("");
-  const [domain, setDomain] = useState("");
-  const [severity, setSeverity] = useState("");
-  const [appliedPeriod, setAppliedPeriod] = useState("");
-  const [appliedDomain, setAppliedDomain] = useState("");
-  const [appliedSeverity, setAppliedSeverity] = useState("");
+  const [searchParams] = useSearchParams();
+  const initialPeriod = searchParams.get("period") || "";
+  const initialDomain = normalizeQgDomain(searchParams.get("domain"));
+  const initialSeverity = normalizeSeverity(searchParams.get("severity"));
+
+  const [period, setPeriod] = useState(initialPeriod);
+  const [domain, setDomain] = useState(initialDomain);
+  const [severity, setSeverity] = useState(initialSeverity);
+  const [appliedPeriod, setAppliedPeriod] = useState(initialPeriod);
+  const [appliedDomain, setAppliedDomain] = useState(initialDomain);
+  const [appliedSeverity, setAppliedSeverity] = useState(initialSeverity);
 
   const query = useMemo(
     () => ({
@@ -79,7 +93,14 @@ export function QgInsightsPage() {
           </label>
           <label>
             Dominio
-            <input value={domain} onChange={(event) => setDomain(event.target.value)} placeholder="saude" />
+            <select value={domain} onChange={(event) => setDomain(event.target.value)}>
+              <option value="">Todos</option>
+              {QG_DOMAIN_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </label>
           <label>
             Severidade

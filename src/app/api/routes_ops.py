@@ -736,6 +736,139 @@ def get_ops_summary(
     }
 
 
+@router.get("/source-coverage")
+def get_ops_source_coverage(
+    source: str | None = Query(default=None),
+    wave: str | None = Query(default=None),
+    reference_period: str | None = Query(default=None),
+    started_from: datetime | None = Query(default=None),  # noqa: B008
+    started_to: datetime | None = Query(default=None),  # noqa: B008
+    include_internal: bool = Query(default=False),
+    db: Session = Depends(get_db),  # noqa: B008
+) -> dict[str, Any]:
+    params = {
+        "source": source,
+        "wave": wave,
+        "reference_period": reference_period,
+        "started_from": started_from,
+        "started_to": started_to,
+        "include_internal": include_internal,
+    }
+
+    rows = db.execute(
+        text(
+            """
+            WITH registry AS (
+                SELECT
+                    cr.source,
+                    cr.wave,
+                    COUNT(*) AS implemented_connectors
+                FROM ops.connector_registry cr
+                WHERE cr.status = 'implemented'
+                  AND (CAST(:source AS TEXT) IS NULL OR cr.source = CAST(:source AS TEXT))
+                  AND (CAST(:wave AS TEXT) IS NULL OR cr.wave = CAST(:wave AS TEXT))
+                  AND (:include_internal OR cr.source <> 'INTERNAL')
+                GROUP BY cr.source, cr.wave
+            ),
+            runs AS (
+                SELECT
+                    pr.source,
+                    pr.wave,
+                    COUNT(*) AS runs_total,
+                    COUNT(*) FILTER (WHERE pr.status = 'success') AS runs_success,
+                    COUNT(*) FILTER (WHERE pr.status = 'blocked') AS runs_blocked,
+                    COUNT(*) FILTER (WHERE pr.status = 'failed') AS runs_failed,
+                    COALESCE(SUM(pr.rows_loaded), 0) AS rows_loaded_total,
+                    MAX(pr.started_at_utc) AS latest_run_started_at_utc,
+                    MAX(pr.reference_period) FILTER (WHERE pr.reference_period IS NOT NULL) AS latest_reference_period
+                FROM ops.pipeline_runs pr
+                WHERE (CAST(:source AS TEXT) IS NULL OR pr.source = CAST(:source AS TEXT))
+                  AND (CAST(:wave AS TEXT) IS NULL OR pr.wave = CAST(:wave AS TEXT))
+                  AND (
+                        CAST(:reference_period AS TEXT) IS NULL
+                        OR pr.reference_period = CAST(:reference_period AS TEXT)
+                      )
+                  AND (CAST(:started_from AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc >= CAST(:started_from AS TIMESTAMPTZ))
+                  AND (CAST(:started_to AS TIMESTAMPTZ) IS NULL OR pr.started_at_utc <= CAST(:started_to AS TIMESTAMPTZ))
+                  AND (:include_internal OR pr.source <> 'INTERNAL')
+                GROUP BY pr.source, pr.wave
+            ),
+            fact AS (
+                SELECT
+                    fi.source,
+                    COUNT(*) AS fact_indicator_rows,
+                    COUNT(DISTINCT fi.indicator_code) AS fact_indicator_codes,
+                    MAX(fi.updated_at) AS latest_indicator_updated_at
+                FROM silver.fact_indicator fi
+                WHERE (CAST(:source AS TEXT) IS NULL OR fi.source = CAST(:source AS TEXT))
+                  AND (
+                        CAST(:reference_period AS TEXT) IS NULL
+                        OR fi.reference_period = CAST(:reference_period AS TEXT)
+                      )
+                  AND (:include_internal OR fi.source <> 'INTERNAL')
+                GROUP BY fi.source
+            )
+            SELECT
+                r.source,
+                r.wave,
+                r.implemented_connectors,
+                COALESCE(ru.runs_total, 0) AS runs_total,
+                COALESCE(ru.runs_success, 0) AS runs_success,
+                COALESCE(ru.runs_blocked, 0) AS runs_blocked,
+                COALESCE(ru.runs_failed, 0) AS runs_failed,
+                COALESCE(ru.rows_loaded_total, 0) AS rows_loaded_total,
+                ru.latest_run_started_at_utc,
+                ru.latest_reference_period,
+                COALESCE(f.fact_indicator_rows, 0) AS fact_indicator_rows,
+                COALESCE(f.fact_indicator_codes, 0) AS fact_indicator_codes,
+                f.latest_indicator_updated_at,
+                CASE
+                    WHEN COALESCE(f.fact_indicator_rows, 0) > 0
+                         AND COALESCE(ru.runs_success, 0) > 0 THEN 'ready'
+                    WHEN COALESCE(ru.runs_total, 0) = 0 THEN 'idle'
+                    WHEN COALESCE(ru.runs_failed, 0) > 0
+                         AND COALESCE(ru.runs_success, 0) = 0
+                         AND COALESCE(ru.runs_blocked, 0) = 0 THEN 'failed'
+                    WHEN COALESCE(ru.runs_blocked, 0) > 0
+                         AND COALESCE(ru.runs_success, 0) = 0 THEN 'blocked'
+                    WHEN COALESCE(f.fact_indicator_rows, 0) = 0
+                         AND COALESCE(ru.runs_success, 0) > 0 THEN 'no_fact_rows'
+                    ELSE 'partial'
+                END AS coverage_status
+            FROM registry r
+            LEFT JOIN runs ru
+              ON ru.source = r.source
+             AND ru.wave = r.wave
+            LEFT JOIN fact f
+              ON f.source = r.source
+            ORDER BY r.wave ASC, r.source ASC
+            """
+        ),
+        params,
+    ).mappings().all()
+
+    items: list[dict[str, Any]] = []
+    for row in rows:
+        item = dict(row)
+        item["implemented_connectors"] = int(item["implemented_connectors"])
+        item["runs_total"] = int(item["runs_total"])
+        item["runs_success"] = int(item["runs_success"])
+        item["runs_blocked"] = int(item["runs_blocked"])
+        item["runs_failed"] = int(item["runs_failed"])
+        item["rows_loaded_total"] = int(item["rows_loaded_total"])
+        item["fact_indicator_rows"] = int(item["fact_indicator_rows"])
+        item["fact_indicator_codes"] = int(item["fact_indicator_codes"])
+        items.append(item)
+
+    return {
+        "source": source,
+        "wave": wave,
+        "reference_period": reference_period,
+        "include_internal": include_internal,
+        "items": items,
+    }
+
+
 @router.get("/sla")
 def get_ops_sla(
     job_name: str | None = Query(default=None),

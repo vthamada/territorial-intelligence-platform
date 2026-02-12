@@ -1,0 +1,4 @@
+resources:
+  - name: inpe_queimadas_anual_brasil_sat_ref
+    uri: "https://dataserver-coids.inpe.br/queimadas/queimadas/focos/csv/anual/Brasil_sat_ref/focos_br_ref_{reference_period}.zip"
+    extension: ".zip"

@@ -44,6 +44,11 @@ def _default_thresholds() -> QualityThresholds:
                 "min_rows_sejusp_mg": 1,
                 "min_rows_siops": 1,
                 "min_rows_snis": 1,
+                "min_rows_inmet": 1,
+                "min_rows_inpe_queimadas": 1,
+                "min_rows_ana": 1,
+                "min_rows_anatel": 1,
+                "min_rows_aneel": 1,
             },
         },
     )
@@ -110,8 +115,8 @@ def test_check_fact_indicator_warns_when_source_probe_rows_are_present() -> None
 
 
 def test_check_fact_indicator_source_rows_passes_when_sources_have_minimum_rows() -> None:
-    # calls: SIDRA, SENATRAN, SEJUSP_MG, SIOPS, SNIS
-    session = _SequenceSession([2, 3, 1, 4, 5])
+    # calls: SIDRA, SENATRAN, SEJUSP_MG, SIOPS, SNIS, INMET, INPE_QUEIMADAS, ANA, ANATEL, ANEEL
+    session = _SequenceSession([2, 3, 1, 4, 5, 2, 2, 1, 1, 1])
 
     results = check_fact_indicator_source_rows(
         session=session,
@@ -125,13 +130,18 @@ def test_check_fact_indicator_source_rows_passes_when_sources_have_minimum_rows(
         "source_rows_sejusp_mg",
         "source_rows_siops",
         "source_rows_snis",
+        "source_rows_inmet",
+        "source_rows_inpe_queimadas",
+        "source_rows_ana",
+        "source_rows_anatel",
+        "source_rows_aneel",
     ]
     assert all(result.status == "pass" for result in results)
 
 
 def test_check_fact_indicator_source_rows_warns_when_source_is_below_threshold() -> None:
-    # calls: SIDRA, SENATRAN, SEJUSP_MG, SIOPS, SNIS
-    session = _SequenceSession([2, 0, 1, 4, 5])
+    # calls: SIDRA, SENATRAN, SEJUSP_MG, SIOPS, SNIS, INMET, INPE_QUEIMADAS, ANA, ANATEL, ANEEL
+    session = _SequenceSession([2, 0, 1, 4, 5, 2, 2, 1, 1, 1])
 
     results = check_fact_indicator_source_rows(
         session=session,
@@ -145,3 +155,8 @@ def test_check_fact_indicator_source_rows_warns_when_source_is_below_threshold()
     assert by_name["source_rows_sejusp_mg"].status == "pass"
     assert by_name["source_rows_siops"].status == "pass"
     assert by_name["source_rows_snis"].status == "pass"
+    assert by_name["source_rows_inmet"].status == "pass"
+    assert by_name["source_rows_inpe_queimadas"].status == "pass"
+    assert by_name["source_rows_ana"].status == "pass"
+    assert by_name["source_rows_anatel"].status == "pass"
+    assert by_name["source_rows_aneel"].status == "pass"

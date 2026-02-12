@@ -25,6 +25,16 @@ DATASET_NAME = "tse_perfil_eleitorado"
 WAVE = "MVP-2"
 PACKAGE_SHOW_PATH = "/package_show"
 
+_ELECTORATE_COLUMN_ALIASES: dict[str, tuple[str, ...]] = {
+    "ANO_ELEICAO": ("ANO_ELEICAO",),
+    "SG_UF": ("SG_UF",),
+    "NM_MUNICIPIO": ("NM_MUNICIPIO",),
+    "DS_GENERO": ("DS_GENERO",),
+    "DS_FAIXA_ETARIA": ("DS_FAIXA_ETARIA",),
+    "DS_GRAU_ESCOLARIDADE": ("DS_GRAU_ESCOLARIDADE", "DS_GRAU_INSTRUCAO"),
+    "QT_ELEITORES_PERFIL": ("QT_ELEITORES_PERFIL", "QT_ELEITORES"),
+}
+
 
 def _normalize_text(value: str) -> str:
     stripped = value.strip().casefold()
@@ -90,6 +100,20 @@ def _pick_electorate_resource(resources: list[dict[str, Any]]) -> dict[str, Any]
     return None
 
 
+def _resolve_electorate_columns(columns: list[str]) -> dict[str, str]:
+    resolved: dict[str, str] = {}
+    for canonical, aliases in _ELECTORATE_COLUMN_ALIASES.items():
+        selected = next((alias for alias in aliases if alias in columns), None)
+        if selected is None:
+            aliases_display = ", ".join(aliases)
+            raise ValueError(
+                f"Required electorate column '{canonical}' not found. "
+                f"Accepted aliases: {aliases_display}."
+            )
+        resolved[canonical] = selected
+    return resolved
+
+
 def _extract_rows_from_zip(
     *,
     zip_bytes: bytes,
@@ -98,19 +122,11 @@ def _extract_rows_from_zip(
     requested_year: int,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     target_name = _normalize_text(municipality_name)
-    usecols = [
-        "ANO_ELEICAO",
-        "SG_UF",
-        "NM_MUNICIPIO",
-        "DS_GENERO",
-        "DS_FAIXA_ETARIA",
-        "DS_GRAU_ESCOLARIDADE",
-        "QT_ELEITORES_PERFIL",
-    ]
     aggregated: dict[tuple[int, str, str, str], int] = {}
     csv_name = ""
     rows_scanned = 0
     rows_filtered = 0
+    column_mapping: dict[str, str] = {}
 
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
         csv_files = [name for name in archive.namelist() if name.lower().endswith(".csv")]
@@ -120,14 +136,20 @@ def _extract_rows_from_zip(
 
         with archive.open(csv_name) as csv_bytes:
             wrapper = io.TextIOWrapper(csv_bytes, encoding="latin1", newline="")
+            header_df = pd.read_csv(wrapper, sep=";", nrows=0, low_memory=False)
+            column_mapping = _resolve_electorate_columns(list(header_df.columns))
+
+        with archive.open(csv_name) as csv_bytes:
+            wrapper = io.TextIOWrapper(csv_bytes, encoding="latin1", newline="")
             chunks = pd.read_csv(
                 wrapper,
                 sep=";",
-                usecols=usecols,
+                usecols=list(column_mapping.values()),
                 chunksize=200_000,
                 low_memory=False,
             )
             for chunk in chunks:
+                chunk = chunk.rename(columns={actual: canonical for canonical, actual in column_mapping.items()})
                 rows_scanned += len(chunk)
                 filtered = chunk[
                     chunk["SG_UF"].astype(str).str.strip().str.upper().eq(uf)
@@ -182,6 +204,7 @@ def _extract_rows_from_zip(
         "rows_filtered": rows_filtered,
         "rows_aggregated": len(rows),
         "requested_year": requested_year,
+        "column_mapping": column_mapping,
     }
     return rows, info
 

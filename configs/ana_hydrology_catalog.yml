@@ -1,0 +1,16 @@
+resources:
+  - name: ana_uso_agua_municipio_2020_hub_csv
+    uri: "https://hub.arcgis.com/api/download/v1/items/cd6baae8f24846778c6ddd5503b0ebbd/csv?layers=18"
+    extension: ".csv"
+  - name: ana_uso_agua_municipio_cd_mun
+    uri: "https://www.snirh.gov.br/arcgis/rest/services/SPR/Usos_Consuntivos_da_Agua_2022/FeatureServer/18/query?where=CD_MUN%3D{municipality_ibge_code}&outFields=*&f=json"
+    extension: ".json"
+  - name: ana_uso_agua_municipio_cod_municipio
+    uri: "https://www.snirh.gov.br/arcgis/rest/services/SPR/Usos_Consuntivos_da_Agua_2022/FeatureServer/18/query?where=COD_MUNICIPIO%3D{municipality_ibge_code}&outFields=*&f=json"
+    extension: ".json"
+  - name: ana_uso_agua_municipio_codmunres
+    uri: "https://www.snirh.gov.br/arcgis/rest/services/SPR/Usos_Consuntivos_da_Agua_2022/FeatureServer/18/query?where=CODMUNRES%3D{municipality_ibge_code_6}&outFields=*&f=json"
+    extension: ".json"
+  - name: ana_uso_agua_municipio_portal1_cd_mun
+    uri: "https://portal1.snirh.gov.br/server/rest/services/dados_abertos/Numero_de_Registros_de_Secas_por_Municipio_entre_2003_e_2015/FeatureServer/0/query?where=CD_MUN%3D{municipality_ibge_code}&outFields=*&f=json"
+    extension: ".json"

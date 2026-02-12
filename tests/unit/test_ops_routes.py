@@ -288,6 +288,55 @@ class _OpsSlaSession:
         )
 
 
+class _OpsSourceCoverageSession:
+    def __init__(self) -> None:
+        self.last_params: dict[str, Any] | None = None
+
+    def execute(self, *_args: Any, **_kwargs: Any) -> _RowsResult:
+        params = _kwargs.get("params")
+        if params is None and len(_args) >= 2 and isinstance(_args[1], dict):
+            params = _args[1]
+        if isinstance(params, dict):
+            self.last_params = params
+
+        return _RowsResult(
+            [
+                {
+                    "source": "MTE",
+                    "wave": "MVP-3",
+                    "implemented_connectors": 1,
+                    "runs_total": 4,
+                    "runs_success": 1,
+                    "runs_blocked": 3,
+                    "runs_failed": 0,
+                    "rows_loaded_total": 4,
+                    "latest_run_started_at_utc": datetime(2026, 2, 11, 12, 0, tzinfo=UTC),
+                    "latest_reference_period": "2025",
+                    "fact_indicator_rows": 4,
+                    "fact_indicator_codes": 1,
+                    "latest_indicator_updated_at": datetime(2026, 2, 11, 12, 1, tzinfo=UTC),
+                    "coverage_status": "ready",
+                },
+                {
+                    "source": "SNIS",
+                    "wave": "MVP-4",
+                    "implemented_connectors": 1,
+                    "runs_total": 2,
+                    "runs_success": 0,
+                    "runs_blocked": 2,
+                    "runs_failed": 0,
+                    "rows_loaded_total": 0,
+                    "latest_run_started_at_utc": datetime(2026, 2, 11, 12, 5, tzinfo=UTC),
+                    "latest_reference_period": "2025",
+                    "fact_indicator_rows": 0,
+                    "fact_indicator_codes": 0,
+                    "latest_indicator_updated_at": None,
+                    "coverage_status": "blocked",
+                },
+            ]
+        )
+
+
 class _FrontendEventsIngestSession:
     def __init__(self) -> None:
         self.last_params: dict[str, Any] | None = None
@@ -354,6 +403,10 @@ def _timeseries_db() -> Generator[_OpsTimeseriesSession, None, None]:
 
 def _sla_db() -> Generator[_OpsSlaSession, None, None]:
     yield _OpsSlaSession()
+
+
+def _source_coverage_db() -> Generator[_OpsSourceCoverageSession, None, None]:
+    yield _OpsSourceCoverageSession()
 
 
 def _frontend_events_ingest_db() -> Generator[_FrontendEventsIngestSession, None, None]:
@@ -713,6 +766,52 @@ def test_ops_sla_endpoint_rejects_invalid_min_total_runs() -> None:
     assert response.status_code == 422
     payload = response.json()
     assert payload["error"]["code"] == "validation_error"
+    app.dependency_overrides.clear()
+
+
+def test_ops_source_coverage_endpoint_returns_aggregated_payload() -> None:
+    app.dependency_overrides[get_db] = _source_coverage_db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/ops/source-coverage")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["include_internal"] is False
+    assert len(payload["items"]) == 2
+    assert payload["items"][0]["source"] == "MTE"
+    assert payload["items"][0]["fact_indicator_rows"] == 4
+    assert payload["items"][0]["coverage_status"] == "ready"
+    assert payload["items"][1]["source"] == "SNIS"
+    assert payload["items"][1]["coverage_status"] == "blocked"
+    app.dependency_overrides.clear()
+
+
+def test_ops_source_coverage_endpoint_accepts_filters() -> None:
+    session = _OpsSourceCoverageSession()
+
+    def _db() -> Generator[_OpsSourceCoverageSession, None, None]:
+        yield session
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get(
+        "/v1/ops/source-coverage"
+        "?source=MTE"
+        "&wave=MVP-3"
+        "&reference_period=2025"
+        "&include_internal=true"
+        "&started_from=2026-02-10T00:00:00Z"
+    )
+
+    assert response.status_code == 200
+    assert session.last_params is not None
+    assert session.last_params["source"] == "MTE"
+    assert session.last_params["wave"] == "MVP-3"
+    assert session.last_params["reference_period"] == "2025"
+    assert session.last_params["include_internal"] is True
+    assert session.last_params["started_from"] == datetime(2026, 2, 10, 0, 0, tzinfo=UTC)
     app.dependency_overrides.clear()
 
 

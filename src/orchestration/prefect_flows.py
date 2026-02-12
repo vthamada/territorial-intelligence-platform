@@ -33,8 +33,13 @@ from pipelines.dbt_build import run as run_dbt_build
 from pipelines.ibge_admin import run as run_ibge_admin
 from pipelines.ibge_geometries import run as run_ibge_geometries
 from pipelines.ibge_indicators import run as run_ibge_indicators
+from pipelines.inmet_climate import run as run_inmet_climate
 from pipelines.inep_education import run as run_inep_education
+from pipelines.inpe_queimadas import run as run_inpe_queimadas
 from pipelines.mte_labor import run as run_mte_labor
+from pipelines.ana_hydrology import run as run_ana_hydrology
+from pipelines.anatel_connectivity import run as run_anatel_connectivity
+from pipelines.aneel_energy import run as run_aneel_energy
 from pipelines.quality_suite import run as run_quality_suite
 from pipelines.sejusp_public_safety import run as run_sejusp_public_safety
 from pipelines.senatran_fleet import run as run_senatran_fleet
@@ -98,6 +103,11 @@ def run_mvp_all(
         "sejusp_public_safety_fetch": run_sejusp_public_safety(**common_kwargs),
         "siops_health_finance_fetch": run_siops_health_finance(**common_kwargs),
         "snis_sanitation_fetch": run_snis_sanitation(**common_kwargs),
+        "inmet_climate_fetch": run_inmet_climate(**common_kwargs),
+        "inpe_queimadas_fetch": run_inpe_queimadas(**common_kwargs),
+        "ana_hydrology_fetch": run_ana_hydrology(**common_kwargs),
+        "anatel_connectivity_fetch": run_anatel_connectivity(**common_kwargs),
+        "aneel_energy_fetch": run_aneel_energy(**common_kwargs),
         "dbt_build": run_dbt_build(**common_kwargs),
         "quality_suite": run_quality_suite(**common_kwargs),
     }
@@ -196,6 +206,31 @@ def run_mvp_wave_4(
         "sejusp_public_safety_fetch": run_sejusp_public_safety(**common_kwargs),
         "siops_health_finance_fetch": run_siops_health_finance(**common_kwargs),
         "snis_sanitation_fetch": run_snis_sanitation(**common_kwargs),
+        "quality_suite": run_quality_suite(**common_kwargs),
+    }
+
+
+@flow(name="territorial_mvp_wave_5")
+def run_mvp_wave_5(
+    reference_period: str,
+    force: bool = False,
+    dry_run: bool = False,
+    max_retries: int = 3,
+    timeout_seconds: int = 30,
+) -> dict[str, Any]:
+    common_kwargs = {
+        "reference_period": reference_period,
+        "force": force,
+        "dry_run": dry_run,
+        "max_retries": max_retries,
+        "timeout_seconds": timeout_seconds,
+    }
+    return {
+        "inmet_climate_fetch": run_inmet_climate(**common_kwargs),
+        "inpe_queimadas_fetch": run_inpe_queimadas(**common_kwargs),
+        "ana_hydrology_fetch": run_ana_hydrology(**common_kwargs),
+        "anatel_connectivity_fetch": run_anatel_connectivity(**common_kwargs),
+        "aneel_energy_fetch": run_aneel_energy(**common_kwargs),
         "quality_suite": run_quality_suite(**common_kwargs),
     }
 

@@ -117,6 +117,11 @@ def test_run_mvp_all_propagates_common_kwargs_to_all_jobs(monkeypatch) -> None:
         _stub("siops_health_finance_fetch"),
     )
     monkeypatch.setattr(prefect_flows, "run_snis_sanitation", _stub("snis_sanitation_fetch"))
+    monkeypatch.setattr(prefect_flows, "run_inmet_climate", _stub("inmet_climate_fetch"))
+    monkeypatch.setattr(prefect_flows, "run_inpe_queimadas", _stub("inpe_queimadas_fetch"))
+    monkeypatch.setattr(prefect_flows, "run_ana_hydrology", _stub("ana_hydrology_fetch"))
+    monkeypatch.setattr(prefect_flows, "run_anatel_connectivity", _stub("anatel_connectivity_fetch"))
+    monkeypatch.setattr(prefect_flows, "run_aneel_energy", _stub("aneel_energy_fetch"))
     monkeypatch.setattr(prefect_flows, "run_dbt_build", _stub("dbt_build"))
     monkeypatch.setattr(prefect_flows, "run_quality_suite", _stub("quality_suite"))
 
@@ -144,6 +149,11 @@ def test_run_mvp_all_propagates_common_kwargs_to_all_jobs(monkeypatch) -> None:
         "sejusp_public_safety_fetch",
         "siops_health_finance_fetch",
         "snis_sanitation_fetch",
+        "inmet_climate_fetch",
+        "inpe_queimadas_fetch",
+        "ana_hydrology_fetch",
+        "anatel_connectivity_fetch",
+        "aneel_energy_fetch",
         "dbt_build",
         "quality_suite",
     }
@@ -221,11 +231,31 @@ def test_run_mvp_all_returns_each_job_result_payload(monkeypatch) -> None:
     def _run_snis(**_kwargs: Any) -> dict[str, Any]:
         return {"job": "snis_sanitation_fetch", "status": "success", "rows_written": 14}
 
+    def _run_inmet(**_kwargs: Any) -> dict[str, Any]:
+        return {"job": "inmet_climate_fetch", "status": "success", "rows_written": 15}
+
+    def _run_inpe(**_kwargs: Any) -> dict[str, Any]:
+        return {"job": "inpe_queimadas_fetch", "status": "success", "rows_written": 16}
+
+    def _run_ana(**_kwargs: Any) -> dict[str, Any]:
+        return {"job": "ana_hydrology_fetch", "status": "success", "rows_written": 17}
+
+    def _run_anatel(**_kwargs: Any) -> dict[str, Any]:
+        return {"job": "anatel_connectivity_fetch", "status": "success", "rows_written": 18}
+
+    def _run_aneel(**_kwargs: Any) -> dict[str, Any]:
+        return {"job": "aneel_energy_fetch", "status": "success", "rows_written": 19}
+
     monkeypatch.setattr(prefect_flows, "run_sidra_indicators", _run_sidra)
     monkeypatch.setattr(prefect_flows, "run_senatran_fleet", _run_senatran)
     monkeypatch.setattr(prefect_flows, "run_sejusp_public_safety", _run_sejusp)
     monkeypatch.setattr(prefect_flows, "run_siops_health_finance", _run_siops)
     monkeypatch.setattr(prefect_flows, "run_snis_sanitation", _run_snis)
+    monkeypatch.setattr(prefect_flows, "run_inmet_climate", _run_inmet)
+    monkeypatch.setattr(prefect_flows, "run_inpe_queimadas", _run_inpe)
+    monkeypatch.setattr(prefect_flows, "run_ana_hydrology", _run_ana)
+    monkeypatch.setattr(prefect_flows, "run_anatel_connectivity", _run_anatel)
+    monkeypatch.setattr(prefect_flows, "run_aneel_energy", _run_aneel)
     monkeypatch.setattr(prefect_flows, "run_dbt_build", _run_dbt)
     monkeypatch.setattr(prefect_flows, "run_quality_suite", _run_quality)
 
@@ -246,6 +276,11 @@ def test_run_mvp_all_returns_each_job_result_payload(monkeypatch) -> None:
     assert result["sejusp_public_safety_fetch"]["rows_written"] == 12
     assert result["siops_health_finance_fetch"]["rows_written"] == 13
     assert result["snis_sanitation_fetch"]["rows_written"] == 14
+    assert result["inmet_climate_fetch"]["rows_written"] == 15
+    assert result["inpe_queimadas_fetch"]["rows_written"] == 16
+    assert result["ana_hydrology_fetch"]["rows_written"] == 17
+    assert result["anatel_connectivity_fetch"]["rows_written"] == 18
+    assert result["aneel_energy_fetch"]["rows_written"] == 19
     assert result["dbt_build"]["models_built"] == 3
     assert result["quality_suite"]["job"] == "quality_suite"
 
@@ -289,6 +324,50 @@ def test_run_mvp_wave_4_propagates_common_kwargs_to_all_jobs(monkeypatch) -> Non
         "sejusp_public_safety_fetch",
         "siops_health_finance_fetch",
         "snis_sanitation_fetch",
+        "quality_suite",
+    }
+    expected_kwargs = {
+        "reference_period": "2025",
+        "force": True,
+        "dry_run": False,
+        "max_retries": 5,
+        "timeout_seconds": 45,
+    }
+    for job_name in result:
+        assert calls[job_name] == expected_kwargs
+
+
+def test_run_mvp_wave_5_propagates_common_kwargs_to_all_jobs(monkeypatch) -> None:
+    calls: dict[str, dict[str, Any]] = {}
+
+    def _stub(job_name: str):
+        def _run(**kwargs: Any) -> dict[str, Any]:
+            calls[job_name] = kwargs
+            return {"job": job_name, "status": "success", "rows_written": 1}
+
+        return _run
+
+    monkeypatch.setattr(prefect_flows, "run_inmet_climate", _stub("inmet_climate_fetch"))
+    monkeypatch.setattr(prefect_flows, "run_inpe_queimadas", _stub("inpe_queimadas_fetch"))
+    monkeypatch.setattr(prefect_flows, "run_ana_hydrology", _stub("ana_hydrology_fetch"))
+    monkeypatch.setattr(prefect_flows, "run_anatel_connectivity", _stub("anatel_connectivity_fetch"))
+    monkeypatch.setattr(prefect_flows, "run_aneel_energy", _stub("aneel_energy_fetch"))
+    monkeypatch.setattr(prefect_flows, "run_quality_suite", _stub("quality_suite"))
+
+    result = prefect_flows.run_mvp_wave_5.fn(
+        reference_period="2025",
+        force=True,
+        dry_run=False,
+        max_retries=5,
+        timeout_seconds=45,
+    )
+
+    assert set(result.keys()) == {
+        "inmet_climate_fetch",
+        "inpe_queimadas_fetch",
+        "ana_hydrology_fetch",
+        "anatel_connectivity_fetch",
+        "aneel_energy_fetch",
         "quality_suite",
     }
     expected_kwargs = {

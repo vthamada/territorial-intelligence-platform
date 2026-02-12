@@ -17,6 +17,16 @@ Fontes ja implementadas no produto:
 - DATASUS (indicadores de saude atuais)
 - SICONFI (DCA)
 - MTE (Novo CAGED)
+- SIDRA (indicadores socioeconomicos)
+- SENATRAN (frota municipal)
+- SEJUSP-MG (seguranca publica)
+- SIOPS (financiamento de saude)
+- SNIS (saneamento)
+- INMET (clima) - integrado com fallback manual
+- INPE Queimadas (ambiental) - integrado com fallback manual
+- ANA (hidrologia) - integrado com extracao automatica (ArcGIS Hub) + fallback manual
+- ANATEL (conectividade) - integrado com fallback manual
+- ANEEL (energia) - integrado com fallback manual
 
 ## 2) Criterio para priorizar novas fontes
 

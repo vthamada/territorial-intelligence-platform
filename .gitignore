@@ -25,6 +25,8 @@ data/silver/*
 data/_tmp/
 data/mte_cache_test_*/
 mte_cache_test_*/
+data/raw/*
+!data/raw/.gitkeep
 data/manual/*
 !data/manual/.gitkeep
 !data/manual/mte/
