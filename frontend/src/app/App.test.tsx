@@ -6,7 +6,7 @@ import { App } from "./App";
 describe("App shell", () => {
   it("renders navigation and child content", () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <App>
           <div>Conteudo de teste</div>
         </App>

@@ -38,7 +38,7 @@ function renderWithQueryClient(ui: ReactElement, initialEntries: string[] = ["/"
   });
 
   return render(
-    <MemoryRouter initialEntries={initialEntries}>
+    <MemoryRouter initialEntries={initialEntries} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
     </MemoryRouter>
   );
@@ -255,6 +255,7 @@ describe("QG pages", () => {
     renderWithQueryClient(<QgOverviewPage />);
     await waitFor(() => expect(getKpisOverview).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(getPriorityList).toHaveBeenCalledTimes(1));
+    await screen.findByLabelText("Periodo");
 
     await userEvent.type(screen.getByLabelText("Periodo"), "2024");
     await userEvent.selectOptions(screen.getByLabelText("Nivel territorial"), "district");
@@ -276,16 +277,18 @@ describe("QG pages", () => {
       limit: 5
     });
     expect(screen.getByRole("link", { name: "Abrir prioridades" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Ver no mapa" })).toHaveAttribute(
-      "href",
-      "/mapa?metric=DATASUS_APS_COBERTURA&period=2025&territory_id=3121605"
-    );
+    expect(
+      screen
+        .getAllByRole("link", { name: "Ver no mapa" })
+        .some((link) => link.getAttribute("href") === "/mapa?metric=DATASUS_APS_COBERTURA&period=2025&territory_id=3121605")
+    ).toBe(true);
     expect(screen.getByRole("link", { name: "Abrir territorio critico" })).toBeInTheDocument();
   });
 
   it("applies priority filters only on submit", async () => {
     renderWithQueryClient(<QgPrioritiesPage />);
     await waitFor(() => expect(getPriorityList).toHaveBeenCalledTimes(1));
+    await screen.findByLabelText("Dominio");
 
     await userEvent.type(screen.getByLabelText("Dominio"), "saude");
     await userEvent.selectOptions(screen.getByLabelText("Somente criticos"), "true");
@@ -310,6 +313,7 @@ describe("QG pages", () => {
   it("applies choropleth filters only on submit", async () => {
     renderWithQueryClient(<QgMapPage />);
     await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
+    await screen.findByLabelText("Codigo do indicador");
     expect(screen.getByRole("button", { name: "Exportar SVG" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Exportar PNG" })).toBeInTheDocument();
 
@@ -335,6 +339,7 @@ describe("QG pages", () => {
   it("applies insights filters only on submit", async () => {
     renderWithQueryClient(<QgInsightsPage />);
     await waitFor(() => expect(getInsightsHighlights).toHaveBeenCalledTimes(1));
+    await screen.findByLabelText("Dominio");
 
     await userEvent.type(screen.getByLabelText("Dominio"), "saude");
     await userEvent.selectOptions(screen.getByLabelText("Severidade"), "critical");
@@ -354,6 +359,7 @@ describe("QG pages", () => {
   it("submits scenario simulation and renders result", async () => {
     renderWithQueryClient(<QgScenariosPage />);
     await waitFor(() => expect(getTerritories).toHaveBeenCalledTimes(1));
+    await screen.findByLabelText("Ajuste percentual");
 
     await userEvent.clear(screen.getByLabelText("Ajuste percentual"));
     await userEvent.type(screen.getByLabelText("Ajuste percentual"), "10");
@@ -367,6 +373,7 @@ describe("QG pages", () => {
   it("submits brief generation and renders summary", async () => {
     renderWithQueryClient(<QgBriefsPage />);
     await waitFor(() => expect(getTerritories).toHaveBeenCalledTimes(1));
+    await screen.findByRole("button", { name: "Gerar brief" });
 
     await userEvent.click(screen.getByRole("button", { name: "Gerar brief" }));
 
@@ -380,6 +387,7 @@ describe("QG pages", () => {
   it("loads brief filters from URL query params", async () => {
     renderWithQueryClient(<QgBriefsPage />, ["/briefs?territory_id=3121605&period=2024&domain=saude&limit=5"]);
     await waitFor(() => expect(getTerritories).toHaveBeenCalledTimes(1));
+    await screen.findByRole("button", { name: "Gerar brief" });
 
     await userEvent.click(screen.getByRole("button", { name: "Gerar brief" }));
 
@@ -400,6 +408,7 @@ describe("QG pages", () => {
     );
 
     await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
+    await screen.findByRole("button", { name: "Exportar CSV" });
     expect(vi.mocked(getChoropleth).mock.calls[0]?.[0]).toMatchObject({
       metric: "DATASUS_APS_COBERTURA",
       period: "2024",

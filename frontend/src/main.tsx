@@ -17,7 +17,7 @@ bootstrapFrontendObservability();
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <Providers>
-      <RouterProvider router={createAppRouter()} />
+      <RouterProvider router={createAppRouter()} future={{ v7_startTransition: true }} />
     </Providers>
   </React.StrictMode>
 );

@@ -6,7 +6,7 @@ import { PriorityItemCard } from "./PriorityItemCard";
 describe("PriorityItemCard", () => {
   it("renders priority context and profile link", () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <PriorityItemCard
           item={{
             territory_id: "3121605",

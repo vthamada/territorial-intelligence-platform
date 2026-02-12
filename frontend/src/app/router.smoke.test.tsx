@@ -232,6 +232,9 @@ vi.mock("../shared/api/qg", () => ({
     territory_name: "Belo Horizonte",
     territory_level: "municipio",
     period: "2025",
+    overall_score: 74.5,
+    overall_status: "attention",
+    overall_trend: "up",
     metadata: {
       source_name: "silver.fact_indicator",
       updated_at: null,
@@ -241,6 +244,20 @@ vi.mock("../shared/api/qg", () => ({
     },
     highlights: ["Destaque de teste"],
     domains: []
+  }),
+  getTerritoryPeers: vi.fn().mockResolvedValue({
+    territory_id: "3106200",
+    territory_name: "Belo Horizonte",
+    territory_level: "municipio",
+    period: "2025",
+    metadata: {
+      source_name: "silver.fact_indicator",
+      updated_at: null,
+      coverage_note: "territorial_aggregated",
+      unit: null,
+      notes: "mock"
+    },
+    items: []
   }),
   getTerritoryCompare: vi.fn().mockResolvedValue({
     territory_id: "3121605",
@@ -314,7 +331,7 @@ describe("Router smoke", () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <RouterProvider router={router} future={{ v7_startTransition: true }} />
       </QueryClientProvider>
     );
 

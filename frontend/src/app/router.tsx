@@ -2,6 +2,11 @@ import { Suspense, lazy, type ReactNode } from "react";
 import { createBrowserRouter, createMemoryRouter, type RouteObject } from "react-router-dom";
 import { App } from "./App";
 
+const routerFutureFlags = {
+  v7_startTransition: true,
+  v7_relativeSplatPath: true
+} as const;
+
 const OpsHealthPage = lazy(() =>
   import("../modules/ops/pages/OpsHealthPage").then((mod) => ({ default: mod.OpsHealthPage }))
 );
@@ -34,6 +39,9 @@ const OpsConnectorsPage = lazy(() =>
 );
 const OpsFrontendEventsPage = lazy(() =>
   import("../modules/ops/pages/OpsFrontendEventsPage").then((mod) => ({ default: mod.OpsFrontendEventsPage }))
+);
+const OpsSourceCoveragePage = lazy(() =>
+  import("../modules/ops/pages/OpsSourceCoveragePage").then((mod) => ({ default: mod.OpsSourceCoveragePage }))
 );
 const AdminHubPage = lazy(() =>
   import("../modules/admin/pages/AdminHubPage").then((mod) => ({ default: mod.AdminHubPage }))
@@ -76,6 +84,7 @@ export const appRoutes: RouteObject[] = [
       { path: "ops/checks", element: withPageFallback(<OpsChecksPage />) },
       { path: "ops/connectors", element: withPageFallback(<OpsConnectorsPage />) },
       { path: "ops/frontend-events", element: withPageFallback(<OpsFrontendEventsPage />) },
+      { path: "ops/source-coverage", element: withPageFallback(<OpsSourceCoveragePage />) },
       { path: "territory/indicators", element: withPageFallback(<TerritoryIndicatorsPage />) },
       { path: "territorio/perfil", element: withPageFallback(<TerritoryProfilePage />) },
       { path: "territorio/:territoryId", element: withPageFallback(<TerritoryProfileRoutePage />) },
@@ -88,9 +97,9 @@ export const appRoutes: RouteObject[] = [
 ];
 
 export function createAppRouter() {
-  return createBrowserRouter(appRoutes);
+  return createBrowserRouter(appRoutes, { future: routerFutureFlags });
 }
 
 export function createAppMemoryRouter(initialEntries: string[] = ["/"]) {
-  return createMemoryRouter(appRoutes, { initialEntries });
+  return createMemoryRouter(appRoutes, { initialEntries, future: routerFutureFlags });
 }

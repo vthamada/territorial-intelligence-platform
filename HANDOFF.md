@@ -1,6 +1,6 @@
 # Territorial Intelligence Platform - Handoff
 
-Data de referencia: 2026-02-11
+Data de referencia: 2026-02-12
 Planejamento principal: `PLANO.md`
 Contrato tecnico principal: `CONTRATO.md`
 
@@ -29,6 +29,49 @@ Contrato tecnico principal: `CONTRATO.md`
   - `snis_sanitation_fetch` evoluido para ingestao real tabular (`implemented`).
   - Onda A de conectores concluida no backend em modo implementado.
   - todos integrados no orquestrador em `run_mvp_wave_4` e `run_mvp_all`.
+- Sprint 6 tecnico (Onda B/C) iniciado no backend:
+  - novos conectores integrados:
+    - `inmet_climate_fetch`
+    - `inpe_queimadas_fetch`
+    - `ana_hydrology_fetch`
+    - `anatel_connectivity_fetch`
+    - `aneel_energy_fetch`
+  - todos integrados no orquestrador em `run_mvp_wave_5` e `run_mvp_all`.
+  - padrao de execucao igual aos conectores Onda A:
+    - remote catalog quando disponivel
+    - fallback manual por diretorio dedicado em `data/manual/*`
+    - Bronze + checks + `ops.pipeline_runs/pipeline_checks` + upsert em `silver.fact_indicator`.
+  - `scripts/bootstrap_manual_sources.py` ampliado para Onda B/C:
+    - novas opcoes de bootstrap: `INMET`, `INPE_QUEIMADAS`, `ANA`, `ANATEL`, `ANEEL`.
+    - parser tabular generico por catalogo com tentativa de filtro municipal automatico.
+    - parser CSV/TXT endurecido com selecao automatica do melhor delimitador.
+    - selecao de entrada ZIP por nome do municipio quando disponivel.
+    - deteccao do cabecalho INMET (`Data;Hora UTC;...`) para leitura correta da serie horaria.
+    - fallback de recorte municipal por nome de arquivo quando o payload nao traz colunas de municipio.
+    - quando nao for possivel consolidar recorte municipal de forma confiavel, retorna `manual_required`
+      no relatorio, mantendo rastreabilidade dos links/arquivos tentados.
+  - validacao local do bootstrap Onda B/C executada sem erro de processo:
+    - `INMET`/`INPE_QUEIMADAS`: consolidacao municipal automatica validada com status `ok`
+      e geracao de arquivos em `data/manual/inmet` e `data/manual/inpe_queimadas`.
+    - `ANATEL`/`ANEEL`: consolidacao municipal automatica validada com status `ok`
+      e geracao de arquivos em `data/manual/anatel` e `data/manual/aneel`.
+    - `ANA`: consolidacao municipal automatica validada com status `ok`
+      e geracao de arquivo em `data/manual/ana`.
+  - catalogos remotos oficiais configurados:
+    - `ANATEL`: `meu_municipio.zip` (acessos/densidade por municipio).
+    - `ANEEL`: `indger-dados-comerciais.csv` (dados comerciais por municipio).
+    - `ANA`: download oficial via ArcGIS Hub (`api/download/v1/items/.../csv?layers=18`)
+      com fallback para endpoints ArcGIS (`www.snirh.gov.br` e `portal1.snirh.gov.br`).
+  - `ANEEL` foi ajustado para `prefer_manual_first` no conector, reduzindo custo de execucao
+    local quando o CSV municipal consolidado ja existe em `data/manual/aneel`.
+  - estado de rede atual para `ANA` no ambiente local:
+    - hosts SNIRH seguem instaveis (`ConnectTimeout`) em algumas tentativas;
+    - coleta automatica segue funcional via URL ArcGIS Hub e fallback manual permanece disponivel.
+  - validacao de fluxo `run_mvp_wave_5` (referencia 2025, `dry_run=False`):
+    - `success`: `inmet_climate_fetch`, `inpe_queimadas_fetch`, `anatel_connectivity_fetch`, `aneel_energy_fetch`.
+    - `blocked`: `ana_hydrology_fetch` (timeout remoto + sem arquivo em `data/manual/ana`).
+  - mapeamento de dominio QG atualizado para as novas fontes
+    (`clima`, `meio_ambiente`, `recursos_hidricos`, `conectividade`, `energia`).
 - Frontend integrado ao novo contrato QG:
   - rota inicial (`/`) com `QgOverviewPage` consumindo `kpis/overview`, `priority/summary` e `insights/highlights`.
   - rota `prioridades` com `QgPrioritiesPage` consumindo `priority/list`.
@@ -78,6 +121,8 @@ Contrato tecnico principal: `CONTRATO.md`
     - captura de metricas de performance/web-vitals (paint, LCP, CLS e navigation timing).
     - evento de navegacao por troca de rota (`route_change`).
   - endpoint de telemetria configuravel por `VITE_FRONTEND_OBSERVABILITY_URL`.
+  - endpoint tecnico para cobertura de dados por fonte:
+    - `GET /v1/ops/source-coverage` (runs por fonte + `rows_loaded` + `fact_indicator_rows` + `coverage_status`).
   - cliente HTTP passou a emitir telemetria de chamadas API:
     - `api_request_success`
     - `api_request_retry`
@@ -89,9 +134,9 @@ Contrato tecnico principal: `CONTRATO.md`
   - `npm --prefix frontend run typecheck` (apos hardening de a11y/observabilidade): `OK`.
   - `npm --prefix frontend run typecheck` (apos exportacao SVG/PNG): `OK`.
   - `npm --prefix frontend run typecheck` (apos exportacao de briefs HTML/PDF): `OK`.
-  - `npm --prefix frontend run test`/`build`: bloqueados no ambiente atual por erro `spawn EPERM` ao carregar Vite.
-  - `npm --prefix frontend run test -- src/shared/api/http.test.ts src/shared/observability/telemetry.test.ts`:
-    bloqueado no ambiente atual por `spawn EPERM` ao carregar Vite.
+  - `npm --prefix frontend run test`: `14 passed` / `33 passed`.
+  - `npm --prefix frontend run build`: `OK` (Vite build concluido).
+  - `RouterProvider` e testes com `MemoryRouter` atualizados com `future flags` do React Router v7.
 - Validacao backend do contrato QG:
   - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider`: `15 passed`.
 - Router QG integrado ao app em `src/app/api/main.py`.
@@ -120,8 +165,9 @@ Contrato tecnico principal: `CONTRATO.md`
   - `dbt_build` persiste check de falha em `ops.pipeline_checks` quando run falha.
   - logging robusto para execucao local em Windows (sem quebra por encoding).
 - Estado operacional atual do backend:
-  - `scripts/backend_readiness.py --output-json` retorna `READY` com `hard_failures=0` e `warnings=0`.
-  - `SLO-1` e `SLO-3` atendidos na janela operacional de 7 dias no ambiente local.
+  - `scripts/backend_readiness.py --output-json` retorna `READY` com `hard_failures=0` e `warnings=1`.
+  - `SLO-3` atendido na janela operacional de 7 dias no ambiente local.
+  - `SLO-1` segue em warning historico (`72.31% < 95%`) por runs antigos.
 - Pesquisa de fontes futuras concluida e consolidada em:
   - `docs/PLANO_FONTES_DADOS_DIAMANTINA.md`
   - priorizacao por ondas, complexidade e impacto para o municipio de Diamantina.
@@ -130,6 +176,8 @@ Contrato tecnico principal: `CONTRATO.md`
   - botao `Limpar` nos formularios de filtros.
   - contrato de filtro de runs alinhado para `run_status`.
   - nova tela tecnica `/ops/frontend-events` com filtros/paginacao para telemetria do frontend.
+  - nova tela tecnica `/ops/source-coverage` para auditar disponibilidade real de dados por fonte.
+  - filtros de wave em `ops` atualizados para incluir `MVP-5`.
   - testes de paginas ops adicionados em `frontend/src/modules/ops/pages/OpsPages.test.tsx`.
 - Frontend F3 (territorio e indicadores) evoluido:
   - filtros territoriais com paginacao e aplicacao explicita.
@@ -146,6 +194,34 @@ Contrato tecnico principal: `CONTRATO.md`
   - sem bloqueador tecnico pendente de backend no estado atual.
   - observacao operacional: validacoes de `dbt` no Windows podem exigir terminal elevado por politica local
     de permissao (WinError 5).
+  - observacao operacional adicional: no ambiente atual, `vitest` e `vite build` executaram sem falhas.
+
+## Atualizacao operacional (2026-02-12)
+
+- Saneamento operacional executado:
+  - `scripts/backfill_missing_pipeline_checks.py --window-days 7 --apply` executado com sucesso.
+  - 6 runs sem check foram corrigidos; `SLO-3` voltou a conformidade (`runs_missing_checks=0`).
+- Registry de conectores sincronizado:
+  - `scripts/sync_connector_registry.py` executado com sucesso.
+  - `ops.connector_registry` atualizado para `22` conectores `implemented` (incluindo `MVP-5`).
+- Ondas executadas com sucesso em modo real:
+  - `run_mvp_wave_4(reference_period='2025', dry_run=False)`: todos os jobs `success`.
+  - `run_mvp_wave_5(reference_period='2025', dry_run=False)`: todos os jobs `success`.
+- Execucoes direcionadas adicionais:
+  - `tse_electorate_fetch`: `success`.
+  - `labor_mte_fetch`: `success` (via `bronze_cache`).
+  - `ana_hydrology_fetch`: `success` (via ArcGIS Hub CSV).
+  - `quality_suite(reference_period='2025')`: `success` (0 fails; 1 warn).
+- Readiness atual:
+  - `scripts/backend_readiness.py --output-json` => `READY`.
+  - `hard_failures=0`.
+  - `warnings=1` por `SLO-1` historico na janela de 7 dias (`72.31% < 95%`).
+  - observacao: este warning e herdado de runs antigos `blocked/failed`; o estado corrente de execucao das ondas 4 e 5 esta estavel.
+- Validacao final executada em 2026-02-12:
+  - `pytest -q -p no:cacheprovider`: `152 passed`.
+  - `npm --prefix frontend run test`: `14 passed` / `33 passed`.
+  - `npm --prefix frontend run build`: `OK` (Vite build concluido).
+  - warnings de `future flags` do React Router removidos da suite de testes.
 
 ## 1) O que foi implementado ate agora
 

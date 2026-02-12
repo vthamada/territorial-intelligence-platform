@@ -2,6 +2,42 @@
 
 Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-12
+
+### Changed
+- Operacao de readiness endurecida no ambiente local:
+  - `scripts/backfill_missing_pipeline_checks.py --window-days 7 --apply` executado para preencher checks ausentes em runs historicos.
+  - `scripts/backend_readiness.py --output-json` voltou para `READY` com `hard_failures=0`.
+- Registry operacional sincronizado com o estado atual dos conectores:
+  - `scripts/sync_connector_registry.py` executado.
+  - `ops.connector_registry` atualizado para `22` conectores `implemented` (incluindo `MVP-5`).
+- Pipeline ANA (Onda B/C) destravado para extracao automatica:
+  - catalogo ANA prioriza download ArcGIS Hub CSV (`api/download/v1/items/.../csv?layers=18`) com fallback SNIRH.
+  - mapeamento de colunas ANA ampliado para campos reais (`CDMUN`, `NMMUN`, `VZTOTM3S` e correlatos).
+  - bootstrap tabular ajustado para tratar URLs com query string em Windows (normalizacao do nome de arquivo bruto).
+- Frontend QG endurecido para estabilidade de testes e navegacao:
+  - sincronizacao dos testes de paginas QG/Territorio com estados de carregamento.
+  - seletores ambiguos em testes ajustados para consultas robustas.
+  - `future flags` do React Router v7 aplicados em `router`, `main` e wrappers de teste.
+
+### Added
+- Cobertura de testes ampliada para bootstrap Onda B/C:
+  - caso de sanitizacao de nome de arquivo com query string.
+  - casos de mapeamento municipal com colunas `CDMUN`/`NMMUN`.
+  - caso de alias ANA para vazao total.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_bootstrap_manual_sources_snis.py tests/unit/test_bootstrap_manual_sources_onda_b.py tests/unit/test_onda_b_connectors.py tests/unit/test_quality_core_checks.py tests/unit/test_prefect_wave3_flow.py -p no:cacheprovider`: `34 passed`.
+- `.\.venv\Scripts\python.exe scripts/bootstrap_manual_sources.py --reference-year 2025 --municipality-name Diamantina --municipality-ibge-code 3121605 --skip-mte --skip-senatran --skip-sejusp --skip-siops --skip-snis`: `INMET/INPE_QUEIMADAS/ANA/ANATEL/ANEEL = ok`.
+- `run_mvp_wave_4(reference_period='2025', dry_run=False)`: todos os jobs `success`.
+- `run_mvp_wave_5(reference_period='2025', dry_run=False)`: todos os jobs `success`.
+- `tse_electorate_fetch`, `labor_mte_fetch` e `ana_hydrology_fetch` executados com `status=success`.
+- `quality_suite(reference_period='2025', dry_run=False)`: `success` com `failed_checks=0`.
+- `scripts/backend_readiness.py --output-json`: `READY` com `hard_failures=0` e `warnings=1` (`SLO-1` historico na janela de 7 dias).
+- `pytest -q -p no:cacheprovider`: `152 passed`.
+- `npm --prefix frontend run test`: `14 passed` / `33 passed`.
+- `npm --prefix frontend run build`: `OK` (Vite build concluido).
+
 ## 2026-02-11
 
 ### Changed
@@ -9,6 +45,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - API `ops` evoluiu para receber e consultar telemetria frontend:
   - `POST /v1/ops/frontend-events`
   - `GET /v1/ops/frontend-events`
+  - `GET /v1/ops/source-coverage` (cobertura operacional por fonte com runs e dados em `silver.fact_indicator`)
 - Frontend evoluiu de foco exclusivamente operacional para fluxo QG:
   - rota inicial (`/`) agora usa visao executiva (`QgOverviewPage`).
   - nova rota `prioridades` com consumo de `GET /v1/priority/list`.
@@ -62,6 +99,8 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - tela de `runs` atualizada para usar `run_status` no contrato de consulta.
   - nova tela `/ops/frontend-events` para observabilidade de eventos do cliente
     (categoria, severidade, nome e janela temporal).
+  - nova tela `/ops/source-coverage` para validar disponibilidade real de dados por fonte
+    (`runs_success`, `rows_loaded_total`, `fact_indicator_rows` e `coverage_status`).
   - ajustes de textos/labels para evitar ruido de encoding em runtime.
 - Frontend F3 (territorio e indicadores) evoluido:
   - filtros de territorios com aplicacao explicita e paginacao.
@@ -81,10 +120,22 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - Orquestracao backend evoluida com Onda A inicial:
   - novo fluxo `run_mvp_wave_4` em `src/orchestration/prefect_flows.py`.
   - `run_mvp_all` passou a incluir os conectores da Onda A.
+- Orquestracao backend evoluida com Onda B/C inicial:
+  - novo fluxo `run_mvp_wave_5` em `src/orchestration/prefect_flows.py`.
+  - `run_mvp_all` passou a incluir os conectores da Onda B/C.
 - Configuracao operacional atualizada para Onda A:
   - novos jobs em `configs/jobs.yml` (`MVP-4`).
   - nova onda em `configs/waves.yml`.
   - conectores da Onda A adicionados no `configs/connectors.yml` (SIDRA, SENATRAN, SEJUSP, SIOPS e SNIS em `implemented`).
+- Configuracao operacional atualizada para Onda B/C:
+  - novos jobs em `configs/jobs.yml` (`MVP-5`).
+  - nova onda em `configs/waves.yml`.
+  - conectores da Onda B/C adicionados no `configs/connectors.yml` (INMET, INPE_QUEIMADAS, ANA, ANATEL e ANEEL em `implemented`).
+  - catalogos remotos de `ANATEL` e `ANEEL` preenchidos com fontes oficiais de dados abertos:
+    - `ANATEL`: `meu_municipio.zip` (acessos/densidade por municipio).
+    - `ANEEL`: `indger-dados-comerciais.csv` (dados comerciais por municipio).
+  - catalogo remoto de `ANA` preenchido com download oficial via ArcGIS Hub
+    (`api/download/v1/items/.../csv?layers=18`) e fallbacks ArcGIS (`snirh/portal1`) por municipio.
 - `sidra_indicators_fetch` evoluido de discovery para ingestao real:
   - leitura de catalogo configuravel (`configs/sidra_indicators_catalog.yml`)
   - extracao via SIDRA `/values` com fallback de periodo
@@ -121,12 +172,21 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - `quality_suite` passou a validar cobertura por fonte da Onda A na `silver.fact_indicator`
   por `reference_period`, com checks dedicados para `SIDRA`, `SENATRAN`, `SEJUSP_MG`,
   `SIOPS` e `SNIS`.
+- `quality_suite` passou a validar cobertura por fonte da Onda B/C na `silver.fact_indicator`
+  por `reference_period`, com checks dedicados para `INMET`, `INPE_QUEIMADAS`, `ANA`,
+  `ANATEL` e `ANEEL`.
 - Thresholds de qualidade da `fact_indicator` ampliados com minimos por fonte Onda A:
   - `min_rows_sidra`
   - `min_rows_senatran`
   - `min_rows_sejusp_mg`
   - `min_rows_siops`
   - `min_rows_snis`
+- Thresholds de qualidade da `fact_indicator` ampliados com minimos por fonte Onda B/C:
+  - `min_rows_inmet`
+  - `min_rows_inpe_queimadas`
+  - `min_rows_ana`
+  - `min_rows_anatel`
+  - `min_rows_aneel`
 - Performance de consultas QG/OPS endurecida com novos indices SQL incrementais em
   `db/sql/004_qg_ops_indexes.sql` para filtros por periodo/territorio/fonte e ordenacao
   temporal de execucoes.
@@ -196,6 +256,19 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - `scripts/backend_readiness.py`
   - `scripts/backfill_missing_pipeline_checks.py`
   - `scripts/cleanup_legacy_source_probe_indicators.py`
+  - `scripts/bootstrap_manual_sources.py` ampliado para Onda B/C (`INMET`, `INPE_QUEIMADAS`, `ANA`, `ANATEL`, `ANEEL`)
+    com parser tabular generico por catalogo e consolidacao municipal automatizada quando possivel.
+  - `scripts/bootstrap_manual_sources.py` endurecido para Onda B/C:
+    - selecao de arquivo interno em ZIP com preferencia por nome do municipio (ex.: `DIAMANTINA`).
+    - parser CSV/TXT com escolha do melhor delimitador (evita falso parse com coluna unica).
+    - deteccao automatica de cabecalho do formato INMET (`Data;Hora UTC;...`) com `skiprows`.
+    - fallback de recorte municipal por nome do arquivo quando nao ha colunas de municipio no payload tabular.
+    - agregador `count` para fontes orientadas a eventos (ex.: INPE focos).
+    - filtro por ano de referencia em datasets tabulares (colunas configuraveis).
+    - filtro por dimensao textual em metricas (ex.: `servico = banda larga fixa`).
+    - suporte a placeholders de municipio (`{municipality_ibge_code}`, `{municipality_ibge_code_6}`)
+      nos templates de URL do catalogo.
+    - sanitizacao de nome de arquivo remoto com query string (evita falha em Windows para URLs como `.../csv?layers=18`).
 - Persistencia de telemetria frontend:
   - `db/sql/005_frontend_observability.sql` (tabela `ops.frontend_events` + indices)
 - Documento de planejamento de fontes futuras para Diamantina:
@@ -209,6 +282,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - Testes frontend de filtros das paginas de operacao:
   - `frontend/src/modules/ops/pages/OpsPages.test.tsx`
   - cobertura ampliada para `/ops/frontend-events`
+  - cobertura ampliada para `/ops/source-coverage`
 - Testes frontend da pagina territorial:
   - `frontend/src/modules/territory/pages/TerritoryIndicatorsPage.test.tsx`
 - Teste smoke de navegacao:
@@ -233,6 +307,30 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - `configs/siops_health_finance_catalog.yml`
 - Novo catalogo SNIS para fontes remotas configuraveis:
   - `configs/snis_sanitation_catalog.yml`
+- Novos conectores backend (Onda B/C - fase integracao):
+  - `src/pipelines/inmet_climate.py`
+  - `src/pipelines/inpe_queimadas.py`
+  - `src/pipelines/ana_hydrology.py`
+  - `src/pipelines/anatel_connectivity.py`
+  - `src/pipelines/aneel_energy.py`
+  - helper compartilhado:
+    - `src/pipelines/common/tabular_indicator_connector.py`
+- Novos catalogos Onda B/C:
+  - `configs/inmet_climate_catalog.yml`
+  - `configs/inpe_queimadas_catalog.yml`
+  - `configs/ana_hydrology_catalog.yml`
+  - `configs/anatel_connectivity_catalog.yml`
+  - `configs/aneel_energy_catalog.yml`
+- Novos diretórios de fallback manual para Onda B/C:
+  - `data/manual/inmet`
+  - `data/manual/inpe_queimadas`
+  - `data/manual/ana`
+  - `data/manual/anatel`
+  - `data/manual/aneel`
+- Nova cobertura de teste para conectores Onda B/C:
+  - `tests/unit/test_onda_b_connectors.py`
+- Novos testes unitarios para bootstrap Onda B/C:
+  - `tests/unit/test_bootstrap_manual_sources_onda_b.py`
 - Nova cobertura de teste para conectores Onda A:
   - `tests/unit/test_onda_a_connectors.py`
   - testes SIDRA atualizados para parse e dry-run com catalogo real.
@@ -246,6 +344,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - `pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider` (apos adicionar briefs): `14 passed`.
 - `pytest -q tests/unit/test_ops_routes.py -p no:cacheprovider`: `18 passed`.
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_ops_routes.py -p no:cacheprovider`: `21 passed`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_ops_routes.py -p no:cacheprovider` (apos `/ops/source-coverage`): `23 passed`.
 - `pytest -q tests/unit -p no:cacheprovider`: `96 passed`.
 - `npm --prefix frontend run typecheck`: `OK`.
 - `npm --prefix frontend run typecheck` (apos atalhos e prefill por query string): `OK`.
@@ -283,6 +382,9 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_onda_a_connectors.py tests/unit/test_quality_ops_pipeline_runs.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_qg_routes.py -p no:cacheprovider`: `30 passed`.
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_onda_a_connectors.py tests/unit/test_quality_ops_pipeline_runs.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_qg_routes.py -p no:cacheprovider`: `35 passed`.
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py tests/unit/test_onda_a_connectors.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_ops_pipeline_runs.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_ops_routes.py -p no:cacheprovider`: `62 passed`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_onda_b_connectors.py tests/unit/test_quality_core_checks.py tests/unit/test_prefect_wave3_flow.py -p no:cacheprovider`: `18 passed`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider`: `15 passed`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_bootstrap_manual_sources_snis.py tests/unit/test_bootstrap_manual_sources_onda_b.py tests/unit/test_onda_b_connectors.py tests/unit/test_quality_core_checks.py tests/unit/test_prefect_wave3_flow.py -p no:cacheprovider`: `23 passed`.
 - `npm --prefix frontend test`: `10 passed`.
 - `npm --prefix frontend run build`: build concluido (`vite v6.4.1`).
 - `npm --prefix frontend test` (com F3): `12 passed`.
