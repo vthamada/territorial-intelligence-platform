@@ -10,6 +10,9 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - normalizacao de query string para dominio via `normalizeQgDomain` (evita valores invalidos no estado inicial).
   - catalogo compartilhado consolidado em `frontend/src/modules/qg/domainCatalog.ts`.
   - `Prioridades` e `Insights` passaram a consumir query string no carregamento inicial (deep-link funcional para filtros).
+- UX de dominio no QG refinada com rotulos amigaveis para usuario final:
+  - helper `getQgDomainLabel` aplicado em cards/tabelas/subtitulos e combos de filtro.
+  - valores tecnicos (`saude`, `meio_ambiente`, etc.) mantidos no estado/API; exibicao convertida para leitura executiva.
 - Home QG evoluida para destacar dominios Onda B/C na visao executiva:
   - novo catalogo frontend em `frontend/src/modules/qg/domainCatalog.ts` com dominios `clima`, `meio_ambiente`, `recursos_hidricos`, `conectividade` e `energia`.
   - novo painel `Dominios Onda B/C` na `QgOverviewPage` com atalhos de prioridade e mapa por dominio.
@@ -46,6 +49,8 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 ### Verified
 - `npm --prefix frontend run test`: `14 passed` / `35 passed` (inclui padronizacao de filtros de dominio + prefill por query string em `Prioridades` e `Insights`).
 - `npm --prefix frontend run build`: `OK` (Vite build concluido, revalidado apos padronizacao de filtros e deep-links).
+- `npm --prefix frontend run test`: `14 passed` / `35 passed` (revalidado apos rotulos amigaveis de dominio no QG).
+- `npm --prefix frontend run build`: `OK` (Vite build concluido, revalidado apos refinamento de UX de dominio).
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py tests/unit/test_ops_routes.py -p no:cacheprovider`: `38 passed`.
 - `npm --prefix frontend run test`: `14 passed` / `33 passed`.
 - `npm --prefix frontend run build`: `OK` (Vite build concluido).

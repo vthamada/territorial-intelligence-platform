@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { formatApiError } from "../../../shared/api/http";
 import { getPriorityList } from "../../../shared/api/qg";
-import { normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
+import { getQgDomainLabel, normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
 import { Panel } from "../../../shared/ui/Panel";
 import { PriorityItemCard } from "../../../shared/ui/PriorityItemCard";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
@@ -221,7 +221,7 @@ export function QgPrioritiesPage() {
               <option value="">Todos</option>
               {QG_DOMAIN_OPTIONS.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {getQgDomainLabel(option)}
                 </option>
               ))}
             </select>

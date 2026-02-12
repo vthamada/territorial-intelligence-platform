@@ -5,7 +5,7 @@ import { getTerritories } from "../../../shared/api/domain";
 import { formatApiError } from "../../../shared/api/http";
 import { postBriefGenerate } from "../../../shared/api/qg";
 import type { BriefGenerateResponse } from "../../../shared/api/types";
-import { normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
+import { getQgDomainLabel, normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
 import { Panel } from "../../../shared/ui/Panel";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
 import { StateBlock } from "../../../shared/ui/StateBlock";
@@ -38,7 +38,7 @@ function buildBriefHtml(brief: BriefGenerateResponse) {
       (item) => `
         <tr>
           <td>${escapeHtml(item.territory_name)}</td>
-          <td>${escapeHtml(item.domain)}</td>
+          <td>${escapeHtml(getQgDomainLabel(item.domain))}</td>
           <td>${escapeHtml(item.indicator_name)}</td>
           <td>${escapeHtml(item.unit ? `${item.value.toFixed(2)} ${item.unit}` : item.value.toFixed(2))}</td>
           <td>${escapeHtml(item.score.toFixed(2))}</td>
@@ -71,7 +71,7 @@ function buildBriefHtml(brief: BriefGenerateResponse) {
   <body>
     <h1>${escapeHtml(brief.title)}</h1>
     <p class="meta">Brief ID: ${escapeHtml(brief.brief_id)} | Gerado em: ${escapeHtml(brief.generated_at)}</p>
-    <p class="meta">Periodo: ${escapeHtml(brief.period ?? "-")} | Nivel: ${escapeHtml(brief.level ?? "-")} | Dominio: ${escapeHtml(brief.domain ?? "-")}</p>
+    <p class="meta">Periodo: ${escapeHtml(brief.period ?? "-")} | Nivel: ${escapeHtml(brief.level ?? "-")} | Dominio: ${escapeHtml(getQgDomainLabel(brief.domain))}</p>
 
     <h2>Resumo executivo</h2>
     <ul>${summaryItems}</ul>
@@ -251,7 +251,7 @@ export function QgBriefsPage() {
               <option value="">Todos</option>
               {QG_DOMAIN_OPTIONS.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {getQgDomainLabel(option)}
                 </option>
               ))}
             </select>
@@ -338,7 +338,7 @@ export function QgBriefsPage() {
                   {brief.evidences.map((item) => (
                     <tr key={`${item.territory_id}-${item.indicator_code}`}>
                       <td>{item.territory_name}</td>
-                      <td>{item.domain}</td>
+                      <td>{getQgDomainLabel(item.domain)}</td>
                       <td>{item.indicator_name}</td>
                       <td>{item.unit ? `${item.value.toFixed(2)} ${item.unit}` : item.value.toFixed(2)}</td>
                       <td>{item.score.toFixed(2)}</td>

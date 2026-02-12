@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { getTerritories } from "../../../shared/api/domain";
 import { formatApiError } from "../../../shared/api/http";
 import { postScenarioSimulate } from "../../../shared/api/qg";
-import { normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
+import { getQgDomainLabel, normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
 import { Panel } from "../../../shared/ui/Panel";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
 import { StateBlock } from "../../../shared/ui/StateBlock";
@@ -141,7 +141,7 @@ export function QgScenariosPage() {
               <option value="">Todos</option>
               {QG_DOMAIN_OPTIONS.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {getQgDomainLabel(option)}
                 </option>
               ))}
             </select>
@@ -182,7 +182,7 @@ export function QgScenariosPage() {
       {simulation ? (
         <Panel
           title={`Resultado: ${simulation.territory_name}`}
-          subtitle={`${simulation.domain} | ${simulation.indicator_code}`}
+          subtitle={`${getQgDomainLabel(simulation.domain)} | ${simulation.indicator_code}`}
         >
           <div className="kpi-grid">
             <StrategicIndexCard label="Score base" value={simulation.base_score.toFixed(2)} status="info" />

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { formatApiError } from "../../../shared/api/http";
 import { getInsightsHighlights, getKpisOverview, getPriorityList, getPrioritySummary } from "../../../shared/api/qg";
-import { QG_ONDA_BC_SPOTLIGHT } from "../domainCatalog";
+import { getQgDomainLabel, QG_ONDA_BC_SPOTLIGHT } from "../domainCatalog";
 import { Panel } from "../../../shared/ui/Panel";
 import { PriorityItemCard } from "../../../shared/ui/PriorityItemCard";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
@@ -268,7 +268,7 @@ export function QgOverviewPage() {
               <tbody>
                 {kpis.items.map((item) => (
                   <tr key={`${item.domain}-${item.indicator_code}`}>
-                    <td>{item.domain}</td>
+                    <td>{getQgDomainLabel(item.domain)}</td>
                     <td>{item.source ?? "-"}</td>
                     <td>{item.indicator_code}</td>
                     <td>{item.indicator_name}</td>

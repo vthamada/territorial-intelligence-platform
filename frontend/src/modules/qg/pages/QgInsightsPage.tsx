@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { formatApiError } from "../../../shared/api/http";
 import { getInsightsHighlights } from "../../../shared/api/qg";
-import { normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
+import { getQgDomainLabel, normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
 import { Panel } from "../../../shared/ui/Panel";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
 import { StateBlock } from "../../../shared/ui/StateBlock";
@@ -97,7 +97,7 @@ export function QgInsightsPage() {
               <option value="">Todos</option>
               {QG_DOMAIN_OPTIONS.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {getQgDomainLabel(option)}
                 </option>
               ))}
             </select>
@@ -133,7 +133,7 @@ export function QgInsightsPage() {
                   <p>{item.explanation[0] ?? "Sem explicacao."}</p>
                 </div>
                 <small>
-                  {item.domain} | {item.severity} | evidencia: {item.evidence.source}/{item.evidence.dataset}
+                  {getQgDomainLabel(item.domain)} | {item.severity} | evidencia: {item.evidence.source}/{item.evidence.dataset}
                 </small>
               </li>
             ))}

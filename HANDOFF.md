@@ -203,6 +203,9 @@ Contrato tecnico principal: `CONTRATO.md`
   - normalizacao de dominio por query string (`normalizeQgDomain`) aplicada para evitar estados invalidos.
   - `Prioridades` e `Insights` agora carregam filtros iniciais a partir de query string (deep-links funcionais).
   - arquivo de referencia compartilhada: `frontend/src/modules/qg/domainCatalog.ts`.
+- Refinamento de experiencia no QG:
+  - dominios agora sao exibidos com rotulos amigaveis para leitura executiva (`getQgDomainLabel`).
+  - codigos de dominio permanecem inalterados no contrato tecnico (query string/API), preservando compatibilidade.
 - Home executiva do QG atualizada para refletir Onda B/C no frontend:
   - novo painel `Dominios Onda B/C` na `QgOverviewPage` com atalhos de navegacao para `Prioridades` e `Mapa` por dominio.
   - catalogo de dominios/fonte/metrica padrao centralizado em `frontend/src/modules/qg/domainCatalog.ts`.
@@ -216,6 +219,8 @@ Contrato tecnico principal: `CONTRATO.md`
   - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py tests/unit/test_ops_routes.py -p no:cacheprovider`: `38 passed`.
   - `npm --prefix frontend run test`: `14 passed` / `35 passed` (inclui padronizacao de filtros de dominio e deep-links de `Prioridades`/`Insights`).
   - `npm --prefix frontend run build`: `OK` (Vite build concluido com filtros padronizados + prefill por query string).
+  - `npm --prefix frontend run test`: `14 passed` / `35 passed` (revalidado apos rotulos amigaveis de dominio no QG).
+  - `npm --prefix frontend run build`: `OK` (revalidado apos refinamento de UX de dominio).
 - Saneamento operacional executado:
   - `scripts/backfill_missing_pipeline_checks.py --window-days 7 --apply` executado com sucesso.
   - 6 runs sem check foram corrigidos; `SLO-3` voltou a conformidade (`runs_missing_checks=0`).

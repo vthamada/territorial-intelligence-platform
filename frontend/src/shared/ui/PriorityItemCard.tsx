@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import type { PriorityItem } from "../api/types";
+import { getQgDomainLabel } from "../../modules/qg/domainCatalog";
 
 type PriorityItemCardProps = {
   item: PriorityItem;
@@ -35,7 +36,7 @@ export function PriorityItemCard({ item }: PriorityItemCardProps) {
         <div>
           <h3>{item.territory_name}</h3>
           <p>
-            {item.domain} | {item.indicator_name}
+            {getQgDomainLabel(item.domain)} | {item.indicator_name}
           </p>
         </div>
         <span className={statusClass(item.status)}>{item.status}</span>

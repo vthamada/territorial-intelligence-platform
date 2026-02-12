@@ -55,9 +55,33 @@ export const QG_DOMAIN_OPTIONS = [
   "energia",
 ];
 
+const QG_DOMAIN_LABELS: Record<string, string> = {
+  saude: "Saude",
+  educacao: "Educacao",
+  trabalho: "Trabalho",
+  financas: "Financas",
+  eleitorado: "Eleitorado",
+  socioeconomico: "Socioeconomico",
+  mobilidade: "Mobilidade",
+  seguranca: "Seguranca",
+  saneamento: "Saneamento",
+  clima: "Clima",
+  meio_ambiente: "Meio ambiente",
+  recursos_hidricos: "Recursos hidricos",
+  conectividade: "Conectividade",
+  energia: "Energia",
+};
+
 export function normalizeQgDomain(value: string | null | undefined) {
   if (!value) {
     return "";
   }
   return QG_DOMAIN_OPTIONS.includes(value) ? value : "";
+}
+
+export function getQgDomainLabel(domain: string | null | undefined) {
+  if (!domain) {
+    return "-";
+  }
+  return QG_DOMAIN_LABELS[domain] ?? domain;
 }
