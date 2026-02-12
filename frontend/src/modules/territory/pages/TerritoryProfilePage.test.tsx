@@ -163,6 +163,7 @@ describe("TerritoryProfilePage", () => {
     expect(screen.getByRole("heading", { name: "Diamantina" })).toBeInTheDocument();
     expect(screen.getByText("Status geral do territorio")).toBeInTheDocument();
     expect(screen.getByText("74.50")).toBeInTheDocument();
+    expect(screen.getByText("Saude")).toBeInTheDocument();
     expect(screen.getByText("Pares recomendados")).toBeInTheDocument();
     expect(screen.getAllByText("Belo Horizonte").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "Gerar brief deste territorio" })).toBeInTheDocument();

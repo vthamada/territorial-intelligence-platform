@@ -39,6 +39,8 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - sincronizacao dos testes de paginas QG/Territorio com estados de carregamento.
   - seletores ambiguos em testes ajustados para consultas robustas.
   - `future flags` do React Router v7 aplicados em `router`, `main` e wrappers de teste.
+- `Territorio 360` alinhado ao mesmo padrao de rotulos amigaveis por dominio:
+  - tabela de dominios e comparacao agora usa `getQgDomainLabel`, removendo exibicao de codigos tecnicos crus.
 
 ### Added
 - Cobertura de testes ampliada para bootstrap Onda B/C:
@@ -54,6 +56,8 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py tests/unit/test_ops_routes.py -p no:cacheprovider`: `38 passed`.
 - `npm --prefix frontend run test`: `14 passed` / `33 passed`.
 - `npm --prefix frontend run build`: `OK` (Vite build concluido).
+- `npm --prefix frontend run test`: `14 passed` / `35 passed` (revalidado apos padronizacao de rotulos no `TerritoryProfilePage`).
+- `npm --prefix frontend run build`: `OK` (revalidado apos ajuste de rotulos no `TerritoryProfilePage`).
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_bootstrap_manual_sources_snis.py tests/unit/test_bootstrap_manual_sources_onda_b.py tests/unit/test_onda_b_connectors.py tests/unit/test_quality_core_checks.py tests/unit/test_prefect_wave3_flow.py -p no:cacheprovider`: `34 passed`.
 - `.\.venv\Scripts\python.exe scripts/bootstrap_manual_sources.py --reference-year 2025 --municipality-name Diamantina --municipality-ibge-code 3121605 --skip-mte --skip-senatran --skip-sejusp --skip-siops --skip-snis`: `INMET/INPE_QUEIMADAS/ANA/ANATEL/ANEEL = ok`.
 - `run_mvp_wave_4(reference_period='2025', dry_run=False)`: todos os jobs `success`.

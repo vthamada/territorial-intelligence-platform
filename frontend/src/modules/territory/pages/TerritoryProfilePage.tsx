@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { getTerritories } from "../../../shared/api/domain";
 import { formatApiError } from "../../../shared/api/http";
 import { getTerritoryCompare, getTerritoryPeers, getTerritoryProfile } from "../../../shared/api/qg";
+import { getQgDomainLabel } from "../../qg/domainCatalog";
 import { Panel } from "../../../shared/ui/Panel";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
 import { StrategicIndexCard } from "../../../shared/ui/StrategicIndexCard";
@@ -317,7 +318,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
                 {profile.domains.flatMap((domain) =>
                   domain.indicators.map((indicator) => (
                     <tr key={`${domain.domain}-${indicator.indicator_code}`}>
-                      <td>{domain.domain}</td>
+                      <td>{getQgDomainLabel(domain.domain)}</td>
                       <td>{indicator.indicator_name}</td>
                       <td>{indicator.indicator_code}</td>
                       <td>{indicator.reference_period}</td>
@@ -351,7 +352,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
                 <tbody>
                   {compare.items.map((item) => (
                     <tr key={`${item.indicator_code}-${item.direction}`}>
-                      <td>{item.domain}</td>
+                      <td>{getQgDomainLabel(item.domain)}</td>
                       <td>{item.indicator_name}</td>
                       <td>{formatValue(item.base_value, item.unit)}</td>
                       <td>{formatValue(item.compare_value, item.unit)}</td>

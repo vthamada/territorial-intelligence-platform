@@ -4,7 +4,7 @@ Data de referencia: 2026-02-12
 Planejamento principal: `PLANO.md`
 Contrato tecnico principal: `CONTRATO.md`
 
-## Atualizacao rapida (2026-02-11)
+## Atualizacao rapida (2026-02-12)
 
 - Backend funcionalmente pronto para avancar no frontend (API + pipelines + checks + scripts operacionais).
 - Sprint 0 do QG iniciado no backend com contratos de API para Home/Prioridades/Insights:
@@ -206,6 +206,8 @@ Contrato tecnico principal: `CONTRATO.md`
 - Refinamento de experiencia no QG:
   - dominios agora sao exibidos com rotulos amigaveis para leitura executiva (`getQgDomainLabel`).
   - codigos de dominio permanecem inalterados no contrato tecnico (query string/API), preservando compatibilidade.
+- `Territorio 360` alinhado ao padrao de UX do QG para dominio:
+  - `TerritoryProfilePage` agora exibe rotulos amigaveis de dominio tambem nas tabelas de indicadores e comparacao.
 - Home executiva do QG atualizada para refletir Onda B/C no frontend:
   - novo painel `Dominios Onda B/C` na `QgOverviewPage` com atalhos de navegacao para `Prioridades` e `Mapa` por dominio.
   - catalogo de dominios/fonte/metrica padrao centralizado em `frontend/src/modules/qg/domainCatalog.ts`.
@@ -221,6 +223,8 @@ Contrato tecnico principal: `CONTRATO.md`
   - `npm --prefix frontend run build`: `OK` (Vite build concluido com filtros padronizados + prefill por query string).
   - `npm --prefix frontend run test`: `14 passed` / `35 passed` (revalidado apos rotulos amigaveis de dominio no QG).
   - `npm --prefix frontend run build`: `OK` (revalidado apos refinamento de UX de dominio).
+  - `npm --prefix frontend run test`: `14 passed` / `35 passed` (revalidado apos padronizacao de rotulos no `TerritoryProfilePage`).
+  - `npm --prefix frontend run build`: `OK` (revalidado apos ajuste no `TerritoryProfilePage`).
 - Saneamento operacional executado:
   - `scripts/backfill_missing_pipeline_checks.py --window-days 7 --apply` executado com sucesso.
   - 6 runs sem check foram corrigidos; `SLO-3` voltou a conformidade (`runs_missing_checks=0`).
