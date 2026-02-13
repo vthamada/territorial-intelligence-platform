@@ -23,10 +23,25 @@ function formatUpdatedAt(updatedAt: string | null) {
   });
 }
 
+function classificationLabel(classification: string | null | undefined): string | null {
+  if (!classification) {
+    return null;
+  }
+  if (classification === "oficial") {
+    return "Fonte oficial";
+  }
+  if (classification === "proxy") {
+    return "Proxy/estimado";
+  }
+  return "Fontes mistas";
+}
+
 export function SourceFreshnessBadge({ metadata }: SourceFreshnessBadgeProps) {
+  const classLabel = classificationLabel(metadata.source_classification);
   return (
     <div className="source-freshness-badge" role="status" aria-label="Metadados de fonte e atualizacao">
       <span>Fonte: {metadata.source_name}</span>
+      {classLabel ? <span className={`source-classification source-classification-${metadata.source_classification}`}>{classLabel}</span> : null}
       <span>Atualizacao: {formatUpdatedAt(metadata.updated_at)}</span>
       <span>Cobertura: {metadata.coverage_note}</span>
     </div>

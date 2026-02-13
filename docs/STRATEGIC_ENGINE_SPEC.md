@@ -1,5 +1,5 @@
 ﻿# STRATEGIC_ENGINE_SPEC
-Versao: 0.1.0
+Versao: 1.0.0
 Data: 2026-02-13
 Escopo: motor estrategico para priorizacao, insights, simulacao e explicabilidade no QG.
 
@@ -133,13 +133,20 @@ Registrar por execucao de motor:
 
 ## 12) Plano de implementacao
 
-## Fase SE-1
-1. externalizar thresholds/pesos para configuracao versionada.
-2. incluir versao da configuracao no payload de prioridade.
+## Fase SE-1 (CONCLUIDO)
+1. ✅ Score min-max por indicador implementado em SQL (routes_qg.py CTEs `scored`).
+2. ✅ Thresholds de severidade: `critical >= 80`, `attention >= 50`, `stable < 50`.
+3. ✅ Funcoes auxiliares `_score_to_status()` e `_score_from_rank()` auditaveis.
+4. ✅ `rationale` retornado em `/v1/priority/list` com justificativa textual.
+5. ✅ `evidence` com source, dataset, reference_period, updated_at em payloads de prioridade.
+6. ✅ `coverage_note` presente em todos os endpoints territoriais.
+7. ✅ Simulacao basica em `/v1/scenarios/simulate` com antes/depois/delta.
+8. ✅ Briefs com evidencias estruturadas (`BriefEvidenceItem`).
 
 ## Fase SE-2
-1. padronizar explainability em todos endpoints do motor.
-2. consolidar regras de insight e cobertura minima.
+1. externalizar thresholds/pesos para `configs/strategic_engine/*.yml`.
+2. incluir versao da configuracao no payload de prioridade.
+3. padronizar explainability em todos endpoints do motor.
 
 ## Fase SE-3
 1. endurecer simulacao com validacoes e testes de regressao.
@@ -147,7 +154,16 @@ Registrar por execucao de motor:
 
 ## 13) Criterios de aceite
 
-1. motor retorna score/severidade/rationale/evidence de forma consistente.
-2. regras de peso/threshold sao versionadas e auditaveis.
-3. simulacao retorna antes/depois e delta de ranking com testes aprovados.
-4. divergencias entre frontend e backend sobre thresholds deixam de existir.
+### v1.0 (SE-1) — ATENDIDOS
+1. ✅ Motor retorna score/severidade/rationale/evidence para `/v1/priority/list`.
+2. ✅ Thresholds de score auditaveis em funcoes Python dedicadas.
+3. ✅ Simulacao retorna antes/depois e delta via `/v1/scenarios/simulate`.
+4. ✅ Briefs com evidencias estruturadas.
+5. ✅ Coverage note presente em payloads territoriais.
+6. ✅ Testes de contrato cobrindo payloads de prioridade, insights e cenarios.
+
+### v2.0 (SE-2/SE-3) — PENDENTES
+1. Regras de peso/threshold externalizadas em YAML versionado.
+2. Versao da configuracao incluida no payload de resposta.
+3. Testes de regressao para simulacao com fixtures controladas.
+4. Nota metodologica publicada no `/admin`.

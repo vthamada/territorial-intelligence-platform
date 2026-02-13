@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RouterProvider } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -79,6 +79,13 @@ vi.mock("../shared/api/ops", () => ({
     page: 1,
     page_size: 20,
     total: 0,
+    items: []
+  }),
+  getOpsSourceCoverage: vi.fn().mockResolvedValue({
+    source: null,
+    wave: null,
+    reference_period: null,
+    include_internal: false,
     items: []
   })
 }));
@@ -406,7 +413,8 @@ describe("Router smoke", () => {
     await screen.findByText("Situacao geral");
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("link", { name: "Prioridades" }));
+    const mainNav = screen.getByRole("navigation", { name: "Navegacao principal" });
+    await user.click(within(mainNav).getByRole("link", { name: "Prioridades" }));
     await screen.findByText("Prioridades estrategicas");
 
     await user.click(screen.getByRole("link", { name: "Mapa" }));

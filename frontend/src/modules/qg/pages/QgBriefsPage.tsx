@@ -6,6 +6,7 @@ import { formatApiError } from "../../../shared/api/http";
 import { postBriefGenerate } from "../../../shared/api/qg";
 import type { BriefGenerateResponse } from "../../../shared/api/types";
 import { getQgDomainLabel, normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
+import { usePersistedFormState } from "../../../shared/hooks/usePersistedFormState";
 import { Panel } from "../../../shared/ui/Panel";
 import { formatLevelLabel, formatStatusLabel, formatValueWithUnit } from "../../../shared/ui/presentation";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
@@ -102,11 +103,37 @@ function buildBriefHtml(brief: BriefGenerateResponse) {
 
 export function QgBriefsPage() {
   const [searchParams] = useSearchParams();
-  const [period, setPeriod] = useState(searchParams.get("period") || "2025");
-  const [level, setLevel] = useState(normalizeLevel(searchParams.get("level")));
-  const [territoryId, setTerritoryId] = useState(searchParams.get("territory_id") || "");
-  const [domain, setDomain] = useState(normalizeQgDomain(searchParams.get("domain")));
-  const [limit, setLimit] = useState(searchParams.get("limit") || "20");
+
+  const [formValues, setFormField] = usePersistedFormState(
+    "briefs",
+    {
+      period: "2025",
+      level: "municipality",
+      territoryId: "",
+      domain: "",
+      limit: "20",
+    },
+    {
+      period: searchParams.get("period") || "",
+      level: searchParams.get("level") || "",
+      territoryId: searchParams.get("territory_id") || "",
+      domain: searchParams.get("domain") || "",
+      limit: searchParams.get("limit") || "",
+    }
+  );
+
+  const period = formValues.period;
+  const level = normalizeLevel(formValues.level);
+  const territoryId = formValues.territoryId;
+  const domain = normalizeQgDomain(formValues.domain);
+  const limit = formValues.limit;
+
+  const setPeriod = (v: string) => setFormField("period", v);
+  const setLevel = (v: string) => setFormField("level", v);
+  const setTerritoryId = (v: string) => setFormField("territoryId", v);
+  const setDomain = (v: string) => setFormField("domain", v);
+  const setLimit = (v: string) => setFormField("limit", v);
+
   const [exportError, setExportError] = useState<string | null>(null);
 
   const territoriesQuery = useQuery({
@@ -216,7 +243,7 @@ export function QgBriefsPage() {
   const brief = briefMutation.data;
 
   return (
-    <div className="page-grid">
+    <main className="page-grid">
       <Panel title="Briefs executivos" subtitle="Geracao de resumo acionavel com evidencias priorizadas">
         <form
           className="filter-grid compact"
@@ -289,17 +316,17 @@ export function QgBriefsPage() {
       {brief ? (
         <Panel title={brief.title} subtitle={`Brief ID: ${brief.brief_id}`}>
           <div className="panel-actions-row">
-            <button type="button" className="button-secondary" onClick={exportBriefHtml}>
+            <button type="button" className="button-secondary" onClick={exportBriefHtml} aria-label="Exportar brief como HTML">
               Exportar HTML
             </button>
-            <button type="button" className="button-secondary" onClick={printBrief}>
+            <button type="button" className="button-secondary" onClick={printBrief} aria-label="Imprimir ou salvar como PDF">
               Imprimir / PDF
             </button>
           </div>
           {exportError ? <p className="brief-export-error">{exportError}</p> : null}
 
           <h3>Resumo executivo</h3>
-          <ul className="trend-list">
+          <ul className="trend-list" aria-label="Resumo executivo do brief">
             {brief.summary_lines.map((line, index) => (
               <li key={`summary-${index}`}>
                 <div>
@@ -322,7 +349,7 @@ export function QgBriefsPage() {
             <StateBlock tone="empty" title="Sem evidencias" message="Nenhuma evidencia retornada para os filtros aplicados." />
           ) : (
             <div className="table-wrap">
-              <table>
+              <table aria-label="Evidencias do brief">
                 <thead>
                   <tr>
                     <th>Territorio</th>
@@ -358,6 +385,6 @@ export function QgBriefsPage() {
           <SourceFreshnessBadge metadata={brief.metadata} />
         </Panel>
       ) : null}
-    </div>
+    </main>
   );
 }

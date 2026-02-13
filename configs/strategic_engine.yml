@@ -1,0 +1,44 @@
+# Strategic Engine Configuration — SE-2
+# Controls scoring thresholds, severity classification, and ranking weights.
+# Changes to this file are tracked via config_version in API responses.
+#
+# Scoring model:
+#   score = (1 - (rank - 1) / (total - 1)) * 100
+#   status = critical if score >= critical_threshold
+#            attention if score >= attention_threshold
+#            else stable
+
+version: "1.0.0"
+
+scoring:
+  # Score thresholds for status classification (0-100 scale)
+  critical_threshold: 80
+  attention_threshold: 50
+
+  # Status severity weights for impact comparison
+  severity_weights:
+    stable: 0
+    attention: 1
+    critical: 2
+
+  # Scoring formula parameters
+  rank_formula: "percentile"  # percentile | z_score (future)
+  max_score: 100.0
+  min_score: 0.0
+
+insights:
+  # Minimum score to qualify as an insight highlight
+  min_score_for_highlight: 60
+  # Default robustness label when insufficient data
+  default_robustness: "moderada"
+
+scenarios:
+  # Adjustment limits for simulation
+  min_adjustment_percent: -95
+  max_adjustment_percent: 300
+
+briefs:
+  # Maximum evidence items per brief
+  max_evidences: 20
+  # Default limit for priority items in brief
+  default_limit: 20

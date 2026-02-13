@@ -24,3 +24,8 @@ CREATE INDEX IF NOT EXISTS idx_pipeline_checks_run_id
 
 CREATE INDEX IF NOT EXISTS idx_connector_registry_status
     ON ops.connector_registry (status, wave);
+
+-- Spatial index on dim_territory geometry for MVT tile queries (MP-2/MP-3)
+CREATE INDEX IF NOT EXISTS idx_dim_territory_geometry
+    ON silver.dim_territory USING GIST (geometry)
+    WHERE geometry IS NOT NULL;

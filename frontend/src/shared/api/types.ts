@@ -228,6 +228,8 @@ export type QgMetadata = {
   coverage_note: string;
   unit: string | null;
   notes: string | null;
+  source_classification?: string | null;
+  config_version?: string | null;
 };
 
 export type KpiOverviewItem = {
@@ -517,6 +519,10 @@ export type MapLayerItem = {
   default_visibility: boolean;
   zoom_min: number;
   zoom_max: number | null;
+  official_status?: "official" | "proxy" | "hybrid" | string;
+  layer_kind?: "polygon" | "point" | "grid" | string;
+  proxy_method?: string | null;
+  notes?: string | null;
 };
 
 export type MapLayersResponse = {
@@ -554,4 +560,54 @@ export type MapStyleMetadataResponse = {
   domain_palette: MapStyleDomainItem[];
   legend_ranges: MapStyleLegendRangeItem[];
   notes: string;
+};
+
+export type MapLayerCoverageItem = {
+  layer_id: string;
+  territory_level: string;
+  territories_total: number;
+  territories_with_geometry: number;
+  territories_with_indicator: number;
+  is_ready: boolean;
+  notes: string | null;
+};
+
+export type MapLayersCoverageResponse = {
+  generated_at_utc: string;
+  metric: string | null;
+  period: string | null;
+  items: MapLayerCoverageItem[];
+};
+
+export type MapLayerMetadataResponse = {
+  generated_at_utc: string;
+  layer: MapLayerItem;
+  methodology: string;
+  limitations: string[];
+};
+
+export type MapLayerCheckStatus = {
+  check_name: string;
+  status: string;
+  details: string;
+  observed_value: number | null;
+  threshold_value: number | null;
+};
+
+export type MapLayerReadinessItem = {
+  layer: MapLayerItem;
+  coverage: MapLayerCoverageItem;
+  readiness_status: "pass" | "warn" | "fail" | "pending" | string;
+  readiness_reason: string | null;
+  row_check: MapLayerCheckStatus | null;
+  geometry_check: MapLayerCheckStatus | null;
+};
+
+export type MapLayersReadinessResponse = {
+  generated_at_utc: string;
+  metric: string | null;
+  period: string | null;
+  quality_run_id: string | null;
+  quality_run_started_at_utc: string | null;
+  items: MapLayerReadinessItem[];
 };

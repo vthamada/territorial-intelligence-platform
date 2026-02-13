@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getOpsReadiness, getOpsSla, getOpsSummary, getOpsTimeseries } from "../../../shared/api/ops";
+import { getConnectorRegistry, getOpsReadiness, getOpsSla, getOpsSourceCoverage, getOpsSummary, getOpsTimeseries, getPipelineChecks } from "../../../shared/api/ops";
 import { formatApiError, requestJson } from "../../../shared/api/http";
+import { CollapsiblePanel } from "../../../shared/ui/CollapsiblePanel";
 import { Panel } from "../../../shared/ui/Panel";
 import { StateBlock } from "../../../shared/ui/StateBlock";
-import type { OpsReadinessResponse } from "../../../shared/api/types";
+import type { OpsReadinessResponse, ConnectorRegistryItem, OpsSourceCoverageResponse, PipelineCheck } from "../../../shared/api/types";
 
 type HealthResponse = {
   status: string;
@@ -56,19 +57,37 @@ export function OpsHealthPage() {
     queryKey: ["ops", "timeseries"],
     queryFn: () => getOpsTimeseries({ entity: "runs", granularity: "day" })
   });
+  const checksQuery = useQuery({
+    queryKey: ["ops", "checks", "latest"],
+    queryFn: () => getPipelineChecks({ limit: 50 })
+  });
+  const connectorsQuery = useQuery({
+    queryKey: ["ops", "connectors"],
+    queryFn: () => getConnectorRegistry()
+  });
+  const coverageQuery = useQuery({
+    queryKey: ["ops", "source-coverage"],
+    queryFn: () => getOpsSourceCoverage()
+  });
 
   const isLoading =
     healthQuery.isPending ||
     summaryQuery.isPending ||
     slaQuery.isPending ||
     readinessQuery.isPending ||
-    timeseriesQuery.isPending;
+    timeseriesQuery.isPending ||
+    checksQuery.isPending ||
+    connectorsQuery.isPending ||
+    coverageQuery.isPending;
   const firstError =
     healthQuery.error ??
     summaryQuery.error ??
     slaQuery.error ??
     readinessQuery.error ??
-    timeseriesQuery.error;
+    timeseriesQuery.error ??
+    checksQuery.error ??
+    connectorsQuery.error ??
+    coverageQuery.error;
 
   if (isLoading) {
     return (
@@ -94,6 +113,9 @@ export function OpsHealthPage() {
           void slaQuery.refetch();
           void readinessQuery.refetch();
           void timeseriesQuery.refetch();
+          void checksQuery.refetch();
+          void connectorsQuery.refetch();
+          void coverageQuery.refetch();
         }}
       />
     );
@@ -104,6 +126,9 @@ export function OpsHealthPage() {
   const sla = slaQuery.data!;
   const readiness = readinessQuery.data as OpsReadinessResponse;
   const timeseries = timeseriesQuery.data!;
+  const checks = checksQuery.data!;
+  const connectors = connectorsQuery.data!;
+  const coverage = coverageQuery.data!;
   const historicalRate = readiness.slo1.total_runs > 0 ? readiness.slo1.successful_runs / readiness.slo1.total_runs : null;
   const currentHealthRate =
     readiness.slo1_current.total_runs > 0
@@ -216,6 +241,89 @@ export function OpsHealthPage() {
           </ul>
         )}
       </Panel>
+
+      <CollapsiblePanel title="Quality checks" subtitle="Resultados dos ultimos checks de qualidade" defaultOpen={false} badgeCount={checks?.items?.length ?? 0}>
+        {!checks?.items?.length ? (
+          <StateBlock tone="empty" title="Sem checks" message="Nenhum check de qualidade encontrado." />
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Check</th>
+                  <th>Status</th>
+                  <th>Detalhes</th>
+                  <th>Data</th>
+                </tr>
+              </thead>
+              <tbody>
+                {checks.items.map((item, idx) => (
+                  <tr key={`${item.check_name}-${idx}`}>
+                    <td>{item.check_name}</td>
+                    <td>{item.status}</td>
+                    <td style={{ maxWidth: "20rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.details}</td>
+                    <td>{item.created_at_utc ? new Date(item.created_at_utc).toLocaleString("pt-BR") : "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CollapsiblePanel>
+
+      <CollapsiblePanel title="Cobertura de fontes" subtitle="Linhas ingeridas por fonte de dados" defaultOpen={false} badgeCount={coverage?.items?.length ?? 0}>
+        {!coverage?.items?.length ? (
+          <StateBlock tone="empty" title="Sem cobertura" message="Nenhuma fonte com dados." />
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fonte</th>
+                  <th>Total linhas</th>
+                  <th>Ultima atualizacao</th>
+                </tr>
+              </thead>
+              <tbody>
+                {coverage.items.map((item) => (
+                  <tr key={item.source}>
+                    <td>{item.source}</td>
+                    <td>{item.rows_loaded_total.toLocaleString("pt-BR")}</td>
+                    <td>{item.latest_run_started_at_utc ? new Date(item.latest_run_started_at_utc).toLocaleString("pt-BR") : "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CollapsiblePanel>
+
+      <CollapsiblePanel title="Registro de conectores" subtitle="Status de todos os conectores configurados" defaultOpen={false} badgeCount={connectors?.items?.length ?? 0}>
+        {!connectors?.items?.length ? (
+          <StateBlock tone="empty" title="Sem conectores" message="Nenhum conector registrado." />
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Conector</th>
+                  <th>Wave</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {connectors.items.map((item) => (
+                  <tr key={item.connector_name}>
+                    <td>{item.connector_name}</td>
+                    <td>{item.wave}</td>
+                    <td>{item.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CollapsiblePanel>
     </div>
   );
 }

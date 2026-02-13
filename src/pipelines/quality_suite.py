@@ -15,6 +15,7 @@ from pipelines.common.quality import (
     check_fact_electorate,
     check_fact_indicator,
     check_fact_indicator_source_rows,
+    check_map_layers,
     check_ops_pipeline_runs,
 )
 from pipelines.common.quality_thresholds import load_quality_thresholds
@@ -62,6 +63,7 @@ def run(
     with session_scope(settings) as session:
         results: list[CheckResult] = []
         results.extend(check_dim_territory(session, settings.municipality_ibge_code, thresholds))
+        results.extend(check_map_layers(session, settings.municipality_ibge_code, thresholds))
         results.extend(check_fact_electorate(session, settings.municipality_ibge_code, thresholds))
         results.extend(check_fact_election_result(session, thresholds))
         results.extend(check_fact_indicator(session, thresholds))

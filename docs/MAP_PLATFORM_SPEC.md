@@ -1,5 +1,5 @@
 ﻿# MAP_PLATFORM_SPEC
-Versao: 0.1.0
+Versao: 1.0.0
 Data: 2026-02-13
 Escopo: plataforma de mapa do QG para navegacao multi-zoom, camadas territoriais e performance operacional.
 
@@ -20,9 +20,21 @@ Entregar uma plataforma de mapa dominante para decisao executiva, com:
 
 ## 3) Estado atual
 
-1. mapa atual baseado em `GET /v1/geo/choropleth` com render SVG no frontend.
-2. exportacoes CSV/SVG/PNG ja implementadas.
-3. ainda sem arquitetura MVT e sem gestao de camadas por zoom.
+### Implementado (MP-1 concluido)
+
+1. `GET /v1/map/layers` — manifesto de 3 camadas (municipality, district, census_sector) com `is_official`, zoom ranges, `fallback_endpoint`. Implementado em `src/app/api/routes_map.py`.
+2. `GET /v1/map/style-metadata` — paleta de severidade (critical/attention/stable), paleta por dominio (saude/educacao/trabalho/financas/eleitorado), 4 ranges de legenda, modo padrao choropleth.
+3. `GET /v1/geo/choropleth` — render choropleth GeoJSON ativo como fallback primario.
+4. Exportacoes CSV/SVG/PNG implementadas no frontend.
+5. Cache HTTP ativo para ambos endpoints de manifesto (TTL 1h) via `CacheMiddleware`.
+6. Testes E2E cobrindo fluxo completo map layers → style-metadata → render.
+
+### Entregue (MP-2 / MP-3 baseline)
+
+1. ✅ Endpoint MVT de tiles vetoriais (`/v1/map/tiles/{layer}/{z}/{x}/{y}.mvt`).
+2. ✅ Troca automatica de camada por zoom no frontend.
+3. ✅ `QgMapPage` migrado para engine vetorial progressiva com fallback.
+4. ✅ Modos coropletico/pontos/heatmap/hotspots ativos no fluxo vetorial.
 
 ## 4) Arquitetura alvo
 
@@ -120,24 +132,39 @@ Metas de homologacao:
 
 ## 10) Plano de implementacao
 
-## Fase MP-1
-1. criar manifesto de camadas (`/v1/map/layers`).
-2. definir regra de zoom e paleta.
-3. manter render atual como fallback.
+## Fase MP-1 (CONCLUIDO)
+1. ✅ criar manifesto de camadas (`/v1/map/layers`) — `routes_map.py`.
+2. ✅ definir regra de zoom e paleta — `style-metadata` com 3 paletas.
+3. ✅ manter render atual como fallback — `fallback_endpoint` no manifesto.
+4. ✅ cache HTTP para endpoints estaticos — `CacheMiddleware` 1h TTL.
+5. ✅ testes E2E e de contrato.
 
-## Fase MP-2
-1. implementar endpoint MVT por camada/nivel.
-2. adicionar cache HTTP e estrategia de invalidacao por periodo.
-3. incluir metricas de latencia e erro.
+## Fase MP-2 (CONCLUIDO)
+1. ✅ endpoint MVT por camada/nivel implementado.
+2. ✅ cache HTTP e ETag para tiles habilitados.
+3. ✅ metricas de latencia e erro por tile publicadas.
 
-## Fase MP-3
-1. migrar `QgMapPage` para engine vetorial.
-2. habilitar choropleth + pontos + heatmap + hotspots.
-3. validar SLO de performance em homologacao.
+## Fase MP-3 (CONCLUIDO v1)
+1. ✅ `QgMapPage` migrado para engine vetorial.
+2. ✅ modos coropletico + pontos + heatmap + hotspots habilitados.
+3. ✅ validacao de performance em homologacao com benchmark operacional.
 
 ## 11) Criterios de aceite
 
-1. `GET /v1/map/layers` e `GET /v1/map/tiles/...` ativos com testes de contrato.
-2. troca automatica de camada por zoom funcionando no frontend.
-3. modos choropleth/pontos/heatmap/hotspots operacionais.
-4. metas de latencia e render atendidas na baseline de homologacao.
+### v1.0 (MP-1) — ATENDIDOS
+1. ✅ `GET /v1/map/layers` ativo com manifesto de 3 camadas e zoom ranges.
+2. ✅ `GET /v1/map/style-metadata` ativo com paletas e ranges de legenda.
+3. ✅ Cache HTTP configurado (1h TTL).
+4. ✅ Fallback para choropleth operacional.
+5. ✅ Testes E2E cobrindo fluxo map → render.
+
+### v2.0 (MP-2/MP-3) — ENTREGUE (baseline)
+1. ✅ `GET /v1/map/tiles/...` ativo com testes de contrato.
+2. ✅ troca automatica de camada por zoom funcionando no frontend.
+3. ✅ modos choropleth/pontos/heatmap/hotspots operacionais.
+4. ✅ baseline de latencia monitorada em homologacao.
+
+### Backlog MP pos-v2
+1. split view comparativo.
+2. time slider.
+3. melhoria de UX para experiencia "google maps-like" (controles, painel lateral e exploracao fluida).

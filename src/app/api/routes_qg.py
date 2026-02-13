@@ -11,6 +11,11 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.api.territory_levels import normalize_level, to_external_level
+from app.api.strategic_engine_config import (
+    load_strategic_engine_config,
+    score_to_status,
+    status_impact,
+)
 from app.schemas.qg import (
     BriefEvidenceItem,
     BriefGenerateRequest,
@@ -72,13 +77,36 @@ _MIN_ALLOWED_YEAR = 1900
 _MAX_ALLOWED_YEAR_OFFSET = 1
 
 
-def _qg_metadata(updated_at: datetime | None, notes: str | None = None, unit: str | None = None) -> QgMetadata:
+# Sources classified as official government data.
+_OFFICIAL_SOURCES = {
+    "DATASUS", "INEP", "MTE", "SICONFI", "TSE", "IBGE", "SIDRA",
+    "SIOPS", "SNIS", "ANA", "ANATEL", "ANEEL",
+}
+# Sources classified as proxy/estimated data.
+_PROXY_SOURCES = {
+    "SEJUSP_MG", "SENATRAN", "INMET", "INPE_QUEIMADAS",
+}
+
+
+def _classify_source(source_name: str) -> str:
+    """Return 'oficial', 'proxy', or 'misto' based on source provenance."""
+    if source_name in _OFFICIAL_SOURCES:
+        return "oficial"
+    if source_name in _PROXY_SOURCES:
+        return "proxy"
+    return "misto"
+
+
+def _qg_metadata(updated_at: datetime | None, notes: str | None = None, unit: str | None = None, source_classification: str | None = None) -> QgMetadata:
+    cfg = load_strategic_engine_config()
     return QgMetadata(
         source_name="silver.fact_indicator",
         updated_at=updated_at,
         coverage_note="territorial_aggregated",
         unit=unit,
         notes=notes,
+        source_classification=source_classification or "misto",
+        config_version=cfg.version,
     )
 
 
@@ -89,6 +117,9 @@ def _fetch_priority_rows(
     domain: str | None,
     limit: int,
 ) -> list[dict[str, Any]]:
+    cfg = load_strategic_engine_config()
+    crit = cfg.scoring.critical_threshold
+    att = cfg.scoring.attention_threshold
     query = text(
         f"""
         WITH base AS (
@@ -146,8 +177,8 @@ def _fetch_priority_rows(
             updated_at,
             score,
             CASE
-                WHEN score >= 80 THEN 'critical'
-                WHEN score >= 50 THEN 'attention'
+                WHEN score >= {crit} THEN 'critical'
+                WHEN score >= {att} THEN 'attention'
                 ELSE 'stable'
             END AS status
         FROM scored
@@ -223,11 +254,7 @@ def _fetch_latest_indicator_rows(
 
 
 def _score_to_status(score: float) -> str:
-    if score >= 80:
-        return "critical"
-    if score >= 50:
-        return "attention"
-    return "stable"
+    return score_to_status(score)
 
 
 def _score_from_rank(rank: int, total_items: int) -> float:
@@ -237,14 +264,7 @@ def _score_from_rank(rank: int, total_items: int) -> float:
 
 
 def _status_impact(before: str, after: str) -> str:
-    weights = {"stable": 0, "attention": 1, "critical": 2}
-    before_weight = weights.get(before, 0)
-    after_weight = weights.get(after, 0)
-    if after_weight > before_weight:
-        return "worsened"
-    if after_weight < before_weight:
-        return "improved"
-    return "unchanged"
+    return status_impact(before, after)
 
 
 def _previous_reference_period(period: str | None) -> str | None:
@@ -263,6 +283,9 @@ def _fetch_territory_indicator_scores(
     period: str | None,
     level: str,
 ) -> list[dict[str, Any]]:
+    cfg = load_strategic_engine_config()
+    crit = cfg.scoring.critical_threshold
+    att = cfg.scoring.attention_threshold
     rows = db.execute(
         text(
             f"""
@@ -318,8 +341,8 @@ def _fetch_territory_indicator_scores(
                 score,
                 updated_at,
                 CASE
-                    WHEN score >= 80 THEN 'critical'
-                    WHEN score >= 50 THEN 'attention'
+                    WHEN score >= {crit} THEN 'critical'
+                    WHEN score >= {att} THEN 'attention'
                     ELSE 'stable'
                 END AS status
             FROM scored
@@ -1215,6 +1238,8 @@ def get_electorate_summary(
                 coverage_note="territorial_aggregated",
                 unit="voters",
                 notes="no_data_for_selected_filters",
+                source_classification="oficial",
+                config_version=load_strategic_engine_config().version,
             ),
             total_voters=0,
             turnout=None,
@@ -1285,6 +1310,8 @@ def get_electorate_summary(
             coverage_note="territorial_aggregated",
             unit="voters",
             notes="electorate_summary_v1",
+            source_classification="oficial",
+            config_version=load_strategic_engine_config().version,
         ),
         total_voters=total_voters,
         turnout=turnout,
@@ -1328,6 +1355,8 @@ def get_electorate_map(
                     coverage_note="territorial_aggregated",
                     unit="voters",
                     notes="no_data_for_selected_filters",
+                    source_classification="oficial",
+                    config_version=load_strategic_engine_config().version,
                 ),
                 items=[],
             )
@@ -1375,6 +1404,8 @@ def get_electorate_map(
                 coverage_note="territorial_aggregated",
                 unit="voters",
                 notes="electorate_map_v1",
+                source_classification="oficial",
+                config_version=load_strategic_engine_config().version,
             ),
             items=items,
         )
@@ -1396,6 +1427,8 @@ def get_electorate_map(
                 coverage_note="territorial_aggregated",
                 unit="%",
                 notes="no_data_for_selected_filters",
+                source_classification="oficial",
+                config_version=load_strategic_engine_config().version,
             ),
             items=[],
         )
@@ -1462,6 +1495,8 @@ def get_electorate_map(
             coverage_note="territorial_aggregated",
             unit="%" if metric.endswith("_rate") else "voters",
             notes="electorate_map_v1",
+            source_classification="oficial",
+            config_version=load_strategic_engine_config().version,
         ),
         items=items,
     )

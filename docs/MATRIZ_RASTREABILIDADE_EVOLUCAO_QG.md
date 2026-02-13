@@ -17,11 +17,11 @@ Fonte analisada: `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md` (versao 1.1.0)
 
 | ID | Item do plano | Status | Evidencia atual | Falta implementar |
 |---|---|---|---|---|
-| P01 | Frontend orientado a decisao | PARCIAL | `frontend/src/modules/qg/pages/QgOverviewPage.tsx`, `QgPrioritiesPage.tsx`, `QgInsightsPage.tsx` | Refinar UX para reduzir densidade e aumentar leitura instantanea |
+| P01 | Frontend orientado a decisao | PARCIAL | `frontend/src/modules/qg/pages/QgOverviewPage.tsx`, `QgPrioritiesPage.tsx`, `QgInsightsPage.tsx`; `CollapsiblePanel` com progressive disclosure | Layout B com mapa dominante na Home |
 | P02 | Mapa como elemento principal da experiencia | PARCIAL | `frontend/src/modules/qg/pages/QgMapPage.tsx` | Home ainda nao esta no layout B com mapa dominante |
-| P03 | Separacao executivo x tecnico (`/admin`) | OK | `frontend/src/modules/admin/pages/AdminHubPage.tsx`, rotas QG e ops segregadas | Consolidar indicadores de readiness tambem no `/admin` |
+| P03 | Separacao executivo x tecnico (`/admin`) | OK | `AdminHubPage.tsx` com `ReadinessBanner` consumindo `GET /v1/ops/readiness`, rotas QG e ops segregadas | N/A |
 | P04 | Dados eleitorais apenas agregados | OK | `src/app/api/routes_qg.py` (`/electorate/summary`, `/electorate/map`) | Documentar regra de supressao/limiar por granularidade fina |
-| P05 | Transparencia "oficial vs proxy" | PARCIAL | mencoes em docs e badges de fonte (`SourceFreshnessBadge`) | Implementar badge explicito oficial/proxy por camada |
+| P05 | Transparencia "oficial vs proxy" | OK | `source_classification` no `QgMetadata` (backend + frontend), `_classify_source()` em routes_qg.py, badge em `SourceFreshnessBadge` com label contextual | - |
 | P06 | Local-first reproduzivel | PARCIAL | `scripts/dev_up.ps1`, `scripts/dev_down.ps1` | Empacotamento launcher final e modo demo seedado |
 | P07 | Nomes tecnicos em ingles e UI em portugues | OK | SQL/API em ingles; rotulos UI em portugues nas paginas QG | Revisao final de consistencia de termos |
 
@@ -29,13 +29,13 @@ Fonte analisada: `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md` (versao 1.1.0)
 
 | ID | Documento esperado | Status | Evidencia atual | Falta implementar |
 |---|---|---|---|---|
-| D01 | `CONTRATO.md` como base tecnica | OK | `CONTRATO.md` | Revisoes pontuais de SLO/criterios com readiness novo |
+| D01 | `CONTRATO.md` como base tecnica | OK | `CONTRATO.md` v1.0 congelado (2026-02-13): endpoints executivos, SLOs validados, criterios de go-live com ferramentas, frontend executivo completo | N/A |
 | D02 | Plano executavel consolidado | OK | `docs/PLANO_IMPLEMENTACAO_QG.md` | Manter atualizacao por ciclo |
 | D03 | Estado operacional corrente | OK | `HANDOFF.md` | Atualizacao continua |
 | D04 | `FRONTEND_SPEC_QG_ESTRATEGICO_v2.0.0.md` | PENDENTE | existe `docs/FRONTEND_SPEC.md` | Decidir: criar arquivo v2.0.0 ou manter `FRONTEND_SPEC.md` como substituto oficial |
-| D05 | `MAP_PLATFORM_SPEC.md` | OK | `MAP_PLATFORM_SPEC.md` (v0.1.0) | Refinar para v1.0 com contratos finais e metas validadas em homologacao |
-| D06 | `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md` | OK | `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md` (v0.1.0) | Refinar para v1.0 com catalogo final de camadas e regras de supressao |
-| D07 | `STRATEGIC_ENGINE_SPEC.md` | OK | `STRATEGIC_ENGINE_SPEC.md` (v0.1.0) | Refinar para v1.0 com pesos/thresholds versionados em config real |
+| D05 | `MAP_PLATFORM_SPEC.md` | OK | `MAP_PLATFORM_SPEC.md` atualizado para v1.0.0 com MP-2/MP-3 entregues e backlog pos-v2 | Manter atualizacao incremental de backlog |
+| D06 | `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md` | OK | `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md` v1.0.0 com TL-2 concluido e TL-3 baseline entregue | Evoluir camada `local_votacao` |
+| D07 | `STRATEGIC_ENGINE_SPEC.md` | OK | `STRATEGIC_ENGINE_SPEC.md` v1.0.0 | Revisoes futuras de pesos/thresholds por dominio |
 
 ## 3) Macro-arquitetura alvo
 
@@ -43,14 +43,14 @@ Fonte analisada: `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md` (versao 1.1.0)
 |---|---|---|---|---|
 | A01 | Bronze/Silver/Gold/Ops ativos | OK | `db/sql/002_silver_schema.sql`, `src/pipelines/*`, `src/app/api/routes_ops.py` | Ajustes incrementais por dominio |
 | A02 | Postgres + PostGIS | OK | checks de readiness em `src/app/ops_readiness.py` | N/A |
-| A03 | Indices geoespaciais dedicados | PARCIAL | indices gerais em `db/sql/003_indexes.sql`, `db/sql/004_qg_ops_indexes.sql` | Adicionar indices espaciais (GIST) e tuning geospatial |
-| A04 | Materialized views para mapa/ranking | PENDENTE | sem `MATERIALIZED VIEW` em `db/sql` | Implementar MVs e refresh strategy |
-| A05 | Geometrias simplificadas por zoom | PENDENTE | sem pipeline de simplificacao por zoom | Criar artefatos simplificados por nivel |
+| A03 | Indices geoespaciais dedicados | OK | `db/sql/007_spatial_indexes.sql` com GIST em `dim_territory.geometry`, GIN trigram em `name`, covering index para joins de mapa | N/A |
+| A04 | Materialized views para mapa/ranking | OK | `db/sql/006_materialized_views.sql` com `mv_territory_ranking`, `mv_map_choropleth`, `mv_territory_map_summary` + funcao `gold.refresh_materialized_views()` | Executar `REFRESH` inicial em producao |
+| A05 | Geometrias simplificadas por zoom | PARCIAL | `mv_territory_map_summary` usa `ST_SimplifyPreserveTopology(geometry, 0.001)` para geometria simplificada | Implementar multiplos niveis de simplificacao por faixa de zoom |
 | A06 | API orientada a UI | OK | `src/app/api/routes_qg.py`, `src/app/api/routes_geo.py`, `src/app/api/routes_ops.py` | Evolucoes de contrato conforme E2E |
-| A07 | Cache HTTP (ETag/Last-Modified) | PENDENTE | sem evidencia de headers de cache em rotas | Implementar cache headers nos endpoints criticos |
+| A07 | Cache HTTP (ETag/Last-Modified) | OK | `src/app/api/cache_middleware.py` com `CacheHeaderMiddleware` (Cache-Control + weak ETag + 304 condicional) aplicado em endpoints criticos (mapa/kpis/territory/choropleth/electorate) | N/A |
 | A08 | React Query | OK | queries em paginas QG/ops (`useQuery`) | N/A |
-| A09 | Zustand | PENDENTE | sem uso de `zustand` no frontend | Decidir se sera adotado ou remover da meta |
-| A10 | Layout B (mapa dominante + painel lateral) | PENDENTE | Home atual existe, mas sem mapa dominante | Implementar layout B na Home executiva |
+| A09 | Zustand | OK | store global de filtros ativo em `frontend/src/shared/stores/filterStore.ts` | Revisar acoplamento entre paginas |
+| A10 | Layout B (mapa dominante + painel lateral) | PARCIAL | layout dominante implementado, mas com ajustes de UX e overflow ainda em curso | Ajustar usabilidade final e responsividade |
 | A11 | Empacotamento local tipo launcher final | PARCIAL | scripts PowerShell de subida/queda | Empacotar distribuicao sem terminal (ex.: PyInstaller) |
 
 ## 4) Ondas de evolucao (item por item)
@@ -103,12 +103,12 @@ Fonte analisada: `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md` (versao 1.1.0)
 
 | ID | Item | Status | Evidencia | Falta |
 |---|---|---|---|---|
-| O5-01 | Plataforma de vector tiles (MVT) | PENDENTE | sem endpoint de tiles vetoriais | Implementar arquitetura de tiles |
-| O5-02 | Troca automatica de camadas por zoom | PENDENTE | mapa atual nao possui motor multi-zoom de layers | Implementar regras por zoom |
-| O5-03 | Modos: choropleth/heatmap/pontos/hotspots | PARCIAL | choropleth existente | Implementar heatmap/hotspots/pontos com toggle |
+| O5-01 | Plataforma de vector tiles (MVT) | OK | endpoint MVT ativo em `routes_map.py`, com testes de contrato | N/A |
+| O5-02 | Troca automatica de camadas por zoom | OK | `useAutoLayerSwitch` + regras por manifesto de camadas | N/A |
+| O5-03 | Modos: choropleth/heatmap/pontos/hotspots | OK | modos vetoriais implementados no `QgMapPage` com fallback SVG | N/A |
 | O5-04 | Split view comparativo | PENDENTE | sem recurso no mapa atual | Implementar visao comparativa |
 | O5-05 | Time slider | PENDENTE | sem slider temporal no mapa | Implementar controle temporal |
-| O5-06 | Home B com mapa 60-70% | PENDENTE | Home atual nao e mapa-dominante | Redesenhar Home executiva |
+| O5-06 | Home B com mapa 60-70% | PARCIAL | Home com mapa dominante entregue, pendente acabamento de UX e leitura em telas menores | Ajustes finais de layout e navegacao |
 
 ### Onda 6 - UX imersiva orientada por decisao
 
@@ -116,7 +116,7 @@ Fonte analisada: `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md` (versao 1.1.0)
 |---|---|---|---|---|
 | O6-01 | Home com painel lateral + top prioridades + hotspots | PARCIAL | painel de prioridades e acoes rapidas em `QgOverviewPage.tsx` | Tornar mapa o elemento dominante com painel lateral persistente |
 | O6-02 | Drawer de mini perfil 360 com acoes | PENDENTE | sem drawer estrategico dedicado | Implementar drawer e fluxo de clique no mapa |
-| O6-03 | Remover tabelas longas da Home | PARCIAL | parte da Home ainda usa tabelas/cartoes em bloco | Migrar para abas/detalhes progressivos |
+| O6-03 | Remover tabelas longas da Home | OK | `CollapsiblePanel` criado; "Dominios Onda B/C" colapsado por padrao, "KPIs executivos" expandido com badge de contagem | - |
 | O6-04 | Meta de compreensao <10s validada | PENDENTE | sem metrica UX formal | Definir e medir KPI de compreensao |
 
 ### Onda 7 - Cenarios + Briefs
@@ -127,15 +127,15 @@ Fonte analisada: `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md` (versao 1.1.0)
 | O7-02 | Antes/depois de score e ranking | OK | `QgScenariosPage.tsx` (cards de resultado) | Refinar UX de leitura executiva |
 | O7-03 | Brief executivo (`POST /briefs`) | OK | `routes_qg.py`, `QgBriefsPage.tsx` | N/A |
 | O7-04 | Export HTML/PDF | OK | botoes exportar/imprimir em `QgBriefsPage.tsx` | N/A |
-| O7-05 | Salvar selecoes persistentes para reuniao | PARCIAL | prefill por query string | Persistencia de sessao/colecoes de brief |
+| O7-05 | Salvar selecoes persistentes para reuniao | OK | `usePersistedFormState` hook (queryString > localStorage > defaults) integrado em QgScenariosPage (6 campos) e QgBriefsPage (5 campos) | - |
 
 ### Onda 8 - Hardening, QA e defensabilidade
 
 | ID | Item | Status | Evidencia | Falta |
 |---|---|---|---|---|
-| O8-01 | Testes E2E de fluxos criticos | PARCIAL | smoke test em `frontend/src/app/router.smoke.test.tsx` | Cobertura E2E completa dos fluxos de decisao |
-| O8-02 | Monitoramento frontend + API | PARCIAL | telemetria frontend + endpoints ops | Painel consolidado e alertas operacionais |
-| O8-03 | Performance profiling (mapa/consultas) | PENDENTE | metas registradas no plano, sem rotina de profiling evidenciada | Implementar benchmark p95 e rotina de afericao |
+| O8-01 | Testes E2E de fluxos criticos | OK | `frontend/src/app/e2e-flow.test.tsx` com 5 testes cobrindo Home→Prioridades→Mapa→Territorio→Eleitorado→Cenarios→Briefs + deep-links + admin→executivo; smoke test mantido em `router.smoke.test.tsx` | Expandir cobertura para fluxos secundarios |
+| O8-02 | Monitoramento frontend + API | OK | telemetria frontend (events ingest + query), OpsHealthPage com 7 paineis (status geral, SLO-1, SLA por job, tendencia, quality checks, cobertura de fontes, conectores), `scripts/homologation_check.py` com 5 dimensoes | Alertas automaticos opcionais |
+| O8-03 | Performance profiling (mapa/consultas) | OK | `scripts/benchmark_api.py` com p50/p95/p99 em 12 endpoints, alvo p95<=800ms, CLI com --rounds/--json | Executar benchmark em ambiente de homologacao |
 | O8-04 | Seguranca minima com admin separado | PARCIAL | separacao `/admin` existente | Definir/implementar auth local se exigido |
 | O8-05 | Defensabilidade metodologica completa | PARCIAL | fontes e metadados exibidos em UI | Documento formal de metodologia/limites/proxies |
 
@@ -143,15 +143,15 @@ Fonte analisada: `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md` (versao 1.1.0)
 
 ### Criticas (prioridade imediata)
 
-1. Executar a Onda 5 real (MVT, multi-zoom, camadas dinamicas, mapa dominante na Home).
-2. Fechar hardening Onda 8 com E2E de fluxo principal e baseline de performance.
-3. Evoluir as 3 specs v0.1 para v1.0 com contratos finais e criterios de aceite medidos.
+1. Evoluir camada eleitoral espacial para `local_votacao` (ponto) com transparencia metodologica.
+2. Corrigir inconsistencias de UX/layout em telas executivas (mapa, territorio 360, eleitorado).
+3. Fechar hardening Onda 8 com benchmark recorrente em homologacao e alertas operacionais.
+4. Consolidar runbook de operacoes para homologacao/producao com procedimento de degradacao de camadas.
 
 ### Importantes
 
-1. Formalizar regra "oficial vs proxy" na UI e em metadados de resposta.
-2. Evoluir camada eleitoral espacial (locais/proxies) com transparencia metodologica.
-3. Completar persistencia de selecoes para fluxo de reuniao (brief/cenario).
+1. Expandir governanca de qualidade de camadas eleitorais (threshold por nivel e alerta).
+2. Evoluir backlog pos-v2 do mapa (split view, time slider, comparacao temporal).
 
 ## 6) Observacao sobre estrutura de repositorio
 

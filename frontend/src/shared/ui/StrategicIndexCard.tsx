@@ -34,10 +34,10 @@ function trendText(trend: StrategicCardTrend) {
 
 export function StrategicIndexCard({ label, value, status = "info", trend, helper }: StrategicIndexCardProps) {
   return (
-    <article className={`strategic-index-card strategic-${status}`}>
+    <article className={`strategic-index-card strategic-${status}`} aria-label={label}>
       <div className="strategic-index-top">
         <span>{label}</span>
-        <small>{statusText(status)}</small>
+        <small aria-label={`status: ${statusText(status)}`}>{statusText(status)}</small>
       </div>
       <strong>{value}</strong>
       {trend ? <p className="strategic-index-trend">tendencia: {trendText(trend)}</p> : null}

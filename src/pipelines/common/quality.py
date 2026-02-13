@@ -152,6 +152,83 @@ def check_dim_territory(
     return results
 
 
+def check_map_layers(
+    session: Session,
+    municipality_code: str,
+    thresholds: QualityThresholds,
+) -> list[CheckResult]:
+    results: list[CheckResult] = []
+    layer_specs = (
+        ("municipality", True, "municipal"),
+        ("district", True, "distrital"),
+        ("census_sector", False, "setorial"),
+        ("electoral_zone", False, "zona eleitoral"),
+        ("electoral_section", False, "secao eleitoral"),
+    )
+
+    for level, is_required, label in layer_specs:
+        min_rows = thresholds.get("map_layers", f"min_rows_{level}", fallback=1)
+        min_geometry_ratio = thresholds.get(
+            "map_layers",
+            f"min_geometry_ratio_{level}",
+            fallback=1.0 if is_required else 0.0,
+        )
+
+        total_rows = _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM silver.dim_territory
+            WHERE municipality_ibge_code = :code
+              AND level::text = :level
+            """,
+            {"code": municipality_code, "level": level},
+        )
+        rows_with_geometry = _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM silver.dim_territory
+            WHERE municipality_ibge_code = :code
+              AND level::text = :level
+              AND geometry IS NOT NULL
+            """,
+            {"code": municipality_code, "level": level},
+        )
+
+        total_rows = int(total_rows)
+        rows_with_geometry = int(rows_with_geometry)
+        geometry_ratio = (as_float(rows_with_geometry) / as_float(total_rows)) if total_rows > 0 else 0.0
+
+        row_status = "pass" if total_rows >= min_rows else ("fail" if is_required else "warn")
+        geometry_status = (
+            "pass"
+            if geometry_ratio >= min_geometry_ratio
+            else ("fail" if is_required else "warn")
+        )
+
+        results.append(
+            CheckResult(
+                name=f"map_layer_rows_{level}",
+                status=row_status,
+                details=f"Expected minimum territorial rows for {label} layer.",
+                observed_value=total_rows,
+                threshold_value=min_rows,
+            )
+        )
+        results.append(
+            CheckResult(
+                name=f"map_layer_geometry_ratio_{level}",
+                status=geometry_status,
+                details=f"Expected minimum geometry coverage ratio for {label} layer.",
+                observed_value=geometry_ratio,
+                threshold_value=min_geometry_ratio,
+            )
+        )
+
+    return results
+
+
 def check_fact_electorate(
     session: Session,
     municipality_code: str,
@@ -367,6 +444,11 @@ def check_fact_indicator_source_rows(
 ) -> list[CheckResult]:
     results: list[CheckResult] = []
     source_map = (
+        ("datasus", "DATASUS"),
+        ("inep", "INEP"),
+        ("siconfi", "SICONFI"),
+        ("mte", "MTE"),
+        ("tse", "TSE"),
         ("sidra", "SIDRA"),
         ("senatran", "SENATRAN"),
         ("sejusp_mg", "SEJUSP_MG"),
@@ -435,6 +517,11 @@ def check_ops_pipeline_runs(
         ("sejusp_public_safety_fetch", "MVP-4"),
         ("siops_health_finance_fetch", "MVP-4"),
         ("snis_sanitation_fetch", "MVP-4"),
+        ("inmet_climate_fetch", "MVP-5"),
+        ("inpe_queimadas_fetch", "MVP-5"),
+        ("ana_hydrology_fetch", "MVP-5"),
+        ("anatel_connectivity_fetch", "MVP-5"),
+        ("aneel_energy_fetch", "MVP-5"),
     )
 
     for job_name, wave in jobs:

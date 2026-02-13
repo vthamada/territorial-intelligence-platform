@@ -8,6 +8,7 @@ import { OpsConnectorsPage } from "./OpsConnectorsPage";
 import { OpsFrontendEventsPage } from "./OpsFrontendEventsPage";
 import { OpsHealthPage } from "./OpsHealthPage";
 import { OpsRunsPage } from "./OpsRunsPage";
+import { OpsLayersPage } from "./OpsLayersPage";
 import { OpsSourceCoveragePage } from "./OpsSourceCoveragePage";
 import {
   getConnectorRegistry,
@@ -16,6 +17,7 @@ import {
   getOpsSla,
   getOpsSourceCoverage,
   getOpsSummary,
+  getTerritoryLayersReadiness,
   getOpsTimeseries,
   getPipelineChecks,
   getPipelineRuns
@@ -27,6 +29,7 @@ vi.mock("../../../shared/api/ops", () => ({
   getConnectorRegistry: vi.fn(),
   getFrontendEvents: vi.fn(),
   getOpsSourceCoverage: vi.fn(),
+  getTerritoryLayersReadiness: vi.fn(),
   getOpsSummary: vi.fn(),
   getOpsSla: vi.fn(),
   getOpsReadiness: vi.fn(),
@@ -87,6 +90,14 @@ describe("Ops pages filters", () => {
       wave: null,
       reference_period: null,
       include_internal: false,
+      items: []
+    });
+    vi.mocked(getTerritoryLayersReadiness).mockResolvedValue({
+      generated_at_utc: "2026-02-13T21:00:00Z",
+      metric: null,
+      period: null,
+      quality_run_id: "11111111-1111-1111-1111-111111111111",
+      quality_run_started_at_utc: "2026-02-13T20:59:00Z",
       items: []
     });
     vi.mocked(getOpsSummary).mockResolvedValue({
@@ -293,6 +304,23 @@ describe("Ops pages filters", () => {
       window_days: 7,
       health_window_days: 1,
       slo1_target_pct: 95
+    });
+  });
+
+  it("applies territory layers filters only when submitting form", async () => {
+    renderWithQueryClient(<OpsLayersPage />);
+    await waitFor(() => expect(getTerritoryLayersReadiness).toHaveBeenCalledTimes(1));
+
+    await userEvent.type(screen.getByLabelText("Codigo do indicador"), "DATASUS_APS_COBERTURA");
+    await userEvent.type(screen.getByLabelText("Periodo"), "2025");
+    expect(getTerritoryLayersReadiness).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+    await waitFor(() => expect(getTerritoryLayersReadiness).toHaveBeenCalledTimes(2));
+
+    expect(vi.mocked(getTerritoryLayersReadiness).mock.calls[1]?.[0]).toMatchObject({
+      metric: "DATASUS_APS_COBERTURA",
+      period: "2025"
     });
   });
 });

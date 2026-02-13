@@ -1,6 +1,7 @@
 ﻿# Contrato Técnico do Sistema
 
-Data de referência: 2026-02-10  
+Data de referência: 2026-02-13  
+Versão: **v1.0** (congelado para operação assistida)  
 Status: ativo  
 Fonte suprema de requisitos técnicos e critérios de aceite do produto.
 
@@ -96,6 +97,24 @@ Endpoints mínimos de domínio:
 - `GET /v1/elections/results`
 - `GET /v1/geo/choropleth`
 
+Endpoints executivos (QG estratégico):
+- `GET /v1/kpis/overview` — KPIs agregados por domínio com metadata e source_classification
+- `GET /v1/priority/list` — lista de prioridades com score, severidade, evidência e justificativa
+- `GET /v1/priority/summary` — resumo por status e domínio
+- `GET /v1/insights/highlights` — destaques analíticos com robustez e explicação
+- `POST /v1/scenarios/simulate` — simulação antes/depois com delta de score e ranking
+- `POST /v1/briefs` — geração de brief executivo estruturado
+- `GET /v1/territory/{territory_id}/profile` — perfil 360 do território
+- `GET /v1/territory/{territory_id}/compare` — comparação entre territórios
+- `GET /v1/territory/{territory_id}/peers` — territórios pares
+- `GET /v1/electorate/summary` — resumo eleitoral agregado por nível
+- `GET /v1/electorate/map` — dados eleitorais para mapa
+
+Endpoints geoespaciais:
+- `GET /v1/geo/choropleth` — dados para mapa coroplético
+- `GET /v1/map/layers` — catálogo de camadas com faixas de zoom
+- `GET /v1/map/style-metadata` — paletas, legendas, metadados de cobertura
+
 Endpoints operacionais:
 - `GET /v1/ops/pipeline-runs`
 - `GET /v1/ops/pipeline-checks`
@@ -103,6 +122,10 @@ Endpoints operacionais:
 - `GET /v1/ops/summary`
 - `GET /v1/ops/timeseries`
 - `GET /v1/ops/sla`
+- `GET /v1/ops/source-coverage` — cobertura por fonte com rows, runs, status
+- `GET /v1/ops/readiness` — diagnóstico de prontidão operacional
+- `POST /v1/ops/frontend-events` — ingestão de telemetria frontend
+- `GET /v1/ops/frontend-events` — consulta de eventos frontend
 
 ## 7) Contrato de frontend
 
@@ -112,11 +135,37 @@ Objetivo:
 Escopo funcional mínimo:
 1. Tela de saúde operacional:
 - consumo de `/v1/health`, `/v1/ops/summary`, `/v1/ops/sla`, `/v1/ops/timeseries`
+- painéis de quality checks, cobertura de fontes, registro de conectores
 2. Tela de execução de pipelines:
 - listagem e filtros via `/v1/ops/pipeline-runs`
 - detalhe de checks via `/v1/ops/pipeline-checks`
 3. Tela territorial/indicadores:
 - consulta de territórios e indicadores com filtros por período e nível territorial
+
+Escopo funcional executivo (QG estratégico):
+4. Home executiva (QG):
+- KPIs agregados, situação geral de criticidade, ações rápidas, domínios Onda B/C
+- top prioridades como preview, destaques analíticos
+- progressive disclosure com painéis colapsáveis
+5. Prioridades:
+- lista paginada com cards de score/severidade/justificativa
+- filtros por período, nível, domínio
+6. Mapa coroplético:
+- visualização geográfica com métricas configuráveis
+- exportação SVG/PNG/CSV
+7. Cenários e simulação:
+- input de variações percentuais com resultado antes/depois
+- persistência de seleções via queryString + localStorage
+8. Briefs executivos:
+- geração de relatório estruturado com exportação HTML/PDF
+- persistência de seleções de reunião
+9. Perfil territorial 360:
+- KPIs, indicadores, ranking, pares comparáveis
+10. Eleitorado executivo:
+- resumo eleitoral agregado e visualização em mapa
+11. Hub administrativo:
+- banner de readiness consolidado
+- separação completa executive vs. admin
 
 Requisitos de qualidade:
 - responsivo (desktop e mobile)
@@ -194,10 +243,11 @@ SLO-1: taxa de sucesso dos jobs `implemented`
 - janela: 7 dias corridos
 - alvo: `>= 95%`
 
-SLO-2: latência de API operacional
-- métrica: p95 de resposta dos endpoints `/v1/ops/*`
+SLO-2: latência de API
+- métrica operacional: p95 de resposta dos endpoints `/v1/ops/*` ≤ 1.5s
+- métrica executiva: p95 de resposta dos endpoints `/v1/kpis/*`, `/v1/priority/*`, `/v1/insights/*`, `/v1/geo/*`, `/v1/map/*` ≤ 800ms
 - janela: 7 dias
-- alvo: `<= 1.5s` (sem carga de stress)
+- ferramenta de validação: `scripts/benchmark_api.py` (12 endpoints, p50/p95/p99)
 
 SLO-3: atualização de dados por execução
 - métrica: presença de `ops.pipeline_runs` e `ops.pipeline_checks` para cada job executado
@@ -210,13 +260,23 @@ SLO-4: qualidade mínima
 ## 12) Critérios finais de encerramento do sistema
 
 O sistema é considerado finalizado quando:
-1. Todos os conectores MVP estão `implemented`.
+1. Todos os conectores MVP estão `implemented` (22/22 conectores em 5 ondas).
 2. Pipeline completo roda sem intervenção manual recorrente.
-3. API v1 está estável e aderente ao contrato.
-4. Qualidade cobre tabelas críticas com thresholds ativos.
-5. Frontend MVP operacional está integrado aos endpoints v1.
+3. API v1 está estável e aderente ao contrato (domínio + executivo + ops + geo).
+4. Qualidade cobre tabelas críticas com thresholds ativos (15 fontes com min_rows).
+5. Frontend MVP operacional está integrado aos endpoints v1 (10 telas executivas + 7 telas ops/admin).
 6. SLOs mínimos estão atendidos por janela de 7 dias.
 7. Documentação e runbooks estão completos e atualizados.
+8. Homologação consolidada executada com verdict READY (`scripts/homologation_check.py`).
+
+## 12.1) Ferramentas de validação de go-live
+
+| Ferramenta | Caminho | Descrição |
+|---|---|---|
+| Homologação consolidada | `scripts/homologation_check.py` | 5 dimensões: backend readiness, quality suite, frontend build, test suites, API smoke |
+| Benchmark de performance | `scripts/benchmark_api.py` | p50/p95/p99 em 12 endpoints executivos, alvo p95 ≤ 800ms |
+| Backend readiness | `scripts/backend_readiness.py` | Schema, SLO-1, ops tracking, PostGIS |
+| Quality suite | `src/pipelines/quality_suite.py` | 6 checks: dim_territory, fact_electorate, fact_election_result, fact_indicator, source_rows (15 fontes), ops_pipeline_runs (14 jobs) |
 
 ## 13) Governança documental
 

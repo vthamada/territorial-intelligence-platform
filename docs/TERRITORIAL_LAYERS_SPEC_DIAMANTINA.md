@@ -1,5 +1,5 @@
 ﻿# TERRITORIAL_LAYERS_SPEC_DIAMANTINA
-Versao: 0.1.0
+Versao: 1.0.0
 Data: 2026-02-13
 Escopo: definicao das camadas territoriais oficiais e proxies do QG para Diamantina/MG.
 
@@ -98,21 +98,39 @@ Checks minimos por camada:
 
 ## 9) Plano de implementacao
 
-## Fase TL-1
-1. publicar catalogo de camadas com status official/proxy.
-2. padronizar metadados de camada nos endpoints QG.
+## Fase TL-1 (CONCLUIDO)
+1. ✅ publicar catalogo de camadas com `is_official` — `GET /v1/map/layers` retorna 3 camadas com flag.
+2. ✅ padronizar metadados de camada nos endpoints QG — `coverage_note` presente em payloads de prioridade/territory.
+3. ✅ badge de classificacao de fonte no frontend — `SourceBadge` com icones oficial/proxy.
 
-## Fase TL-2
-1. implementar badge oficial/proxy em mapa e painois.
-2. publicar metadata detalhada por camada.
+## Fase TL-2 (CONCLUIDO)
+1. ✅ badge oficial/proxy aplicado nas respostas e paineis executivos.
+2. ✅ metadata detalhada por camada publicada em:
+   - `GET /v1/map/layers/{layer_id}/metadata`
+   - `GET /v1/territory/layers/{layer_id}/metadata`
 
-## Fase TL-3
-1. habilitar checks de qualidade por camada no `quality_suite`.
-2. consolidar pagina tecnica de rastreabilidade de camadas no `/admin`.
+## Fase TL-3 (CONCLUIDO v1)
+1. ✅ checks de qualidade por camada habilitados no `quality_suite`:
+   - `map_layer_rows_*`
+   - `map_layer_geometry_ratio_*`
+2. ✅ pagina tecnica de rastreabilidade de camadas consolidada:
+   - `GET /v1/territory/layers/readiness`
+   - rota frontend `/ops/layers`.
 
 ## 10) Criterios de aceite
 
-1. catalogo de camadas ativo com `official_status` consistente.
-2. UI exibe claramente official/proxy em mapa e detalhes.
-3. metodologia e limitacoes por camada acessiveis via API.
-4. checks de qualidade por camada registrados em `ops.pipeline_checks`.
+### v1.0 (TL-1) — ATENDIDOS
+1. ✅ Catalogo de camadas ativo com `is_official` consistente em `/v1/map/layers`.
+2. ✅ Badge oficial/proxy visivel no frontend (mapa e paineis).
+3. ✅ `coverage_note` presente nos payloads QG.
+
+### v2.0 (TL-2/TL-3) — ENTREGUE (baseline)
+1. ✅ UI/API exibem official/proxy e metodo de proxy por camada.
+2. ✅ Metodologia e limitacoes por camada acessiveis via metadata de camada.
+3. ✅ Checks de qualidade por camada registrados no fluxo do `quality_suite`.
+4. ✅ Rastreabilidade tecnica de camadas operacional em `/ops/layers`.
+
+### Backlog TL pos-v2
+1. incorporar `local_votacao` com uso completo na UX executiva
+   (camada backend `territory_polling_place` ja publicada; falta toggle e fluxo orientado no frontend).
+2. adicionar alertas de readiness por camada (degradacao automatica) no hub tecnico.

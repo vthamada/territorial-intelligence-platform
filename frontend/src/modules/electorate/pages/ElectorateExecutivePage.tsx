@@ -66,6 +66,11 @@ export function ElectorateExecutivePage() {
     queryKey: ["qg", "electorate-map", baseQuery, appliedMetric],
     queryFn: () => getElectorateMap({ ...baseQuery, metric: appliedMetric, include_geometry: false, limit: 500 })
   });
+  const fallbackSummaryQuery = useQuery({
+    queryKey: ["qg", "electorate-summary-fallback", { level: "municipality" }],
+    queryFn: () => getElectorateSummary({ level: "municipality" }),
+    enabled: appliedYear !== undefined
+  });
 
   const isLoading = summaryQuery.isPending || mapQuery.isPending;
   const firstError = summaryQuery.error ?? mapQuery.error;
@@ -107,6 +112,8 @@ export function ElectorateExecutivePage() {
 
   const summary = summaryQuery.data!;
   const map = mapQuery.data!;
+  const hasNoData = summary.year === null || (summary.total_voters === 0 && map.items.length === 0);
+  const fallbackYear = fallbackSummaryQuery.data?.year ?? null;
 
   return (
     <div className="page-grid">
@@ -140,6 +147,31 @@ export function ElectorateExecutivePage() {
           </div>
         </form>
         <SourceFreshnessBadge metadata={summary.metadata} />
+        {hasNoData && appliedYear !== undefined ? (
+          <StateBlock
+            tone="empty"
+            title="Sem dados para o ano informado"
+            message={
+              fallbackYear
+                ? `Nao ha dados consolidados para ${appliedYear}. Use ${fallbackYear} para visualizar o recorte mais recente.`
+                : `Nao ha dados consolidados para ${appliedYear}. Limpe o filtro de ano para tentar o ultimo recorte disponivel.`
+            }
+          />
+        ) : null}
+        {hasNoData && appliedYear !== undefined ? (
+          <div className="filter-actions" style={{ marginTop: "0.55rem" }}>
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={() => {
+                setYearInput("");
+                setAppliedYear(undefined);
+              }}
+            >
+              Usar ultimo ano disponivel
+            </button>
+          </div>
+        ) : null}
       </Panel>
 
       <Panel title="Resumo executivo" subtitle="Volume eleitoral e comportamento de participacao">

@@ -11,8 +11,6 @@ import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
 import { StrategicIndexCard } from "../../../shared/ui/StrategicIndexCard";
 import { StateBlock } from "../../../shared/ui/StateBlock";
 
-const DEFAULT_TERRITORY_ID = "3121605";
-
 function toStrategicStatus(status: string): "critical" | "attention" | "stable" | "info" {
   if (status === "critical") {
     return "critical";
@@ -43,12 +41,10 @@ type TerritoryProfilePageProps = {
 };
 
 export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePageProps) {
-  const fallbackTerritoryId = initialTerritoryId || DEFAULT_TERRITORY_ID;
-
-  const [territoryId, setTerritoryId] = useState(fallbackTerritoryId);
+  const [territoryId, setTerritoryId] = useState(initialTerritoryId ?? "");
   const [compareWithId, setCompareWithId] = useState("");
   const [period, setPeriod] = useState("");
-  const [appliedTerritoryId, setAppliedTerritoryId] = useState(fallbackTerritoryId);
+  const [appliedTerritoryId, setAppliedTerritoryId] = useState(initialTerritoryId ?? "");
   const [appliedCompareWithId, setAppliedCompareWithId] = useState("");
   const [appliedPeriod, setAppliedPeriod] = useState("");
 
@@ -67,13 +63,40 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
     queryFn: () => getTerritories({ level: "municipality", page: 1, page_size: 200 })
   });
 
+  const territoryOptions = useMemo(() => territoryListQuery.data?.items ?? [], [territoryListQuery.data]);
+  const defaultTerritoryId = territoryOptions[0]?.territory_id ?? "";
+
+  useEffect(() => {
+    if (initialTerritoryId || territoryOptions.length === 0) {
+      return;
+    }
+    setTerritoryId((current) => current || defaultTerritoryId);
+    setAppliedTerritoryId((current) => current || defaultTerritoryId);
+  }, [defaultTerritoryId, initialTerritoryId, territoryOptions.length]);
+
+  useEffect(() => {
+    if (territoryOptions.length === 0) {
+      return;
+    }
+    const availableIds = new Set(territoryOptions.map((item) => item.territory_id));
+    if (!territoryId || !availableIds.has(territoryId)) {
+      setTerritoryId(defaultTerritoryId);
+    }
+    if (!appliedTerritoryId || !availableIds.has(appliedTerritoryId)) {
+      setAppliedTerritoryId(defaultTerritoryId);
+      setCompareWithId("");
+      setAppliedCompareWithId("");
+    }
+  }, [appliedTerritoryId, defaultTerritoryId, territoryId, territoryOptions]);
+
   const profileQuery = useQuery({
     queryKey: ["qg", "territory-profile", appliedTerritoryId, appliedPeriod],
     queryFn: () =>
       getTerritoryProfile(appliedTerritoryId, {
         period: appliedPeriod || undefined,
         limit: 80
-      })
+      }),
+    enabled: Boolean(appliedTerritoryId),
   });
 
   const compareQuery = useQuery({
@@ -92,25 +115,28 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
       getTerritoryPeers(appliedTerritoryId, {
         period: appliedPeriod || undefined,
         limit: 5
-      })
+      }),
+    enabled: Boolean(appliedTerritoryId),
   });
 
-  const firstError = territoryListQuery.error ?? profileQuery.error;
-  const isLoading = territoryListQuery.isPending || profileQuery.isPending;
-
-  const territoryOptions = useMemo(() => territoryListQuery.data?.items ?? [], [territoryListQuery.data]);
+  const territoryPickerError = appliedTerritoryId ? null : territoryListQuery.error;
+  const firstError = profileQuery.error ?? territoryPickerError;
+  const isLoading = (appliedTerritoryId ? false : territoryListQuery.isPending) || (Boolean(appliedTerritoryId) && profileQuery.isPending);
 
   function applyFilters() {
+    if (!territoryId) {
+      return;
+    }
     setAppliedTerritoryId(territoryId);
     setAppliedCompareWithId(compareWithId);
     setAppliedPeriod(period);
   }
 
   function clearFilters() {
-    setTerritoryId(fallbackTerritoryId);
+    setTerritoryId(defaultTerritoryId);
     setCompareWithId("");
     setPeriod("");
-    setAppliedTerritoryId(fallbackTerritoryId);
+    setAppliedTerritoryId(defaultTerritoryId);
     setAppliedCompareWithId("");
     setAppliedPeriod("");
   }
@@ -134,13 +160,43 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
         message={message}
         requestId={requestId}
         onRetry={() => {
-          void territoryListQuery.refetch();
-          void profileQuery.refetch();
+          if (!appliedTerritoryId) {
+            void territoryListQuery.refetch();
+          }
+          if (appliedTerritoryId) {
+            void profileQuery.refetch();
+          }
           if (appliedCompareWithId) {
             void compareQuery.refetch();
           }
-          void peersQuery.refetch();
+          if (appliedTerritoryId) {
+            void peersQuery.refetch();
+          }
         }}
+      />
+    );
+  }
+
+  if (!appliedTerritoryId && !territoryListQuery.isPending && territoryOptions.length === 0) {
+    return (
+      <main className="page-grid">
+        <Panel title="Perfil 360 do territorio" subtitle="Diagnostico por dominio e comparacao orientada">
+          <StateBlock
+            tone="empty"
+            title="Sem territorios disponiveis"
+            message="Nao ha territorios cadastrados para montar o perfil 360."
+          />
+        </Panel>
+      </main>
+    );
+  }
+
+  if (!appliedTerritoryId || !profileQuery.data) {
+    return (
+      <StateBlock
+        tone="loading"
+        title="Preparando perfil territorial"
+        message="Selecionando territorio base para carregar o perfil 360."
       />
     );
   }
@@ -156,7 +212,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
   }
 
   return (
-    <div className="page-grid">
+    <main className="page-grid">
       <Panel title="Perfil 360 do territorio" subtitle="Diagnostico por dominio e comparacao orientada">
         <form
           className="filter-grid compact"
@@ -200,7 +256,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
           </div>
         </form>
         <SourceFreshnessBadge metadata={profile.metadata} />
-        <div className="quick-actions">
+        <nav aria-label="Atalhos do territorio" className="quick-actions">
           <Link
             className="quick-action-link"
             to={`/briefs?territory_id=${encodeURIComponent(appliedTerritoryId)}&period=${encodeURIComponent(
@@ -217,7 +273,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
           >
             Simular cenarios
           </Link>
-        </div>
+        </nav>
       </Panel>
 
       <Panel title="Status geral do territorio" subtitle="Leitura executiva consolidada do recorte atual">
@@ -272,7 +328,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
           <StateBlock tone="empty" title="Sem pares sugeridos" message="Nao ha pares com indicadores compartilhados no recorte." />
         ) : (
           <div className="table-wrap">
-            <table>
+            <table aria-label="Pares recomendados">
               <thead>
                 <tr>
                   <th>Territorio</th>
@@ -310,7 +366,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
           <StateBlock tone="empty" title="Sem indicadores" message="Nao ha indicadores no recorte selecionado." />
         ) : (
           <div className="table-wrap">
-            <table>
+            <table aria-label="Dominios e indicadores">
               <thead>
                 <tr>
                   <th>Dominio</th>
@@ -354,7 +410,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
             <StateBlock tone="empty" title="Sem comparacao" message="Nao ha indicadores compartilhados para comparacao." />
           ) : (
             <div className="table-wrap">
-              <table>
+              <table aria-label="Comparacao territorial">
                 <thead>
                   <tr>
                     <th>Dominio</th>
@@ -382,6 +438,6 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
           )}
         </Panel>
       ) : null}
-    </div>
+    </main>
   );
 }

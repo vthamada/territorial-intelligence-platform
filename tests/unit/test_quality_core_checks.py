@@ -6,6 +6,7 @@ from pipelines.common.quality import (
     check_fact_election_result,
     check_fact_indicator,
     check_fact_indicator_source_rows,
+    check_map_layers,
 )
 from pipelines.common.quality_thresholds import QualityThresholds
 
@@ -39,6 +40,11 @@ def _default_thresholds() -> QualityThresholds:
             "fact_indicator": {
                 "max_missing_ratio": 0.0,
                 "max_source_probe_rows": 0,
+                "min_rows_datasus": 1,
+                "min_rows_inep": 1,
+                "min_rows_siconfi": 1,
+                "min_rows_mte": 1,
+                "min_rows_tse": 1,
                 "min_rows_sidra": 1,
                 "min_rows_senatran": 1,
                 "min_rows_sejusp_mg": 1,
@@ -49,6 +55,18 @@ def _default_thresholds() -> QualityThresholds:
                 "min_rows_ana": 1,
                 "min_rows_anatel": 1,
                 "min_rows_aneel": 1,
+            },
+            "map_layers": {
+                "min_rows_municipality": 1,
+                "min_geometry_ratio_municipality": 1.0,
+                "min_rows_district": 1,
+                "min_geometry_ratio_district": 1.0,
+                "min_rows_census_sector": 1,
+                "min_geometry_ratio_census_sector": 0.0,
+                "min_rows_electoral_zone": 1,
+                "min_geometry_ratio_electoral_zone": 0.0,
+                "min_rows_electoral_section": 1,
+                "min_geometry_ratio_electoral_section": 0.0,
             },
         },
     )
@@ -115,8 +133,9 @@ def test_check_fact_indicator_warns_when_source_probe_rows_are_present() -> None
 
 
 def test_check_fact_indicator_source_rows_passes_when_sources_have_minimum_rows() -> None:
-    # calls: SIDRA, SENATRAN, SEJUSP_MG, SIOPS, SNIS, INMET, INPE_QUEIMADAS, ANA, ANATEL, ANEEL
-    session = _SequenceSession([2, 3, 1, 4, 5, 2, 2, 1, 1, 1])
+    # Order: DATASUS, INEP, SICONFI, MTE, TSE, SIDRA, SENATRAN, SEJUSP_MG, SIOPS, SNIS,
+    #        INMET, INPE_QUEIMADAS, ANA, ANATEL, ANEEL
+    session = _SequenceSession([3, 2, 4, 1, 5, 2, 3, 1, 4, 5, 2, 2, 1, 1, 1])
 
     results = check_fact_indicator_source_rows(
         session=session,
@@ -125,6 +144,11 @@ def test_check_fact_indicator_source_rows_passes_when_sources_have_minimum_rows(
     )
 
     assert [result.name for result in results] == [
+        "source_rows_datasus",
+        "source_rows_inep",
+        "source_rows_siconfi",
+        "source_rows_mte",
+        "source_rows_tse",
         "source_rows_sidra",
         "source_rows_senatran",
         "source_rows_sejusp_mg",
@@ -140,8 +164,9 @@ def test_check_fact_indicator_source_rows_passes_when_sources_have_minimum_rows(
 
 
 def test_check_fact_indicator_source_rows_warns_when_source_is_below_threshold() -> None:
-    # calls: SIDRA, SENATRAN, SEJUSP_MG, SIOPS, SNIS, INMET, INPE_QUEIMADAS, ANA, ANATEL, ANEEL
-    session = _SequenceSession([2, 0, 1, 4, 5, 2, 2, 1, 1, 1])
+    # Order: DATASUS, INEP, SICONFI, MTE, TSE, SIDRA, SENATRAN (0), SEJUSP_MG, SIOPS, SNIS,
+    #        INMET, INPE_QUEIMADAS, ANA, ANATEL, ANEEL
+    session = _SequenceSession([3, 2, 4, 1, 5, 2, 0, 1, 4, 5, 2, 2, 1, 1, 1])
 
     results = check_fact_indicator_source_rows(
         session=session,
@@ -150,6 +175,11 @@ def test_check_fact_indicator_source_rows_warns_when_source_is_below_threshold()
     )
 
     by_name = {result.name: result for result in results}
+    assert by_name["source_rows_datasus"].status == "pass"
+    assert by_name["source_rows_inep"].status == "pass"
+    assert by_name["source_rows_siconfi"].status == "pass"
+    assert by_name["source_rows_mte"].status == "pass"
+    assert by_name["source_rows_tse"].status == "pass"
     assert by_name["source_rows_sidra"].status == "pass"
     assert by_name["source_rows_senatran"].status == "warn"
     assert by_name["source_rows_sejusp_mg"].status == "pass"
@@ -160,3 +190,51 @@ def test_check_fact_indicator_source_rows_warns_when_source_is_below_threshold()
     assert by_name["source_rows_ana"].status == "pass"
     assert by_name["source_rows_anatel"].status == "pass"
     assert by_name["source_rows_aneel"].status == "pass"
+
+
+def test_check_map_layers_returns_expected_checks_and_passes() -> None:
+    # Order by layer: municipality, district, census_sector, electoral_zone, electoral_section
+    # For each layer: total_rows, rows_with_geometry
+    session = _SequenceSession([1, 1, 2, 2, 3, 0, 4, 0, 5, 0])
+
+    results = check_map_layers(
+        session=session,
+        municipality_code="3121605",
+        thresholds=_default_thresholds(),
+    )
+
+    assert len(results) == 10
+    by_name = {result.name: result for result in results}
+    assert by_name["map_layer_rows_municipality"].status == "pass"
+    assert by_name["map_layer_geometry_ratio_municipality"].status == "pass"
+    assert by_name["map_layer_rows_district"].status == "pass"
+    assert by_name["map_layer_geometry_ratio_district"].status == "pass"
+    assert by_name["map_layer_rows_census_sector"].status == "pass"
+    assert by_name["map_layer_geometry_ratio_census_sector"].status == "pass"
+    assert by_name["map_layer_rows_electoral_zone"].status == "pass"
+    assert by_name["map_layer_geometry_ratio_electoral_zone"].status == "pass"
+    assert by_name["map_layer_rows_electoral_section"].status == "pass"
+    assert by_name["map_layer_geometry_ratio_electoral_section"].status == "pass"
+
+
+def test_check_map_layers_fails_required_and_warns_optional_layers() -> None:
+    # municipality: no rows, district: rows but no geometry, others: no rows
+    session = _SequenceSession([0, 0, 1, 0, 0, 0, 0, 0, 0, 0])
+
+    results = check_map_layers(
+        session=session,
+        municipality_code="3121605",
+        thresholds=_default_thresholds(),
+    )
+
+    by_name = {result.name: result for result in results}
+    assert by_name["map_layer_rows_municipality"].status == "fail"
+    assert by_name["map_layer_geometry_ratio_municipality"].status == "fail"
+    assert by_name["map_layer_rows_district"].status == "pass"
+    assert by_name["map_layer_geometry_ratio_district"].status == "fail"
+    assert by_name["map_layer_rows_census_sector"].status == "warn"
+    assert by_name["map_layer_geometry_ratio_census_sector"].status == "pass"
+    assert by_name["map_layer_rows_electoral_zone"].status == "warn"
+    assert by_name["map_layer_geometry_ratio_electoral_zone"].status == "pass"
+    assert by_name["map_layer_rows_electoral_section"].status == "warn"
+    assert by_name["map_layer_geometry_ratio_electoral_section"].status == "pass"

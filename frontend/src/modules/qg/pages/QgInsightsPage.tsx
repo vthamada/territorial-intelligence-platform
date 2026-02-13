@@ -78,7 +78,7 @@ export function QgInsightsPage() {
   const insights = insightsQuery.data!;
 
   return (
-    <div className="page-grid">
+    <main className="page-grid">
       <Panel title="Insights estrategicos" subtitle="Destaques priorizados para leitura executiva">
         <form
           className="filter-grid compact"
@@ -125,7 +125,7 @@ export function QgInsightsPage() {
         {insights.items.length === 0 ? (
           <StateBlock tone="empty" title="Sem insights" message="Nenhum insight encontrado para os filtros aplicados." />
         ) : (
-          <ul className="trend-list">
+          <ul className="trend-list" aria-label="Lista de insights">
             {insights.items.map((item) => (
               <li key={`${item.territory_id}-${item.evidence.indicator_code}-${item.severity}`}>
                 <div>
@@ -140,6 +140,6 @@ export function QgInsightsPage() {
           </ul>
         )}
       </Panel>
-    </div>
+    </main>
   );
 }

@@ -5,6 +5,7 @@ import { getTerritories } from "../../../shared/api/domain";
 import { formatApiError } from "../../../shared/api/http";
 import { postScenarioSimulate } from "../../../shared/api/qg";
 import { getQgDomainLabel, normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
+import { usePersistedFormState } from "../../../shared/hooks/usePersistedFormState";
 import { Panel } from "../../../shared/ui/Panel";
 import { formatDecimal, formatInteger, formatLevelLabel, formatStatusLabel, toNumber } from "../../../shared/ui/presentation";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
@@ -62,12 +63,40 @@ function impactStatus(impact: string): "critical" | "attention" | "stable" | "in
 
 export function QgScenariosPage() {
   const [searchParams] = useSearchParams();
-  const [territoryId, setTerritoryId] = useState(searchParams.get("territory_id") || "3121605");
-  const [period, setPeriod] = useState(searchParams.get("period") || "2025");
-  const [level, setLevel] = useState(searchParams.get("level") === "district" ? "district" : "municipality");
-  const [domain, setDomain] = useState(normalizeQgDomain(searchParams.get("domain")));
-  const [indicatorCode, setIndicatorCode] = useState(searchParams.get("indicator_code") || "");
-  const [adjustmentPercent, setAdjustmentPercent] = useState("10");
+
+  const [formValues, setFormField] = usePersistedFormState(
+    "scenarios",
+    {
+      territoryId: "3121605",
+      period: "2025",
+      level: "municipality",
+      domain: "",
+      indicatorCode: "",
+      adjustmentPercent: "10",
+    },
+    {
+      territoryId: searchParams.get("territory_id") || "",
+      period: searchParams.get("period") || "",
+      level: searchParams.get("level") || "",
+      domain: searchParams.get("domain") || "",
+      indicatorCode: searchParams.get("indicator_code") || "",
+    }
+  );
+
+  const territoryId = formValues.territoryId;
+  const period = formValues.period;
+  const level = formValues.level === "district" ? "district" : "municipality";
+  const domain = normalizeQgDomain(formValues.domain);
+  const indicatorCode = formValues.indicatorCode;
+  const adjustmentPercent = formValues.adjustmentPercent;
+
+  const setTerritoryId = (v: string) => setFormField("territoryId", v);
+  const setPeriod = (v: string) => setFormField("period", v);
+  const setLevel = (v: string) => setFormField("level", v);
+  const setDomain = (v: string) => setFormField("domain", v);
+  const setIndicatorCode = (v: string) => setFormField("indicatorCode", v);
+  const setAdjustmentPercent = (v: string) => setFormField("adjustmentPercent", v);
+
   const [lastSubmittedSnapshot, setLastSubmittedSnapshot] = useState<ScenarioFormSnapshot | null>(null);
   const [lastSubmittedIndicatorCode, setLastSubmittedIndicatorCode] = useState<string>("");
 
@@ -157,7 +186,7 @@ export function QgScenariosPage() {
       lastSubmittedSnapshot?.adjustmentPercent !== adjustmentPercent.trim());
 
   return (
-    <div className="page-grid">
+    <main className="page-grid">
       <Panel title="Cenarios estrategicos" subtitle="Simulacao simplificada de impacto no score territorial">
         <form
           className="filter-grid compact"
@@ -300,7 +329,7 @@ export function QgScenariosPage() {
             />
           </div>
 
-          <ul className="trend-list">
+          <ul className="trend-list" aria-label="Detalhes do cenario simulado">
             {simulation.explanation.map((entry, index) => (
               <li key={`${simulation.indicator_code}-${index}`}>
                 <div>
@@ -314,6 +343,6 @@ export function QgScenariosPage() {
           <SourceFreshnessBadge metadata={simulation.metadata} />
         </Panel>
       ) : null}
-    </div>
+    </main>
   );
 }

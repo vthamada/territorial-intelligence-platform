@@ -11,6 +11,8 @@ class QgMetadata(BaseModel):
     coverage_note: str
     unit: str | None = None
     notes: str | None = None
+    source_classification: str | None = None
+    config_version: str | None = None
 
 
 class KpiOverviewItem(BaseModel):

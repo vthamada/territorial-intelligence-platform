@@ -44,6 +44,9 @@ const OpsFrontendEventsPage = lazy(() =>
 const OpsSourceCoveragePage = lazy(() =>
   import("../modules/ops/pages/OpsSourceCoveragePage").then((mod) => ({ default: mod.OpsSourceCoveragePage }))
 );
+const OpsLayersPage = lazy(() =>
+  import("../modules/ops/pages/OpsLayersPage").then((mod) => ({ default: mod.OpsLayersPage }))
+);
 const AdminHubPage = lazy(() =>
   import("../modules/admin/pages/AdminHubPage").then((mod) => ({ default: mod.AdminHubPage }))
 );
@@ -91,6 +94,7 @@ export const appRoutes: RouteObject[] = [
       { path: "ops/connectors", element: withPageFallback(<OpsConnectorsPage />) },
       { path: "ops/frontend-events", element: withPageFallback(<OpsFrontendEventsPage />) },
       { path: "ops/source-coverage", element: withPageFallback(<OpsSourceCoveragePage />) },
+      { path: "ops/layers", element: withPageFallback(<OpsLayersPage />) },
       { path: "territory/indicators", element: withPageFallback(<TerritoryIndicatorsPage />) },
       { path: "territorio/perfil", element: withPageFallback(<TerritoryProfilePage />) },
       { path: "territorio/:territoryId", element: withPageFallback(<TerritoryProfileRoutePage />) },

@@ -2,6 +2,8 @@ import { requestJson } from "./http";
 import type {
   ChoroplethItem,
   IndicatorItem,
+  MapLayerMetadataResponse,
+  MapLayersCoverageResponse,
   MapLayersResponse,
   MapStyleMetadataResponse,
   PaginatedResponse,
@@ -22,6 +24,14 @@ export function getChoropleth(query?: Record<string, string | number | boolean |
 
 export function getMapLayers() {
   return requestJson<MapLayersResponse>("/map/layers");
+}
+
+export function getMapLayersCoverage(query?: Record<string, string | number | boolean | undefined>) {
+  return requestJson<MapLayersCoverageResponse>("/map/layers/coverage", { query });
+}
+
+export function getMapLayerMetadata(layerId: string) {
+  return requestJson<MapLayerMetadataResponse>(`/map/layers/${layerId}/metadata`);
 }
 
 export function getMapStyleMetadata() {

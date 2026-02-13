@@ -58,20 +58,22 @@ export function QgPrioritiesPage() {
   const [domain, setDomain] = useState(initialDomain);
   const [onlyCritical, setOnlyCritical] = useState(initialOnlyCritical);
   const [sortBy, setSortBy] = useState<PrioritySort>(initialSortBy);
+  const [limit, setLimit] = useState("24");
   const [appliedPeriod, setAppliedPeriod] = useState(initialPeriod);
   const [appliedLevel, setAppliedLevel] = useState(initialLevel);
   const [appliedDomain, setAppliedDomain] = useState(initialDomain);
   const [appliedOnlyCritical, setAppliedOnlyCritical] = useState(initialOnlyCritical);
   const [appliedSortBy, setAppliedSortBy] = useState<PrioritySort>(initialSortBy);
+  const [appliedLimit, setAppliedLimit] = useState("24");
 
   const query = useMemo(
     () => ({
       period: appliedPeriod || undefined,
       level: appliedLevel,
       domain: appliedDomain || undefined,
-      limit: 100
+      limit: Number(appliedLimit) || 24
     }),
-    [appliedDomain, appliedLevel, appliedPeriod]
+    [appliedDomain, appliedLevel, appliedLimit, appliedPeriod]
   );
 
   const prioritiesQuery = useQuery({
@@ -85,6 +87,7 @@ export function QgPrioritiesPage() {
     setAppliedDomain(domain);
     setAppliedOnlyCritical(onlyCritical);
     setAppliedSortBy(sortBy);
+    setAppliedLimit(limit);
   }
 
   function clearFilters() {
@@ -93,11 +96,13 @@ export function QgPrioritiesPage() {
     setDomain("");
     setOnlyCritical(false);
     setSortBy("criticality_desc");
+    setLimit("24");
     setAppliedPeriod("");
     setAppliedLevel("municipality");
     setAppliedDomain("");
     setAppliedOnlyCritical(false);
     setAppliedSortBy("criticality_desc");
+    setAppliedLimit("24");
   }
 
   const priorities = prioritiesQuery.data;
@@ -201,7 +206,7 @@ export function QgPrioritiesPage() {
   }
 
   return (
-    <div className="page-grid">
+    <main className="page-grid">
       <Panel title="Prioridades estrategicas" subtitle="Ranking territorial por criticidade e evidencia">
         <form
           className="filter-grid compact"
@@ -251,6 +256,14 @@ export function QgPrioritiesPage() {
               <option value="territory_asc">territorio (A-Z)</option>
             </select>
           </label>
+          <label>
+            Itens
+            <select value={limit} onChange={(event) => setLimit(event.target.value)}>
+              <option value="24">24</option>
+              <option value="48">48</option>
+              <option value="100">100</option>
+            </select>
+          </label>
           <div className="filter-actions">
             <button type="submit">Aplicar filtros</button>
             <button type="button" className="button-secondary" onClick={clearFilters}>
@@ -274,13 +287,13 @@ export function QgPrioritiesPage() {
         {sortedItems.length === 0 ? (
           <StateBlock tone="empty" title="Sem prioridades" message="Nenhuma prioridade encontrada para os filtros aplicados." />
         ) : (
-          <div className="priority-card-grid">
+          <div className="priority-card-grid" role="list" aria-label="Lista de prioridades">
             {sortedItems.map((item) => (
               <PriorityItemCard key={`${item.territory_id}-${item.indicator_code}`} item={item} />
             ))}
           </div>
         )}
       </Panel>
-    </div>
+    </main>
   );
 }

@@ -2,6 +2,7 @@ import { requestJson } from "./http";
 import type {
   ConnectorRegistryItem,
   FrontendEventItem,
+  MapLayersReadinessResponse,
   OpsReadinessResponse,
   OpsSlaResponse,
   OpsSourceCoverageResponse,
@@ -30,6 +31,10 @@ export function getOpsSourceCoverage(query?: Record<string, string | number | bo
 
 export function getOpsReadiness(query?: Record<string, string | number | boolean | undefined>) {
   return requestJson<OpsReadinessResponse>("/ops/readiness", { query });
+}
+
+export function getTerritoryLayersReadiness(query?: Record<string, string | number | boolean | undefined>) {
+  return requestJson<MapLayersReadinessResponse>("/territory/layers/readiness", { query });
 }
 
 export function getPipelineRuns(query?: Record<string, string | number | boolean | undefined>) {
