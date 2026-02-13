@@ -12,6 +12,8 @@ Escopo deste arquivo: governanca de execucao, fases, prioridades e sequencia de 
 4. `HANDOFF.md`: estado operacional corrente e proximos passos imediatos.
 5. `docs/MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md`: evidenciacao item a item do plano de evolucao.
 6. `CHANGELOG.md`: historico de mudancas e evidencias de validacao.
+7. `FRONTEND_SPEC.md`: referencia complementar de UX/produto para debate; nao substitui contrato nem plano executavel.
+8. `PLANO_FONTES_DADOS_DIAMANTINA.md`: catalogo e priorizacao de fontes; status operacional corrente fica em `HANDOFF.md`.
 
 Regra: este arquivo nao detalha estado diario; ele define como executar e priorizar.
 

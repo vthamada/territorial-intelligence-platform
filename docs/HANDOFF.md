@@ -15,6 +15,9 @@ Contrato tecnico principal: `CONTRATO.md`
    - `STRATEGIC_ENGINE_SPEC.md`
 5. Matriz detalhada de rastreabilidade (item a item da evolucao) publicada em:
    - `docs/MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md`
+6. Classificacao de referencia complementar:
+   - `docs/FRONTEND_SPEC.md` = referencia de produto/UX para debate.
+   - `docs/PLANO_FONTES_DADOS_DIAMANTINA.md` = catalogo/priorizacao de fontes (nao status operacional diario).
 
 ## Atualizacao tecnica (2026-02-13)
 

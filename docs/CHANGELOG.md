@@ -13,6 +13,14 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - Matriz de rastreabilidade atualizada para refletir criacao das specs estrategicas:
   - itens documentais D05/D06/D07 mudaram de `PENDENTE` para `OK (v0.1)`.
   - backlog critico deslocado de \"escrever specs\" para \"executar Onda 5 e hardening Onda 8\".
+- Governanca de docs complementares refinada:
+  - `docs/PLANO.md` e `docs/PLANO_IMPLEMENTACAO_QG.md` atualizados para explicitar que:
+    - `docs/FRONTEND_SPEC.md` e referencia complementar de produto/UX.
+    - `docs/PLANO_FONTES_DADOS_DIAMANTINA.md` e catalogo de fontes (nao status operacional diario).
+  - `docs/PLANO_FONTES_DADOS_DIAMANTINA.md` atualizado com regra de leitura e snapshot historico.
+  - `docs/HANDOFF.md` atualizado com classificacao documental complementar.
+  - `docs/FRONTEND_SPEC.md` reclassificado para status complementar e com banner de governanca documental.
+  - `docs/CONTRATO.md` e `docs/FRONTEND_SPEC.md` ajustados para leitura UTF-8 correta no ambiente local.
 - MP-1 da plataforma de mapa iniciado na stack tecnica:
   - novo endpoint de manifesto `GET /v1/map/layers` publicado na API.
   - `QgMapPage` passou a consumir o manifesto de camadas para orientar camada ativa por nivel territorial.

@@ -19,11 +19,12 @@ Entregar e estabilizar o QG estrategico municipal de Diamantina/MG, com:
 ## 2) Premissas e decisoes vigentes
 
 1. Fonte de verdade tecnica: `CONTRATO.md`.
-2. `docs/FRONTEND_SPEC.MD` permanece como referencia de produto, sem substituir contrato tecnico.
+2. `docs/FRONTEND_SPEC.md` permanece como referencia complementar de produto/UX, sem substituir contrato tecnico ou este plano executavel.
 3. Camada tecnica segue separada da UX executiva (sem foco em auth nesta fase).
 4. Entrega segue vertical (API + pipeline + UI + teste), por bloco de valor.
 5. Modelo principal de integracao de dados continua em `silver.fact_indicator`, com rastreabilidade de `source`, `dataset`, `reference_period` e metadados.
 6. `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md` e o documento de visao estrategica (north star), sem competir com este plano executavel.
+7. `PLANO_FONTES_DADOS_DIAMANTINA.md` e documento de catalogo/priorizacao de fontes; validacao de estado atual fica em `HANDOFF.md` e `ops/readiness`.
 
 ## 2.1 Consolidacao documental (feito em 2026-02-13)
 

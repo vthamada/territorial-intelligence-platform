@@ -1,4 +1,4 @@
-# Contrato Técnico do Sistema
+﻿# Contrato Técnico do Sistema
 
 Data de referência: 2026-02-10  
 Status: ativo  

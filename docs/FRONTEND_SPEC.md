@@ -1,8 +1,13 @@
+﻿> STATUS DOCUMENTAL (2026-02-13)
+> Este arquivo e referencia complementar de produto/UX para debate.
+> Fonte de execucao e priorizacao: docs/PLANO_IMPLEMENTACAO_QG.md.
+> Fonte tecnica de aceite: docs/CONTRATO.md.
+
 # FRONTEND SPEC (QG ESTRATÉGICO) — AGENT-READY
 Plataforma de Inteligência Territorial – Diamantina/MG (Município + Distritos + Eleitorado)
 
 Versão: 2.0.0  
-Status: Ativo (Contrato de Produto + Implementação Frontend)  
+Status: Referencia complementar (debate de UX/produto)  
 Data: 2026-02-11  
 
 Base: Este documento substitui e amplia a versão anterior do FRONTEND_SPEC, elevando o frontend de “painel analítico” para “QG Estratégico Municipal”.

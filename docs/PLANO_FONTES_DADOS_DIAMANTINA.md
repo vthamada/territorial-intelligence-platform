@@ -3,12 +3,18 @@
 Data de referencia: 2026-02-11  
 Escopo territorial: Diamantina/MG (`MUNICIPALITY_IBGE_CODE=3121605`)
 
-## 1) Estado atual
+## 1) Escopo e leitura deste documento
 
-Backend local validado como pronto para fechamento da etapa tecnica:
-- `scripts/backend_readiness.py --output-json` => `READY`
-- `hard_failures=0`, `warnings=0`
-- `SLO-1` e `SLO-3` atendidos na janela de 7 dias
+Este arquivo e um catalogo de fontes e priorizacao de integracao.
+
+Regras:
+1. O estado operacional corrente (readiness, SLO, bloqueios) deve ser consultado em `docs/HANDOFF.md` e em `scripts/backend_readiness.py --output-json`.
+2. Os itens abaixo representam direcao de produto/engenharia e backlog de fonte, nao um status diario de execucao.
+3. Quando uma fonte mudar de prioridade, o ajuste deve ser refletido aqui e tambem em `docs/PLANO_IMPLEMENTACAO_QG.md`.
+
+Snapshot historico (2026-02-11):
+- readiness local reportado como `READY`.
+- cobertura de fontes Onda A/B/C em consolidacao.
 
 Fontes ja implementadas no produto:
 - IBGE (admin, malhas, indicadores iniciais)
