@@ -1,8 +1,20 @@
 # Territorial Intelligence Platform - Handoff
 
-Data de referencia: 2026-02-12
+Data de referencia: 2026-02-13
 Planejamento principal: `PLANO.md`
 Contrato tecnico principal: `CONTRATO.md`
+
+## Governanca documental consolidada (2026-02-13)
+
+1. `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md` passa a ser somente visao estrategica do produto.
+2. `docs/PLANO_IMPLEMENTACAO_QG.md` permanece como fonte unica de execucao e prioridade.
+3. `HANDOFF.md` permanece como estado operacional corrente + proximos passos imediatos.
+4. Specs estrategicas base criadas (v0.1), agora no backlog de execucao tecnica:
+   - `MAP_PLATFORM_SPEC.md`
+   - `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md`
+   - `STRATEGIC_ENGINE_SPEC.md`
+5. Matriz detalhada de rastreabilidade (item a item da evolucao) publicada em:
+   - `docs/MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md`
 
 ## Atualizacao rapida (2026-02-12)
 

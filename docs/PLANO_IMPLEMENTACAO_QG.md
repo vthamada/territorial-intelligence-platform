@@ -1,6 +1,6 @@
 # Plano Integrado de Implementacao (Backend + Frontend QG)
 
-Data de referencia: 2026-02-12  
+Data de referencia: 2026-02-13  
 Status: execucao ativa (fase de hardening + go-live controlado)  
 Escopo: plano executavel para consolidar QG estrategico em producao com dados reais.
 
@@ -23,6 +23,32 @@ Entregar e estabilizar o QG estrategico municipal de Diamantina/MG, com:
 3. Camada tecnica segue separada da UX executiva (sem foco em auth nesta fase).
 4. Entrega segue vertical (API + pipeline + UI + teste), por bloco de valor.
 5. Modelo principal de integracao de dados continua em `silver.fact_indicator`, com rastreabilidade de `source`, `dataset`, `reference_period` e metadados.
+6. `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md` e o documento de visao estrategica (north star), sem competir com este plano executavel.
+
+## 2.1 Consolidacao documental (feito em 2026-02-13)
+
+1. Visao estrategica consolidada em `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md`.
+2. Execucao e priorizacao consolidada neste arquivo.
+3. Estado operacional e validacoes correntes consolidadas em `HANDOFF.md`.
+4. Rastreabilidade item a item do plano de evolucao consolidada em
+   `docs/MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md`.
+5. Specs-base da visao estrategica criadas (v0.1):
+   - `MAP_PLATFORM_SPEC.md`
+   - `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md`
+   - `STRATEGIC_ENGINE_SPEC.md`
+6. Proximo passo documental: evoluir as tres specs para versao v1.0 com contratos finais validados em homologacao.
+
+## 2.2 Status por onda (fonte unica)
+
+1. Onda 0: concluida.
+2. Onda 1: concluida.
+3. Onda 2: concluida.
+4. Onda 3: concluida.
+5. Onda 4: concluida.
+6. Onda 5: parcial (mapa funcional entregue; plataforma vetorial multi-zoom ainda pendente de spec/execucao).
+7. Onda 6: em andamento (UX imersiva e mapa dominante Home "B").
+8. Onda 7: concluida v1 (cenarios/briefs), com refinamentos pendentes.
+9. Onda 8: em andamento (E2E, performance, defensabilidade).
 
 ## 3) Estado consolidado atual
 
@@ -102,6 +128,10 @@ Entregar e estabilizar o QG estrategico municipal de Diamantina/MG, com:
    - proximo passo: padronizar o consumo desse endpoint em todas as visoes tecnicas
      (incluindo `/admin`) para eliminar calculos duplicados de saude operacional.
 4. Revisar performance das queries executivas mais usadas (`overview`, `priority`, `mapa`, `territory profile`).
+5. Evoluir as specs estrategicas de `v0.1` para `v1.0` e iniciar execucao tecnica orientada por elas:
+   - `MAP_PLATFORM_SPEC.md`
+   - `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md`
+   - `STRATEGIC_ENGINE_SPEC.md`
 
 ## 5.2 Prioridade media
 
@@ -143,6 +173,10 @@ Entregar e estabilizar o QG estrategico municipal de Diamantina/MG, com:
 3. Frontend com testes e build estaveis no ciclo de entrega.
 4. Fluxo executivo separado da camada tecnica (`/admin`).
 5. Homologacao executada com dados reais e sem bloqueador critico aberto.
+6. Metas operacionais objetivas registradas e validadas:
+   - API executiva p95 <= 800ms em homologacao para endpoints criticos.
+   - render inicial da Home executiva <= 3s em ambiente de referencia.
+   - E2E do fluxo principal com taxa de sucesso >= 95% no ciclo de release.
 
 ## 8) Riscos atuais e mitigacoes
 

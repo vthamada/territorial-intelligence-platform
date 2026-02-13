@@ -2,6 +2,33 @@
 
 Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-13
+
+### Changed
+- Consolidacao documental do QG aplicada:
+  - `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md` redefinido como visao estrategica (north star), sem status operacional diario.
+  - `PLANO.md` atualizado para governanca de execucao e referencia unica de papeis documentais.
+  - `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado com consolidacao documental e status por onda.
+  - `HANDOFF.md` atualizado para refletir a governanca documental consolidada.
+- Matriz de rastreabilidade atualizada para refletir criacao das specs estrategicas:
+  - itens documentais D05/D06/D07 mudaram de `PENDENTE` para `OK (v0.1)`.
+  - backlog critico deslocado de \"escrever specs\" para \"executar Onda 5 e hardening Onda 8\".
+
+### Added
+- Novas specs estrategicas (versao inicial v0.1):
+  - `MAP_PLATFORM_SPEC.md`
+  - `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md`
+  - `STRATEGIC_ENGINE_SPEC.md`
+- Nova matriz de rastreabilidade detalhada:
+  - `docs/MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md`
+
+### Verified
+- Validacao documental cruzada concluida:
+  - visao estrategica (`PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md`)
+  - plano executavel (`docs/PLANO_IMPLEMENTACAO_QG.md`)
+  - estado operacional (`HANDOFF.md`)
+  - governanca macro (`PLANO.md`)
+
 ## 2026-02-12
 
 ### Changed

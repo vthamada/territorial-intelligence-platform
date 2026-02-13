@@ -1,17 +1,21 @@
-# Plano de Execução do Projeto
+﻿# Plano de Execucao do Projeto
 
-Data de referência: 2026-02-10  
+Data de referencia: 2026-02-13  
 Status: ativo  
-Escopo deste arquivo: planejamento, fases, prioridades e sequência de implementação.
+Escopo deste arquivo: governanca de execucao, fases, prioridades e sequencia de entrega.
 
-## 1) Referências e papéis documentais
+## 1) Referencias e papeis documentais
 
-- `CONTRATO.md`: requisitos técnicos e critérios finais de aceite (imutável por padrão).
-- `PLANO.md`: execução do trabalho (fases, backlog, prioridades, marcos).
-- `HANDOFF.md`: estado operacional corrente e próximos passos imediatos.
-- `CHANGELOG.md`: histórico de mudanças e evidências de validação.
+1. `CONTRATO.md`: requisitos tecnicos e criterios finais de aceite.
+2. `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md`: visao estrategica (north star) do produto.
+3. `docs/PLANO_IMPLEMENTACAO_QG.md`: plano executavel com status por onda/sprint e proximas entregas.
+4. `HANDOFF.md`: estado operacional corrente e proximos passos imediatos.
+5. `docs/MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md`: evidenciacao item a item do plano de evolucao.
+6. `CHANGELOG.md`: historico de mudancas e evidencias de validacao.
 
-## 2) Estratégia por ondas (MVP)
+Regra: este arquivo nao detalha estado diario; ele define como executar e priorizar.
+
+## 2) Estrategia por ondas (MVP)
 
 MVP-1:
 - `ibge_admin_fetch`
@@ -32,166 +36,105 @@ MVP-3:
 - `finance_siconfi_fetch`
 - `labor_mte_fetch`
 
-## 3) Plano completo de execução (início ao fim)
+MVP-4:
+- `sidra_indicators_fetch`
+- `senatran_fleet_fetch`
+- `sejusp_public_safety_fetch`
+- `siops_health_finance_fetch`
+- `snis_sanitation_fetch`
 
-## Fase 0 - Preparação e baseline técnico
+MVP-5:
+- `inmet_climate_fetch`
+- `inpe_queimadas_fetch`
+- `ana_hydrology_fetch`
+- `anatel_connectivity_fetch`
+- `aneel_energy_fetch`
 
+## 3) Fases de execucao
+
+### Fase 0 - Baseline tecnico
 Objetivo:
-- garantir ambiente reproduzível para execução de ponta a ponta.
+- garantir ambiente reproduzivel para execucao de ponta a ponta.
 
-Atividades:
-1. Validar bootstrap completo (venv, dependências, banco e extensões).
-2. Rodar inicialização de schema.
-3. Executar suíte de testes base.
-
-Critérios de aceite mensuráveis:
+Aceite:
 1. `python -m pip check` sem conflitos.
-2. `pytest -q -p no:cacheprovider` com 100% dos testes da suíte atual aprovados.
-3. `python scripts/init_db.py` executa sem erro em banco limpo.
+2. `python scripts/init_db.py` sem erro em banco limpo.
+3. testes unitarios base aprovados.
 
-## Fase 1 - Fechamento funcional crítico (P0)
-
+### Fase 1 - Fechamento funcional critico
 Objetivo:
-- concluir `labor_mte_fetch` para operação sem dependência manual recorrente.
+- estabilizar conectores e contrato API essenciais para decisao.
 
-Atividades:
-1. Fechar estratégia de automação para MTE.
-2. Ajustar parsing/seleção de arquivos para reduzir falhas de ingestão.
-3. Atualizar runbook e registro de conector.
+Aceite:
+1. conectores MVP-1/2/3 operacionais com rastreio em `ops.pipeline_runs` e `ops.pipeline_checks`.
+2. API executiva QG funcional (`overview`, `priorities`, `mapa`, `insights`, `territorio`, `eleitorado`).
 
-Critérios de aceite mensuráveis:
-1. `labor_mte_fetch` com status `implemented` em `configs/connectors.yml`.
-2. 3 execuções consecutivas de `labor_mte_fetch` com `dry_run=False` finalizando `run_status=successful`.
-3. Cada execução gera registros em `ops.pipeline_runs` e `ops.pipeline_checks`.
-
-## Fase 2 - Fechamento operacional
-
+### Fase 2 - Fechamento operacional
 Objetivo:
-- consolidar execução operacional previsível e observável.
+- consolidar observabilidade, readiness e qualidade para operacao diaria.
 
-Atividades:
-1. Consolidar `dbt_build` no modo `dbt` em ambiente alvo.
-2. Expandir checks e thresholds por domínio.
-3. Validar endpoints de observabilidade para operação diária.
+Aceite:
+1. `GET /v1/ops/readiness` funcional e consumido no frontend operacional.
+2. SLO-3 sem hard fail na janela alvo.
+3. pipeline de qualidade com checks por fonte e por referencia_period.
 
-Critérios de aceite mensuráveis:
-1. `DBT_BUILD_MODE=dbt` executa em ambiente alvo sem fallback não planejado.
-2. Check crítico ativo para cada tabela crítica definida no contrato.
-3. `/v1/ops/summary`, `/v1/ops/timeseries` e `/v1/ops/sla` respondem em ambiente de homologação.
-4. SLO-1 e SLO-3 do `CONTRATO.md` atendidos por janela de 7 dias.
-
-## Fase 3 - Release de produção
-
+### Fase 3 - Frontend QG robusto
 Objetivo:
-- validar ciclo completo em ambiente limpo com evidência formal.
+- transformar o frontend em centro de comando (mapa + decisao).
 
-Atividades:
-1. Rodar fluxo completo em ambiente limpo.
-2. Registrar baseline de regressão.
-3. Publicar documentação final de operação backend.
+Aceite:
+1. fluxo principal funcional: Home -> Prioridades -> Mapa -> Territorio 360 -> Cenarios/Briefs.
+2. estados de loading/error/empty consistentes e com rastreabilidade de erro.
+3. testes frontend e build verdes em ciclo de release.
 
-Critérios de aceite mensuráveis:
-1. `run_mvp_all` executa sem intervenção manual recorrente.
-2. suíte de testes aprovada no mesmo commit de release.
-3. evidências publicadas em `CHANGELOG.md` e operação documentada em `HANDOFF.md`.
-
-## Fase 4 - Frontend MVP de operação
-
+### Fase 4 - Go-live controlado
 Objetivo:
-- disponibilizar interface operacional e analítica mínima integrada à API v1.
+- operar em homologacao com defensabilidade tecnica e previsibilidade.
 
-Atividades:
-1. Criar app frontend com stack oficial (`React + Vite + TypeScript`).
-2. Implementar shell da aplicação:
-   - roteamento (`React Router`)
-   - configuração de ambiente (`VITE_API_BASE_URL`)
-3. Implementar camada de dados (`TanStack Query`) e cliente API tipado.
-4. Implementar telas:
-   - saúde operacional
-   - execução de pipelines
-   - territórios e indicadores
-5. Cobrir UI com testes unitários/integração e smoke de navegação.
+Aceite:
+1. E2E dos fluxos criticos aprovado.
+2. documentacao de operacao e limites atualizada.
+3. release com evidencias em `CHANGELOG.md` + `HANDOFF.md`.
 
-Critérios de aceite mensuráveis:
-1. `npm run build` e `npm test` executam sem erro.
-2. Telas críticas exibem estados de `loading`, `empty` e `error` com `request_id`.
-3. Filtros e paginação reproduzem contratos dos endpoints `/v1/ops/*`.
-4. Frontend publicado em homologação e validado contra API real.
-
-## 4) Backlog priorizado
+## 4) Prioridades atuais (ordem)
 
 P0:
-1. Fechar `labor_mte_fetch` para `implemented`.
-2. Validar release backend em ambiente limpo e reprodutível.
+1. Fechar homologacao ponta a ponta com dados reais.
+2. Consolidar baseline de testes (backend + frontend) em ambiente limpo.
 
 P1:
-1. Consolidar `dbt` CLI no ambiente alvo.
-2. Expandir qualidade por dataset.
-3. Implementar frontend MVP operacional.
-4. Publicar build frontend em homologação.
+1. Evoluir UX do mapa dominante (Home "B") e performance geoespacial.
+2. Fechar E2E dos caminhos de decisao.
+3. Padronizar consumo de readiness em toda camada tecnica.
 
 P2:
-1. Alertas automáticos por SLA/SLO.
-2. Política de retenção Bronze por ambiente.
-3. Evoluir frontend para dashboards analíticos avançados.
-4. Incluir autenticação/autorização no frontend (se exigência de acesso for ativada).
+1. Alertas operacionais e runbooks de suporte.
+2. Evolucoes analiticas incrementais por dominio.
 
-## 5) Entrega frontend (detalhamento por sprint)
+## 5) Deltas incorporados do plano de evolucao
 
-Sprint F1 - Fundação (1 semana):
-1. Criar estrutura `frontend/` no repositório.
-2. Configurar TypeScript, lint, testes e build.
-3. Configurar `React Router` e `TanStack Query`.
-4. Implementar cliente API tipado e camada de serviços.
+Specs estrategicas base (v0.1) criadas:
+1. `MAP_PLATFORM_SPEC.md`
+2. `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md`
+3. `STRATEGIC_ENGINE_SPEC.md`
 
-Aceite F1:
-1. `npm run build` e `npm test` executam localmente sem erros.
-2. Troca de URL da API por variável sem alteração de código.
+Proximo passo: evoluir as tres para v1.0 e executar backlog tecnico correspondente,
+com priorizacao em `docs/PLANO_IMPLEMENTACAO_QG.md`.
 
-Sprint F2 - Operação (1 semana):
-1. Entregar tela de saúde operacional.
-2. Entregar tela de pipelines com filtros e paginação.
-3. Entregar feedback completo de erro/carregamento/vazio.
+## 6) Riscos principais e mitigacao
 
-Aceite F2:
-1. Operações de monitoramento podem ser feitas sem acesso ao banco.
-2. Filtros da UI reproduzem os filtros dos endpoints `/v1/ops/*`.
+1. Instabilidade de fonte externa:
+- mitigacao: fallback por catalogo/manual + bronze cache + testes de conector.
 
-Sprint F3 - Território e indicadores (1 semana):
-1. Entregar consulta de territórios.
-2. Entregar consulta de indicadores por período e nível territorial.
-3. Ajustar responsividade para notebook e mobile.
+2. Divergencia entre visao e execucao:
+- mitigacao: governanca documental clara e revisao por contrato.
 
-Aceite F3:
-1. Usuário navega por dados territoriais sem SQL.
-2. Build validado em homologação com API real.
+3. Regressao de UX sob alta cadencia:
+- mitigacao: smoke + E2E nos fluxos principais antes de consolidar release.
 
-Sprint F4 - Hardening (0.5 semana):
-1. Ajustar performance inicial (bundle e carregamento).
-2. Incluir testes smoke de navegação.
-3. Fechar documentação de operação do frontend.
+## 7) Governanca de atualizacao
 
-Aceite F4:
-1. Frontend apto para operação diária junto com API v1.
-2. SLO-2 do `CONTRATO.md` monitorado em homologação.
-
-## 6) Riscos principais e mitigação
-
-1. Dependência externa de fontes públicas (instabilidade/portal bloqueado):
-- mitigação: fallback controlado, retry, e monitoramento de falha por conector.
-
-2. Divergência entre contrato e implementação:
-- mitigação: revisão de PR obrigatória com checagem de aderência a `CONTRATO.md`.
-
-3. Atraso na entrega do frontend:
-- mitigação: sprints curtos, escopo MVP rígido e validação incremental por tela.
-
-4. Regressão de qualidade:
-- mitigação: thresholds versionados e testes automatizados por domínio.
-
-## 7) Governança do plano
-
-1. Este arquivo deve refletir somente execução e priorização.
-2. Números de status corrente (percentual, testes passados, estado do dia) não devem ser mantidos aqui.
-3. Atualizar `HANDOFF.md` a cada ciclo com estado atual e próximos passos.
-4. Atualizar `CHANGELOG.md` com evidências objetivas de validação e mudanças implementadas.
+1. Atualizar `docs/PLANO_IMPLEMENTACAO_QG.md` a cada mudanca de prioridade/status por onda.
+2. Atualizar `HANDOFF.md` a cada ciclo de implementacao com estado real e proximos passos.
+3. Atualizar `CHANGELOG.md` com evidencias objetivas de validacao.
+4. Revisar este `PLANO.md` somente quando houver mudanca de estrategia (nao a cada PR).
