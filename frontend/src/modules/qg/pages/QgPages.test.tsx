@@ -4,7 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getChoropleth, getMapLayers, getTerritories } from "../../../shared/api/domain";
+import { getChoropleth, getMapLayers, getMapStyleMetadata, getTerritories } from "../../../shared/api/domain";
 import { getInsightsHighlights, getKpisOverview, getPriorityList, getPrioritySummary, postBriefGenerate, postScenarioSimulate } from "../../../shared/api/qg";
 import { QgBriefsPage } from "./QgBriefsPage";
 import { QgInsightsPage } from "./QgInsightsPage";
@@ -25,6 +25,7 @@ vi.mock("../../../shared/api/qg", () => ({
 vi.mock("../../../shared/api/domain", () => ({
   getChoropleth: vi.fn(),
   getMapLayers: vi.fn(),
+  getMapStyleMetadata: vi.fn(),
   getTerritories: vi.fn()
 }));
 
@@ -197,6 +198,20 @@ describe("QG pages", () => {
           zoom_max: 11
         }
       ]
+    });
+
+    vi.mocked(getMapStyleMetadata).mockResolvedValue({
+      generated_at_utc: "2026-02-13T18:25:00Z",
+      version: "v1",
+      default_mode: "choropleth",
+      severity_palette: [
+        { severity: "critical", label: "Critico", color: "#b91c1c" },
+        { severity: "attention", label: "Atencao", color: "#d97706" },
+        { severity: "stable", label: "Estavel", color: "#0f766e" }
+      ],
+      domain_palette: [],
+      legend_ranges: [],
+      notes: "style_metadata_v1_static"
     });
 
     vi.mocked(getTerritories).mockResolvedValue({

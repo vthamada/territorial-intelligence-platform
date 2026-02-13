@@ -69,6 +69,22 @@ def test_map_layers_contract_shape() -> None:
     assert response.headers.get("x-request-id")
 
 
+def test_map_style_metadata_contract_shape() -> None:
+    client = TestClient(app)
+
+    response = client.get("/v1/map/style-metadata")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["version"] == "v1"
+    assert payload["default_mode"] == "choropleth"
+    assert isinstance(payload["severity_palette"], list)
+    assert isinstance(payload["domain_palette"], list)
+    assert isinstance(payload["legend_ranges"], list)
+    assert payload["notes"] == "style_metadata_v1_static"
+    assert response.headers.get("x-request-id")
+
+
 def test_http_error_contract_with_custom_request_id() -> None:
     app.dependency_overrides[get_db] = _fake_db
     client = TestClient(app, raise_server_exceptions=False)

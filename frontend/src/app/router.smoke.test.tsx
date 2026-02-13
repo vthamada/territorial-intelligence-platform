@@ -128,6 +128,19 @@ vi.mock("../shared/api/domain", () => ({
         zoom_max: 8
       }
     ]
+  }),
+  getMapStyleMetadata: vi.fn().mockResolvedValue({
+    generated_at_utc: "2026-02-13T18:25:00Z",
+    version: "v1",
+    default_mode: "choropleth",
+    severity_palette: [
+      { severity: "critical", label: "Critico", color: "#b91c1c" },
+      { severity: "attention", label: "Atencao", color: "#d97706" },
+      { severity: "stable", label: "Estavel", color: "#0f766e" }
+    ],
+    domain_palette: [],
+    legend_ranges: [],
+    notes: "style_metadata_v1_static"
   })
 }));
 

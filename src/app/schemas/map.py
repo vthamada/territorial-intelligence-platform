@@ -21,3 +21,33 @@ class MapLayersResponse(BaseModel):
     default_layer_id: str
     fallback_endpoint: str
     items: list[MapLayerItem]
+
+
+class MapStyleSeverityItem(BaseModel):
+    severity: str
+    label: str
+    color: str
+
+
+class MapStyleDomainItem(BaseModel):
+    domain: str
+    label: str
+    color: str
+
+
+class MapStyleLegendRangeItem(BaseModel):
+    key: str
+    label: str
+    min_value: float
+    max_value: float
+    color: str
+
+
+class MapStyleMetadataResponse(BaseModel):
+    generated_at_utc: datetime
+    version: str
+    default_mode: str
+    severity_palette: list[MapStyleSeverityItem]
+    domain_palette: list[MapStyleDomainItem]
+    legend_ranges: list[MapStyleLegendRangeItem]
+    notes: str

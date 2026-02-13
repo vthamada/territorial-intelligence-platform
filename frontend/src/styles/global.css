@@ -720,6 +720,33 @@ label {
   color: var(--ink-soft);
 }
 
+.map-style-meta {
+  margin-bottom: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.map-style-meta p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.map-style-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.map-style-chip {
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  background: #fffaf3;
+}
+
 .map-export-error {
   margin-top: 0.45rem;
   color: var(--err);

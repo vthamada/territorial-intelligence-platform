@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
-import { getChoropleth, getMapLayers } from "../../../shared/api/domain";
+import { getChoropleth, getMapLayers, getMapStyleMetadata } from "../../../shared/api/domain";
 import { formatApiError } from "../../../shared/api/http";
 import { ChoroplethMiniMap } from "../../../shared/ui/ChoroplethMiniMap";
 import { Panel } from "../../../shared/ui/Panel";
@@ -89,6 +89,12 @@ export function QgMapPage() {
   const mapLayersQuery = useQuery({
     queryKey: ["qg", "map", "layers"],
     queryFn: () => getMapLayers(),
+    staleTime: 5 * 60 * 1000
+  });
+
+  const mapStyleQuery = useQuery({
+    queryKey: ["qg", "map", "style-metadata"],
+    queryFn: () => getMapStyleMetadata(),
     staleTime: 5 * 60 * 1000
   });
 
@@ -313,6 +319,23 @@ export function QgMapPage() {
             Exportar PNG
           </button>
         </div>
+        {mapStyleQuery.data ? (
+          <div className="map-style-meta">
+            <p>
+              Modo padrao: <strong>{mapStyleQuery.data.default_mode}</strong> | versao: {mapStyleQuery.data.version}
+            </p>
+            <div className="map-style-chip-row">
+              {mapStyleQuery.data.severity_palette.map((item) => (
+                <span key={item.severity} className="map-style-chip" style={{ borderColor: item.color, color: item.color }}>
+                  {item.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        {mapStyleQuery.error ? (
+          <p className="map-export-error">Metadados de estilo indisponiveis; legenda padrao mantida.</p>
+        ) : null}
         <ChoroplethMiniMap
           items={sortedItems.map((item) => ({
             territoryId: item.territory_id,

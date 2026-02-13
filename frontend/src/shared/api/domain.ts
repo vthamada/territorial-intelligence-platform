@@ -1,5 +1,12 @@
 import { requestJson } from "./http";
-import type { ChoroplethItem, IndicatorItem, MapLayersResponse, PaginatedResponse, TerritoryItem } from "./types";
+import type {
+  ChoroplethItem,
+  IndicatorItem,
+  MapLayersResponse,
+  MapStyleMetadataResponse,
+  PaginatedResponse,
+  TerritoryItem
+} from "./types";
 
 export function getTerritories(query?: Record<string, string | number | boolean | undefined>) {
   return requestJson<PaginatedResponse<TerritoryItem>>("/territories", { query });
@@ -15,4 +22,8 @@ export function getChoropleth(query?: Record<string, string | number | boolean |
 
 export function getMapLayers() {
   return requestJson<MapLayersResponse>("/map/layers");
+}
+
+export function getMapStyleMetadata() {
+  return requestJson<MapStyleMetadataResponse>("/map/style-metadata");
 }

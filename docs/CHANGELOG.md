@@ -17,6 +17,9 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - novo endpoint de manifesto `GET /v1/map/layers` publicado na API.
   - `QgMapPage` passou a consumir o manifesto de camadas para orientar camada ativa por nivel territorial.
   - fluxo manteve fallback funcional para `GET /v1/geo/choropleth` quando manifesto estiver indisponivel.
+- MP-1 evoluido com metadados de estilo para o mapa:
+  - novo endpoint `GET /v1/map/style-metadata` publicado na API.
+  - `QgMapPage` passou a exibir metadados de estilo (modo padrao e paleta de severidade) com fallback seguro.
 
 ### Added
 - Novas specs estrategicas (versao inicial v0.1):
@@ -39,6 +42,9 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_api_contract.py -p no:cacheprovider`: `5 passed`.
   - `npm --prefix frontend run test`: `14 passed` / `38 passed`.
   - `npm --prefix frontend run build`: `OK` (Vite build concluido com `QgMapPage` consumindo `GET /v1/map/layers`).
+  - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_api_contract.py -p no:cacheprovider`: `6 passed` (inclui contrato de `GET /v1/map/style-metadata`).
+  - `npm --prefix frontend run test`: `14 passed` / `38 passed` (revalidado apos consumo de `style-metadata`).
+  - `npm --prefix frontend run build`: `OK` (Vite build concluido apos evolucao de legenda/paleta no mapa).
 
 ## 2026-02-12
 

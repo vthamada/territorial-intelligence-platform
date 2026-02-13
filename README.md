@@ -7,6 +7,7 @@ Plataforma de inteligencia territorial para Diamantina/MG, alinhada ao contrato 
 - Backend e frontend estaveis em desenvolvimento local.
 - API versionada em `/v1` com saude operacional, QG executivo, geografia e observabilidade.
 - MP-1 da plataforma de mapa iniciado com manifesto de camadas (`GET /v1/map/layers`) e integracao no frontend (`/mapa`) com fallback em choropleth.
+- Metadados de estilo do mapa ativos em `GET /v1/map/style-metadata` (modo padrao, paleta e ranges de legenda).
 - Conectores implementados ate `MVP-5` (ondas A e B/C) com persistencia em Bronze/Silver e metadados operacionais em `ops`.
 - Frontend executivo ativo com paginas de:
   - Visao geral (QG)
@@ -104,6 +105,7 @@ Plataforma de inteligencia territorial para Diamantina/MG, alinhada ao contrato 
   - `GET /v1/indicators`
   - `GET /v1/geo/choropleth`
   - `GET /v1/map/layers`
+  - `GET /v1/map/style-metadata`
 - QG executivo:
   - `GET /v1/kpis/overview`
   - `GET /v1/priority/list`

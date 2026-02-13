@@ -45,7 +45,7 @@ Entregar e estabilizar o QG estrategico municipal de Diamantina/MG, com:
 3. Onda 2: concluida.
 4. Onda 3: concluida.
 5. Onda 4: concluida.
-6. Onda 5: parcial (MP-1 concluido com manifesto `GET /v1/map/layers`; MP-2/MP-3 vetorial multi-zoom ainda pendentes).
+6. Onda 5: parcial (MP-1 concluido com `GET /v1/map/layers` e `GET /v1/map/style-metadata`; MP-2/MP-3 vetorial multi-zoom ainda pendentes).
 7. Onda 6: em andamento (UX imersiva e mapa dominante Home "B").
 8. Onda 7: concluida v1 (cenarios/briefs), com refinamentos pendentes.
 9. Onda 8: em andamento (E2E, performance, defensabilidade).

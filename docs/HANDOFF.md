@@ -22,8 +22,11 @@ Contrato tecnico principal: `CONTRATO.md`
   - endpoint `GET /v1/map/layers` ativo para manifesto de camadas e faixas de zoom.
   - `QgMapPage` integrado ao manifesto para exibir recomendacao de camada por nivel (`municipio`/`distrito`).
   - fallback preservado para `GET /v1/geo/choropleth`, sem interrupcao da pagina quando o manifesto falhar.
+- MP-1 estendido com metadados de estilo:
+  - endpoint `GET /v1/map/style-metadata` ativo com modo padrao, paleta de severidade e ranges de legenda.
+  - `QgMapPage` integrado para exibir contexto visual de estilo sem acoplar a renderizacao ao backend.
 - Validacoes desta iteracao:
-  - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_api_contract.py -p no:cacheprovider`: `5 passed`.
+  - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_api_contract.py -p no:cacheprovider`: `6 passed`.
   - `npm --prefix frontend run test`: `14 passed` / `38 passed`.
   - `npm --prefix frontend run build`: `OK`.
 

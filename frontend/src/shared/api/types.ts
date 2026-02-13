@@ -525,3 +525,33 @@ export type MapLayersResponse = {
   fallback_endpoint: string;
   items: MapLayerItem[];
 };
+
+export type MapStyleSeverityItem = {
+  severity: string;
+  label: string;
+  color: string;
+};
+
+export type MapStyleDomainItem = {
+  domain: string;
+  label: string;
+  color: string;
+};
+
+export type MapStyleLegendRangeItem = {
+  key: string;
+  label: string;
+  min_value: number;
+  max_value: number;
+  color: string;
+};
+
+export type MapStyleMetadataResponse = {
+  generated_at_utc: string;
+  version: string;
+  default_mode: string;
+  severity_palette: MapStyleSeverityItem[];
+  domain_palette: MapStyleDomainItem[];
+  legend_ranges: MapStyleLegendRangeItem[];
+  notes: string;
+};
