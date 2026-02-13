@@ -2,6 +2,290 @@
 
 Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-13 (Sprint 9 - territorial layers TL-2/TL-3 + base eleitoral)
+
+### Added
+- **API tecnica de camadas territoriais**:
+  - `GET /v1/territory/layers/catalog`
+  - `GET /v1/territory/layers/coverage`
+  - `GET /v1/territory/layers/{layer_id}/metadata`
+  - `GET /v1/territory/layers/readiness`
+  - Implementacao em `src/app/api/routes_territory_layers.py` e inclusao no `main.py`.
+- **Cobertura e metadata de camadas no backend de mapa** (`src/app/api/routes_map.py`):
+  - `GET /v1/map/layers/coverage`
+  - `GET /v1/map/layers/{layer_id}/metadata`
+  - Catalogo de camadas com niveis eleitorais (`electoral_zone`, `electoral_section`).
+  - Nova camada `territory_polling_place` (nivel `electoral_section`, `layer_kind=point`) filtrando secoes com `metadata.polling_place_name`.
+- **Contratos e cliente frontend para rastreabilidade de camadas**:
+  - novos tipos em `frontend/src/shared/api/types.ts`;
+  - novos clientes em `frontend/src/shared/api/domain.ts` e `frontend/src/shared/api/ops.ts`;
+  - nova tela tecnica `frontend/src/modules/ops/pages/OpsLayersPage.tsx`;
+  - rota adicionada em `frontend/src/app/router.tsx`.
+- **Qualidade de camadas no quality suite**:
+  - checks `map_layer_rows_*` e `map_layer_geometry_ratio_*` na execucao;
+  - thresholds em `configs/quality_thresholds.yml`;
+  - testes unitarios em `tests/unit/test_quality_core_checks.py`.
+- **Territorializacao eleitoral no pipeline TSE de resultados** (`src/pipelines/tse_results.py`):
+  - parse de zona e secao quando colunas existirem no CSV;
+  - deteccao de `local_votacao` (quando presente) para metadata da secao eleitoral;
+  - upsert de `electoral_zone` e `electoral_section` em `silver.dim_territory`;
+  - resolucao de `territory_id` para `fact_election_result` por secao > zona > municipio.
+
+### Changed
+- **Admin/ops**:
+  - `frontend/src/modules/admin/pages/AdminHubPage.tsx` com atalho para `/ops/layers`;
+  - `frontend/src/modules/ops/pages/OpsPages.test.tsx` atualizado para cobrir fluxo de filtros da nova pagina.
+- **Mapa executivo (frontend)**:
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` com seletor explicito `Camada de secao` quando houver multiplas camadas no nivel.
+  - suporte para alternar entre `Secoes eleitorais` e `Locais de votacao`.
+  - prefill do `layer_id` por query string (deep-link para camada explicita) preservado no carregamento inicial.
+  - nota da camada ativa com tooltip de metodo (`proxy_method`) para transparencia operacional.
+  - fallback do modo de visualizacao para `pontos` quando camada ativa for `point`.
+  - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` agora propaga `layer_id` para links de mapa (atalho principal + cards Onda B/C), com seletor `Camada detalhada (Mapa)`.
+- **Estilos de UX**:
+  - `frontend/src/styles/global.css` com bloco visual do seletor de camada (`.map-layer-toggle`).
+- **Schemas de mapa**:
+  - `src/app/schemas/map.py` com modelos de cobertura, metadata e readiness por camada.
+- **Testes de contrato de mapa/camadas**:
+  - `tests/unit/test_mvt_tiles.py` ampliado para catalogo, metadata, readiness e camada `territory_polling_place`.
+- **Testes do pipeline eleitoral**:
+  - `tests/unit/test_tse_results.py` ampliado para normalizacao e extracao de zona/secao/local_votacao.
+- **Testes de pagina QG**:
+  - `frontend/src/modules/qg/pages/QgPages.test.tsx` com caso cobrindo exibicao do seletor de camada de secao.
+  - `frontend/src/modules/qg/pages/QgPages.test.tsx` com casos cobrindo propagacao de `layer_id` via Overview e carregamento por URL no `QgMapPage`.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_tse_results.py tests/unit/test_mvt_tiles.py tests/unit/test_quality_core_checks.py`
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_tse_results.py`
+- `npm --prefix frontend run test -- src/modules/qg/pages/QgPages.test.tsx`
+- `npm --prefix frontend run build`
+
+## 2026-02-13 (Sprint 8 - Vector engine MP-3 + Strategic engine SE-2)
+
+### Added
+- **MapLibre GL JS + VectorMap component** (`frontend/src/shared/ui/VectorMap.tsx`):
+  - Componente MVT-first com MapLibre GL JS (~280 linhas).
+  - 4 modos de visualizacao: coroplético, pontos proporcionais, heatmap, hotspots.
+  - Auto-switch de layer por zoom via `resolveLayerForZoom`.
+  - Seleção de território com destaque (outline azul espesso).
+  - Centro padrão: Diamantina, MG (-43.62, -18.09).
+  - Estilo local-first (sem tiles base externos), background #f6f4ee.
+- **Viz mode selector** (`QgMapPage.tsx`):
+  - Radio group com 4 modos (Coroplético, Pontos, Heatmap, Hotspots).
+  - Toggle entre VectorMap (MVT-first) e ChoroplethMiniMap (SVG fallback).
+- **Multi-level geometry simplification** (`routes_map.py`):
+  - 5 faixas de tolerância por zoom: z0-4 (0.05), z5-8 (0.005), z9-11 (0.001), z12-14 (0.0003), z15+ (0.0001).
+  - Função `_tolerance_for_zoom(z)` substituiu fórmula genérica.
+- **MVT cache ETag + latency metrics** (`routes_map.py`):
+  - ETag baseado em MD5 do conteúdo do tile + header `If-None-Match` → 304.
+  - Header `X-Tile-Ms` com tempo de geração.
+  - Ring buffer `_TILE_METRICS` (max 500 entradas).
+  - Endpoint `GET /v1/map/tiles/metrics`: p50/p95/p99 + stats por layer.
+- **Strategic engine config (SE-2)** (`configs/strategic_engine.yml` + `strategic_engine_config.py`):
+  - YAML externalizado: thresholds (critical: 80, attention: 50), severity_weights, limites de cenários.
+  - `ScoringConfig` + `StrategicEngineConfig` dataclasses (frozen).
+  - `load_strategic_engine_config()` com `@lru_cache` — carregamento único.
+  - `score_to_status()` + `status_impact()`: delegam para config YAML.
+  - SQL CASE statements parametrizados com thresholds do config.
+  - `config_version` adicionado ao schema `QgMetadata` (Python + TypeScript).
+  - Todas as 8 construções de `QgMetadata` injetam `config_version` automaticamente.
+- **Spatial GIST index** (`db/sql/003_indexes.sql`):
+  - `idx_dim_territory_geometry ON silver.dim_territory USING GIST (geometry)`.
+- **Vitest maplibre-gl mock** (`frontend/vitest.setup.ts`):
+  - Mock completo do MapLibre GL para jsdom (URL.createObjectURL + Map mock).
+- **26 novos testes SE-2** (`tests/unit/test_strategic_engine_config.py`):
+  - 4 ScoringConfig defaults, 6 load config, 7 score_to_status, 6 status_impact, 3 config_version metadata.
+- **7 novos testes MVT** (`tests/unit/test_mvt_tiles.py`):
+  - 6 multi-level tolerance + 1 tile metrics endpoint.
+
+### Changed
+- `routes_qg.py`: `_score_to_status()` e `_status_impact()` agora delegam para módulo config.
+- `routes_qg.py`: SQL CASE com thresholds do YAML (não mais hardcoded 80/50).
+- `routes_qg.py`: `_qg_metadata()` injeta `config_version` automaticamente.
+- `QgMapPage.tsx`: VectorMap como renderizador principal, ChoroplethMiniMap como fallback.
+- `global.css`: +40 linhas (viz-mode-selector, viz-mode-btn/active, vector-map-container).
+- `types.ts`: `QgMetadata.config_version?: string | null`.
+- `qg.py`: `QgMetadata.config_version: str | None = None`.
+
+### Verified
+- Backend: **246 testes passando** (pytest) — +33 vs Sprint 7.
+- Frontend: **59 testes passando** (vitest) em 18 arquivos.
+- Build Vite: OK (4.3s).
+- Regressão completa sem falhas.
+- 26 endpoints totais (11 QG + 10 ops + 1 geo + 2 map + 1 MVT + 1 tile-metrics).
+
+### Added
+- **Layout B: mapa dominante na Home** (`QgOverviewPage.tsx`):
+  - Reescrito para layout map-dominant com ChoroplethMiniMap preenchendo area principal.
+  - Sidebar overlay com glassmorphism (filtros, KPIs, acoes rapidas, prioridades, destaques).
+  - Barra de estatisticas flutuante (criticos/atencao/monitorados).
+  - Botao toggle para exibir/ocultar painel lateral.
+- **Drawer lateral reutilizavel** (`frontend/src/shared/ui/Drawer.tsx`):
+  - Componente slide-in com suporte a left/right, escape key, backdrop click, aria-modal.
+  - 4 testes unitarios.
+- **Zustand para estado global** (`frontend/src/shared/stores/filterStore.ts`):
+  - Store com period, level, metric, zoom + actions (setPeriod, setLevel, setMetric, setZoom, applyDefaults).
+  - Integrado no QgOverviewPage para sincronizacao de filtros.
+  - 6 testes unitarios.
+- **MapDominantLayout** (`frontend/src/shared/ui/MapDominantLayout.tsx`):
+  - Wrapper component: mapa full-viewport + sidebar overlay colapsavel.
+- **MVT tiles endpoint (MP-2)** (`src/app/api/routes_map.py`):
+  - `GET /v1/map/tiles/{layer}/{z}/{x}/{y}.mvt`: vector tiles via PostGIS ST_AsMVT.
+  - Dois caminhos SQL: com join de indicador (metric+period) ou geometria pura.
+  - Suporte a filtro por domain, tolerancia adaptativa por zoom.
+  - Cache-Control: 1h, CORS headers.
+  - 6 testes unitarios (tile bbox, layer mapping, validacao 422).
+- **Auto layer switch por zoom** (`frontend/src/shared/hooks/useAutoLayerSwitch.ts`):
+  - Hook `useAutoLayerSwitch` + funcao pura `resolveLayerForZoom`.
+  - Seleciona camada automaticamente pelo zoom_min/zoom_max do manifesto /v1/map/layers.
+  - Controle de zoom (range slider) integrado no QgMapPage.
+  - 6 testes unitarios.
+
+### Changed
+- `QgOverviewPage.tsx`: labels encurtados (Aplicar, Prioridades, Mapa detalhado, Territorio critico).
+- `QgMapPage.tsx`: integrado useAutoLayerSwitch + zoom state sincronizado com Zustand.
+- `cache_middleware.py`: adicionada regra MVT tiles com TTL 1h.
+- `global.css`: +250 linhas (drawer, map-dominant, floating-stats, zoom-control, responsivo).
+
+### Verified
+- Backend: 213 testes passando (pytest) — +6 MVT.
+- Frontend: 59 testes passando (vitest) em 18 arquivos — +7 (4 Drawer, 6 autoLayer+zoom, -1 ajustes store).
+- Build Vite: OK (1.51s).
+- Regressao completa sem falhas.
+
+## 2026-02-13 (Sprint 6 - go-live v1.0 closure)
+
+### Added
+- Contrato v1.0 congelado (`docs/CONTRATO.md`):
+  - Todos os 24 endpoints documentados (11 QG + 10 ops + 1 geo + 2 map).
+  - SLO-2 dividido: operacional (p95 <= 1.5s) e executivo (p95 <= 800ms).
+  - Secao 12.1 com tabela de ferramentas de validacao (homologation_check, benchmark_api, backend_readiness, quality_suite).
+  - 8 telas executivas do frontend incluidas na secao 7.
+- Runbook de operacoes (`docs/OPERATIONS_RUNBOOK.md`):
+  - 12 secoes: ambiente, pipelines, qualidade, views materializadas, API, frontend, go-live, testes, troubleshooting, conectores especiais, deploy.
+  - Procedimento de deploy com 11 passos + rollback.
+  - 5 cenarios de troubleshooting documentados.
+- Specs v0.1 promovidas a v1.0:
+  - `MAP_PLATFORM_SPEC.md`: MP-1 marcado CONCLUIDO (manifesto de camadas, style-metadata, cache 1h, fallback choropleth).
+  - `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md`: TL-1 marcado CONCLUIDO (`is_official` no catalogo, badge frontend, coverage_note).
+  - `STRATEGIC_ENGINE_SPEC.md`: SE-1 marcado CONCLUIDO (score/severity/rationale/evidence, simulacao, briefs).
+
+### Changed
+- `MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md`:
+  - P01 atualizado com CollapsiblePanel progressive disclosure.
+  - D01 atualizado com contrato v1.0 congelado.
+  - O6-03 elevado para OK (progressive disclosure completo).
+  - O8-02 elevado para OK (OpsHealthPage com 7 paineis + homologation script).
+  - Secao "Criticas" atualizada com runbook de operacoes.
+
+### Verified
+- Backend: 207 testes passando (pytest).
+- Frontend: 43 testes passando (vitest) em 15 arquivos.
+- Build Vite: OK.
+- Regressao completa sem falhas.
+
+## 2026-02-13 (Sprint 5.3 - go-live readiness)
+
+### Added
+- Thresholds de qualidade por dominio/fonte (Sprint 5.2 #3):
+  - `configs/quality_thresholds.yml`: adicionados `min_rows_datasus`, `min_rows_inep`, `min_rows_siconfi`, `min_rows_mte`, `min_rows_tse` (MVP-3).
+  - MVP-5 sources elevados de 0 para 1 (INMET, INPE_QUEIMADAS, ANA, ANATEL, ANEEL).
+  - `quality.py`: `check_fact_indicator_source_rows()` ampliado de 10 para 15 fontes; `check_ops_pipeline_runs()` ampliado de 9 para 14 jobs.
+- Script de homologacao consolidado (`scripts/homologation_check.py`):
+  - Orquestra 5 dimensoes: backend readiness, quality suite, frontend build, test suites, API smoke.
+  - Produz verdict unico READY/NOT READY com output JSON opcional.
+  - CLI: `--json`, `--strict`.
+- Componente `CollapsiblePanel` (`frontend/src/shared/ui/CollapsiblePanel.tsx`):
+  - Panel colapsavel com chevron, badge de contagem, `aria-expanded`, foco visivel.
+  - CSS integrado em `global.css` (`.collapsible-toggle`, `.collapsible-chevron`, `.badge-count`).
+- Admin diagnostics refinement (Sprint 5.3 #1):
+  - `OpsHealthPage.tsx`: 3 novos paineis colapsaveis — Quality checks, Cobertura de fontes, Registro de conectores.
+  - Consome `getPipelineChecks`, `getOpsSourceCoverage`, `getConnectorRegistry` ja existentes.
+
+### Changed
+- `QgOverviewPage.tsx`: tabelas "Dominios Onda B/C" (collapsed) e "KPIs executivos" (expanded) usam `CollapsiblePanel` para progressive disclosure.
+- Testes `test_quality_core_checks.py` atualizados para 15 fontes (mock session com 15 valores).
+- Mocks de `getOpsSourceCoverage` adicionados em `router.smoke.test.tsx` e `e2e-flow.test.tsx`.
+
+### Verified
+- Backend: 207 testes passando (pytest).
+- Frontend: 43 testes passando (vitest) em 15 arquivos.
+- Build Vite: OK.
+- Regressao completa sem falhas.
+
+## 2026-02-13 (Sprint 5.2 - acessibilidade e hardening)
+
+### Added
+- Script de benchmark de performance da API:
+  - `scripts/benchmark_api.py` com medicao de p50/p95/p99 em 12 endpoints criticos.
+  - alvo: p95 <= 800ms; suporte a JSON output e rounds configuraveis.
+- Testes de edge-case para contratos QG:
+  - `tests/unit/test_qg_edge_cases.py` com 44 testes cobrindo validacao de nivel, limites, dados vazios, propagacao de request_id, content-type de erro, etc.
+- Badge de classificacao de fonte (P05):
+  - campo `source_classification` adicionado ao `QgMetadata` (backend schema + API).
+  - constantes `_OFFICIAL_SOURCES` / `_PROXY_SOURCES` e funcao `_classify_source()` em `routes_qg.py`.
+  - frontend: `SourceFreshnessBadge` exibe "Fonte oficial", "Proxy/estimado" ou "Fontes mistas".
+- Hook de persistencia de sessao (O7-05):
+  - `frontend/src/shared/hooks/usePersistedFormState.ts` com prioridade: queryString > localStorage > defaults.
+  - integrado em `QgScenariosPage` (6 campos) e `QgBriefsPage` (5 campos).
+- Hardening de acessibilidade (Sprint 5.2 item 1):
+  - `Panel.tsx`: `<section aria-labelledby>` com `id` gerado via `useId()` no `<h2>`.
+  - `StateBlock.tsx`: `role="alert"` para erros, `role="status"` para loading/empty, `aria-live`.
+  - `StrategicIndexCard.tsx`: `aria-label` no `<article>` e `aria-label` de status no `<small>`.
+  - Todas as paginas executivas: `<div class="page-grid">` substituido por `<main>`.
+  - 7 tabelas receberam `aria-label` descritivo (Overview, Map, Briefs, Territory).
+  - Botoes de exportacao com `aria-label` contextual (SVG, PNG, CSV, HTML, PDF).
+  - Linhas clicaveis do ranking territorial com `tabIndex={0}`, `role="button"`, `onKeyDown` (Enter/Space).
+  - Quick-actions em Overview e TerritoryProfile envolvidos em `<nav aria-label>`.
+  - Listas trend-list com `aria-label` semantico.
+  - Grid de prioridades com `role="list"` e `aria-label`.
+
+### Changed
+- `source_classification` no tipo TypeScript `QgMetadata` marcado como opcional (`?:`) para compatibilidade com mocks existentes.
+- Testes de frontend atualizados para usar regex (`/Exportar.*CSV/`) nos nomes acessiveis de botoes com `aria-label`.
+
+### Verified
+- Backend: 207 testes passando (pytest), incluindo 44 novos edge-case.
+- Frontend: 43 testes passando (vitest) em 15 arquivos.
+- Build Vite: OK.
+- Regressao completa sem falhas.
+
+## 2026-02-13 (Sprint 5 - hardening)
+
+### Added
+- Teste E2E completo do fluxo critico de decisao:
+  - `frontend/src/app/e2e-flow.test.tsx` com 5 testes cobrindo Home → Prioridades → Mapa → Territorio 360 → Eleitorado → Cenarios → Briefs.
+  - deep-links com propagacao de contexto (query params) entre mapa e territorio.
+  - navegacao admin → executivo validada.
+- Middleware de cache HTTP para endpoints criticos:
+  - `src/app/api/cache_middleware.py` com `CacheHeaderMiddleware` (Cache-Control + weak ETag + 304 condicional).
+  - regras: mapa/layers e style-metadata = 3600s; kpis/priority/insights = 300s; choropleth/electorate = 600s; territory = 300s.
+  - registrado em `src/app/api/main.py`.
+  - `tests/unit/test_cache_middleware.py` com 6 testes unitarios.
+- Materialized views para ranking e mapa:
+  - `db/sql/006_materialized_views.sql` com 3 MVs: `mv_territory_ranking`, `mv_map_choropleth`, `mv_territory_map_summary`.
+  - funcao `gold.refresh_materialized_views()` para refresh concorrente.
+  - geometria simplificada com `ST_SimplifyPreserveTopology(geometry, 0.001)` na MV de mapa.
+- Indices espaciais GIST dedicados:
+  - `db/sql/007_spatial_indexes.sql` com GIST em `dim_territory.geometry`, GIN trigram em `name`, covering index para joins de mapa.
+- Banner de readiness no Admin:
+  - `AdminHubPage.tsx` com `ReadinessBanner` consumindo `GET /v1/ops/readiness` (conectores, SLO-1, falhas, avisos).
+
+### Changed
+- Matriz de rastreabilidade atualizada:
+  - A03 (indices geoespaciais): PARCIAL → OK.
+  - A04 (materialized views): PENDENTE → OK.
+  - A05 (geometrias simplificadas): PENDENTE → PARCIAL.
+  - A07 (cache HTTP): PENDENTE → OK.
+  - P03 (admin readiness): atualizado com evidencia de ReadinessBanner.
+  - O8-01 (E2E): PARCIAL → OK.
+
+### Verified
+- Backend: 163 testes passando (pytest), incluindo 6 novos testes de cache middleware.
+- Frontend: 43 testes passando (vitest) em 15 arquivos, incluindo 5 E2E de fluxo critico.
+- Build Vite: OK.
+- Regressao completa sem falhas.
+
 ## 2026-02-13
 
 ### Changed

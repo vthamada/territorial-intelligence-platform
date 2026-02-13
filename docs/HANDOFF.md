@@ -9,10 +9,10 @@ Contrato tecnico principal: `CONTRATO.md`
 1. `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md` passa a ser somente visao estrategica do produto.
 2. `docs/PLANO_IMPLEMENTACAO_QG.md` permanece como fonte unica de execucao e prioridade.
 3. `HANDOFF.md` permanece como estado operacional corrente + proximos passos imediatos.
-4. Specs estrategicas base criadas (v0.1), agora no backlog de execucao tecnica:
-   - `MAP_PLATFORM_SPEC.md`
-   - `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md`
-   - `STRATEGIC_ENGINE_SPEC.md`
+4. Specs estrategicas promovidas a v1.0 com fases concluidas marcadas:
+   - `MAP_PLATFORM_SPEC.md` (MP-1, MP-2 e MP-3 baseline concluidos)
+   - `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md` (TL-1, TL-2 e TL-3 baseline concluidos)
+   - `STRATEGIC_ENGINE_SPEC.md` (SE-1 e SE-2 concluidos)
 5. Matriz detalhada de rastreabilidade (item a item da evolucao) publicada em:
    - `docs/MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md`
 6. Classificacao de referencia complementar:
@@ -21,8 +21,156 @@ Contrato tecnico principal: `CONTRATO.md`
 
 ## Atualizacao tecnica (2026-02-13)
 
+### Sprint 9 - territorial layers TL-2/TL-3 + base eleitoral (iteracao atual)
+- **Camadas territoriais com rastreabilidade operacional**:
+  - `GET /v1/map/layers/coverage` e `GET /v1/map/layers/{layer_id}/metadata` publicados.
+  - `GET /v1/territory/layers/*` publicado para catalogo, cobertura, metadata e readiness.
+  - readiness combina catalogo + cobertura + checks do `quality_suite` para visao tecnica unica.
+  - camada `territory_polling_place` adicionada no catalogo MVT como ponto eleitoral derivado.
+- **Admin/ops com pagina dedicada para camadas**:
+  - nova rota `/ops/layers` com filtros por metrica/periodo e tabela de readiness por camada.
+  - `AdminHubPage` atualizado com atalho direto para a pagina de camadas.
+  - `QgMapPage` com seletor explicito de camada de secao (incluindo `Locais de votacao`) para controle manual no fluxo executivo.
+  - `QgMapPage` passa a respeitar `layer_id` por query string no carregamento inicial.
+  - `QgOverviewPage` passa a propagar `layer_id` nos links para `/mapa` (atalho principal e cards Onda B/C), via seletor `Camada detalhada (Mapa)`.
+- **Quality suite com checks de camada**:
+  - checks de volume e geometria por nivel (`map_layer_rows_*` e `map_layer_geometry_ratio_*`) integrados.
+  - thresholds dedicados em `configs/quality_thresholds.yml`.
+- **Pipeline TSE resultados evoluido para base eleitoral territorial**:
+  - parse de zona/secao eleitoral (quando colunas existirem no arquivo oficial).
+  - deteccao de `local_votacao` (quando disponivel) como metadata preparatoria da secao.
+  - upsert de `electoral_zone` e `electoral_section` em `silver.dim_territory`.
+  - `fact_election_result` agora resolve `territory_id` em ordem secao > zona > municipio.
+- **Validacoes da iteracao**:
+  - backend: testes de `tse_results`, `mvt_tiles` e `quality_core_checks` passando.
+  - frontend: `QgPages.test.tsx` passando apos incluir seletor de camada; build Vite passando.
+
+### Sprint 8 - Vector engine MP-3 + Strategic engine SE-2 (iteracao anterior)
+- **MapLibre GL JS + VectorMap** (`VectorMap.tsx`):
+  - Componente MVT-first (~280 linhas) com 4 viz modes: coroplético, pontos, heatmap, hotspots.
+  - Auto layer switch por zoom, seleção de território, estilo local-first.
+  - Integrado no QgMapPage com fallback SVG (ChoroplethMiniMap).
+- **Multi-level geometry simplification** (`routes_map.py`):
+  - 5 faixas de tolerância por zoom (0.05 → 0.0001).
+  - Substituiu fórmula genérica por bandas discretas.
+- **MVT cache ETag + latency metrics**:
+  - ETag MD5 + If-None-Match 304 + header X-Tile-Ms.
+  - Endpoint `GET /v1/map/tiles/metrics` com p50/p95/p99.
+- **Strategic engine config SE-2** (`configs/strategic_engine.yml`):
+  - Thresholds, severity_weights, limites externalizados em YAML.
+  - `score_to_status()` + `status_impact()` config-driven (não mais hardcoded).
+  - SQL CASE parametrizado + `config_version` em todas as respostas QgMetadata.
+- **Spatial GIST index**: `idx_dim_territory_geometry` adicionado.
+- Validações:
+  - backend: 246 testes passando (+33 vs Sprint 7).
+  - frontend: 59 testes passando em 18 arquivos.
+  - build Vite: OK.
+  - 26 endpoints totais.
+
+### Sprint 7 - UX evolution + map platform MP-2 (iteracao anterior)
+- **Layout B: mapa dominante na Home**:
+  - QgOverviewPage reescrito com ChoroplethMiniMap dominante + sidebar overlay com glassmorphism.
+  - Barra de estatisticas flutuante (criticos/atencao/monitorados), toggle sidebar.
+  - Labels encurtados: Aplicar, Prioridades, Mapa detalhado, Territorio critico.
+- **Drawer lateral reutilizavel** (`Drawer.tsx`):
+  - Componente slide-in left/right, escape key, backdrop click, aria-modal, foco automatico.
+- **Zustand para estado global** (`filterStore.ts`):
+  - Store compartilhado: period, level, metric, zoom.
+  - Integrado na Home e pronto para uso cross-page.
+- **MapDominantLayout** (`MapDominantLayout.tsx`):
+  - Layout wrapper: mapa full-viewport + sidebar colapsavel, responsivo.
+- **MVT tiles endpoint (MP-2)**:
+  - `GET /v1/map/tiles/{layer}/{z}/{x}/{y}.mvt` via PostGIS ST_AsMVT.
+  - Dois caminhos SQL: com join de indicador ou geometria pura.
+  - Filtro por domain, tolerancia adaptativa por zoom, Cache-Control 1h.
+  - 25 endpoints totais (11 QG + 10 ops + 1 geo + 2 map + 1 MVT).
+- **Auto layer switch por zoom** (`useAutoLayerSwitch.ts`):
+  - Hook que seleciona camada pelo zoom_min/zoom_max do manifesto /v1/map/layers.
+  - Controle de zoom (range slider) integrado no QgMapPage.
+- Validacoes:
+  - backend: 213 testes passando (+6 MVT).
+  - frontend: 59 testes passando, 18 arquivos (+16 testes vs Sprint 6).
+  - build Vite: OK (1.51s).
+
+### Sprint 6 - go-live v1.0 closure (iteracao anterior)
+- Contrato v1.0 congelado (`CONTRATO.md`):
+  - 24 endpoints formalizados (11 QG + 10 ops + 1 geo + 2 map).
+  - SLO-2 bifurcado: operacional (p95 <= 1.5s) e executivo (p95 <= 800ms).
+  - Secao 12.1 com tabela de ferramentas (homologation_check, benchmark_api, backend_readiness, quality_suite).
+- Runbook de operacoes (`OPERATIONS_RUNBOOK.md`):
+  - 12 secoes cobrindo todo ciclo de vida: ambiente, pipelines, qualidade, views, API, frontend, go-live, testes, troubleshooting, conectores especiais, deploy (11 passos + rollback).
+- Specs v0.1 → v1.0:
+  - `MAP_PLATFORM_SPEC.md`: MP-1 CONCLUIDO (manifesto, style-metadata, cache, fallback).
+  - `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md`: TL-1 CONCLUIDO (is_official, badge, coverage_note).
+  - `STRATEGIC_ENGINE_SPEC.md`: SE-1 CONCLUIDO (score/severity/rationale/evidence, simulacao, briefs).
+- Matriz de rastreabilidade atualizada:
+  - O6-03 → OK (progressive disclosure), O8-02 → OK (admin diagnostics 7 paineis), D01 → OK (contrato v1.0).
+- Validacoes:
+  - backend: 207 testes passando.
+  - frontend: 43 testes passando, 15 arquivos.
+  - build Vite: OK.
+
+### Sprint 5.3 - go-live readiness (iteracao anterior)
+- Thresholds de qualidade por dominio/fonte:
+  - 15 fontes com `min_rows` explicito em `quality_thresholds.yml` (incluindo DATASUS, INEP, SICONFI, MTE, TSE).
+  - MVP-5 sources elevados de 0→1.
+  - `quality.py`: 15 fontes checadas em `source_rows`, 14 jobs em `ops_pipeline_runs`.
+- Script de homologacao consolidado (`scripts/homologation_check.py`):
+  - 5 dimensoes: backend readiness, quality suite, frontend build, test suites, API smoke.
+  - Verdict unico READY/NOT READY com suporte `--json` e `--strict`.
+- Progressive disclosure na Home (QgOverviewPage):
+  - `CollapsiblePanel` component com chevron, badge count, `aria-expanded`.
+  - "Dominios Onda B/C" colapsado por padrao; "KPIs executivos" expandido.
+- Admin diagnostics refinement (OpsHealthPage):
+  - 3 paineis colapsaveis adicionados: Quality checks, Cobertura de fontes, Registro de conectores.
+- Validacoes:
+  - backend: 207 testes passando.
+  - frontend: 43 testes passando, 15 arquivos.
+  - build Vite: OK.
+
+### Sprint 5.2 - acessibilidade e hardening (iteracao anterior)
+- Benchmark de performance da API criado:
+  - `scripts/benchmark_api.py`: p50/p95/p99 em 12 endpoints, alvo p95<=800ms.
+- Edge-case contract tests adicionados:
+  - `tests/unit/test_qg_edge_cases.py`: 44 testes (validacao de nivel, limites, dados vazios, request_id, content-type).
+- Badge de classificacao de fonte (P05):
+  - `source_classification` no backend (oficial/proxy/misto) + badge no frontend.
+- Persistencia de sessao (O7-05):
+  - `usePersistedFormState` hook com prioridade queryString > localStorage > defaults.
+  - integrado em Cenarios (6 campos) e Briefs (5 campos).
+- Accessibility hardening (Sprint 5.2 item 1):
+  - `Panel`: `aria-labelledby` vinculado ao titulo via `useId`.
+  - `StateBlock`: `role=alert/status` + `aria-live`.
+  - `StrategicIndexCard`: `aria-label` no article e status.
+  - Paginas executivas: `<main>` no lugar de `<div>`, tabelas com `aria-label`, botoes com `aria-label` contextual.
+  - Ranking territorial: linhas com keyboard support (tabIndex, onKeyDown, role=button).
+  - Quick-actions: `<nav aria-label>`.
+- Validacoes desta iteracao:
+  - backend: 207 testes passando (pytest).
+  - frontend: 43 testes passando (vitest), 15 arquivos.
+  - build Vite: OK.
+
+### Sprint 5 - hardening (iteracao anterior)
+- E2E do fluxo critico de decisao implementado:
+  - `frontend/src/app/e2e-flow.test.tsx` com 5 testes: fluxo principal completo + 3 deep-links + admin→executivo.
+  - cobertura: Home → Prioridades → Mapa → Territorio 360 → Eleitorado → Cenarios → Briefs.
+- Cache HTTP ativo nos endpoints criticos:
+  - `CacheHeaderMiddleware` com Cache-Control, weak ETag e 304 condicional.
+  - endpoints cobertos: map/layers, map/style-metadata, kpis, priority, insights, choropleth, electorate, territory.
+- Materialized views criadas para ranking e mapa:
+  - `db/sql/006_materialized_views.sql`: 3 MVs com refresh concorrente.
+  - geometria simplificada via `ST_SimplifyPreserveTopology` na MV de mapa.
+- Indices espaciais GIST adicionados:
+  - `db/sql/007_spatial_indexes.sql`: GIST, GIN trigram, covering index.
+- Admin readiness integrado:
+  - `AdminHubPage.tsx` exibe ReadinessBanner com status consolidado de `GET /v1/ops/readiness`.
+- Validacoes desta iteracao:
+  - backend: 163 testes passando (pytest).
+  - frontend: 43 testes passando (vitest), 15 arquivos.
+  - build Vite: OK.
+
+### MP-1 (entregue anteriormente nesta data)
 - MP-1 do mapa executado no backend/frontend:
-  - endpoint `GET /v1/map/layers` ativo para manifesto de camadas e faixas de zoom.
   - `QgMapPage` integrado ao manifesto para exibir recomendacao de camada por nivel (`municipio`/`distrito`).
   - fallback preservado para `GET /v1/geo/choropleth`, sem interrupcao da pagina quando o manifesto falhar.
 - MP-1 estendido com metadados de estilo:
@@ -549,4 +697,3 @@ Contrato tecnico principal: `CONTRATO.md`
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_up.ps1`
 - Encerrar API + frontend iniciados pelo launcher:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_down.ps1`
-
