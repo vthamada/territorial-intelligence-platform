@@ -16,6 +16,7 @@ from app.api.routes_elections import router as elections_router
 from app.api.routes_electorate import router as electorate_router
 from app.api.routes_geo import router as geo_router
 from app.api.routes_indicators import router as indicators_router
+from app.api.routes_map import router as map_router
 from app.api.routes_ops import router as ops_router
 from app.api.routes_qg import router as qg_router
 from app.api.routes_territories import router as territories_router
@@ -40,6 +41,7 @@ api_v1_router.include_router(indicators_router)
 api_v1_router.include_router(electorate_router)
 api_v1_router.include_router(elections_router)
 api_v1_router.include_router(geo_router)
+api_v1_router.include_router(map_router)
 api_v1_router.include_router(ops_router)
 api_v1_router.include_router(qg_router)
 app.include_router(api_v1_router)

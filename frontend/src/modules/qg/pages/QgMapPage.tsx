@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
-import { getChoropleth } from "../../../shared/api/domain";
+import { getChoropleth, getMapLayers } from "../../../shared/api/domain";
 import { formatApiError } from "../../../shared/api/http";
 import { ChoroplethMiniMap } from "../../../shared/ui/ChoroplethMiniMap";
 import { Panel } from "../../../shared/ui/Panel";
@@ -22,6 +22,17 @@ function normalizeMapLevel(value: string | null) {
     return "distrito";
   }
   return "municipio";
+}
+
+function toManifestTerritoryLevel(level: string) {
+  return level === "distrito" ? "district" : "municipality";
+}
+
+function formatZoomRange(zoomMin: number, zoomMax: number | null) {
+  if (zoomMax === null) {
+    return `z>=${zoomMin}`;
+  }
+  return `z${zoomMin}-${zoomMax}`;
 }
 
 function csvEscape(value: string) {
@@ -73,6 +84,12 @@ export function QgMapPage() {
   const choroplethQuery = useQuery({
     queryKey: ["qg", "map", choroplethParams],
     queryFn: () => getChoropleth(choroplethParams)
+  });
+
+  const mapLayersQuery = useQuery({
+    queryKey: ["qg", "map", "layers"],
+    queryFn: () => getMapLayers(),
+    staleTime: 5 * 60 * 1000
   });
 
   function applyFilters() {
@@ -234,6 +251,11 @@ export function QgMapPage() {
   const selectedItem =
     sortedItems.find((item) => item.territory_id === selectedTerritoryId) ??
     sortedItems[0];
+  const activeTerritoryLevel = toManifestTerritoryLevel(appliedLevel);
+  const recommendedLayer =
+    mapLayersQuery.data?.items.find(
+      (layer) => layer.territory_level === activeTerritoryLevel && layer.default_visibility
+    ) ?? mapLayersQuery.data?.items.find((layer) => layer.territory_level === activeTerritoryLevel);
 
   return (
     <div className="page-grid">
@@ -267,6 +289,19 @@ export function QgMapPage() {
             </button>
           </div>
         </form>
+        <p className="map-selected-note">
+          {recommendedLayer
+            ? `Camada recomendada: ${recommendedLayer.label} (${formatZoomRange(
+                recommendedLayer.zoom_min,
+                recommendedLayer.zoom_max
+              )})`
+            : "Camada recomendada: manifesto de camadas em carregamento."}
+        </p>
+        {mapLayersQuery.error ? (
+          <p className="map-export-error">
+            Manifesto de camadas indisponivel; mantendo fallback em {choroplethParams.level}.
+          </p>
+        ) : null}
       </Panel>
 
       <Panel title="Mapa visual" subtitle="Visualizacao geografica simplificada com escala de valor">

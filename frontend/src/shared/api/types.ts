@@ -507,3 +507,21 @@ export type ChoroplethItem = {
   value: number | null;
   geometry: Record<string, unknown> | null;
 };
+
+export type MapLayerItem = {
+  id: string;
+  label: string;
+  territory_level: "municipality" | "district" | "census_sector" | string;
+  is_official: boolean;
+  source: string;
+  default_visibility: boolean;
+  zoom_min: number;
+  zoom_max: number | null;
+};
+
+export type MapLayersResponse = {
+  generated_at_utc: string;
+  default_layer_id: string;
+  fallback_endpoint: string;
+  items: MapLayerItem[];
+};

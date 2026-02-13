@@ -49,6 +49,26 @@ def test_validation_error_contract_shape() -> None:
     app.dependency_overrides.clear()
 
 
+def test_map_layers_contract_shape() -> None:
+    client = TestClient(app)
+
+    response = client.get("/v1/map/layers")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["default_layer_id"] == "territory_municipality"
+    assert payload["fallback_endpoint"] == "/v1/geo/choropleth"
+    assert isinstance(payload["items"], list)
+    assert len(payload["items"]) >= 2
+    first = payload["items"][0]
+    assert first["id"]
+    assert first["label"]
+    assert first["territory_level"] in {"municipality", "district", "census_sector"}
+    assert isinstance(first["default_visibility"], bool)
+    assert isinstance(first["zoom_min"], int)
+    assert response.headers.get("x-request-id")
+
+
 def test_http_error_contract_with_custom_request_id() -> None:
     app.dependency_overrides[get_db] = _fake_db
     client = TestClient(app, raise_server_exceptions=False)

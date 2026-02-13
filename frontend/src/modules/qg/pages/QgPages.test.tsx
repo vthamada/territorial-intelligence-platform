@@ -4,7 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getChoropleth, getTerritories } from "../../../shared/api/domain";
+import { getChoropleth, getMapLayers, getTerritories } from "../../../shared/api/domain";
 import { getInsightsHighlights, getKpisOverview, getPriorityList, getPrioritySummary, postBriefGenerate, postScenarioSimulate } from "../../../shared/api/qg";
 import { QgBriefsPage } from "./QgBriefsPage";
 import { QgInsightsPage } from "./QgInsightsPage";
@@ -24,6 +24,7 @@ vi.mock("../../../shared/api/qg", () => ({
 
 vi.mock("../../../shared/api/domain", () => ({
   getChoropleth: vi.fn(),
+  getMapLayers: vi.fn(),
   getTerritories: vi.fn()
 }));
 
@@ -166,6 +167,34 @@ describe("QG pages", () => {
           reference_period: "2025",
           value: 100,
           geometry: null
+        }
+      ]
+    });
+
+    vi.mocked(getMapLayers).mockResolvedValue({
+      generated_at_utc: "2026-02-13T18:20:00Z",
+      default_layer_id: "territory_municipality",
+      fallback_endpoint: "/v1/geo/choropleth",
+      items: [
+        {
+          id: "territory_municipality",
+          label: "Municipios",
+          territory_level: "municipality",
+          is_official: true,
+          source: "silver.dim_territory",
+          default_visibility: true,
+          zoom_min: 0,
+          zoom_max: 8
+        },
+        {
+          id: "territory_district",
+          label: "Distritos",
+          territory_level: "district",
+          is_official: true,
+          source: "silver.dim_territory",
+          default_visibility: true,
+          zoom_min: 9,
+          zoom_max: 11
         }
       ]
     });

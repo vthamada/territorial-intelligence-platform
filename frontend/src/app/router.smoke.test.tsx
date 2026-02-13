@@ -111,6 +111,23 @@ vi.mock("../shared/api/domain", () => ({
         geometry: null
       }
     ]
+  }),
+  getMapLayers: vi.fn().mockResolvedValue({
+    generated_at_utc: "2026-02-13T18:20:00Z",
+    default_layer_id: "territory_municipality",
+    fallback_endpoint: "/v1/geo/choropleth",
+    items: [
+      {
+        id: "territory_municipality",
+        label: "Municipios",
+        territory_level: "municipality",
+        is_official: true,
+        source: "silver.dim_territory",
+        default_visibility: true,
+        zoom_min: 0,
+        zoom_max: 8
+      }
+    ]
   })
 }));
 
