@@ -58,6 +58,13 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
     - `light`
     - `none`
   - `frontend/src/modules/qg/pages/QgMapPage.tsx` agora expõe seletor de base cartografica no painel do mapa.
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` passou a suportar `Escopo da camada`:
+    - `Territorial` (fluxo anterior preservado)
+    - `Urbana` com seletor explicito:
+      - `urban_roads` (viario urbano)
+      - `urban_pois` (pontos de interesse)
+  - `frontend/src/shared/ui/VectorMap.tsx` passou a renderizar camadas `layer_kind=line` corretamente.
+  - `frontend/src/modules/qg/pages/QgPages.test.tsx` inclui caso de URL prefill para modo urbano (`scope=urban` + `layer_id=urban_roads`).
   - novas variaveis opcionais de ambiente no frontend:
     - `VITE_MAP_BASEMAP_STREETS_URL`
     - `VITE_MAP_BASEMAP_LIGHT_URL`
@@ -1039,3 +1046,6 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - Suite de testes local: `20 passed`.
 - Fluxos MVP executados com sucesso em modo direto.
 - Fluxo Prefect completo validado em `dry_run`.
+
+
+

@@ -121,6 +121,12 @@ Contrato tecnico principal: `CONTRATO.md`
   - `BD-033` iniciado no frontend para UX de navegacao:
     - `QgMapPage` com seletor de mapa base (`Ruas`, `Claro`, `Sem base`).
     - `VectorMap` com suporte a basemap raster por baixo das camadas MVT.
+    - escopo explicito de camada no `QgMapPage`:
+      - `Territorial` (manifestao de camadas por nivel)
+      - `Urbana` (`urban_roads` / `urban_pois`)
+    - `VectorMap` atualizado para renderizar camadas lineares (`layer_kind=line`) para viario urbano.
+    - fallback SVG bloqueado para escopo urbano com mensagem orientativa (somente modo vetorial).
+    - teste de regressao para URL prefill urbana em `frontend/src/modules/qg/pages/QgPages.test.tsx`.
     - overrides por ambiente em `frontend/.env.example`:
       - `VITE_MAP_BASEMAP_STREETS_URL`
       - `VITE_MAP_BASEMAP_LIGHT_URL`
@@ -834,3 +840,6 @@ Sprint atual recomendado:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_up.ps1`
 - Encerrar API + frontend iniciados pelo launcher:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_down.ps1`
+
+
+

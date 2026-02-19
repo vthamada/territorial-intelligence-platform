@@ -652,6 +652,21 @@ describe("QG pages", () => {
     expect(screen.getByRole("button", { name: /Exportar.*PNG/ })).toBeInTheDocument();
   });
 
+  it("supports urban layer scope from URL without choropleth request", async () => {
+    renderWithQueryClient(
+      <QgMapPage />,
+      ["/mapa?scope=urban&layer_id=urban_roads&metric=MTE_NOVO_CAGED_SALDO_TOTAL&period=2025"],
+    );
+
+    const scopeField = await screen.findByLabelText("Escopo da camada");
+    const urbanLayerField = await screen.findByLabelText("Camada urbana");
+
+    expect(scopeField).toHaveValue("urban");
+    expect(urbanLayerField).toHaveValue("urban_roads");
+    expect(getChoropleth).not.toHaveBeenCalled();
+    expect(screen.getByText(/Camada recomendada: Viario urbano/i)).toBeInTheDocument();
+  });
+
   it("loads priority filters from URL query params", async () => {
     renderWithQueryClient(
       <QgPrioritiesPage />,

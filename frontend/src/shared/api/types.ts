@@ -520,7 +520,7 @@ export type MapLayerItem = {
   zoom_min: number;
   zoom_max: number | null;
   official_status?: "official" | "proxy" | "hybrid" | string;
-  layer_kind?: "polygon" | "point" | "grid" | string;
+  layer_kind?: "polygon" | "point" | "line" | "grid" | string;
   proxy_method?: string | null;
   notes?: string | null;
 };

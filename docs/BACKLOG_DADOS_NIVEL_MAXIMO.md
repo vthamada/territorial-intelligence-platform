@@ -183,6 +183,10 @@ Issues:
 2. `BD-031`: ingestao de POIs essenciais (saude, educacao, seguranca, assistencia).
 3. `BD-032`: camada de geocodificacao local e indexacao espacial.
 4. `BD-033`: mapa base estilo navegacao (ruas/claro/sem base) com comutacao no frontend.
+5. `BD-033` (parcial entregue em 2026-02-19):
+   - seletor de escopo (`Territorial`/`Urbana`) no `QgMapPage`.
+   - seletor de camada urbana (`urban_roads`/`urban_pois`) no `QgMapPage`.
+   - `VectorMap` renderizando `layer_kind=line` para viario urbano.
 
 Aceite:
 1. tiles vetoriais multi-zoom para camadas urbanas.

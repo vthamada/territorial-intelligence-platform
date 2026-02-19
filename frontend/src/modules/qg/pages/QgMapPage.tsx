@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { getChoropleth, getMapLayers, getMapLayersCoverage, getMapStyleMetadata } from "../../../shared/api/domain";
 import { formatApiError } from "../../../shared/api/http";
+import type { MapLayerItem } from "../../../shared/api/types";
 import { useAutoLayerSwitch } from "../../../shared/hooks/useAutoLayerSwitch";
 import { ChoroplethMiniMap } from "../../../shared/ui/ChoroplethMiniMap";
 import { Panel } from "../../../shared/ui/Panel";
@@ -30,6 +31,37 @@ const BASEMAP_MODES: { value: BasemapMode; label: string }[] = [
   { value: "streets", label: "Ruas" },
   { value: "light", label: "Claro" },
   { value: "none", label: "Sem base" },
+];
+
+type LayerScope = "territorial" | "urban";
+
+const URBAN_LAYER_ITEMS: MapLayerItem[] = [
+  {
+    id: "urban_roads",
+    label: "Viario urbano",
+    territory_level: "urban",
+    is_official: false,
+    source: "map.urban_road_segment",
+    default_visibility: true,
+    zoom_min: 12,
+    zoom_max: null,
+    official_status: "hybrid",
+    layer_kind: "line",
+    notes: "Segmentos viarios para navegacao territorial detalhada.",
+  },
+  {
+    id: "urban_pois",
+    label: "Pontos de interesse",
+    territory_level: "urban",
+    is_official: false,
+    source: "map.urban_poi",
+    default_visibility: true,
+    zoom_min: 12,
+    zoom_max: null,
+    official_status: "hybrid",
+    layer_kind: "point",
+    notes: "Equipamentos e servicos urbanos para leitura operacional.",
+  },
 ];
 
 function formatNumber(value: unknown) {
@@ -107,6 +139,21 @@ function normalizeBasemap(value: string | null): BasemapMode {
   return "streets";
 }
 
+function normalizeScope(value: string | null, layerId: string | null): LayerScope {
+  const normalized = (value ?? "").trim().toLowerCase();
+  if (normalized === "urban" || normalized === "urbano") {
+    return "urban";
+  }
+  if ((layerId ?? "").startsWith("urban_")) {
+    return "urban";
+  }
+  return "territorial";
+}
+
+function normalizeUrbanLayerId(value: string | null): string {
+  return value === "urban_pois" ? "urban_pois" : "urban_roads";
+}
+
 const MAP_LEVEL_ORDER: string[] = [
   "municipality",
   "district",
@@ -166,13 +213,19 @@ export function QgMapPage() {
   const initialTerritoryId = searchParams.get("territory_id") || undefined;
   const initialLayerId = searchParams.get("layer_id") || null;
   const initialBasemap = normalizeBasemap(searchParams.get("basemap"));
+  const initialScope = normalizeScope(searchParams.get("scope"), initialLayerId);
+  const initialUrbanLayerId = normalizeUrbanLayerId(initialLayerId);
 
   const [metric, setMetric] = useState(initialMetric);
   const [period, setPeriod] = useState(initialPeriod);
   const [level, setLevel] = useState<string>(initialLevel);
+  const [mapScope, setMapScope] = useState<LayerScope>(initialScope);
   const [appliedMetric, setAppliedMetric] = useState(initialMetric);
   const [appliedPeriod, setAppliedPeriod] = useState(initialPeriod);
   const [appliedLevel, setAppliedLevel] = useState<string>(initialLevel);
+  const [appliedMapScope, setAppliedMapScope] = useState<LayerScope>(initialScope);
+  const [urbanLayerId, setUrbanLayerId] = useState<string>(initialUrbanLayerId);
+  const [appliedUrbanLayerId, setAppliedUrbanLayerId] = useState<string>(initialUrbanLayerId);
   const [selectedTerritoryId, setSelectedTerritoryId] = useState<string | undefined>(initialTerritoryId);
   const [exportError, setExportError] = useState<string | null>(null);
   const [vectorMapError, setVectorMapError] = useState<string | null>(null);
@@ -181,10 +234,13 @@ export function QgMapPage() {
   const [basemapMode, setBasemapMode] = useState<BasemapMode>(initialBasemap);
   const [useVectorMap, setUseVectorMap] = useState(true);
   const [selectedFeature, setSelectedFeature] = useState<{ tid: string; tname: string; val?: number } | null>(null);
-  const [selectedVectorLayerId, setSelectedVectorLayerId] = useState<string | null>(initialLayerId);
+  const [selectedVectorLayerId, setSelectedVectorLayerId] = useState<string | null>(
+    initialScope === "territorial" ? initialLayerId : null,
+  );
   const previousAppliedLevelRef = useRef(appliedLevel);
 
   const isChoroplethLevel = supportsChoropleth(appliedLevel);
+  const shouldFetchChoropleth = appliedMapScope === "territorial" && isChoroplethLevel;
 
   const choroplethParams = useMemo(
     () => ({
@@ -200,7 +256,7 @@ export function QgMapPage() {
   const choroplethQuery = useQuery({
     queryKey: ["qg", "map", choroplethParams],
     queryFn: () => getChoropleth(choroplethParams),
-    enabled: isChoroplethLevel,
+    enabled: shouldFetchChoropleth,
   });
 
   const mapLayersQuery = useQuery({
@@ -227,6 +283,9 @@ export function QgMapPage() {
   }, [mapLayersQuery.data?.items]);
 
   useEffect(() => {
+    if (mapScope !== "territorial") {
+      return;
+    }
     if (availableFormLevels.length === 0) {
       return;
     }
@@ -236,7 +295,7 @@ export function QgMapPage() {
     if (!availableFormLevels.includes(appliedLevel)) {
       setAppliedLevel(availableFormLevels[0]);
     }
-  }, [appliedLevel, availableFormLevels, level]);
+  }, [appliedLevel, availableFormLevels, level, mapScope]);
 
   const activeTerritoryLevel = toManifestTerritoryLevel(appliedLevel);
   const levelScopedLayers = useMemo(
@@ -256,11 +315,11 @@ export function QgMapPage() {
 
   const normalizedItems = useMemo(
     () =>
-      (isChoroplethLevel ? choroplethQuery.data?.items ?? [] : []).map((item) => ({
+      (shouldFetchChoropleth ? choroplethQuery.data?.items ?? [] : []).map((item) => ({
         ...item,
         value: toNumber(item.value),
       })),
-    [choroplethQuery.data?.items, isChoroplethLevel],
+    [choroplethQuery.data?.items, shouldFetchChoropleth],
   );
 
   const sortedItems = useMemo(
@@ -271,11 +330,14 @@ export function QgMapPage() {
     [normalizedItems],
   );
 
-  const canUseVectorMap = Boolean(resolvedDefaultLayerId);
+  const canUseVectorMap = appliedMapScope === "urban" ? true : Boolean(resolvedDefaultLayerId);
   const availableLevelLayerIds = useMemo(() => new Set(levelScopedLayers.map((item) => item.id)), [levelScopedLayers]);
-  const selectedLayerCoverage = layersCoverageQuery.data?.items.find(
-    (item) => item.territory_level === activeTerritoryLevel,
-  );
+  const selectedLayerCoverage =
+    appliedMapScope === "territorial"
+      ? layersCoverageQuery.data?.items.find((item) => item.territory_level === activeTerritoryLevel)
+      : null;
+  const selectedUrbanLayer =
+    URBAN_LAYER_ITEMS.find((layerItem) => layerItem.id === appliedUrbanLayerId) ?? URBAN_LAYER_ITEMS[0]!;
 
   useEffect(() => {
     setVectorMapError(null);
@@ -285,6 +347,9 @@ export function QgMapPage() {
   }, [appliedLevel, appliedMetric, appliedPeriod, canUseVectorMap]);
 
   useEffect(() => {
+    if (appliedMapScope !== "territorial") {
+      return;
+    }
     if (!selectedVectorLayerId) {
       return;
     }
@@ -294,14 +359,17 @@ export function QgMapPage() {
     if (!availableLevelLayerIds.has(selectedVectorLayerId)) {
       setSelectedVectorLayerId(null);
     }
-  }, [availableLevelLayerIds, levelScopedLayers.length, selectedVectorLayerId]);
+  }, [appliedMapScope, availableLevelLayerIds, levelScopedLayers.length, selectedVectorLayerId]);
 
   useEffect(() => {
+    if (appliedMapScope !== "territorial") {
+      return;
+    }
     if (previousAppliedLevelRef.current !== appliedLevel) {
       setSelectedVectorLayerId(null);
     }
     previousAppliedLevelRef.current = appliedLevel;
-  }, [appliedLevel]);
+  }, [appliedLevel, appliedMapScope]);
 
   function handleZoomChange(newZoom: number) {
     setCurrentZoom(newZoom);
@@ -312,8 +380,13 @@ export function QgMapPage() {
     setAppliedMetric(metric);
     setAppliedPeriod(period);
     setAppliedLevel(level);
+    setAppliedMapScope(mapScope);
+    setAppliedUrbanLayerId(urbanLayerId);
     setSelectedTerritoryId(undefined);
     setSelectedFeature(null);
+    if (mapScope === "urban") {
+      setSelectedVectorLayerId(null);
+    }
     setExportError(null);
     setVectorMapError(null);
   }
@@ -322,6 +395,10 @@ export function QgMapPage() {
     setMetric("MTE_NOVO_CAGED_SALDO_TOTAL");
     setPeriod("2025");
     setLevel("municipio");
+    setMapScope("territorial");
+    setAppliedMapScope("territorial");
+    setUrbanLayerId("urban_roads");
+    setAppliedUrbanLayerId("urban_roads");
     setAppliedMetric("MTE_NOVO_CAGED_SALDO_TOTAL");
     setAppliedPeriod("2025");
     setAppliedLevel("municipio");
@@ -446,11 +523,11 @@ export function QgMapPage() {
     image.src = svgUrl;
   }
 
-  if (isChoroplethLevel && choroplethQuery.isPending) {
+  if (shouldFetchChoropleth && choroplethQuery.isPending) {
     return <StateBlock tone="loading" title="Carregando mapa" message="Consultando distribuicao territorial do indicador." />;
   }
 
-  if (isChoroplethLevel && choroplethQuery.error) {
+  if (shouldFetchChoropleth && choroplethQuery.error) {
     const { message, requestId } = formatApiError(choroplethQuery.error);
     return (
       <StateBlock
@@ -463,15 +540,21 @@ export function QgMapPage() {
     );
   }
 
-  const selectedItem = sortedItems.find((item) => item.territory_id === selectedTerritoryId) ?? sortedItems[0];
+  const selectedItem =
+    appliedMapScope === "territorial"
+      ? sortedItems.find((item) => item.territory_id === selectedTerritoryId) ?? sortedItems[0]
+      : undefined;
   const recommendedLayer =
-    levelScopedLayers.find((layerItem) => layerItem.default_visibility) ?? levelScopedLayers[0];
-  const hasMultipleLevelLayers = levelScopedLayers.length > 1;
-  const explicitLayer = selectedVectorLayerId
-    ? levelScopedLayers.find((layerItem) => layerItem.id === selectedVectorLayerId) ?? null
-    : null;
-  const effectiveLayer = explicitLayer ?? autoLayer ?? recommendedLayer;
-  const vectorLayers = effectiveLayer ? [effectiveLayer] : levelScopedLayers;
+    appliedMapScope === "urban"
+      ? selectedUrbanLayer
+      : levelScopedLayers.find((layerItem) => layerItem.default_visibility) ?? levelScopedLayers[0];
+  const hasMultipleLevelLayers = appliedMapScope === "territorial" && levelScopedLayers.length > 1;
+  const explicitLayer =
+    appliedMapScope === "territorial" && selectedVectorLayerId
+      ? levelScopedLayers.find((layerItem) => layerItem.id === selectedVectorLayerId) ?? null
+      : null;
+  const effectiveLayer = appliedMapScope === "urban" ? selectedUrbanLayer : explicitLayer ?? autoLayer ?? recommendedLayer;
+  const vectorLayers = appliedMapScope === "urban" ? [selectedUrbanLayer] : effectiveLayer ? [effectiveLayer] : levelScopedLayers;
   const effectiveVizMode: VizMode =
     effectiveLayer?.layer_kind === "point" && vizMode === "choropleth" ? "points" : vizMode;
 
@@ -490,6 +573,25 @@ export function QgMapPage() {
           }}
         >
           <label>
+            Escopo da camada
+            <select value={mapScope} onChange={(event) => setMapScope(event.target.value as LayerScope)}>
+              <option value="territorial">Territorial</option>
+              <option value="urban">Urbana</option>
+            </select>
+          </label>
+          {mapScope === "urban" ? (
+            <label>
+              Camada urbana
+              <select value={urbanLayerId} onChange={(event) => setUrbanLayerId(event.target.value)}>
+                {URBAN_LAYER_ITEMS.map((layerItem) => (
+                  <option key={layerItem.id} value={layerItem.id}>
+                    {layerItem.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          <label>
             Codigo do indicador
             <input value={metric} onChange={(event) => setMetric(event.target.value)} />
           </label>
@@ -497,20 +599,22 @@ export function QgMapPage() {
             Periodo
             <input value={period} onChange={(event) => setPeriod(event.target.value)} />
           </label>
-          <label>
-            Nivel territorial
-            <select value={level} onChange={(event) => setLevel(event.target.value)}>
-              {availableFormLevels.length === 0 ? (
-                <option value="municipio">Municipio</option>
-              ) : (
-                availableFormLevels.map((levelOption) => (
-                  <option key={levelOption} value={levelOption}>
-                    {formatLevelLabel(levelOption)}
-                  </option>
-                ))
-              )}
-            </select>
-          </label>
+          {mapScope === "territorial" ? (
+            <label>
+              Nivel territorial
+              <select value={level} onChange={(event) => setLevel(event.target.value)}>
+                {availableFormLevels.length === 0 ? (
+                  <option value="municipio">Municipio</option>
+                ) : (
+                  availableFormLevels.map((levelOption) => (
+                    <option key={levelOption} value={levelOption}>
+                      {formatLevelLabel(levelOption)}
+                    </option>
+                  ))
+                )}
+              </select>
+            </label>
+          ) : null}
           <div className="filter-actions">
             <button type="submit">Aplicar filtros</button>
             <button type="button" className="button-secondary" onClick={clearFilters}>
@@ -581,6 +685,10 @@ export function QgMapPage() {
               ? ` | ${selectedLayerCoverage.territories_with_indicator} com indicador no recorte`
               : ""}
             {selectedLayerCoverage.notes ? ` | ${selectedLayerCoverage.notes}` : ""}
+          </p>
+        ) : appliedMapScope === "urban" ? (
+          <p className="map-selected-note">
+            Cobertura urbana ativa em camadas operacionais (`map.urban_road_segment` e `map.urban_poi`).
           </p>
         ) : null}
       </Panel>
@@ -660,7 +768,7 @@ export function QgMapPage() {
               metric={appliedMetric}
               period={appliedPeriod}
               layers={vectorLayers.length > 0 ? vectorLayers : levelScopedLayers}
-              defaultLayerId={effectiveLayer?.id ?? resolvedDefaultLayerId}
+              defaultLayerId={effectiveLayer?.id ?? resolvedDefaultLayerId ?? selectedUrbanLayer.id}
               vizMode={effectiveVizMode}
               zoom={currentZoom}
               onZoomChange={(z) => handleZoomChange(z)}
@@ -681,7 +789,7 @@ export function QgMapPage() {
               }}
             />
           </div>
-        ) : (
+        ) : appliedMapScope === "territorial" ? (
           <ChoroplethMiniMap
             items={sortedItems.map((item) => ({
               territoryId: item.territory_id,
@@ -691,6 +799,12 @@ export function QgMapPage() {
             }))}
             selectedTerritoryId={selectedTerritoryId}
             onSelect={setSelectedTerritoryId}
+          />
+        ) : (
+          <StateBlock
+            tone="empty"
+            title="Modo SVG indisponivel para camadas urbanas"
+            message="Reative o mapa vetorial para explorar viario e pontos de interesse."
           />
         )}
         {selectedTerritoryName ? (
@@ -723,7 +837,13 @@ export function QgMapPage() {
             Exportar CSV
           </button>
         </div>
-        {!isChoroplethLevel ? (
+        {appliedMapScope === "urban" ? (
+          <StateBlock
+            tone="empty"
+            title="Ranking indisponivel para camada urbana"
+            message="Use o mapa vetorial para explorar viario e pontos de interesse. O ranking tabular permanece no escopo territorial."
+          />
+        ) : !isChoroplethLevel ? (
           <StateBlock
             tone="empty"
             title="Ranking indisponivel neste nivel"

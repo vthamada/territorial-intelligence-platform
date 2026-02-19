@@ -179,6 +179,8 @@ export function VectorMap({
       const currentZoom = Math.round(map.getZoom());
       const resolved = layers ? resolveLayerForZoom(layers, currentZoom, defaultLayerId) : undefined;
       const layerId = resolved?.id ?? defaultLayerId ?? "territory_municipality";
+      const layerKind = resolved?.layer_kind ?? "polygon";
+      const effectiveVizMode = layerKind === "point" && vizMode === "choropleth" ? "points" : vizMode;
       setCurrentLayerId(layerId);
 
       const tileUrl = buildTileUrl(tileBaseUrl, layerId, metric, period, domain);
@@ -217,7 +219,29 @@ export function VectorMap({
           maxzoom: 18,
         });
 
-        if (vizMode === "choropleth" || vizMode === undefined) {
+        if (layerKind === "line") {
+          map.addLayer({
+            id: "line-layer",
+            type: "line",
+            source: SOURCE_ID,
+            "source-layer": layerId,
+            paint: {
+              "line-color": buildFillColor(colorStops),
+              "line-width": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                10,
+                0.8,
+                13,
+                1.4,
+                16,
+                2.2,
+              ] as maplibregl.ExpressionSpecification,
+              "line-opacity": 0.9,
+            },
+          });
+        } else if (effectiveVizMode === "choropleth" || effectiveVizMode === undefined) {
           map.addLayer({
             id: "fill-layer",
             type: "fill",
@@ -238,7 +262,7 @@ export function VectorMap({
               "line-width": 0.5,
             },
           });
-        } else if (vizMode === "points") {
+        } else if (effectiveVizMode === "points") {
           map.addLayer({
             id: "points-layer",
             type: "circle",
@@ -252,7 +276,7 @@ export function VectorMap({
               "circle-stroke-color": "#fff",
             },
           });
-        } else if (vizMode === "heatmap") {
+        } else if (effectiveVizMode === "heatmap") {
           map.addLayer({
             id: "heatmap-layer",
             type: "heatmap",
@@ -317,7 +341,8 @@ export function VectorMap({
         return;
       }
 
-      const interactionLayer = vizMode === "points" ? "points-layer" : "fill-layer";
+      const interactionLayer =
+        layerKind === "line" ? "line-layer" : effectiveVizMode === "points" ? "points-layer" : "fill-layer";
       if (map.getLayer(interactionLayer)) {
         const clickHandler = (event: maplibregl.MapLayerMouseEvent) => {
           const feature = event.features?.[0];
