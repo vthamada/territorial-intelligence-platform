@@ -35,6 +35,13 @@ def test_check_ops_pipeline_runs_marks_warn_when_job_has_no_successful_run() -> 
             "sejusp_public_safety_fetch": 1,
             "siops_health_finance_fetch": 1,
             "snis_sanitation_fetch": 1,
+            "inmet_climate_fetch": 1,
+            "inpe_queimadas_fetch": 1,
+            "ana_hydrology_fetch": 1,
+            "anatel_connectivity_fetch": 1,
+            "aneel_energy_fetch": 1,
+            "urban_roads_fetch": 1,
+            "urban_pois_fetch": 1,
         }
     )
     thresholds = QualityThresholds(
@@ -57,3 +64,10 @@ def test_check_ops_pipeline_runs_marks_warn_when_job_has_no_successful_run() -> 
     assert by_name["mvp4_pipeline_run_sejusp_public_safety_fetch"].status == "pass"
     assert by_name["mvp4_pipeline_run_siops_health_finance_fetch"].status == "pass"
     assert by_name["mvp4_pipeline_run_snis_sanitation_fetch"].status == "pass"
+    assert by_name["mvp5_pipeline_run_inmet_climate_fetch"].status == "pass"
+    assert by_name["mvp5_pipeline_run_inpe_queimadas_fetch"].status == "pass"
+    assert by_name["mvp5_pipeline_run_ana_hydrology_fetch"].status == "pass"
+    assert by_name["mvp5_pipeline_run_anatel_connectivity_fetch"].status == "pass"
+    assert by_name["mvp5_pipeline_run_aneel_energy_fetch"].status == "pass"
+    assert by_name["mvp7_pipeline_run_urban_roads_fetch"].status == "pass"
+    assert by_name["mvp7_pipeline_run_urban_pois_fetch"].status == "pass"

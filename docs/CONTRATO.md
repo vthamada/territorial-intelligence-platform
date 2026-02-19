@@ -224,3 +224,29 @@ O sistema é considerado finalizado quando:
 2. Mudanças de execução e sequência de entregas devem ser feitas em `PLANO.md`.
 3. Estado atual e decisões operacionais transitórias devem ser registradas em `HANDOFF.md`.
 4. Evidências históricas e validações executadas devem ser registradas em `CHANGELOG.md`.
+
+## 14) Meta oficial de robustez maxima da base de dados
+
+Fonte executavel desta meta:
+- `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`
+
+Criterios obrigatorios para declarar "base no nivel maximo":
+1. 100% das fontes priorizadas no backlog em status `implemented`.
+2. Historico minimo de 5 anos por dominio quando a fonte disponibilizar.
+3. Cobertura territorial:
+   - `municipality`: 100% dos fatos principais.
+   - `district`: >= 80% dos indicadores elegiveis.
+   - `census_sector`: >= 60% dos indicadores elegiveis.
+   - `electoral_zone`: 100% para eleitorado e resultados.
+4. Qualidade:
+   - `quality_suite` sem `fail` por 30 dias corridos.
+5. Operacao:
+   - zero dependencia manual recorrente para execucao.
+6. Geoespacial:
+   - camadas territoriais e urbanas essenciais operacionais para consumo em mapa.
+
+Mecanismo oficial de medicao:
+1. scorecard SQL versionado em `ops.v_data_coverage_scorecard`.
+2. export semanal em `data/reports/data_coverage_scorecard.json` via
+   `scripts/export_data_coverage_scorecard.py`.
+3. rotina operacional documentada em `docs/RUNBOOK_ROBUSTEZ_DADOS_SEMANAL.md`.

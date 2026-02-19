@@ -51,3 +51,69 @@ class MapStyleMetadataResponse(BaseModel):
     domain_palette: list[MapStyleDomainItem]
     legend_ranges: list[MapStyleLegendRangeItem]
     notes: str
+
+
+class UrbanRoadFeatureItem(BaseModel):
+    road_id: str
+    source: str
+    name: str | None
+    road_class: str | None
+    length_m: float
+    geometry: dict
+
+
+class UrbanRoadCollectionResponse(BaseModel):
+    generated_at_utc: datetime
+    count: int
+    items: list[UrbanRoadFeatureItem]
+
+
+class UrbanPoiFeatureItem(BaseModel):
+    poi_id: str
+    source: str
+    name: str | None
+    category: str | None
+    subcategory: str | None
+    geometry: dict
+
+
+class UrbanPoiCollectionResponse(BaseModel):
+    generated_at_utc: datetime
+    count: int
+    items: list[UrbanPoiFeatureItem]
+
+
+class UrbanNearbyPoiItem(BaseModel):
+    poi_id: str
+    source: str
+    name: str | None
+    category: str | None
+    subcategory: str | None
+    distance_m: float
+    geometry: dict
+
+
+class UrbanNearbyPoisResponse(BaseModel):
+    generated_at_utc: datetime
+    center: dict
+    radius_m: float
+    count: int
+    items: list[UrbanNearbyPoiItem]
+
+
+class UrbanGeocodeItem(BaseModel):
+    feature_type: str
+    feature_id: str
+    source: str
+    name: str | None
+    category: str | None
+    subcategory: str | None
+    score: int
+    geometry: dict
+
+
+class UrbanGeocodeResponse(BaseModel):
+    generated_at_utc: datetime
+    query: str
+    count: int
+    items: list[UrbanGeocodeItem]

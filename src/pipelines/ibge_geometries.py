@@ -232,6 +232,72 @@ def _update_geometry(
     )
 
 
+def _upsert_geometry_area_indicators(
+    *,
+    session: Any,
+    municipality_ibge_code: str,
+    reference_period: str,
+) -> dict[str, int]:
+    level_specs = (
+        ("municipality", MUNICIPALITY_DATASET),
+        ("district", DISTRICT_DATASET),
+        ("census_sector", SECTOR_DATASET),
+    )
+    loaded_counts: dict[str, int] = {}
+    for level, dataset in level_specs:
+        result = session.execute(
+            text(
+                """
+                INSERT INTO silver.fact_indicator (
+                    territory_id,
+                    source,
+                    dataset,
+                    indicator_code,
+                    indicator_name,
+                    unit,
+                    category,
+                    value,
+                    reference_period
+                )
+                SELECT
+                    dt.territory_id,
+                    'IBGE',
+                    :dataset,
+                    'IBGE_GEOMETRY_AREA_KM2',
+                    'Area territorial (km2)',
+                    'km2',
+                    :category,
+                    ROUND((ST_Area(dt.geometry::geography) / 1000000.0)::numeric, 6),
+                    :reference_period
+                FROM silver.dim_territory dt
+                WHERE dt.municipality_ibge_code = :municipality_ibge_code
+                  AND dt.level = CAST(:level AS silver.territory_level)
+                  AND dt.geometry IS NOT NULL
+                ON CONFLICT (
+                    territory_id,
+                    source,
+                    dataset,
+                    indicator_code,
+                    category,
+                    reference_period
+                )
+                DO UPDATE SET
+                    value = EXCLUDED.value,
+                    updated_at = NOW()
+                """
+            ),
+            {
+                "dataset": dataset,
+                "category": f"territory_{level}",
+                "reference_period": reference_period,
+                "municipality_ibge_code": municipality_ibge_code,
+                "level": level,
+            },
+        )
+        loaded_counts[level] = max(int(result.rowcount or 0), 0)
+    return loaded_counts
+
+
 def run(
     *,
     reference_period: str,
@@ -516,6 +582,13 @@ def run(
                 )
                 sectors_written += 1
 
+            try:
+                session.execute(text("SELECT map.refresh_materialized_layers()"))
+            except Exception:
+                warnings.append(
+                    "Could not refresh map materialized layers after geometry load."
+                )
+
             if district_invalid_repaired > 0:
                 warnings.append(
                     f"{district_invalid_repaired} district geometries were invalid and required make_valid."
@@ -531,6 +604,13 @@ def run(
                         "parent fallback used municipality."
                     )
                 )
+
+            geometry_indicator_counts = _upsert_geometry_area_indicators(
+                session=session,
+                municipality_ibge_code=settings.municipality_ibge_code,
+                reference_period=reference_period,
+            )
+            geometry_indicator_rows = sum(geometry_indicator_counts.values())
 
         checks = [
             {
@@ -548,6 +628,16 @@ def run(
                 "status": "pass" if sectors_written > 0 else "warn",
                 "details": f"{sectors_written} sector geometries loaded.",
             },
+            {
+                "name": "geometry_area_indicators_loaded",
+                "status": "pass" if geometry_indicator_rows > 0 else "warn",
+                "details": (
+                    f"{geometry_indicator_rows} IBGE area indicators loaded "
+                    f"(municipality={geometry_indicator_counts.get('municipality', 0)}, "
+                    f"district={geometry_indicator_counts.get('district', 0)}, "
+                    f"census_sector={geometry_indicator_counts.get('census_sector', 0)})."
+                ),
+            },
         ]
 
         municipality_artifact = persist_raw_bytes(
@@ -563,7 +653,7 @@ def run(
             checks=checks,
             notes="Municipality geometry import into silver.dim_territory.geometry",
             run_id=run_id,
-            tables_written=["silver.dim_territory"],
+            tables_written=["silver.dim_territory", "silver.fact_indicator"],
             rows_written=[{"table": "silver.dim_territory", "rows": 1}],
         )
         district_artifact = (
@@ -580,7 +670,7 @@ def run(
                 checks=checks,
                 notes="District geometries import into silver.dim_territory.geometry",
                 run_id=run_id,
-                tables_written=["silver.dim_territory"],
+                tables_written=["silver.dim_territory", "silver.fact_indicator"],
                 rows_written=[{"table": "silver.dim_territory", "rows": districts_written}],
             )
             if district_bytes is not None
@@ -600,7 +690,7 @@ def run(
                 checks=checks,
                 notes="Census sector geometries import into silver.dim_territory.geometry",
                 run_id=run_id,
-                tables_written=["silver.dim_territory"],
+                tables_written=["silver.dim_territory", "silver.fact_indicator"],
                 rows_written=[{"table": "silver.dim_territory", "rows": sectors_written}],
             )
             if sector_bytes is not None
@@ -634,6 +724,8 @@ def run(
                     "districts_loaded": districts_written,
                     "sectors_found": len(sectors_gdf),
                     "sectors_loaded": sectors_written,
+                    "geometry_indicator_rows_loaded": geometry_indicator_rows,
+                    "geometry_indicator_rows_by_level": geometry_indicator_counts,
                     "artifacts": [
                         artifact_to_dict(municipality_artifact),
                         *([artifact_to_dict(district_artifact)] if district_artifact is not None else []),

@@ -8,7 +8,7 @@ waves:
       - dbt_build
       - quality_suite
     exit_criteria:
-      - silver.dim_territory has municipality 3121606 and at least one district.
+      - silver.dim_territory has municipality 3121605 and at least one district.
       - API v1 endpoints return paginated responses with stable schema.
       - ops.pipeline_runs and ops.pipeline_checks populated for executed jobs.
   MVP-2:
@@ -49,3 +49,19 @@ waves:
       - aneel_energy_fetch
     exit_criteria:
       - New source jobs persist Bronze + Silver + ops runs/checks with idempotent behavior.
+  MVP-6:
+    goal: Social protection and assistance network domain for territorial vulnerability analytics.
+    includes:
+      - cecad_social_protection_fetch
+      - censo_suas_fetch
+    exit_criteria:
+      - Social source jobs persist Bronze + Silver social fact tables + ops runs/checks.
+      - /v1/social endpoints return paginated payloads from dedicated social facts.
+  MVP-7:
+    goal: Urban domain for roads, POIs and local geocoding/search readiness.
+    includes:
+      - urban_roads_fetch
+      - urban_pois_fetch
+    exit_criteria:
+      - map.urban_road_segment and map.urban_poi populated with municipality-scoped data.
+      - /v1/map/urban endpoints support bbox/radius/geocoding queries with stable contract.

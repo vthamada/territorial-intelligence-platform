@@ -19,6 +19,7 @@ from app.api.routes_indicators import router as indicators_router
 from app.api.routes_map import router as map_router
 from app.api.routes_ops import router as ops_router
 from app.api.routes_qg import router as qg_router
+from app.api.routes_social import router as social_router
 from app.api.routes_territories import router as territories_router
 from app.db import healthcheck
 from app.logging import configure_logging
@@ -44,6 +45,7 @@ api_v1_router.include_router(geo_router)
 api_v1_router.include_router(map_router)
 api_v1_router.include_router(ops_router)
 api_v1_router.include_router(qg_router)
+api_v1_router.include_router(social_router)
 app.include_router(api_v1_router)
 
 app.add_exception_handler(HTTPException, http_exception_handler)

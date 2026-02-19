@@ -40,6 +40,10 @@ from pipelines.mte_labor import run as run_mte_labor
 from pipelines.ana_hydrology import run as run_ana_hydrology
 from pipelines.anatel_connectivity import run as run_anatel_connectivity
 from pipelines.aneel_energy import run as run_aneel_energy
+from pipelines.cecad_social_protection import run as run_cecad_social_protection
+from pipelines.censo_suas import run as run_censo_suas
+from pipelines.urban_roads import run as run_urban_roads
+from pipelines.urban_pois import run as run_urban_pois
 from pipelines.quality_suite import run as run_quality_suite
 from pipelines.sejusp_public_safety import run as run_sejusp_public_safety
 from pipelines.senatran_fleet import run as run_senatran_fleet
@@ -108,6 +112,10 @@ def run_mvp_all(
         "ana_hydrology_fetch": run_ana_hydrology(**common_kwargs),
         "anatel_connectivity_fetch": run_anatel_connectivity(**common_kwargs),
         "aneel_energy_fetch": run_aneel_energy(**common_kwargs),
+        "cecad_social_protection_fetch": run_cecad_social_protection(**common_kwargs),
+        "censo_suas_fetch": run_censo_suas(**common_kwargs),
+        "urban_roads_fetch": run_urban_roads(**common_kwargs),
+        "urban_pois_fetch": run_urban_pois(**common_kwargs),
         "dbt_build": run_dbt_build(**common_kwargs),
         "quality_suite": run_quality_suite(**common_kwargs),
     }
@@ -231,6 +239,50 @@ def run_mvp_wave_5(
         "ana_hydrology_fetch": run_ana_hydrology(**common_kwargs),
         "anatel_connectivity_fetch": run_anatel_connectivity(**common_kwargs),
         "aneel_energy_fetch": run_aneel_energy(**common_kwargs),
+        "quality_suite": run_quality_suite(**common_kwargs),
+    }
+
+
+@flow(name="territorial_mvp_wave_6")
+def run_mvp_wave_6(
+    reference_period: str,
+    force: bool = False,
+    dry_run: bool = False,
+    max_retries: int = 3,
+    timeout_seconds: int = 30,
+) -> dict[str, Any]:
+    common_kwargs = {
+        "reference_period": reference_period,
+        "force": force,
+        "dry_run": dry_run,
+        "max_retries": max_retries,
+        "timeout_seconds": timeout_seconds,
+    }
+    return {
+        "cecad_social_protection_fetch": run_cecad_social_protection(**common_kwargs),
+        "censo_suas_fetch": run_censo_suas(**common_kwargs),
+        "quality_suite": run_quality_suite(**common_kwargs),
+    }
+
+
+@flow(name="territorial_mvp_wave_7")
+def run_mvp_wave_7(
+    reference_period: str,
+    force: bool = False,
+    dry_run: bool = False,
+    max_retries: int = 3,
+    timeout_seconds: int = 30,
+) -> dict[str, Any]:
+    common_kwargs = {
+        "reference_period": reference_period,
+        "force": force,
+        "dry_run": dry_run,
+        "max_retries": max_retries,
+        "timeout_seconds": timeout_seconds,
+    }
+    return {
+        "urban_roads_fetch": run_urban_roads(**common_kwargs),
+        "urban_pois_fetch": run_urban_pois(**common_kwargs),
         "quality_suite": run_quality_suite(**common_kwargs),
     }
 

@@ -40,6 +40,18 @@ def _normalize_text(value: str) -> str:
     return "".join(ch for ch in unicodedata.normalize("NFKD", stripped) if not unicodedata.combining(ch))
 
 
+def _normalize_zone_code(value: Any) -> str | None:
+    if value is None:
+        return None
+    raw = str(value).strip()
+    if not raw or raw.lower() == "nan":
+        return None
+    try:
+        return str(int(float(raw)))
+    except (TypeError, ValueError):
+        return raw
+
+
 def _resolve_municipality_context(settings: Settings) -> tuple[str, str, str]:
     with session_scope(settings) as session:
         row = session.execute(
@@ -75,6 +87,34 @@ def _ckan_get_package(client: HttpClient, base_url: str, package_id: str) -> dic
     return result if isinstance(result, dict) else None
 
 
+def _resolve_results_package(
+    client: HttpClient,
+    base_url: str,
+    reference_year: int,
+) -> tuple[dict[str, Any] | None, str | None, list[str]]:
+    warnings: list[str] = []
+    candidate_ids = [
+        f"resultados-{reference_year}",
+        "resultados-2024",
+        "resultados-2022",
+        "resultados-2020",
+        "resultados-2018",
+        "resultados-2016",
+    ]
+    ordered_candidates = list(dict.fromkeys(candidate_ids))
+    requested_id = f"resultados-{reference_year}"
+    for package_id in ordered_candidates:
+        package = _ckan_get_package(client, base_url, package_id)
+        if package is None:
+            continue
+        if package_id != requested_id:
+            warnings.append(
+                f"CKAN package '{requested_id}' not found; fallback to '{package_id}'."
+            )
+        return package, package_id, warnings
+    return None, None, warnings
+
+
 def _pick_results_resource(resources: list[dict[str, Any]]) -> dict[str, Any] | None:
     for resource in resources:
         if not isinstance(resource, dict):
@@ -95,17 +135,19 @@ def _extract_rows_from_zip(
     zip_bytes: bytes,
     municipality_name: str,
     uf: str,
-) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
     target_name = _normalize_text(municipality_name)
     usecols = [
         "ANO_ELEICAO",
         "NR_TURNO",
+        "NR_ZONA",
         "SG_UF",
         "NM_MUNICIPIO",
         "DS_CARGO",
         *_METRIC_COLUMN.values(),
     ]
-    aggregated: dict[tuple[int, int, str, str], int] = {}
+    aggregated_municipality: dict[tuple[int, int, str, str], int] = {}
+    aggregated_zone: dict[tuple[int, int, str, str, str], int] = {}
     rows_scanned = 0
     rows_filtered = 0
     csv_name = ""
@@ -145,12 +187,12 @@ def _extract_rows_from_zip(
 
                 for metric, column_name in _METRIC_COLUMN.items():
                     filtered[column_name] = pd.to_numeric(filtered[column_name], errors="coerce").fillna(0)
-                    grouped = (
+                    grouped_municipality = (
                         filtered.groupby(["ANO_ELEICAO", "NR_TURNO", "DS_CARGO"], dropna=False)[column_name]
                         .sum()
                         .reset_index()
                     )
-                    for row in grouped.itertuples(index=False):
+                    for row in grouped_municipality.itertuples(index=False):
                         year = int(float(row.ANO_ELEICAO))
                         round_number = int(float(row.NR_TURNO))
                         office = str(row.DS_CARGO).strip() if row.DS_CARGO is not None else "NAO_INFORMADO"
@@ -158,9 +200,29 @@ def _extract_rows_from_zip(
                         if value < 0:
                             continue
                         key = (year, round_number, office, metric)
-                        aggregated[key] = aggregated.get(key, 0) + value
+                        aggregated_municipality[key] = aggregated_municipality.get(key, 0) + value
 
-    result_rows = [
+                    grouped_zone = (
+                        filtered.groupby(["ANO_ELEICAO", "NR_TURNO", "DS_CARGO", "NR_ZONA"], dropna=False)[
+                            column_name
+                        ]
+                        .sum()
+                        .reset_index()
+                    )
+                    for row in grouped_zone.itertuples(index=False):
+                        zone_code = _normalize_zone_code(row.NR_ZONA)
+                        if zone_code is None:
+                            continue
+                        year = int(float(row.ANO_ELEICAO))
+                        round_number = int(float(row.NR_TURNO))
+                        office = str(row.DS_CARGO).strip() if row.DS_CARGO is not None else "NAO_INFORMADO"
+                        value = int(getattr(row, column_name))
+                        if value < 0:
+                            continue
+                        key = (year, round_number, office, metric, zone_code)
+                        aggregated_zone[key] = aggregated_zone.get(key, 0) + value
+
+    municipality_rows = [
         {
             "election_year": year,
             "election_round": round_number,
@@ -168,15 +230,95 @@ def _extract_rows_from_zip(
             "metric": metric,
             "value": value,
         }
-        for (year, round_number, office, metric), value in sorted(aggregated.items())
+        for (year, round_number, office, metric), value in sorted(aggregated_municipality.items())
+    ]
+    zone_rows = [
+        {
+            "election_year": year,
+            "election_round": round_number,
+            "office": office,
+            "metric": metric,
+            "value": value,
+            "tse_zone": zone_code,
+        }
+        for (year, round_number, office, metric, zone_code), value in sorted(aggregated_zone.items())
     ]
     parse_info = {
         "csv_name": csv_name,
         "rows_scanned": rows_scanned,
         "rows_filtered": rows_filtered,
-        "rows_aggregated": len(result_rows),
+        "rows_aggregated_municipality": len(municipality_rows),
+        "rows_aggregated_zone": len(zone_rows),
     }
-    return result_rows, parse_info
+    return municipality_rows, zone_rows, parse_info
+
+
+def _upsert_electoral_zone(
+    *,
+    session: Any,
+    municipality_territory_id: str,
+    municipality_ibge_code: str,
+    uf: str,
+    zone_code: str,
+) -> str:
+    row = session.execute(
+        text(
+            """
+            INSERT INTO silver.dim_territory (
+                level,
+                parent_territory_id,
+                canonical_key,
+                source_system,
+                source_entity_id,
+                ibge_geocode,
+                tse_zone,
+                tse_section,
+                name,
+                normalized_name,
+                uf,
+                municipality_ibge_code
+            )
+            VALUES (
+                CAST('electoral_zone' AS silver.territory_level),
+                CAST(:parent_territory_id AS uuid),
+                :canonical_key,
+                'TSE',
+                :source_entity_id,
+                :ibge_geocode,
+                :tse_zone,
+                '',
+                :name,
+                :normalized_name,
+                :uf,
+                :municipality_ibge_code
+            )
+            ON CONFLICT (level, ibge_geocode, tse_zone, tse_section, municipality_ibge_code)
+            DO UPDATE SET
+                parent_territory_id = EXCLUDED.parent_territory_id,
+                canonical_key = EXCLUDED.canonical_key,
+                source_entity_id = EXCLUDED.source_entity_id,
+                name = EXCLUDED.name,
+                normalized_name = EXCLUDED.normalized_name,
+                uf = EXCLUDED.uf,
+                updated_at = NOW()
+            RETURNING territory_id::text
+            """
+        ),
+        {
+            "parent_territory_id": municipality_territory_id,
+            "canonical_key": f"electoral_zone:tse:{municipality_ibge_code}:{zone_code}",
+            "source_entity_id": f"{uf}-{municipality_ibge_code}-{zone_code}",
+            "ibge_geocode": municipality_ibge_code,
+            "tse_zone": zone_code,
+            "name": f"Zona {zone_code}",
+            "normalized_name": _normalize_text(f"Zona {zone_code}"),
+            "uf": uf,
+            "municipality_ibge_code": municipality_ibge_code,
+        },
+    ).first()
+    if row is None:
+        raise RuntimeError(f"Could not upsert electoral zone {zone_code}.")
+    return str(row[0])
 
 
 def run(
@@ -218,20 +360,16 @@ def run(
     try:
         territory_id, municipality_name, uf = _resolve_municipality_context(settings)
 
-        package_id = f"resultados-{reference_year}"
-        package = _ckan_get_package(client, settings.tse_ckan_base_url, package_id)
-        effective_package_id = package_id
-        if package is None:
-            for fallback in ("resultados-2024", "resultados-2022", "resultados-2020"):
-                package = _ckan_get_package(client, settings.tse_ckan_base_url, fallback)
-                if package is not None:
-                    effective_package_id = fallback
-                    warnings.append(
-                        f"CKAN package '{package_id}' not found; fallback to '{effective_package_id}'."
-                    )
-                    break
+        package, effective_package_id, package_warnings = _resolve_results_package(
+            client,
+            settings.tse_ckan_base_url,
+            reference_year,
+        )
+        warnings.extend(package_warnings)
         if package is None:
             raise RuntimeError("Could not resolve results package from TSE CKAN.")
+        if effective_package_id is None:
+            raise RuntimeError("Could not determine results package identifier.")
 
         resources = package.get("resources", [])
         if not isinstance(resources, list):
@@ -249,12 +387,26 @@ def run(
             expected_content_types=["zip", "octet-stream", "application/octet-stream"],
             min_bytes=1024,
         )
-        parsed_rows, parse_info = _extract_rows_from_zip(
+        parsed_rows_municipality, parsed_rows_zone, parse_info = _extract_rows_from_zip(
             zip_bytes=zip_bytes,
             municipality_name=municipality_name,
             uf=uf,
         )
-        if not parsed_rows:
+        extracted_years = sorted(
+            {
+                int(item["election_year"])
+                for item in (*parsed_rows_municipality, *parsed_rows_zone)
+                if item.get("election_year") is not None
+            }
+        )
+        if extracted_years and reference_year not in extracted_years:
+            warnings.append(
+                (
+                    f"Requested reference_year={reference_year}, but extracted election years are "
+                    f"{', '.join(str(year) for year in extracted_years)}."
+                )
+            )
+        if not parsed_rows_municipality and not parsed_rows_zone:
             warnings.append(
                 f"No results rows found for municipality '{municipality_name}' ({uf}) in selected resource."
             )
@@ -266,7 +418,7 @@ def run(
                 "status": "success",
                 "run_id": run_id,
                 "duration_seconds": round(elapsed, 2),
-                "rows_extracted": len(parsed_rows),
+                "rows_extracted": len(parsed_rows_municipality) + len(parsed_rows_zone),
                 "rows_written": 0,
                 "warnings": warnings,
                 "errors": [],
@@ -278,9 +430,21 @@ def run(
             }
 
         rows_written = 0
-        if parsed_rows:
+        zone_rows_written = 0
+        municipality_rows_written = 0
+        if parsed_rows_municipality or parsed_rows_zone:
             with session_scope(settings) as session:
-                for row in parsed_rows:
+                zone_territory_ids: dict[str, str] = {}
+                for zone_code in sorted({str(item["tse_zone"]) for item in parsed_rows_zone}):
+                    zone_territory_ids[zone_code] = _upsert_electoral_zone(
+                        session=session,
+                        municipality_territory_id=territory_id,
+                        municipality_ibge_code=settings.municipality_ibge_code,
+                        uf=uf,
+                        zone_code=zone_code,
+                    )
+
+                for row in parsed_rows_municipality:
                     session.execute(
                         text(
                             """
@@ -321,6 +485,56 @@ def run(
                         },
                     )
                     rows_written += 1
+                    municipality_rows_written += 1
+
+                for row in parsed_rows_zone:
+                    zone_id = zone_territory_ids.get(str(row["tse_zone"]))
+                    if zone_id is None:
+                        warnings.append(
+                            f"Skipped zone row because territory could not be resolved: {row['tse_zone']}."
+                        )
+                        continue
+                    session.execute(
+                        text(
+                            """
+                            INSERT INTO silver.fact_election_result (
+                                territory_id,
+                                election_year,
+                                election_round,
+                                office,
+                                metric,
+                                value
+                            )
+                            VALUES (
+                                CAST(:territory_id AS uuid),
+                                :election_year,
+                                :election_round,
+                                :office,
+                                :metric,
+                                :value
+                            )
+                            ON CONFLICT (
+                                territory_id,
+                                election_year,
+                                election_round,
+                                office,
+                                metric
+                            )
+                            DO UPDATE SET
+                                value = EXCLUDED.value
+                            """
+                        ),
+                        {
+                            "territory_id": zone_id,
+                            "election_year": row["election_year"],
+                            "election_round": row["election_round"],
+                            "office": row["office"],
+                            "metric": row["metric"],
+                            "value": row["value"],
+                        },
+                    )
+                    rows_written += 1
+                    zone_rows_written += 1
 
         checks = [
             {
@@ -330,13 +544,21 @@ def run(
             },
             {
                 "name": "results_rows_extracted",
-                "status": "pass" if parsed_rows else "warn",
-                "details": f"{len(parsed_rows)} results rows parsed for municipality.",
+                "status": "pass" if parsed_rows_municipality or parsed_rows_zone else "warn",
+                "details": (
+                    f"{len(parsed_rows_municipality)} municipality rows and "
+                    f"{len(parsed_rows_zone)} zone rows parsed."
+                ),
             },
             {
                 "name": "results_rows_loaded",
                 "status": "pass" if rows_written > 0 else "warn",
                 "details": f"{rows_written} rows upserted into silver.fact_election_result.",
+            },
+            {
+                "name": "results_zone_rows_loaded",
+                "status": "pass" if zone_rows_written > 0 else "warn",
+                "details": f"{zone_rows_written} zone rows upserted into silver.fact_election_result.",
             },
         ]
         artifact = persist_raw_bytes(
@@ -369,7 +591,7 @@ def run(
                 started_at_utc=started_at_utc,
                 finished_at_utc=finished_at_utc,
                 status="success",
-                rows_extracted=len(parsed_rows),
+                rows_extracted=len(parsed_rows_municipality) + len(parsed_rows_zone),
                 rows_loaded=rows_written,
                 warnings_count=len(warnings),
                 errors_count=0,
@@ -380,6 +602,8 @@ def run(
                     "package_id": effective_package_id,
                     "resource_url": resource_url,
                     "parse_info": parse_info,
+                    "municipality_rows_written": municipality_rows_written,
+                    "zone_rows_written": zone_rows_written,
                 },
             )
             replace_pipeline_checks_from_dicts(
@@ -399,7 +623,7 @@ def run(
         logger.info(
             "TSE results job finished.",
             run_id=run_id,
-            rows_extracted=len(parsed_rows),
+            rows_extracted=len(parsed_rows_municipality) + len(parsed_rows_zone),
             rows_written=rows_written,
             duration_seconds=round(elapsed, 2),
         )
@@ -408,7 +632,7 @@ def run(
             "status": "success",
             "run_id": run_id,
             "duration_seconds": round(elapsed, 2),
-            "rows_extracted": len(parsed_rows),
+            "rows_extracted": len(parsed_rows_municipality) + len(parsed_rows_zone),
             "rows_written": rows_written,
             "warnings": warnings,
             "errors": [],

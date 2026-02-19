@@ -2,7 +2,192 @@
 
 Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-19
+
+### Changed
+- Sprint D3 avancou do contrato para ingestao operacional:
+  - novos conectores urbanos implementados:
+    - `src/pipelines/urban_roads.py` (`urban_roads_fetch`)
+    - `src/pipelines/urban_pois.py` (`urban_pois_fetch`)
+  - catalogos de extração remota por bbox adicionados:
+    - `configs/urban_roads_catalog.yml`
+    - `configs/urban_pois_catalog.yml`
+  - carga idempotente publicada para:
+    - `map.urban_road_segment`
+    - `map.urban_poi`
+  - observabilidade dos jobs urbanos publicada em `ops.pipeline_runs` e `ops.pipeline_checks`.
+- Orquestracao e operacao atualizadas para D3:
+  - `src/orchestration/prefect_flows.py` com:
+    - inclusao de `urban_roads_fetch` e `urban_pois_fetch` em `run_mvp_all`
+    - novo fluxo `run_mvp_wave_7`
+  - `configs/jobs.yml`, `configs/waves.yml` e `configs/connectors.yml` atualizados para `MVP-7`.
+  - `scripts/backfill_robust_database.py` atualizado com `--include-wave7` e cobertura urbana no relatorio.
+- Geocodificacao local inicial publicada no backend:
+  - novo endpoint `GET /v1/map/urban/geocode` em `src/app/api/routes_map.py`.
+  - novos contratos de resposta:
+    - `UrbanGeocodeItem`
+    - `UrbanGeocodeResponse`
+    - arquivo: `src/app/schemas/map.py`.
+- Qualidade e scorecard ampliados para dominio urbano:
+  - `check_urban_domain` adicionado em `src/pipelines/common/quality.py`.
+  - `quality_suite` atualizado para executar checks urbanos.
+  - `configs/quality_thresholds.yml` com thresholds de `urban_domain`.
+  - `db/sql/007_data_coverage_scorecard.sql` ampliado com:
+    - `urban_road_rows`
+    - `urban_poi_rows`.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_urban_connectors.py tests/unit/test_api_contract.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_ops_pipeline_runs.py tests/contracts/test_sql_contracts.py -p no:cacheprovider`:
+  - `40 passed`.
+
 ## 2026-02-13
+
+## 2026-02-18
+
+### Changed
+- Sprint D1 da trilha de robustez maxima fechado:
+  - `BD-010`: backfill TSE executado com janela historica `2016-2024` (`2024,2022,2020,2018,2016`).
+  - `BD-011`: checks de integridade de `electoral_zone` validados em execucao real.
+  - `BD-012`: checks de continuidade temporal por dominio/fonte validados em execucao real.
+- documentacao de status atualizada:
+  - `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` com D1 marcado como concluido e evidencias.
+  - `docs/HANDOFF.md` com cobertura consolidada apos backfill historico.
+- Sprint D2 iniciado com entrega tecnica base:
+  - migration `db/sql/008_social_domain.sql` adicionada com tabelas:
+    - `silver.fact_social_protection`
+    - `silver.fact_social_assistance_network`
+  - novos conectores:
+    - `src/pipelines/cecad_social_protection.py`
+    - `src/pipelines/censo_suas.py`
+  - helper comum:
+    - `src/pipelines/common/social_tabular_connector.py`
+  - novas rotas da API:
+    - `GET /v1/social/protection`
+    - `GET /v1/social/assistance-network`
+  - `quality_suite` ampliado com checks sociais dedicados.
+  - `scripts/backfill_robust_database.py` atualizado com suporte opcional a `--include-wave6`.
+  - `configs/connectors.yml` atualizado para `24` conectores totais (`22 implemented`, `2 partial`).
+- Sprint D2 consolidado com operacao social real em Censo SUAS:
+  - backfill social executado para `2014,2015,2016,2017` com `--include-wave6`.
+  - `censo_suas_fetch` executado com `success` em todos os periodos.
+  - `cecad_social_protection_fetch` permaneceu `blocked` por ausencia de acesso governado.
+  - `silver.fact_social_assistance_network` consolidada com `4` periodos distintos.
+  - `silver.fact_social_protection` permaneceu sem linhas (pendencia de governanca CECAD).
+- trilha de execucao atualizada para D3:
+  - D2 fechado tecnicamente com ressalva externa (CECAD).
+  - proxima frente priorizada: dominio urbano (`BD-030`, `BD-031`, `BD-032`).
+- Sprint D3 iniciado com incremento tecnico base:
+  - migration `db/sql/009_urban_domain.sql` adicionada com:
+    - `map.urban_road_segment`
+    - `map.urban_poi`
+    - `map.v_urban_data_coverage`
+  - novos endpoints urbanos em `src/app/api/routes_map.py`:
+    - `GET /v1/map/urban/roads`
+    - `GET /v1/map/urban/pois`
+    - `GET /v1/map/urban/nearby-pois`
+  - novos schemas de resposta em `src/app/schemas/map.py` para colecoes urbanas e busca de proximidade.
+  - testes de contrato expandidos em:
+    - `tests/contracts/test_sql_contracts.py`
+    - `tests/unit/test_api_contract.py`
+
+### Verified
+- `.\.venv\Scripts\python.exe scripts/backfill_robust_database.py --tse-years 2024,2022,2020,2018,2016 --indicator-periods 2025 --output-json data/reports/robustness_backfill_report.json`:
+  - sucesso ponta a ponta sem falhas de execucao.
+  - `fact_electorate`: `5` anos distintos (`2016`-`2024`), `3562` linhas.
+  - `fact_election_result`: `5` anos distintos (`2016`-`2024`), `180` linhas, `90` por zona eleitoral.
+- `.\.venv\Scripts\python.exe scripts/backfill_robust_database.py --skip-wave1 --skip-tse --indicator-periods 2025,2024,2023,2022,2021 --output-json data/reports/robustness_backfill_report.json`:
+  - sucesso ponta a ponta sem falhas de execucao.
+  - series multianuais de indicadores atualizadas para 5 periodos.
+- `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json`:
+  - `pass=10`, `warn=1`.
+  - `electorate_distinct_years`, `election_result_distinct_years`,
+    `electorate_zone_coverage_pct`, `election_result_zone_coverage_pct`,
+    `indicator_distinct_periods` e `implemented_runs_success_pct_7d` em `pass`.
+  - `implemented_connectors_pct` em `warn` (`91.67`) devido conectores D2 em `partial`.
+- `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json`:
+  - `READY`, `hard_failures=0`, `warnings=0`.
+- `.\.venv\Scripts\python.exe scripts/init_db.py`:
+  - `Applied 9 SQL scripts` (inclui `009_urban_domain.sql`).
+- `.\.venv\Scripts\python.exe -m pytest -q tests/contracts/test_sql_contracts.py tests/unit/test_api_contract.py -p no:cacheprovider`:
+  - `18 passed`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/contracts/test_sql_contracts.py tests/unit/test_social_connectors.py tests/unit/test_social_routes.py tests/unit/test_quality_social_checks.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_coverage_checks.py tests/unit/test_quality_ops_pipeline_runs.py tests/unit/test_prefect_wave3_flow.py -p no:cacheprovider`:
+  - `31 passed`.
+- `.\.venv\Scripts\python.exe scripts/init_db.py`:
+  - `Applied 8 SQL scripts`.
+- `.\.venv\Scripts\python.exe -c "from pipelines.quality_suite import run; print(run(reference_period='2025', dry_run=False))"`:
+  - `total_checks=73`, `failed_checks=0`, `warning_checks=0`.
+- `.\.venv\Scripts\python.exe scripts/backfill_robust_database.py --skip-wave1 --skip-tse --skip-wave4 --skip-wave5 --include-wave6 --indicator-periods 2014,2015,2016,2017 --output-json data/reports/robustness_backfill_report.json`:
+  - `censo_suas_fetch`: `success` para `2014..2017`.
+  - `cecad_social_protection_fetch`: `blocked` para `2014..2017` (esperado por governanca de acesso).
+  - `silver.fact_social_assistance_network`: `rows=4`, `distinct_periods=4`.
+  - `silver.fact_social_protection`: `rows=0`, `distinct_periods=0`.
+- `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json`:
+  - `pass=10`, `warn=1`.
+  - `implemented_runs_success_pct_7d=95.51` (`pass`).
+  - `implemented_connectors_pct=91.67` (`warn`), refletindo conectores sociais ainda em `partial`.
+- `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json`:
+  - `READY`, `hard_failures=0`, `warnings=0`.
+
+## 2026-02-18
+
+### Changed
+- `tse_electorate_fetch` evoluido para carregar eleitorado em nivel municipal e por zona eleitoral:
+  - parse opcional de `NR_ZONA` no ZIP oficial do TSE.
+  - upsert automatico de territorios `electoral_zone` em `silver.dim_territory`.
+  - upsert de linhas por zona em `silver.fact_electorate`.
+- `ibge_geometries_fetch` evoluido para publicar indicador geoespacial real em `silver.fact_indicator`:
+  - `IBGE_GEOMETRY_AREA_KM2` para `municipality`, `district` e `census_sector`.
+  - objetivo: garantir cobertura territorial multi-nivel com dado derivado da geometria oficial.
+- `scripts/backfill_robust_database.py` evoluido para incluir Onda 1 no hardening:
+  - execucao de `ibge_admin_fetch` e `ibge_geometries_fetch` antes dos backfills TSE/ondas 4-5.
+- migracao `db/sql/006_map_platform.sql` ajustada para reexecucao idempotente:
+  - `DROP VIEW IF EXISTS map.layer_stats` antes de recriar materialized views dependentes.
+- trilha de robustez maxima formalizada em documentacao:
+  - novo backlog executavel em `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`.
+  - `docs/CONTRATO.md` atualizado com meta oficial de robustez maxima (secao 14).
+  - `docs/PLANO_IMPLEMENTACAO_QG.md`, `docs/PLANO.md` e `docs/HANDOFF.md` atualizados para referenciar a trilha D0-D8.
+- Sprint D0 executado (governanca e baseline de robustez):
+  - contrato recebeu mecanismo oficial de medicao via scorecard SQL e rotina semanal.
+  - handoff atualizado com status de D0 concluido e proximo foco em D1.
+- Sprint D1 iniciado com hardening de qualidade temporal/territorial:
+  - novos checks de integridade para `electoral_zone` em `dim_territory`.
+  - novos checks de continuidade temporal para `fact_electorate` e `fact_election_result` (`max_year_gap`).
+  - novos checks de continuidade temporal por fonte em `fact_indicator` (`source_periods_*`).
+  - `scripts/backfill_robust_database.py` atualizado para incluir anos TSE adicionais por padrao (`2018`, `2016`).
+
+### Added
+- teste unitario de robustez geoespacial:
+  - `tests/unit/test_ibge_geometries.py`.
+- cobertura adicional do conector TSE eleitorado:
+  - agregacao por zona e fallback sem coluna de zona em `tests/unit/test_tse_electorate.py`.
+- pacote de issues pronto para GitHub:
+  - `docs/GITHUB_ISSUES_BACKLOG_DADOS_NIVEL_MAXIMO.md` (27 issues BD-001..BD-082).
+- script opcional para criacao automatica das issues:
+  - `scripts/create_github_issues_backlog_dados.ps1` (`dry-run` e modo `-Apply` via `gh` CLI).
+- baseline tecnico de cobertura D0:
+  - migration `db/sql/007_data_coverage_scorecard.sql` com view `ops.v_data_coverage_scorecard`.
+  - script `scripts/export_data_coverage_scorecard.py` para export semanal.
+  - runbook operacional `docs/RUNBOOK_ROBUSTEZ_DADOS_SEMANAL.md`.
+- nova cobertura de testes D1:
+  - `tests/unit/test_quality_electoral_zone_integrity.py`.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_tse_electorate.py tests/unit/test_ibge_geometries.py tests/unit/test_quality_coverage_checks.py -p no:cacheprovider`: `15 passed`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_api_contract.py tests/contracts/test_sql_contracts.py tests/unit/test_quality_ops_pipeline_runs.py tests/unit/test_prefect_wave3_flow.py -p no:cacheprovider`: `18 passed`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_tse_results.py -p no:cacheprovider`: `2 passed`.
+- `.\.venv\Scripts\python.exe scripts/init_db.py`: `Applied 6 SQL scripts`.
+- `.\.venv\Scripts\python.exe scripts/backfill_robust_database.py --tse-years 2024,2022,2020 --indicator-periods 2025 --output-json data/reports/robustness_backfill_report.json`: sucesso ponta a ponta.
+- `quality_suite(2025)`: `48 checks`, `0 fail`, `0 warn`.
+- `.\.venv\Scripts\python.exe scripts/init_db.py`: `Applied 7 SQL scripts` (inclui `007_data_coverage_scorecard.sql`).
+- `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json`: export concluido (`pass=7`, `warn=4`).
+- `.\.venv\Scripts\python.exe -m pytest -q tests/contracts/test_sql_contracts.py -p no:cacheprovider`: `3 passed`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_quality_coverage_checks.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_electoral_zone_integrity.py tests/unit/test_tse_electorate.py tests/unit/test_tse_results.py -p no:cacheprovider`: `25 passed`.
+- `.\.venv\Scripts\python.exe -c "from pipelines.quality_suite import run; print(run(reference_period='2025', dry_run=False))"`:
+  `total_checks=63`, `failed_checks=0`, `warning_checks=10`.
+- cobertura consolidada apos backfill:
+  - `fact_electorate`: `3` anos distintos (2020-2024) e `1064` linhas por zona eleitoral.
+  - `fact_election_result`: `3` anos distintos (2020-2024) e `48` linhas por zona eleitoral.
+  - `fact_indicator` por nivel: `municipality=598`, `district=11`, `census_sector=109`.
 
 ### Changed
 - Consolidacao documental do QG aplicada:
