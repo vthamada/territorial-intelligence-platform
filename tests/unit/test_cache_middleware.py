@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from app.api.main import app
+from app.api.cache_middleware import _match_cache_rule
 
 
 def test_map_layers_has_cache_control_header() -> None:
@@ -14,6 +15,12 @@ def test_map_layers_has_cache_control_header() -> None:
     assert response.status_code == 200
     assert "cache-control" in response.headers
     assert "max-age=3600" in response.headers["cache-control"]
+
+
+def test_match_cache_rule_prefers_operational_layers_paths() -> None:
+    assert _match_cache_rule("/v1/map/layers/readiness") == 60
+    assert _match_cache_rule("/v1/map/layers/coverage") == 60
+    assert _match_cache_rule("/v1/map/layers") == 3600
 
 
 def test_map_style_metadata_has_cache_control_header() -> None:

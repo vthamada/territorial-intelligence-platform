@@ -105,6 +105,9 @@ Contrato tecnico principal: `CONTRATO.md`
   - monitor tecnico de camadas atualizado no frontend Ops:
     - `OpsLayersPage` agora consulta `GET /v1/map/layers/readiness`.
     - filtro de escopo suportado: `Territorial`, `Territorial + Urbano`, `Somente urbano`.
+  - politica de cache HTTP para camadas ajustada:
+    - `/v1/map/layers/readiness` e `/v1/map/layers/coverage` com `max-age=60`.
+    - `/v1/map/layers` mantido em `max-age=3600`.
   - qualidade ampliada:
     - `quality_suite` executa `check_urban_domain`.
     - thresholds urbanos em `configs/quality_thresholds.yml`.

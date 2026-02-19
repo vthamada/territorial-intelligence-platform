@@ -20,7 +20,9 @@ _CACHE_RULES: list[tuple[str, int]] = [
     ("/v1/priority/summary", 300),       # 5 min
     ("/v1/insights/highlights", 300),    # 5 min
     ("/v1/geo/choropleth", 600),         # 10 min
-    ("/v1/map/layers", 3600),            # 1 hour (static manifest)
+    ("/v1/map/layers/readiness", 60),    # 1 min (operational readiness)
+    ("/v1/map/layers/coverage", 60),     # 1 min (operational coverage)
+    ("/v1/map/layers", 3600),            # 1 hour (catalog/metadata)
     ("/v1/map/style-metadata", 3600),    # 1 hour (static styles)
     ("/v1/territory/", 300),             # 5 min (profile, compare, peers)
     ("/v1/electorate/", 600),            # 10 min

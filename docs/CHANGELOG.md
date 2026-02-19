@@ -85,6 +85,9 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
     - `Territorial`
     - `Territorial + Urbano`
     - `Somente urbano`
+  - cache middleware ajustado para endpoints operacionais de camadas:
+    - `/v1/map/layers/readiness` e `/v1/map/layers/coverage` com `max-age=60`.
+    - `/v1/map/layers` mantido com `max-age=3600`.
 
 ### Verified
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_urban_connectors.py tests/unit/test_api_contract.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_ops_pipeline_runs.py tests/contracts/test_sql_contracts.py -p no:cacheprovider`:
