@@ -32,6 +32,23 @@ Contrato tecnico principal: `CONTRATO.md`
   - `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx src/modules/territory/pages/TerritoryProfilePage.test.tsx src/app/router.smoke.test.tsx src/app/e2e-flow.test.tsx` -> `11 passed`.
   - `npm --prefix frontend run build` -> `OK`.
 
+## Atualizacao tecnica (2026-02-19) - Mapa vetorial (controles de navegacao)
+
+- `frontend/src/shared/ui/VectorMap.tsx`:
+  - controle nativo de navegacao configurado com zoom + bussola.
+  - `FullscreenControl` habilitado quando disponivel no runtime.
+  - `ScaleControl` habilitado (unidade metrica) no canto inferior esquerdo.
+  - `AttributionControl` compacto habilitado no canto inferior direito.
+  - atribuicao dos basemaps aplicada na fonte raster:
+    - `streets`: `© OpenStreetMap contributors`
+    - `light`: `© OpenStreetMap contributors © CARTO`
+- `frontend/src/styles/global.css`:
+  - refinamento visual dos controles `maplibregl` (grupo, botoes, escala e atribuicao).
+  - ajustes de posicionamento e responsividade para reduzir sobreposicao em viewport menor.
+- Validacao executada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `19 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+
 ## Atualizacao tecnica (2026-02-19) - Estabilizacao de telas criticas
 
 - `Territorio 360`:

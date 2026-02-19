@@ -93,6 +93,16 @@ function resolveBasemapTileUrl(mode: BasemapMode, urls?: BasemapTileUrls): strin
   return mode === "light" ? merged.light : merged.streets;
 }
 
+function resolveBasemapAttribution(mode: BasemapMode): string | undefined {
+  if (mode === "none") {
+    return undefined;
+  }
+  if (mode === "light") {
+    return "© OpenStreetMap contributors © CARTO";
+  }
+  return "© OpenStreetMap contributors";
+}
+
 function resolvePolygonFillOpacity(mode: BasemapMode): number {
   if (mode === "none") {
     return 0.75;
@@ -285,7 +295,16 @@ export function VectorMap({
       minZoom: 0,
     });
 
-    map.addControl(new maplibregl.NavigationControl(), "top-right");
+    map.addControl(
+      new maplibregl.NavigationControl({
+        showCompass: true,
+        showZoom: true,
+      }),
+      "top-right",
+    );
+    if (typeof maplibregl.FullscreenControl === "function") {
+      map.addControl(new maplibregl.FullscreenControl(), "top-right");
+    }
     if (typeof maplibregl.GeolocateControl === "function") {
       map.addControl(
         new maplibregl.GeolocateControl({
@@ -294,6 +313,23 @@ export function VectorMap({
           showUserLocation: true,
         }),
         "top-right",
+      );
+    }
+    if (typeof maplibregl.ScaleControl === "function") {
+      map.addControl(
+        new maplibregl.ScaleControl({
+          maxWidth: 120,
+          unit: "metric",
+        }),
+        "bottom-left",
+      );
+    }
+    if (typeof maplibregl.AttributionControl === "function") {
+      map.addControl(
+        new maplibregl.AttributionControl({
+          compact: true,
+        }),
+        "bottom-right",
       );
     }
     map.on("zoomend", () => {
@@ -330,6 +366,7 @@ export function VectorMap({
 
       const tileUrl = buildTileUrl(tileBaseUrl, layerId, metric, period, domain);
       const basemapTileUrl = resolveBasemapTileUrl(basemapMode, basemapTileUrls);
+      const basemapAttribution = resolveBasemapAttribution(basemapMode);
       const polygonFillOpacity = resolvePolygonFillOpacity(basemapMode);
       const boundaryPaint = resolveBoundaryPaint(basemapMode);
 
@@ -349,6 +386,7 @@ export function VectorMap({
             tiles: [basemapTileUrl],
             tileSize: 256,
             maxzoom: 20,
+            attribution: basemapAttribution,
           });
           map.addLayer({
             id: BASEMAP_LAYER_ID,

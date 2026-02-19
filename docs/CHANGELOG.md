@@ -5,6 +5,15 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 ## 2026-02-19
 
 ### Changed
+- Mapa vetorial (`frontend/src/shared/ui/VectorMap.tsx`) evoluido para navegacao mais proxima de apps de mapa:
+  - controles nativos adicionais: `FullscreenControl`, `ScaleControl` e `AttributionControl` compacto.
+  - `NavigationControl` configurado com zoom + bussola.
+  - atribuicao de basemap aplicada na fonte raster:
+    - `streets`: `© OpenStreetMap contributors`
+    - `light`: `© OpenStreetMap contributors © CARTO`
+- Estilo dos controles de mapa refinado em `frontend/src/styles/global.css`:
+  - reposicionamento e acabamento visual dos grupos de controle (`top-right`, `bottom-left`, `bottom-right`).
+  - melhorias de contraste, hover e responsividade em botões/escala/atribuicao.
 - Frontend QG Prioridades:
   - lista priorizada agora suporta paginacao client-side com controles `Anterior`/`Proxima`, indicador `Pagina X de Y` e seletor `Itens por pagina` (`12`, `24`, `48`) em `frontend/src/modules/qg/pages/QgPrioritiesPage.tsx`.
   - pagina atual e tamanho de pagina resetam de forma previsivel ao aplicar/limpar filtros.

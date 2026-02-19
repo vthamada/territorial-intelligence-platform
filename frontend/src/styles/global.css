@@ -1351,6 +1351,57 @@ label {
   border-radius: 0.5rem;
 }
 
+.vector-map-container .maplibregl-ctrl-top-right {
+  top: 0.5rem;
+  right: 0.5rem;
+}
+
+.vector-map-container .maplibregl-ctrl-bottom-left {
+  left: 0.5rem;
+  bottom: 0.5rem;
+}
+
+.vector-map-container .maplibregl-ctrl-bottom-right {
+  right: 0.5rem;
+  bottom: 0.5rem;
+}
+
+.vector-map-container .maplibregl-ctrl-group {
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  border-radius: 0.55rem;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+}
+
+.vector-map-container .maplibregl-ctrl-group button {
+  width: 34px;
+  height: 34px;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.vector-map-container .maplibregl-ctrl-group button:hover {
+  background: #f3efe5;
+}
+
+.vector-map-container .maplibregl-ctrl.maplibregl-ctrl-scale {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  border-radius: 0.45rem;
+  color: #22303a;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.12rem 0.35rem;
+}
+
+.vector-map-container .maplibregl-ctrl.maplibregl-ctrl-attrib {
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 0.4rem;
+  color: #4b5563;
+  font-size: 0.68rem;
+  margin: 0;
+  padding: 0 0.25rem;
+}
+
 @media (max-width: 900px) {
   .map-toolbar {
     grid-template-columns: 1fr;
@@ -1362,5 +1413,10 @@ label {
 
   .zoom-control label {
     flex-wrap: wrap;
+  }
+
+  .vector-map-container .maplibregl-ctrl-group button {
+    width: 32px;
+    height: 32px;
   }
 }
