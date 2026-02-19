@@ -120,6 +120,7 @@ Contrato tecnico principal: `CONTRATO.md`
   - validacao deste incremento:
     - `pytest` focado em connectors/map/quality/flows/contracts: `40 passed`.
     - `npm --prefix frontend run test -- --run src/modules/ops/pages/OpsPages.test.tsx`: `9 passed`.
+    - `npm --prefix frontend run test`: `66 passed`.
     - `npm --prefix frontend run build`: `OK`.
   - benchmark de performance para fechamento de `BD-032` executado:
     - `scripts/benchmark_api.py` com suites `executive`, `urban` e `all`.

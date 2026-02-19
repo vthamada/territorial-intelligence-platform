@@ -104,6 +104,8 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - `8 passed` (iteracao anterior).
 - `npm --prefix frontend run test -- --run src/modules/ops/pages/OpsPages.test.tsx`:
   - `9 passed`.
+- `npm --prefix frontend run test`:
+  - `66 passed`.
 - `npm --prefix frontend run build`:
   - build concluido com sucesso.
 
