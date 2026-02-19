@@ -5,6 +5,12 @@ import type { MapLayerItem } from "../api/types";
 import { resolveLayerForZoom } from "../hooks/useAutoLayerSwitch";
 
 export type VizMode = "choropleth" | "points" | "heatmap" | "hotspots";
+export type BasemapMode = "none" | "streets" | "light";
+
+type BasemapTileUrls = {
+  streets?: string;
+  light?: string;
+};
 
 export type VectorMapProps = {
   tileBaseUrl: string;
@@ -21,12 +27,20 @@ export type VectorMapProps = {
   onError?: (message: string) => void;
   colorStops?: Array<{ value: number; color: string }>;
   selectedTerritoryId?: string;
+  basemapMode?: BasemapMode;
+  basemapTileUrls?: BasemapTileUrls;
 };
 
 const DEFAULT_CENTER: [number, number] = [-43.62, -18.09];
 const DEFAULT_ZOOM = 4;
+const BASEMAP_SOURCE_ID = "basemap-source";
+const BASEMAP_LAYER_ID = "basemap-layer";
 const SOURCE_ID = "mvt-source";
 const INTERACTION_LAYER_IDS = ["fill-layer", "points-layer"] as const;
+const DEFAULT_BASEMAP_TILE_URLS: Required<BasemapTileUrls> = {
+  streets: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+  light: "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+};
 
 const DEFAULT_COLOR_STOPS: Array<{ value: number; color: string }> = [
   { value: 0, color: "#dbeafe" },
@@ -54,6 +68,17 @@ function buildFillColor(stops: Array<{ value: number; color: string }>): maplibr
   return expression as maplibregl.ExpressionSpecification;
 }
 
+function resolveBasemapTileUrl(mode: BasemapMode, urls?: BasemapTileUrls): string | null {
+  if (mode === "none") {
+    return null;
+  }
+  const merged = {
+    ...DEFAULT_BASEMAP_TILE_URLS,
+    ...(urls ?? {}),
+  };
+  return mode === "light" ? merged.light : merged.streets;
+}
+
 export function VectorMap({
   tileBaseUrl,
   metric,
@@ -69,6 +94,8 @@ export function VectorMap({
   onError,
   colorStops = DEFAULT_COLOR_STOPS,
   selectedTerritoryId,
+  basemapMode = "streets",
+  basemapTileUrls,
 }: VectorMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -155,6 +182,7 @@ export function VectorMap({
       setCurrentLayerId(layerId);
 
       const tileUrl = buildTileUrl(tileBaseUrl, layerId, metric, period, domain);
+      const basemapTileUrl = resolveBasemapTileUrl(basemapMode, basemapTileUrls);
 
       detachInteractions(map);
 
@@ -162,8 +190,27 @@ export function VectorMap({
         if (map.getLayer(lid)) map.removeLayer(lid);
       }
       if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
+      if (map.getLayer(BASEMAP_LAYER_ID)) map.removeLayer(BASEMAP_LAYER_ID);
+      if (map.getSource(BASEMAP_SOURCE_ID)) map.removeSource(BASEMAP_SOURCE_ID);
 
       try {
+        if (basemapTileUrl) {
+          map.addSource(BASEMAP_SOURCE_ID, {
+            type: "raster",
+            tiles: [basemapTileUrl],
+            tileSize: 256,
+            maxzoom: 20,
+          });
+          map.addLayer({
+            id: BASEMAP_LAYER_ID,
+            type: "raster",
+            source: BASEMAP_SOURCE_ID,
+            paint: {
+              "raster-opacity": 1,
+            },
+          });
+        }
+
         map.addSource(SOURCE_ID, {
           type: "vector",
           tiles: [tileUrl],
@@ -305,7 +352,20 @@ export function VectorMap({
     }
 
     updateLayers();
-  }, [tileBaseUrl, metric, period, domain, layers, defaultLayerId, vizMode, colorStops, onFeatureClick, onError]);
+  }, [
+    tileBaseUrl,
+    metric,
+    period,
+    domain,
+    layers,
+    defaultLayerId,
+    vizMode,
+    colorStops,
+    onFeatureClick,
+    onError,
+    basemapMode,
+    basemapTileUrls,
+  ]);
 
   useEffect(() => {
     const map = mapRef.current;

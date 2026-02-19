@@ -1,6 +1,6 @@
 # Backlog Tecnico Executavel - Nivel Maximo de Dados
 
-Data de referencia: 2026-02-18  
+Data de referencia: 2026-02-19  
 Status: ativo  
 Escopo: plano tecnico para levar a base de dados ao nivel maximo de robustez para inteligencia territorial de Diamantina/MG.
 
@@ -179,11 +179,13 @@ Issues:
 1. `BD-030`: ingestao OSM/IBGE para vias e logradouros.
 2. `BD-031`: ingestao de POIs essenciais (saude, educacao, seguranca, assistencia).
 3. `BD-032`: camada de geocodificacao local e indexacao espacial.
+4. `BD-033`: mapa base estilo navegacao (ruas/claro/sem base) com comutacao no frontend.
 
 Aceite:
 1. tiles vetoriais multi-zoom para camadas urbanas.
 2. endpoint de consulta espacial por raio/bbox.
 3. tempo de resposta p95 < 1.0s para consultas de mapa operacional.
+4. mapa executivo com basemap comutavel e camadas vetoriais operacionais sobrepostas.
 
 ### Sprint D4 - Dominio de mobilidade e infraestrutura
 Objetivo:
@@ -287,7 +289,7 @@ Padrao de issue:
 
 Executar Sprint D3 nesta ordem:
 1. executar primeira carga urbana real:
-   - `scripts/backfill_robust_database.py --skip-wave1 --skip-tse --skip-wave4 --skip-wave5 --skip-wave6 --include-wave7 --indicator-periods 2026 --output-json data/reports/robustness_backfill_report.json`
+   - `scripts/backfill_robust_database.py --skip-wave1 --skip-tse --skip-wave4 --skip-wave5 --include-wave7 --indicator-periods 2026 --output-json data/reports/robustness_backfill_report.json`
 2. validar qualidade e readiness apos carga urbana:
    - `scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json`
    - `scripts/backend_readiness.py --output-json`
@@ -295,3 +297,4 @@ Executar Sprint D3 nesta ordem:
    - medir p95 dos endpoints `roads`, `pois`, `nearby-pois`, `geocode`.
    - aplicar tuning de indices/consulta se p95 > 1.0s.
 4. preparar camada de tiles urbanos multi-zoom (aceite final D3).
+5. iniciar `BD-033` para aproximar UX de navegacao (basemap comutavel no mapa executivo).

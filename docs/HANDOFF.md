@@ -1,6 +1,6 @@
 # Territorial Intelligence Platform - Handoff
 
-Data de referencia: 2026-02-18
+Data de referencia: 2026-02-19
 Planejamento principal: `PLANO.md`
 Contrato tecnico principal: `CONTRATO.md`
 
@@ -99,7 +99,7 @@ Contrato tecnico principal: `CONTRATO.md`
     - `urban_road_rows` e `urban_poi_rows` em `ops.v_data_coverage_scorecard`.
   - validacao deste incremento:
     - `pytest` focado em connectors/map/quality/flows/contracts: `40 passed`.
-  - benchmark de performance para fechamento de `BD-032` preparado:
+  - benchmark de performance para fechamento de `BD-032` executado:
     - `scripts/benchmark_api.py` com suites `executive`, `urban` e `all`.
     - suite `urban` mede p95 dos endpoints:
       - `/v1/map/urban/roads`
@@ -108,8 +108,18 @@ Contrato tecnico principal: `CONTRATO.md`
       - `/v1/map/urban/geocode`
     - comando de evidencia:
       - `python scripts/benchmark_api.py --suite urban --rounds 30 --json-output data/reports/benchmark_urban_map.json`
-    - pendencia para fechar issue:
-      - executar benchmark com API/DB em execucao e validar p95 `< 1.0s`.
+    - resultado atual:
+      - `ALL PASS` com p95 `< 1.0s` para todos os endpoints urbanos.
+  - carga urbana real (D3) executada e validada:
+    - `urban_roads_fetch(2026)`: `success`, `rows_written=6550`.
+    - `urban_pois_fetch(2026)`: `success`, `rows_written=319`.
+    - `backend_readiness --output-json`: `READY`, `hard_failures=0`, `warnings=0`.
+  - `BD-033` iniciado no frontend para UX de navegacao:
+    - `QgMapPage` com seletor de mapa base (`Ruas`, `Claro`, `Sem base`).
+    - `VectorMap` com suporte a basemap raster por baixo das camadas MVT.
+    - overrides por ambiente em `frontend/.env.example`:
+      - `VITE_MAP_BASEMAP_STREETS_URL`
+      - `VITE_MAP_BASEMAP_LIGHT_URL`
 
 ## Governanca documental consolidada (2026-02-13)
 

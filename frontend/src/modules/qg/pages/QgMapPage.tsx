@@ -8,16 +8,28 @@ import { ChoroplethMiniMap } from "../../../shared/ui/ChoroplethMiniMap";
 import { Panel } from "../../../shared/ui/Panel";
 import { formatDecimal, formatLevelLabel, toNumber } from "../../../shared/ui/presentation";
 import { StateBlock } from "../../../shared/ui/StateBlock";
-import { VectorMap, type VizMode } from "../../../shared/ui/VectorMap";
+import { VectorMap, type BasemapMode, type VizMode } from "../../../shared/ui/VectorMap";
 import { useFilterStore } from "../../../shared/stores/filterStore";
 
 const TILE_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:8000/v1";
+const BASEMAP_STREETS_URL =
+  (import.meta.env.VITE_MAP_BASEMAP_STREETS_URL as string | undefined) ??
+  "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const BASEMAP_LIGHT_URL =
+  (import.meta.env.VITE_MAP_BASEMAP_LIGHT_URL as string | undefined) ??
+  "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png";
 
 const VIZ_MODES: { value: VizMode; label: string }[] = [
   { value: "choropleth", label: "Coropletico" },
   { value: "points", label: "Pontos" },
   { value: "heatmap", label: "Heatmap" },
   { value: "hotspots", label: "Hotspots" },
+];
+
+const BASEMAP_MODES: { value: BasemapMode; label: string }[] = [
+  { value: "streets", label: "Ruas" },
+  { value: "light", label: "Claro" },
+  { value: "none", label: "Sem base" },
 ];
 
 function formatNumber(value: unknown) {
@@ -84,6 +96,17 @@ function supportsChoropleth(level: string) {
   return level === "municipio" || level === "distrito";
 }
 
+function normalizeBasemap(value: string | null): BasemapMode {
+  const normalized = (value ?? "").trim().toLowerCase();
+  if (normalized === "none" || normalized === "off" || normalized === "sem_base") {
+    return "none";
+  }
+  if (normalized === "light" || normalized === "claro") {
+    return "light";
+  }
+  return "streets";
+}
+
 const MAP_LEVEL_ORDER: string[] = [
   "municipality",
   "district",
@@ -142,6 +165,7 @@ export function QgMapPage() {
   const initialLevel = normalizeMapLevel(searchParams.get("level"));
   const initialTerritoryId = searchParams.get("territory_id") || undefined;
   const initialLayerId = searchParams.get("layer_id") || null;
+  const initialBasemap = normalizeBasemap(searchParams.get("basemap"));
 
   const [metric, setMetric] = useState(initialMetric);
   const [period, setPeriod] = useState(initialPeriod);
@@ -154,6 +178,7 @@ export function QgMapPage() {
   const [vectorMapError, setVectorMapError] = useState<string | null>(null);
   const [currentZoom, setCurrentZoom] = useState(globalFilters.zoom);
   const [vizMode, setVizMode] = useState<VizMode>("choropleth");
+  const [basemapMode, setBasemapMode] = useState<BasemapMode>(initialBasemap);
   const [useVectorMap, setUseVectorMap] = useState(true);
   const [selectedFeature, setSelectedFeature] = useState<{ tid: string; tname: string; val?: number } | null>(null);
   const [selectedVectorLayerId, setSelectedVectorLayerId] = useState<string | null>(initialLayerId);
@@ -304,6 +329,7 @@ export function QgMapPage() {
     setSelectedFeature(null);
     setExportError(null);
     setVectorMapError(null);
+    setBasemapMode("streets");
   }
 
   function exportCsv() {
@@ -575,6 +601,20 @@ export function QgMapPage() {
               </button>
             ))}
           </div>
+          <div className="viz-mode-selector" role="radiogroup" aria-label="Mapa base">
+            {BASEMAP_MODES.map((mode) => (
+              <button
+                key={mode.value}
+                type="button"
+                className={`viz-mode-btn${basemapMode === mode.value ? " viz-mode-active" : ""}`}
+                onClick={() => setBasemapMode(mode.value)}
+                role="radio"
+                aria-checked={basemapMode === mode.value}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             className="button-secondary"
@@ -634,6 +674,11 @@ export function QgMapPage() {
               }}
               selectedTerritoryId={selectedTerritoryId}
               colorStops={mapStyleQuery.data?.legend_ranges?.map((range) => ({ value: range.min_value, color: range.color }))}
+              basemapMode={basemapMode}
+              basemapTileUrls={{
+                streets: BASEMAP_STREETS_URL,
+                light: BASEMAP_LIGHT_URL,
+              }}
             />
           </div>
         ) : (

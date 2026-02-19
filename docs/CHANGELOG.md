@@ -47,6 +47,20 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
     - `GET /v1/map/urban/geocode`
   - evidencia operacional pode ser persistida via:
     - `--json-output data/reports/benchmark_urban_map.json`
+- Sprint D3 validado em carga real:
+  - `scripts/backfill_robust_database.py --include-wave7 --indicator-periods 2026` executado com sucesso.
+  - `urban_roads_fetch`: `rows_written=6550`.
+  - `urban_pois_fetch`: `rows_written=319`.
+  - `scripts/backend_readiness.py --output-json`: `READY` com `hard_failures=0` e `warnings=0`.
+- BD-033 iniciado (UX de navegacao do mapa):
+  - `frontend/src/shared/ui/VectorMap.tsx` agora suporta basemap raster com modos:
+    - `streets`
+    - `light`
+    - `none`
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` agora expõe seletor de base cartografica no painel do mapa.
+  - novas variaveis opcionais de ambiente no frontend:
+    - `VITE_MAP_BASEMAP_STREETS_URL`
+    - `VITE_MAP_BASEMAP_LIGHT_URL`
 
 ### Verified
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_urban_connectors.py tests/unit/test_api_contract.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_ops_pipeline_runs.py tests/contracts/test_sql_contracts.py -p no:cacheprovider`:
