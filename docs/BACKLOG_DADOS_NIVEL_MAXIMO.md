@@ -172,6 +172,9 @@ Progresso atual:
   - catalogo e cobertura de camadas com dominio urbano no backend de mapa:
     - `GET /v1/map/layers?include_urban=true`
     - `GET /v1/map/layers/coverage?include_urban=true`
+    - `GET /v1/map/layers/readiness?include_urban=true`
+  - observabilidade tecnica no frontend Ops:
+    - `OpsLayersPage` com filtro de escopo para readiness de camadas (`territorial`, `all`, `urban`).
   - tiles vetoriais urbanos multi-zoom habilitados:
     - `GET /v1/map/tiles/urban_roads/{z}/{x}/{y}.mvt`
     - `GET /v1/map/tiles/urban_pois/{z}/{x}/{y}.mvt`

@@ -1,19 +1,22 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getTerritoryLayersReadiness } from "../../../shared/api/ops";
+import { getMapLayersReadiness } from "../../../shared/api/ops";
 import { formatApiError } from "../../../shared/api/http";
+import type { MapLayerReadinessItem } from "../../../shared/api/types";
 import { Panel } from "../../../shared/ui/Panel";
 import { StateBlock } from "../../../shared/ui/StateBlock";
 
 type LayerFilters = {
   metric: string;
   period: string;
+  scope: "territorial" | "all" | "urban";
 };
 
 function makeEmptyFilters(): LayerFilters {
   return {
     metric: "",
-    period: ""
+    period: "",
+    scope: "territorial"
   };
 }
 
@@ -47,15 +50,26 @@ export function OpsLayersPage() {
   const queryParams = useMemo(
     () => ({
       metric: appliedFilters.metric || undefined,
-      period: appliedFilters.period || undefined
+      period: appliedFilters.period || undefined,
+      include_urban: appliedFilters.scope === "all" || appliedFilters.scope === "urban"
     }),
     [appliedFilters]
   );
 
   const readinessQuery = useQuery({
-    queryKey: ["territory", "layers", "readiness", queryParams],
-    queryFn: () => getTerritoryLayersReadiness(queryParams)
+    queryKey: ["map", "layers", "readiness", queryParams],
+    queryFn: () => getMapLayersReadiness(queryParams)
   });
+
+  const displayedItems = useMemo(() => {
+    const items = readinessQuery.data?.items ?? [];
+    if (appliedFilters.scope === "urban") {
+      return items.filter((item) => item.layer.territory_level === "urban");
+    }
+    return items;
+  }, [appliedFilters.scope, readinessQuery.data?.items]);
+
+  const hasResults = displayedItems.length > 0;
 
   function applyFilters() {
     setAppliedFilters(draftFilters);
@@ -93,6 +107,19 @@ export function OpsLayersPage() {
               placeholder="2025"
             />
           </label>
+          <label>
+            Escopo
+            <select
+              value={draftFilters.scope}
+              onChange={(event) =>
+                setDraftFilters((old) => ({ ...old, scope: event.target.value as LayerFilters["scope"] }))
+              }
+            >
+              <option value="territorial">Territorial</option>
+              <option value="all">Territorial + Urbano</option>
+              <option value="urban">Somente urbano</option>
+            </select>
+          </label>
           <div className="filter-actions">
             <button type="submit">Aplicar filtros</button>
             <button type="button" className="button-secondary" onClick={clearFilters}>
@@ -105,7 +132,7 @@ export function OpsLayersPage() {
           <StateBlock
             tone="loading"
             title="Carregando rastreabilidade de camadas"
-            message="Consultando /v1/territory/layers/readiness."
+            message="Consultando /v1/map/layers/readiness."
           />
         ) : readinessQuery.error ? (
           (() => {
@@ -120,7 +147,7 @@ export function OpsLayersPage() {
               />
             );
           })()
-        ) : readinessQuery.data && readinessQuery.data.items.length === 0 ? (
+        ) : !hasResults ? (
           <StateBlock tone="empty" title="Sem camadas" message="Nenhuma camada retornada pelo endpoint de readiness." />
         ) : (
           <>
@@ -131,7 +158,7 @@ export function OpsLayersPage() {
                 : "-"}
             </p>
             <div className="table-wrap">
-              <table aria-label="Rastreabilidade de camadas territoriais">
+              <table aria-label="Rastreabilidade de camadas">
                 <thead>
                   <tr>
                     <th>Camada</th>
@@ -145,7 +172,7 @@ export function OpsLayersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {readinessQuery.data?.items.map((item) => (
+                  {displayedItems.map((item: MapLayerReadinessItem) => (
                     <tr key={item.layer.id}>
                       <td>{item.layer.label}</td>
                       <td>{item.layer.territory_level}</td>

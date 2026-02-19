@@ -99,8 +99,12 @@ Contrato tecnico principal: `CONTRATO.md`
   - catalogo e cobertura de camadas no backend de mapa ampliados para dominio urbano via query param:
     - `GET /v1/map/layers?include_urban=true`
     - `GET /v1/map/layers/coverage?include_urban=true`
+    - `GET /v1/map/layers/readiness?include_urban=true`
   - contrato tecnico territorial mantido sem mistura de escopos:
     - `GET /v1/territory/layers/*` opera com `include_urban=false`.
+  - monitor tecnico de camadas atualizado no frontend Ops:
+    - `OpsLayersPage` agora consulta `GET /v1/map/layers/readiness`.
+    - filtro de escopo suportado: `Territorial`, `Territorial + Urbano`, `Somente urbano`.
   - qualidade ampliada:
     - `quality_suite` executa `check_urban_domain`.
     - thresholds urbanos em `configs/quality_thresholds.yml`.

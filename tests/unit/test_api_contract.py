@@ -37,6 +37,9 @@ class _MappingsResult:
     def all(self) -> list[dict[str, Any]]:
         return self._rows
 
+    def first(self) -> dict[str, Any] | None:
+        return self._rows[0] if self._rows else None
+
 
 class _UrbanSession:
     def execute(self, statement: Any, *_args: Any, **_kwargs: Any) -> _MappingsResult:
@@ -183,6 +186,23 @@ def test_map_layers_include_urban_contract_shape() -> None:
     assert "urban_roads" in layer_ids
     assert "urban_pois" in layer_ids
     assert response.headers.get("x-request-id")
+
+
+def test_map_layers_readiness_include_urban_contract_shape() -> None:
+    app.dependency_overrides[get_db] = _urban_db
+    client = TestClient(app)
+
+    response = client.get("/v1/map/layers/readiness?include_urban=true")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert "items" in payload
+    assert isinstance(payload["items"], list)
+    layer_ids = {item["layer"]["id"] for item in payload["items"]}
+    assert "urban_roads" in layer_ids
+    assert "urban_pois" in layer_ids
+    assert response.headers.get("x-request-id")
+    app.dependency_overrides.clear()
 
 
 def test_map_style_metadata_contract_shape() -> None:

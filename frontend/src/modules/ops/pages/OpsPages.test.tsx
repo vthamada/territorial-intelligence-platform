@@ -13,11 +13,11 @@ import { OpsSourceCoveragePage } from "./OpsSourceCoveragePage";
 import {
   getConnectorRegistry,
   getFrontendEvents,
+  getMapLayersReadiness,
   getOpsReadiness,
   getOpsSla,
   getOpsSourceCoverage,
   getOpsSummary,
-  getTerritoryLayersReadiness,
   getOpsTimeseries,
   getPipelineChecks,
   getPipelineRuns
@@ -29,7 +29,7 @@ vi.mock("../../../shared/api/ops", () => ({
   getConnectorRegistry: vi.fn(),
   getFrontendEvents: vi.fn(),
   getOpsSourceCoverage: vi.fn(),
-  getTerritoryLayersReadiness: vi.fn(),
+  getMapLayersReadiness: vi.fn(),
   getOpsSummary: vi.fn(),
   getOpsSla: vi.fn(),
   getOpsReadiness: vi.fn(),
@@ -92,7 +92,7 @@ describe("Ops pages filters", () => {
       include_internal: false,
       items: []
     });
-    vi.mocked(getTerritoryLayersReadiness).mockResolvedValue({
+    vi.mocked(getMapLayersReadiness).mockResolvedValue({
       generated_at_utc: "2026-02-13T21:00:00Z",
       metric: null,
       period: null,
@@ -309,18 +309,32 @@ describe("Ops pages filters", () => {
 
   it("applies territory layers filters only when submitting form", async () => {
     renderWithQueryClient(<OpsLayersPage />);
-    await waitFor(() => expect(getTerritoryLayersReadiness).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getMapLayersReadiness).toHaveBeenCalledTimes(1));
 
     await userEvent.type(screen.getByLabelText("Codigo do indicador"), "DATASUS_APS_COBERTURA");
     await userEvent.type(screen.getByLabelText("Periodo"), "2025");
-    expect(getTerritoryLayersReadiness).toHaveBeenCalledTimes(1);
+    expect(getMapLayersReadiness).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
-    await waitFor(() => expect(getTerritoryLayersReadiness).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(getMapLayersReadiness).toHaveBeenCalledTimes(2));
 
-    expect(vi.mocked(getTerritoryLayersReadiness).mock.calls[1]?.[0]).toMatchObject({
+    expect(vi.mocked(getMapLayersReadiness).mock.calls[1]?.[0]).toMatchObject({
       metric: "DATASUS_APS_COBERTURA",
-      period: "2025"
+      period: "2025",
+      include_urban: false
+    });
+  });
+
+  it("allows urban scope in layers readiness", async () => {
+    renderWithQueryClient(<OpsLayersPage />);
+    await waitFor(() => expect(getMapLayersReadiness).toHaveBeenCalledTimes(1));
+
+    await userEvent.selectOptions(screen.getByLabelText("Escopo"), "urban");
+    await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+
+    await waitFor(() => expect(getMapLayersReadiness).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(getMapLayersReadiness).mock.calls[1]?.[0]).toMatchObject({
+      include_urban: true
     });
   });
 });

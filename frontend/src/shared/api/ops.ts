@@ -33,6 +33,10 @@ export function getOpsReadiness(query?: Record<string, string | number | boolean
   return requestJson<OpsReadinessResponse>("/ops/readiness", { query });
 }
 
+export function getMapLayersReadiness(query?: Record<string, string | number | boolean | undefined>) {
+  return requestJson<MapLayersReadinessResponse>("/map/layers/readiness", { query });
+}
+
 export function getTerritoryLayersReadiness(query?: Record<string, string | number | boolean | undefined>) {
   return requestJson<MapLayersReadinessResponse>("/territory/layers/readiness", { query });
 }
