@@ -84,6 +84,10 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
     - toolbar de controles reorganizada em blocos (`modo`, `mapa base`, `renderizacao`) com quebra responsiva.
     - ajustes visuais para evitar overflow horizontal em telas menores (`viz-mode-selector` com wrap, `zoom-control` adaptativo).
     - container do mapa padronizado com altura fluida (`.map-canvas-shell`) para desktop/mobile.
+  - chunking do frontend ajustado em `frontend/vite.config.ts`:
+    - `manualChunks` para separar `vendor-react`, `vendor-router`, `vendor-query`, `vendor-maplibre` e `vendor-misc`.
+    - `index-*.js` reduzido para ~`12KB` gzip ~`4.3KB`.
+    - `vendor-maplibre-*.js` permanece chunk pesado dedicado (~`1.0MB`) carregado sob demanda.
 - D3-3 (tiles urbanos multi-zoom) iniciado no backend:
   - `GET /v1/map/tiles/{layer}/{z}/{x}/{y}.mvt` agora suporta camadas urbanas:
     - `urban_roads`

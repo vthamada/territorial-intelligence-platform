@@ -197,6 +197,7 @@ Issues:
      - `metric`, `period`, `level`, `scope`, `layer_id`, `territory_id`, `basemap`, `viz`, `renderer`, `zoom`.
    - code-splitting aplicado no mapa executivo (`React.lazy` para `VectorMap`) para reduzir custo de carregamento inicial.
    - toolbar de controles do mapa ajustada para responsividade (sem overflow horizontal em mobile).
+   - build frontend com `manualChunks` para separar vendors e reduzir payload inicial do app.
 
 Aceite:
 1. tiles vetoriais multi-zoom para camadas urbanas.

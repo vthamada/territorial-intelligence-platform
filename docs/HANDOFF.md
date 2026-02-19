@@ -163,6 +163,9 @@ Contrato tecnico principal: `CONTRATO.md`
       - toolbar de controles organizada em blocos (`modo`, `mapa base`, `renderizacao`) com layout responsivo.
       - selectors e controle de zoom ajustados para evitar overflow horizontal em viewport menor.
       - shell visual do mapa com altura fluida (`.map-canvas-shell`) para consistencia desktop/mobile.
+    - build frontend com chunking manual configurado (`frontend/vite.config.ts`):
+      - chunks dedicados para `vendor-react`, `vendor-router`, `vendor-query`, `vendor-maplibre`, `vendor-misc`.
+      - `index` reduzido para ~`12KB` (gzip ~`4.3KB`) com melhor carregamento inicial.
     - validacao adicional:
       - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx`: `17 passed`.
       - `npm --prefix frontend run test`: `68 passed`.
