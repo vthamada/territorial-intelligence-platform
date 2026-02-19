@@ -700,6 +700,28 @@ _LAYER_TO_LEVEL: dict[str, str] = {
     layer.id: layer.territory_level for layer in _LAYER_ITEMS
 }
 
+_URBAN_TILE_LAYERS: dict[str, dict[str, str]] = {
+    "urban_roads": {
+        "table": "map.urban_road_segment",
+        "alias": "r",
+        "id_expr": "r.road_id::text",
+        "name_expr": "COALESCE(NULLIF(r.name, ''), 'Via ' || r.road_id::text)",
+        "value_expr": "COALESCE(r.length_m, ST_Length(ST_Transform(r.geom, 31983)))::double precision",
+        "metric_expr": "'urban_roads'::text",
+        "geom_expr": "r.geom",
+    },
+    "urban_pois": {
+        "table": "map.urban_poi",
+        "alias": "p",
+        "id_expr": "p.poi_id::text",
+        "name_expr": "COALESCE(NULLIF(p.name, ''), 'POI ' || p.poi_id::text)",
+        "value_expr": "1::double precision",
+        "metric_expr": "'urban_pois'::text",
+        "geom_expr": "p.geom",
+    },
+}
+_LAYER_TO_LEVEL.update({"urban_roads": "urban", "urban_pois": "urban"})
+
 # Simplification tolerance in meters on EPSG:3857.
 _ZOOM_TOLERANCE_METERS: list[tuple[int, float]] = [
     (5, 20000.0),
@@ -752,7 +774,8 @@ def get_mvt_tile(
     t0 = time.monotonic()
 
     level = _LAYER_TO_LEVEL.get(layer)
-    if level is None:
+    urban_layer = _URBAN_TILE_LAYERS.get(layer)
+    if level is None and urban_layer is None:
         raise HTTPException(status_code=404, detail={"reason": "Unknown layer", "layer": layer})
 
     tolerance_meters = _tolerance_for_zoom(z)
@@ -760,7 +783,46 @@ def get_mvt_tile(
     layer_filter = _LAYER_EXTRA_WHERE.get(layer, "")
     name_expr = _LAYER_NAME_EXPR.get(layer, "dt.name")
 
-    if use_indicator_join:
+    if urban_layer is not None:
+        sql = text(
+            f"""
+            WITH tile_extent AS (
+                SELECT ST_TileEnvelope(:z, :x, :y) AS envelope
+            ),
+            base AS (
+                SELECT
+                    {urban_layer["id_expr"]} AS tid,
+                    {urban_layer["name_expr"]} AS tname,
+                    {urban_layer["value_expr"]} AS val,
+                    {urban_layer["metric_expr"]} AS metric,
+                    ST_Transform({urban_layer["geom_expr"]}, 3857) AS geom_3857
+                FROM {urban_layer["table"]} {urban_layer["alias"]}
+                CROSS JOIN tile_extent te
+                WHERE {urban_layer["geom_expr"]} IS NOT NULL
+                  AND ST_Intersects(ST_Transform({urban_layer["geom_expr"]}, 3857), te.envelope)
+            ),
+            features AS (
+                SELECT
+                    base.tid,
+                    base.tname,
+                    base.val,
+                    base.metric,
+                    ST_AsMVTGeom(
+                        ST_SimplifyPreserveTopology(base.geom_3857, :tolerance_meters),
+                        te.envelope,
+                        4096,
+                        64,
+                        true
+                    ) AS geom
+                FROM base
+                CROSS JOIN tile_extent te
+            )
+            SELECT ST_AsMVT(features.*, :layer_name) AS mvt
+            FROM features
+            WHERE features.geom IS NOT NULL
+            """
+        )
+    elif use_indicator_join:
         domain_filter = "AND fi.domain = :domain" if domain else ""
         sql = text(
             f"""
@@ -852,7 +914,7 @@ def get_mvt_tile(
         "tolerance_meters": tolerance_meters,
         "layer_name": layer,
     }
-    if use_indicator_join:
+    if use_indicator_join and urban_layer is None:
         params["metric"] = metric
         params["period"] = period
         if domain:

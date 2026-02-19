@@ -92,6 +92,10 @@ Contrato tecnico principal: `CONTRATO.md`
     - `scripts/backfill_robust_database.py` com flag `--include-wave7`.
   - API urbana ampliada:
     - novo endpoint `GET /v1/map/urban/geocode`.
+  - tiles urbanos multi-zoom habilitados no endpoint vetorial existente:
+    - `GET /v1/map/tiles/urban_roads/{z}/{x}/{y}.mvt`
+    - `GET /v1/map/tiles/urban_pois/{z}/{x}/{y}.mvt`
+    - suporte mantido para cache/ETag (`Cache-Control`, `ETag`, `X-Tile-Ms`).
   - qualidade ampliada:
     - `quality_suite` executa `check_urban_domain`.
     - thresholds urbanos em `configs/quality_thresholds.yml`.

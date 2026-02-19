@@ -16,7 +16,7 @@ class MapLayerItem(BaseModel):
     zoom_min: int
     zoom_max: int | None
     official_status: Literal["official", "proxy", "hybrid"] = "official"
-    layer_kind: Literal["polygon", "point", "grid"] = "polygon"
+    layer_kind: Literal["polygon", "point", "line", "grid"] = "polygon"
     proxy_method: str | None = None
     notes: str | None = None
 

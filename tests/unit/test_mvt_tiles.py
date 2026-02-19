@@ -46,6 +46,8 @@ class TestLayerMapping:
         assert _LAYER_TO_LEVEL["territory_electoral_zone"] == "electoral_zone"
         assert _LAYER_TO_LEVEL["territory_electoral_section"] == "electoral_section"
         assert _LAYER_TO_LEVEL["territory_polling_place"] == "electoral_section"
+        assert _LAYER_TO_LEVEL["urban_roads"] == "urban"
+        assert _LAYER_TO_LEVEL["urban_pois"] == "urban"
 
     def test_unknown_layer(self) -> None:
         assert _LAYER_TO_LEVEL.get("nonexistent") is None

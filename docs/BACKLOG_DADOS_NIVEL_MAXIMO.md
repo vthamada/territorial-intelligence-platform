@@ -169,6 +169,9 @@ Progresso atual:
     - `scripts/backfill_robust_database.py` com `--include-wave7`.
   - geocodificacao local inicial publicada:
     - `GET /v1/map/urban/geocode`.
+  - tiles vetoriais urbanos multi-zoom habilitados:
+    - `GET /v1/map/tiles/urban_roads/{z}/{x}/{y}.mvt`
+    - `GET /v1/map/tiles/urban_pois/{z}/{x}/{y}.mvt`
   - governanca de qualidade/cobertura urbana ativa:
     - `check_urban_domain` no `quality_suite`.
     - metricas `urban_road_rows` e `urban_poi_rows` no scorecard.

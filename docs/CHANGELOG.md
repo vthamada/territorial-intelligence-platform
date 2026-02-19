@@ -61,6 +61,12 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - novas variaveis opcionais de ambiente no frontend:
     - `VITE_MAP_BASEMAP_STREETS_URL`
     - `VITE_MAP_BASEMAP_LIGHT_URL`
+- D3-3 (tiles urbanos multi-zoom) iniciado no backend:
+  - `GET /v1/map/tiles/{layer}/{z}/{x}/{y}.mvt` agora suporta camadas urbanas:
+    - `urban_roads`
+    - `urban_pois`
+  - endpoint mantém contrato de cache/ETag e métricas (`X-Tile-Ms`) também para camadas urbanas.
+  - `MapLayerItem.layer_kind` ampliado para aceitar `line` no schema.
 
 ### Verified
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_urban_connectors.py tests/unit/test_api_contract.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_ops_pipeline_runs.py tests/contracts/test_sql_contracts.py -p no:cacheprovider`:

@@ -203,6 +203,21 @@ def test_map_tiles_contract_shape() -> None:
     app.dependency_overrides.clear()
 
 
+def test_map_tiles_urban_contract_shape() -> None:
+    app.dependency_overrides[get_db] = _tile_db
+    client = TestClient(app)
+
+    response = client.get("/v1/map/tiles/urban_roads/14/4689/6586.mvt")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/vnd.mapbox-vector-tile"
+    assert response.headers.get("etag")
+    assert response.headers.get("cache-control") == "public, max-age=900"
+    assert response.headers.get("x-map-layer") == "urban_roads"
+    assert response.content == b"\x1a\x02"
+    app.dependency_overrides.clear()
+
+
 def test_map_tiles_supports_conditional_etag() -> None:
     app.dependency_overrides[get_db] = _tile_db
     client = TestClient(app)
