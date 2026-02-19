@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { getChoropleth, getMapLayers, getMapLayersCoverage, getMapStyleMetadata } from "../../../shared/api/domain";
@@ -9,7 +9,7 @@ import { ChoroplethMiniMap } from "../../../shared/ui/ChoroplethMiniMap";
 import { Panel } from "../../../shared/ui/Panel";
 import { formatDecimal, formatLevelLabel, toNumber } from "../../../shared/ui/presentation";
 import { StateBlock } from "../../../shared/ui/StateBlock";
-import { VectorMap, type BasemapMode, type VizMode } from "../../../shared/ui/VectorMap";
+import type { BasemapMode, VizMode } from "../../../shared/ui/VectorMap";
 import { useFilterStore } from "../../../shared/stores/filterStore";
 
 const TILE_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:8000/v1";
@@ -34,6 +34,11 @@ const BASEMAP_MODES: { value: BasemapMode; label: string }[] = [
 ];
 
 type LayerScope = "territorial" | "urban";
+
+const LazyVectorMap = lazy(async () => {
+  const module = await import("../../../shared/ui/VectorMap");
+  return { default: module.VectorMap };
+});
 
 const FALLBACK_URBAN_LAYER_ITEMS: MapLayerItem[] = [
   {
@@ -139,6 +144,30 @@ function normalizeBasemap(value: string | null): BasemapMode {
   return "streets";
 }
 
+function normalizeVizMode(value: string | null): VizMode {
+  const normalized = (value ?? "").trim().toLowerCase();
+  if (normalized === "points" || normalized === "heatmap" || normalized === "hotspots") {
+    return normalized;
+  }
+  return "choropleth";
+}
+
+function normalizeRenderer(value: string | null) {
+  const normalized = (value ?? "").trim().toLowerCase();
+  if (normalized === "svg" || normalized === "fallback") {
+    return false;
+  }
+  return true;
+}
+
+function normalizeZoom(value: string | null, fallback: number) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.max(0, Math.min(18, Math.round(parsed)));
+}
+
 function normalizeScope(value: string | null, layerId: string | null): LayerScope {
   const normalized = (value ?? "").trim().toLowerCase();
   if (normalized === "urban" || normalized === "urbano") {
@@ -205,7 +234,7 @@ function triggerDownload(blob: Blob, fileName: string) {
 }
 
 export function QgMapPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const globalFilters = useFilterStore();
   const initialMetric = searchParams.get("metric") || "MTE_NOVO_CAGED_SALDO_TOTAL";
   const initialPeriod = searchParams.get("period") || "2025";
@@ -213,8 +242,11 @@ export function QgMapPage() {
   const initialTerritoryId = searchParams.get("territory_id") || undefined;
   const initialLayerId = searchParams.get("layer_id") || null;
   const initialBasemap = normalizeBasemap(searchParams.get("basemap"));
+  const initialVizMode = normalizeVizMode(searchParams.get("viz"));
+  const initialUseVectorMap = normalizeRenderer(searchParams.get("renderer"));
   const initialScope = normalizeScope(searchParams.get("scope"), initialLayerId);
   const initialUrbanLayerId = normalizeUrbanLayerId(initialLayerId);
+  const initialZoom = normalizeZoom(searchParams.get("zoom"), globalFilters.zoom);
 
   const [metric, setMetric] = useState(initialMetric);
   const [period, setPeriod] = useState(initialPeriod);
@@ -229,15 +261,20 @@ export function QgMapPage() {
   const [selectedTerritoryId, setSelectedTerritoryId] = useState<string | undefined>(initialTerritoryId);
   const [exportError, setExportError] = useState<string | null>(null);
   const [vectorMapError, setVectorMapError] = useState<string | null>(null);
-  const [currentZoom, setCurrentZoom] = useState(globalFilters.zoom);
-  const [vizMode, setVizMode] = useState<VizMode>("choropleth");
+  const [currentZoom, setCurrentZoom] = useState(initialZoom);
+  const [vizMode, setVizMode] = useState<VizMode>(initialVizMode);
   const [basemapMode, setBasemapMode] = useState<BasemapMode>(initialBasemap);
-  const [useVectorMap, setUseVectorMap] = useState(true);
+  const [useVectorMap, setUseVectorMap] = useState(initialUseVectorMap);
   const [selectedFeature, setSelectedFeature] = useState<{ tid: string; tname: string; val?: number } | null>(null);
   const [selectedVectorLayerId, setSelectedVectorLayerId] = useState<string | null>(
     initialScope === "territorial" ? initialLayerId : null,
   );
   const previousAppliedLevelRef = useRef(appliedLevel);
+
+  useEffect(() => {
+    globalFilters.setZoom(initialZoom);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isChoroplethLevel = supportsChoropleth(appliedLevel);
   const shouldFetchChoropleth = appliedMapScope === "territorial" && isChoroplethLevel;
@@ -381,6 +418,56 @@ export function QgMapPage() {
     previousAppliedLevelRef.current = appliedLevel;
   }, [appliedLevel, appliedMapScope]);
 
+  useEffect(() => {
+    const nextSearch = new URLSearchParams();
+    nextSearch.set("metric", appliedMetric);
+    nextSearch.set("period", appliedPeriod);
+    nextSearch.set("zoom", String(currentZoom));
+
+    if (appliedMapScope === "urban") {
+      nextSearch.set("scope", "urban");
+      nextSearch.set("layer_id", appliedUrbanLayerId);
+    } else {
+      nextSearch.set("level", appliedLevel);
+      if (selectedVectorLayerId) {
+        nextSearch.set("layer_id", selectedVectorLayerId);
+      }
+    }
+
+    if (selectedTerritoryId) {
+      nextSearch.set("territory_id", selectedTerritoryId);
+    }
+    if (basemapMode !== "streets") {
+      nextSearch.set("basemap", basemapMode);
+    }
+    if (vizMode !== "choropleth") {
+      nextSearch.set("viz", vizMode);
+    }
+    if (!useVectorMap) {
+      nextSearch.set("renderer", "svg");
+    }
+
+    const nextValue = nextSearch.toString();
+    const currentValue = searchParams.toString();
+    if (nextValue !== currentValue) {
+      setSearchParams(nextSearch, { replace: true });
+    }
+  }, [
+    appliedLevel,
+    appliedMapScope,
+    appliedMetric,
+    appliedPeriod,
+    appliedUrbanLayerId,
+    basemapMode,
+    currentZoom,
+    searchParams,
+    selectedTerritoryId,
+    selectedVectorLayerId,
+    setSearchParams,
+    useVectorMap,
+    vizMode,
+  ]);
+
   function handleZoomChange(newZoom: number) {
     setCurrentZoom(newZoom);
     globalFilters.setZoom(newZoom);
@@ -417,6 +504,10 @@ export function QgMapPage() {
     setExportError(null);
     setVectorMapError(null);
     setBasemapMode("streets");
+    setVizMode("choropleth");
+    setUseVectorMap(true);
+    setCurrentZoom(4);
+    globalFilters.setZoom(4);
   }
 
   function exportCsv() {
@@ -773,31 +864,44 @@ export function QgMapPage() {
         ) : null}
         {useVectorMap && canUseVectorMap ? (
           <div style={{ height: 500, borderRadius: "0.5rem", overflow: "hidden", border: "1px solid var(--line)" }}>
-            <VectorMap
-              tileBaseUrl={TILE_BASE_URL}
-              metric={appliedMetric}
-              period={appliedPeriod}
-              layers={vectorLayers.length > 0 ? vectorLayers : levelScopedLayers}
-              defaultLayerId={effectiveLayer?.id ?? resolvedDefaultLayerId ?? selectedUrbanLayer.id}
-              vizMode={effectiveVizMode}
-              zoom={currentZoom}
-              onZoomChange={(z) => handleZoomChange(z)}
-              onFeatureClick={(feature) => {
-                setSelectedTerritoryId(feature.tid);
-                setSelectedFeature(feature);
-              }}
-              onError={() => {
-                setVectorMapError("Falha no modo vetorial, fallback SVG aplicado.");
-                setUseVectorMap(false);
-              }}
-              selectedTerritoryId={selectedTerritoryId}
-              colorStops={mapStyleQuery.data?.legend_ranges?.map((range) => ({ value: range.min_value, color: range.color }))}
-              basemapMode={basemapMode}
-              basemapTileUrls={{
-                streets: BASEMAP_STREETS_URL,
-                light: BASEMAP_LIGHT_URL,
-              }}
-            />
+            <Suspense
+              fallback={
+                <StateBlock
+                  tone="loading"
+                  title="Carregando mapa vetorial"
+                  message="Preparando camadas vetoriais e base cartografica."
+                />
+              }
+            >
+              <LazyVectorMap
+                tileBaseUrl={TILE_BASE_URL}
+                metric={appliedMetric}
+                period={appliedPeriod}
+                layers={vectorLayers.length > 0 ? vectorLayers : levelScopedLayers}
+                defaultLayerId={effectiveLayer?.id ?? resolvedDefaultLayerId ?? selectedUrbanLayer.id}
+                vizMode={effectiveVizMode}
+                zoom={currentZoom}
+                onZoomChange={(z) => handleZoomChange(z)}
+                onFeatureClick={(feature) => {
+                  setSelectedTerritoryId(feature.tid);
+                  setSelectedFeature(feature);
+                }}
+                onError={() => {
+                  setVectorMapError("Falha no modo vetorial, fallback SVG aplicado.");
+                  setUseVectorMap(false);
+                }}
+                selectedTerritoryId={selectedTerritoryId}
+                colorStops={mapStyleQuery.data?.legend_ranges?.map((range) => ({
+                  value: range.min_value,
+                  color: range.color,
+                }))}
+                basemapMode={basemapMode}
+                basemapTileUrls={{
+                  streets: BASEMAP_STREETS_URL,
+                  light: BASEMAP_LIGHT_URL,
+                }}
+              />
+            </Suspense>
           </div>
         ) : appliedMapScope === "territorial" ? (
           <ChoroplethMiniMap

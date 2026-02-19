@@ -68,6 +68,18 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - novas variaveis opcionais de ambiente no frontend:
     - `VITE_MAP_BASEMAP_STREETS_URL`
     - `VITE_MAP_BASEMAP_LIGHT_URL`
+  - deep-link do mapa executivo ampliado em `frontend/src/modules/qg/pages/QgMapPage.tsx`:
+    - leitura de `viz`, `renderer` e `zoom` por query string.
+    - sincronizacao automatica da URL com estado aplicado do mapa:
+      - `metric`, `period`, `level`, `scope`, `layer_id`, `territory_id`, `basemap`, `viz`, `renderer`, `zoom`.
+    - reset completo no botao `Limpar` para baseline visual (`streets`, `choropleth`, vetorial, `zoom=4`).
+  - testes de mapa ampliados em `frontend/src/modules/qg/pages/QgPages.test.tsx`:
+    - prefill dos controles visuais por query string.
+    - sincronizacao de query params apos aplicar filtros e controles de visualizacao.
+  - otimização de bundle do mapa:
+    - `VectorMap` passou a carregar sob demanda via `React.lazy` + `Suspense` em `QgMapPage`.
+    - chunk de rota `QgMapPage` caiu de ~`1.0MB` para ~`19KB`.
+    - chunk pesado ficou isolado em `VectorMap-*.js`, reduzindo custo de carregamento inicial da rota.
 - D3-3 (tiles urbanos multi-zoom) iniciado no backend:
   - `GET /v1/map/tiles/{layer}/{z}/{x}/{y}.mvt` agora suporta camadas urbanas:
     - `urban_roads`
@@ -106,6 +118,10 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - `9 passed`.
 - `npm --prefix frontend run test`:
   - `66 passed`.
+- `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx`:
+  - `17 passed`.
+- `npm --prefix frontend run test`:
+  - `68 passed`.
 - `npm --prefix frontend run build`:
   - build concluido com sucesso.
 

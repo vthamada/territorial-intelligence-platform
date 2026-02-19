@@ -193,6 +193,9 @@ Issues:
    - seletor de escopo (`Territorial`/`Urbana`) no `QgMapPage`.
    - seletor de camada urbana (`urban_roads`/`urban_pois`) no `QgMapPage`.
    - `VectorMap` renderizando `layer_kind=line` para viario urbano.
+   - deep-link completo no `QgMapPage` para recorte + visualizacao:
+     - `metric`, `period`, `level`, `scope`, `layer_id`, `territory_id`, `basemap`, `viz`, `renderer`, `zoom`.
+   - code-splitting aplicado no mapa executivo (`React.lazy` para `VectorMap`) para reduzir custo de carregamento inicial.
 
 Aceite:
 1. tiles vetoriais multi-zoom para camadas urbanas.

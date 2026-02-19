@@ -2,7 +2,7 @@ import type { ReactElement } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getChoropleth, getMapLayers, getMapLayersCoverage, getMapStyleMetadata, getTerritories } from "../../../shared/api/domain";
 import { getInsightsHighlights, getKpisOverview, getPriorityList, getPrioritySummary, postBriefGenerate, postScenarioSimulate } from "../../../shared/api/qg";
@@ -30,7 +30,16 @@ vi.mock("../../../shared/api/domain", () => ({
   getTerritories: vi.fn()
 }));
 
-function renderWithQueryClient(ui: ReactElement, initialEntries: string[] = ["/"]) {
+function LocationSearchProbe() {
+  const location = useLocation();
+  return <output data-testid="location-search">{location.search}</output>;
+}
+
+function renderWithQueryClient(
+  ui: ReactElement,
+  initialEntries: string[] = ["/"],
+  options?: { includeLocationProbe?: boolean }
+) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -42,6 +51,7 @@ function renderWithQueryClient(ui: ReactElement, initialEntries: string[] = ["/"
 
   return render(
     <MemoryRouter initialEntries={initialEntries} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      {options?.includeLocationProbe ? <LocationSearchProbe /> : null}
       <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
     </MemoryRouter>
   );
@@ -650,6 +660,47 @@ describe("QG pages", () => {
     expect(screen.getByRole("button", { name: /Exportar.*CSV/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Exportar.*SVG/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Exportar.*PNG/ })).toBeInTheDocument();
+  });
+
+  it("loads map visual controls from URL query params", async () => {
+    renderWithQueryClient(
+      <QgMapPage />,
+      [
+        "/mapa?metric=DATASUS_APS_COBERTURA&period=2024&level=district&layer_id=territory_district&basemap=light&viz=points&renderer=svg&zoom=7",
+      ],
+    );
+
+    await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
+    await screen.findByRole("button", { name: /Exportar.*SVG/ });
+    expect(screen.getByRole("radio", { name: "Claro" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: "Pontos" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("button", { name: "Alternar para mapa vetorial" })).toBeInTheDocument();
+    expect((screen.getByLabelText("Nivel de zoom do mapa") as HTMLInputElement).value).toBe("7");
+  });
+
+  it("syncs map query params after applying filters and view controls", async () => {
+    renderWithQueryClient(<QgMapPage />, ["/mapa"], { includeLocationProbe: true });
+    await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
+    await screen.findByLabelText("Escopo da camada");
+
+    await userEvent.selectOptions(screen.getByLabelText("Escopo da camada"), "urban");
+    await userEvent.selectOptions(screen.getByLabelText("Camada urbana"), "urban_pois");
+    await userEvent.clear(screen.getByLabelText("Codigo do indicador"));
+    await userEvent.type(screen.getByLabelText("Codigo do indicador"), "DATASUS_APS_COBERTURA");
+    await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Claro" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Pontos" }));
+
+    await waitFor(() => {
+      const search = screen.getByTestId("location-search").textContent ?? "";
+      expect(search).toContain("metric=DATASUS_APS_COBERTURA");
+      expect(search).toContain("period=2025");
+      expect(search).toContain("scope=urban");
+      expect(search).toContain("layer_id=urban_pois");
+      expect(search).toContain("basemap=light");
+      expect(search).toContain("viz=points");
+      expect(search).toContain("zoom=");
+    });
   });
 
   it("supports urban layer scope from URL without choropleth request", async () => {

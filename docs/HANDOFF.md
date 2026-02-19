@@ -149,6 +149,20 @@ Contrato tecnico principal: `CONTRATO.md`
     - overrides por ambiente em `frontend/.env.example`:
       - `VITE_MAP_BASEMAP_STREETS_URL`
       - `VITE_MAP_BASEMAP_LIGHT_URL`
+  - `BD-033` avancado (iteracao atual) com deep-link completo:
+    - `QgMapPage` sincroniza query string com recorte aplicado e estado de visualizacao:
+      - `metric`, `period`, `level`, `scope`, `layer_id`, `territory_id`, `basemap`, `viz`, `renderer`, `zoom`.
+    - `QgMapPage` passou a ler `viz`, `renderer` e `zoom` no carregamento inicial.
+    - botao `Limpar` reseta baseline visual (`streets`, `choropleth`, mapa vetorial, `zoom=4`).
+    - cobertura de teste ampliada em `frontend/src/modules/qg/pages/QgPages.test.tsx` para prefill e sync de URL.
+    - `VectorMap` passou a ser carregado sob demanda (`React.lazy` + `Suspense`) no `QgMapPage`.
+    - efeito imediato no build frontend:
+      - `QgMapPage-*.js` ~`19KB` (antes ~`1.0MB`).
+      - chunk pesado isolado em `VectorMap-*.js`.
+    - validacao adicional:
+      - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx`: `17 passed`.
+      - `npm --prefix frontend run test`: `68 passed`.
+      - `npm --prefix frontend run build`: `OK`.
 
 ## Governanca documental consolidada (2026-02-13)
 
