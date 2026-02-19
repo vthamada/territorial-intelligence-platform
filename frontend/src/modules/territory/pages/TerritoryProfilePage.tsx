@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { getTerritories } from "../../../shared/api/domain";
-import { formatApiError } from "../../../shared/api/http";
+import { ApiClientError, formatApiError } from "../../../shared/api/http";
 import { getTerritoryCompare, getTerritoryPeers, getTerritoryProfile } from "../../../shared/api/qg";
 import { getQgDomainLabel } from "../../qg/domainCatalog";
 import { Panel } from "../../../shared/ui/Panel";
@@ -122,6 +122,12 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
   const territoryPickerError = appliedTerritoryId ? null : territoryListQuery.error;
   const firstError = profileQuery.error ?? territoryPickerError;
   const isLoading = (appliedTerritoryId ? false : territoryListQuery.isPending) || (Boolean(appliedTerritoryId) && profileQuery.isPending);
+  const hasSelectedTerritory = territoryOptions.some((item) => item.territory_id === appliedTerritoryId);
+  const shouldRenderNoDataState =
+    firstError instanceof ApiClientError &&
+    firstError.status === 404 &&
+    Boolean(appliedTerritoryId) &&
+    hasSelectedTerritory;
 
   function applyFilters() {
     if (!territoryId) {
@@ -148,6 +154,61 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
         title="Carregando perfil territorial"
         message="Consultando perfil 360 e comparacao territorial."
       />
+    );
+  }
+
+  if (shouldRenderNoDataState) {
+    return (
+      <main className="page-grid">
+        <Panel title="Perfil 360 do territorio" subtitle="Diagnostico por dominio e comparacao orientada">
+          <form
+            className="filter-grid compact"
+            onSubmit={(event) => {
+              event.preventDefault();
+              applyFilters();
+            }}
+          >
+            <label>
+              Territorio base
+              <select value={territoryId} onChange={(event) => setTerritoryId(event.target.value)}>
+                {territoryOptions.map((territory) => (
+                  <option key={territory.territory_id} value={territory.territory_id}>
+                    {territory.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Comparar com
+              <select value={compareWithId} onChange={(event) => setCompareWithId(event.target.value)}>
+                <option value="">Sem comparacao</option>
+                {territoryOptions
+                  .filter((territory) => territory.territory_id !== territoryId)
+                  .map((territory) => (
+                    <option key={territory.territory_id} value={territory.territory_id}>
+                      {territory.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label>
+              Periodo
+              <input value={period} onChange={(event) => setPeriod(event.target.value)} placeholder="2025" />
+            </label>
+            <div className="filter-actions">
+              <button type="submit">Aplicar filtros</button>
+              <button type="button" className="button-secondary" onClick={clearFilters}>
+                Limpar
+              </button>
+            </div>
+          </form>
+          <StateBlock
+            tone="empty"
+            title="Sem dados para o territorio selecionado"
+            message="Nao ha indicadores disponiveis para esse recorte. Selecione outro territorio ou periodo."
+          />
+        </Panel>
+      </main>
     );
   }
 

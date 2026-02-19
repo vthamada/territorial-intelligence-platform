@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getTerritories } from "../../../shared/api/domain";
+import { ApiClientError } from "../../../shared/api/http";
 import { getTerritoryCompare, getTerritoryPeers, getTerritoryProfile } from "../../../shared/api/qg";
 import { TerritoryProfilePage } from "./TerritoryProfilePage";
 
@@ -192,5 +193,23 @@ describe("TerritoryProfilePage", () => {
     expect(screen.getByRole("heading", { name: "Status geral do territorio" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Diamantina" })).toBeInTheDocument();
     expect(screen.getByText("Falha ao carregar pares recomendados")).toBeInTheDocument();
+  });
+
+  it("renders empty state instead of hard error on profile 404", async () => {
+    vi.mocked(getTerritoryProfile).mockRejectedValueOnce(
+      new ApiClientError("No indicators found for selected territory", 404)
+    );
+
+    renderWithQueryClient(<TerritoryProfilePage />);
+
+    await waitFor(() => expect(getTerritories).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getTerritoryProfile).toHaveBeenCalledTimes(1));
+
+    await screen.findByText("Sem dados para o territorio selecionado");
+    expect(
+      screen.getByText("Nao ha indicadores disponiveis para esse recorte. Selecione outro territorio ou periodo.")
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Territorio base")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Aplicar filtros" })).toBeInTheDocument();
   });
 });
