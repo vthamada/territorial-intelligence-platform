@@ -99,6 +99,17 @@ Contrato tecnico principal: `CONTRATO.md`
     - `urban_road_rows` e `urban_poi_rows` em `ops.v_data_coverage_scorecard`.
   - validacao deste incremento:
     - `pytest` focado em connectors/map/quality/flows/contracts: `40 passed`.
+  - benchmark de performance para fechamento de `BD-032` preparado:
+    - `scripts/benchmark_api.py` com suites `executive`, `urban` e `all`.
+    - suite `urban` mede p95 dos endpoints:
+      - `/v1/map/urban/roads`
+      - `/v1/map/urban/pois`
+      - `/v1/map/urban/nearby-pois`
+      - `/v1/map/urban/geocode`
+    - comando de evidencia:
+      - `python scripts/benchmark_api.py --suite urban --rounds 30 --json-output data/reports/benchmark_urban_map.json`
+    - pendencia para fechar issue:
+      - executar benchmark com API/DB em execucao e validar p95 `< 1.0s`.
 
 ## Governanca documental consolidada (2026-02-13)
 

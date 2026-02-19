@@ -35,6 +35,18 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - `db/sql/007_data_coverage_scorecard.sql` ampliado com:
     - `urban_road_rows`
     - `urban_poi_rows`.
+- BD-032 (performance urbana) avancou com benchmark dedicado:
+  - `scripts/benchmark_api.py` agora suporta suites por escopo:
+    - `--suite executive` (alvo p95 `800ms`)
+    - `--suite urban` (alvo p95 `1000ms`)
+    - `--suite all`
+  - novos alvos urbanos cobertos no benchmark:
+    - `GET /v1/map/urban/roads`
+    - `GET /v1/map/urban/pois`
+    - `GET /v1/map/urban/nearby-pois`
+    - `GET /v1/map/urban/geocode`
+  - evidencia operacional pode ser persistida via:
+    - `--json-output data/reports/benchmark_urban_map.json`
 
 ### Verified
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_urban_connectors.py tests/unit/test_api_contract.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_ops_pipeline_runs.py tests/contracts/test_sql_contracts.py -p no:cacheprovider`:

@@ -1,0 +1,73 @@
+{
+  "suite": "urban",
+  "target_p95_ms": 1000.0,
+  "rounds": 30,
+  "base_url": "http://127.0.0.1:8000",
+  "generated_at_utc": "2026-02-19T12:49:32Z",
+  "results": [
+    {
+      "endpoint": "map/urban/roads",
+      "method": "GET",
+      "rounds": 30,
+      "target_p95_ms": 1000.0,
+      "avg_ms": 80.9,
+      "p50_ms": 80.5,
+      "p95_ms": 101.7,
+      "p99_ms": 102.8,
+      "min_ms": 54.6,
+      "max_ms": 103.3,
+      "success_rate_pct": 100.0,
+      "meets_p95_target": true,
+      "meets_http_target": true,
+      "pass": true
+    },
+    {
+      "endpoint": "map/urban/pois",
+      "method": "GET",
+      "rounds": 30,
+      "target_p95_ms": 1000.0,
+      "avg_ms": 74.9,
+      "p50_ms": 68.9,
+      "p95_ms": 100.4,
+      "p99_ms": 107.2,
+      "min_ms": 54.1,
+      "max_ms": 107.5,
+      "success_rate_pct": 100.0,
+      "meets_p95_target": true,
+      "meets_http_target": true,
+      "pass": true
+    },
+    {
+      "endpoint": "map/urban/nearby-pois",
+      "method": "GET",
+      "rounds": 30,
+      "target_p95_ms": 1000.0,
+      "avg_ms": 75.7,
+      "p50_ms": 71.4,
+      "p95_ms": 97.8,
+      "p99_ms": 103.0,
+      "min_ms": 55.5,
+      "max_ms": 104.0,
+      "success_rate_pct": 100.0,
+      "meets_p95_target": true,
+      "meets_http_target": true,
+      "pass": true
+    },
+    {
+      "endpoint": "map/urban/geocode",
+      "method": "GET",
+      "rounds": 30,
+      "target_p95_ms": 1000.0,
+      "avg_ms": 72.0,
+      "p50_ms": 67.6,
+      "p95_ms": 99.8,
+      "p99_ms": 105.0,
+      "min_ms": 59.7,
+      "max_ms": 107.1,
+      "success_rate_pct": 100.0,
+      "meets_p95_target": true,
+      "meets_http_target": true,
+      "pass": true
+    }
+  ]
+}
