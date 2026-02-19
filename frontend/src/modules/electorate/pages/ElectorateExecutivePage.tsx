@@ -71,8 +71,16 @@ export function ElectorateExecutivePage() {
     queryFn: () => getElectorateSummary({ level: "municipality" }),
     enabled: appliedYear !== undefined
   });
+  const fallbackMapQuery = useQuery({
+    queryKey: ["qg", "electorate-map-fallback", { level: "municipality", metric: appliedMetric }],
+    queryFn: () => getElectorateMap({ level: "municipality", metric: appliedMetric, include_geometry: false, limit: 500 }),
+    enabled: appliedYear !== undefined
+  });
 
-  const isLoading = summaryQuery.isPending || mapQuery.isPending;
+  const isLoading =
+    summaryQuery.isPending ||
+    mapQuery.isPending ||
+    (appliedYear !== undefined && (fallbackSummaryQuery.isPending || fallbackMapQuery.isPending));
   const firstError = summaryQuery.error ?? mapQuery.error;
 
   function applyFilters() {
@@ -114,6 +122,14 @@ export function ElectorateExecutivePage() {
   const map = mapQuery.data!;
   const hasNoData = summary.year === null || (summary.total_voters === 0 && map.items.length === 0);
   const fallbackYear = fallbackSummaryQuery.data?.year ?? null;
+  const hasFallbackData =
+    Boolean(fallbackSummaryQuery.data?.year) &&
+    (fallbackSummaryQuery.data?.total_voters ?? 0) > 0 &&
+    (fallbackMapQuery.data?.items.length ?? 0) > 0;
+  const showingFallbackData = hasNoData && appliedYear !== undefined && hasFallbackData;
+
+  const effectiveSummary = showingFallbackData ? fallbackSummaryQuery.data! : summary;
+  const effectiveMap = showingFallbackData ? fallbackMapQuery.data! : map;
 
   return (
     <div className="page-grid">
@@ -147,7 +163,18 @@ export function ElectorateExecutivePage() {
           </div>
         </form>
         <SourceFreshnessBadge metadata={summary.metadata} />
-        {hasNoData && appliedYear !== undefined ? (
+        {showingFallbackData ? (
+          <StateBlock
+            tone="empty"
+            title={`Ano ${appliedYear} sem dados consolidados`}
+            message={
+              fallbackYear
+                ? `Mostrando automaticamente o ultimo recorte com dados (${fallbackYear}) para manter a leitura executiva.`
+                : "Mostrando automaticamente o ultimo recorte com dados disponivel."
+            }
+          />
+        ) : null}
+        {hasNoData && appliedYear !== undefined && !showingFallbackData ? (
           <StateBlock
             tone="empty"
             title="Sem dados para o ano informado"
@@ -158,7 +185,7 @@ export function ElectorateExecutivePage() {
             }
           />
         ) : null}
-        {hasNoData && appliedYear !== undefined ? (
+        {hasNoData && appliedYear !== undefined && !showingFallbackData ? (
           <div className="filter-actions" style={{ marginTop: "0.55rem" }}>
             <button
               type="button"
@@ -178,33 +205,33 @@ export function ElectorateExecutivePage() {
         <div className="kpi-grid">
           <article>
             <span>Ano</span>
-            <strong>{summary.year ?? "-"}</strong>
+            <strong>{effectiveSummary.year ?? "-"}</strong>
           </article>
           <article>
             <span>Total eleitores</span>
-            <strong>{formatInteger(summary.total_voters)}</strong>
+            <strong>{formatInteger(effectiveSummary.total_voters)}</strong>
           </article>
           <article>
             <span>Taxa comparecimento</span>
-            <strong>{formatPercent(summary.turnout_rate)}</strong>
+            <strong>{formatPercent(effectiveSummary.turnout_rate)}</strong>
           </article>
           <article>
             <span>Taxa abstencao</span>
-            <strong>{formatPercent(summary.abstention_rate)}</strong>
+            <strong>{formatPercent(effectiveSummary.abstention_rate)}</strong>
           </article>
           <article>
             <span>Brancos</span>
-            <strong>{formatPercent(summary.blank_rate)}</strong>
+            <strong>{formatPercent(effectiveSummary.blank_rate)}</strong>
           </article>
           <article>
             <span>Nulos</span>
-            <strong>{formatPercent(summary.null_rate)}</strong>
+            <strong>{formatPercent(effectiveSummary.null_rate)}</strong>
           </article>
         </div>
       </Panel>
 
       <Panel title="Composicao do eleitorado" subtitle="Distribuicao por sexo, faixa etaria e escolaridade">
-        {summary.by_sex.length === 0 && summary.by_age.length === 0 && summary.by_education.length === 0 ? (
+        {effectiveSummary.by_sex.length === 0 && effectiveSummary.by_age.length === 0 && effectiveSummary.by_education.length === 0 ? (
           <StateBlock tone="empty" title="Sem composicao" message="Nao ha dados de composicao para o recorte atual." />
         ) : (
           <div className="table-wrap">
@@ -218,7 +245,7 @@ export function ElectorateExecutivePage() {
                 </tr>
               </thead>
               <tbody>
-                {summary.by_sex.map((item) => (
+                {effectiveSummary.by_sex.map((item) => (
                   <tr key={`sex-${item.label}`}>
                     <td>{breakdownGroupLabel("sex")}</td>
                     <td>{item.label}</td>
@@ -226,7 +253,7 @@ export function ElectorateExecutivePage() {
                     <td>{formatPercent(item.share_percent)}</td>
                   </tr>
                 ))}
-                {summary.by_age.map((item) => (
+                {effectiveSummary.by_age.map((item) => (
                   <tr key={`age-${item.label}`}>
                     <td>{breakdownGroupLabel("age")}</td>
                     <td>{item.label}</td>
@@ -234,7 +261,7 @@ export function ElectorateExecutivePage() {
                     <td>{formatPercent(item.share_percent)}</td>
                   </tr>
                 ))}
-                {summary.by_education.map((item) => (
+                {effectiveSummary.by_education.map((item) => (
                   <tr key={`education-${item.label}`}>
                     <td>{breakdownGroupLabel("education")}</td>
                     <td>{item.label}</td>
@@ -248,8 +275,8 @@ export function ElectorateExecutivePage() {
         )}
       </Panel>
 
-      <Panel title="Mapa tabular por territorio" subtitle={`${metricLabel(map.metric)} por ${formatLevelLabel(map.level)}`}>
-        {map.items.length === 0 ? (
+      <Panel title="Mapa tabular por territorio" subtitle={`${metricLabel(effectiveMap.metric)} por ${formatLevelLabel(effectiveMap.level)}`}>
+        {effectiveMap.items.length === 0 ? (
           <StateBlock tone="empty" title="Sem mapa eleitoral" message="Nenhum territorio retornado para a metrica selecionada." />
         ) : (
           <div className="table-wrap">
@@ -264,7 +291,7 @@ export function ElectorateExecutivePage() {
                 </tr>
               </thead>
               <tbody>
-                {map.items.map((item) => (
+                {effectiveMap.items.map((item) => (
                   <tr key={`${item.territory_id}-${item.metric}`}>
                     <td>{item.territory_name}</td>
                     <td>{formatLevelLabel(item.territory_level)}</td>

@@ -87,17 +87,176 @@ describe("ElectorateExecutivePage", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
 
-    await waitFor(() => expect(getElectorateMap).toHaveBeenCalledTimes(2));
-    expect(vi.mocked(getElectorateSummary).mock.calls[1]?.[0]).toMatchObject({
-      level: "municipality",
-      year: 2022
-    });
-    expect(vi.mocked(getElectorateMap).mock.calls[1]?.[0]).toMatchObject({
-      level: "municipality",
-      year: 2022,
-      metric: "abstention_rate",
-      include_geometry: false,
-      limit: 500
-    });
+    await waitFor(() => expect(getElectorateSummary).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(getElectorateMap).toHaveBeenCalledTimes(3));
+
+    expect(vi.mocked(getElectorateSummary).mock.calls).toContainEqual([
+      expect.objectContaining({
+        level: "municipality",
+        year: 2022
+      })
+    ]);
+    expect(vi.mocked(getElectorateSummary).mock.calls).toContainEqual([
+      expect.objectContaining({
+        level: "municipality"
+      })
+    ]);
+    expect(vi.mocked(getElectorateMap).mock.calls).toContainEqual([
+      expect.objectContaining({
+        level: "municipality",
+        year: 2022,
+        metric: "abstention_rate",
+        include_geometry: false,
+        limit: 500
+      })
+    ]);
+    expect(vi.mocked(getElectorateMap).mock.calls).toContainEqual([
+      expect.objectContaining({
+        level: "municipality",
+        metric: "abstention_rate",
+        include_geometry: false,
+        limit: 500
+      })
+    ]);
+  });
+
+  it("falls back to latest available year when selected year has no electorate data", async () => {
+    vi.mocked(getElectorateSummary)
+      .mockResolvedValueOnce({
+        level: "municipio",
+        year: 2024,
+        metadata: {
+          source_name: "silver.fact_electorate",
+          updated_at: null,
+          coverage_note: "territorial_aggregated",
+          unit: "voters",
+          notes: null
+        },
+        total_voters: 12000,
+        turnout: 8000,
+        turnout_rate: 80,
+        abstention_rate: 20,
+        blank_rate: 2,
+        null_rate: 3,
+        by_sex: [{ label: "MASCULINO", voters: 5800, share_percent: 48.3 }],
+        by_age: [],
+        by_education: []
+      })
+      .mockResolvedValueOnce({
+        level: "municipio",
+        year: null,
+        metadata: {
+          source_name: "silver.fact_electorate",
+          updated_at: null,
+          coverage_note: "territorial_aggregated",
+          unit: "voters",
+          notes: null
+        },
+        total_voters: 0,
+        turnout: 0,
+        turnout_rate: null,
+        abstention_rate: null,
+        blank_rate: null,
+        null_rate: null,
+        by_sex: [],
+        by_age: [],
+        by_education: []
+      })
+      .mockResolvedValueOnce({
+        level: "municipio",
+        year: 2024,
+        metadata: {
+          source_name: "silver.fact_electorate",
+          updated_at: null,
+          coverage_note: "territorial_aggregated",
+          unit: "voters",
+          notes: null
+        },
+        total_voters: 12000,
+        turnout: 8000,
+        turnout_rate: 80,
+        abstention_rate: 20,
+        blank_rate: 2,
+        null_rate: 3,
+        by_sex: [{ label: "MASCULINO", voters: 5800, share_percent: 48.3 }],
+        by_age: [],
+        by_education: []
+      });
+
+    vi.mocked(getElectorateMap)
+      .mockResolvedValueOnce({
+        level: "municipio",
+        metric: "voters",
+        year: 2024,
+        metadata: {
+          source_name: "silver.fact_electorate",
+          updated_at: null,
+          coverage_note: "territorial_aggregated",
+          unit: "voters",
+          notes: null
+        },
+        items: [
+          {
+            territory_id: "3121605",
+            territory_name: "Diamantina",
+            territory_level: "municipio",
+            metric: "voters",
+            value: 12000,
+            year: 2024,
+            geometry: null
+          }
+        ]
+      })
+      .mockResolvedValueOnce({
+        level: "municipio",
+        metric: "voters",
+        year: null,
+        metadata: {
+          source_name: "silver.fact_electorate",
+          updated_at: null,
+          coverage_note: "territorial_aggregated",
+          unit: "voters",
+          notes: null
+        },
+        items: []
+      })
+      .mockResolvedValueOnce({
+        level: "municipio",
+        metric: "voters",
+        year: 2024,
+        metadata: {
+          source_name: "silver.fact_electorate",
+          updated_at: null,
+          coverage_note: "territorial_aggregated",
+          unit: "voters",
+          notes: null
+        },
+        items: [
+          {
+            territory_id: "3121605",
+            territory_name: "Diamantina",
+            territory_level: "municipio",
+            metric: "voters",
+            value: 12000,
+            year: 2024,
+            geometry: null
+          }
+        ]
+      });
+
+    renderWithQueryClient(<ElectorateExecutivePage />);
+
+    await waitFor(() => expect(getElectorateSummary).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getElectorateMap).toHaveBeenCalledTimes(1));
+
+    await userEvent.clear(screen.getByLabelText("Ano"));
+    await userEvent.type(screen.getByLabelText("Ano"), "2022");
+    await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+
+    await screen.findByText("Ano 2022 sem dados consolidados");
+    expect(screen.getAllByText("12.000").length).toBeGreaterThan(0);
+    expect(screen.getByText("Mostrando automaticamente o ultimo recorte com dados (2024) para manter a leitura executiva.")).toBeInTheDocument();
+    expect(screen.queryByText("Sem dados para o ano informado")).not.toBeInTheDocument();
+    expect(screen.getByText("MASCULINO")).toBeInTheDocument();
   });
 });

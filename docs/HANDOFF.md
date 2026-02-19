@@ -16,6 +16,20 @@ Contrato tecnico principal: `CONTRATO.md`
   - nao abrir nova frente enquanto houver pendencia critica em UX, dados ou contrato tecnico da etapa corrente.
   - qualquer item novo fora da trilha principal entra como backlog, sem interromper o fechamento da etapa em andamento.
 
+## Atualizacao tecnica (2026-02-19) - Estabilizacao de telas criticas
+
+- `Territorio 360`:
+  - `frontend/src/modules/territory/pages/TerritoryProfilePage.tsx` agora trata `404` do perfil como estado vazio orientado (sem quebrar a tela).
+  - filtros permanecem ativos no estado vazio para troca imediata de territorio/periodo.
+  - regressao coberta em `frontend/src/modules/territory/pages/TerritoryProfilePage.test.tsx`.
+- `Eleitorado`:
+  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` passou a aplicar fallback automatico para o ultimo ano com dados quando o ano filtrado retorna vazio.
+  - aviso explicito de fallback exibido na tela, mantendo leitura executiva (KPIs/tabela/composicao) sem tela morta.
+  - cobertura de teste ampliada em `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx`.
+- Validacao executada:
+  - `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx src/modules/territory/pages/TerritoryProfilePage.test.tsx src/app/router.smoke.test.tsx src/app/e2e-flow.test.tsx` -> `11 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+
 ## Atualizacao tecnica (2026-02-18) - Robustez de banco
 
 - Hardening de cobertura territorial concluido no backend:

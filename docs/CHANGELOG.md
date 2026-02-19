@@ -186,6 +186,23 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
     - fechamento de lacunas criticas de dados;
     - expansao de escopo somente apos fechamento das etapas anteriores.
 
+### Fixed
+- Estabilizacao de telas executivas com dados ausentes:
+  - `frontend/src/modules/territory/pages/TerritoryProfilePage.tsx`:
+    - erro `404` de perfil territorial agora cai em estado vazio guiado (sem hard-fail da tela).
+    - formulario de filtros permanece disponivel para troca imediata de territorio/periodo.
+  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx`:
+    - quando o ano filtrado nao possui dados, a tela aplica fallback automatico para o ultimo ano disponivel.
+    - aviso de fallback explicito exibido para transparencia operacional.
+    - evita painel executivo zerado/sem contexto no recorte filtrado sem dados.
+
+### Tests
+- Frontend:
+  - `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx src/modules/territory/pages/TerritoryProfilePage.test.tsx src/app/router.smoke.test.tsx src/app/e2e-flow.test.tsx`
+    - `11 passed`.
+  - `npm --prefix frontend run build`
+    - `OK`.
+
 ## 2026-02-13 (Sprint 9 - territorial layers TL-2/TL-3 + base eleitoral)
 
 ### Added
