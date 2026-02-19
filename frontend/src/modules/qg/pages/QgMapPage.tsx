@@ -35,7 +35,7 @@ const BASEMAP_MODES: { value: BasemapMode; label: string }[] = [
 
 type LayerScope = "territorial" | "urban";
 
-const URBAN_LAYER_ITEMS: MapLayerItem[] = [
+const FALLBACK_URBAN_LAYER_ITEMS: MapLayerItem[] = [
   {
     id: "urban_roads",
     label: "Viario urbano",
@@ -260,8 +260,8 @@ export function QgMapPage() {
   });
 
   const mapLayersQuery = useQuery({
-    queryKey: ["qg", "map", "layers"],
-    queryFn: () => getMapLayers(),
+    queryKey: ["qg", "map", "layers", "include_urban"],
+    queryFn: () => getMapLayers({ include_urban: true }),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -272,15 +272,24 @@ export function QgMapPage() {
   });
 
   const layersCoverageQuery = useQuery({
-    queryKey: ["qg", "map", "layers", "coverage", appliedMetric, appliedPeriod],
-    queryFn: () => getMapLayersCoverage({ metric: appliedMetric, period: appliedPeriod }),
+    queryKey: ["qg", "map", "layers", "coverage", appliedMetric, appliedPeriod, "include_urban"],
+    queryFn: () => getMapLayersCoverage({ metric: appliedMetric, period: appliedPeriod, include_urban: true }),
     staleTime: 60 * 1000,
   });
 
+  const territorialLayers = useMemo(
+    () => (mapLayersQuery.data?.items ?? []).filter((item) => item.territory_level !== "urban"),
+    [mapLayersQuery.data?.items],
+  );
+  const urbanLayers = useMemo(
+    () => (mapLayersQuery.data?.items ?? []).filter((item) => item.territory_level === "urban"),
+    [mapLayersQuery.data?.items],
+  );
+
   const availableFormLevels = useMemo<string[]>(() => {
-    const levels = Array.from(new Set((mapLayersQuery.data?.items ?? []).map((item) => item.territory_level)));
+    const levels = Array.from(new Set(territorialLayers.map((item) => item.territory_level)));
     return levels.sort(sortLayerLevels).map((item) => toFormLevel(item));
-  }, [mapLayersQuery.data?.items]);
+  }, [territorialLayers]);
 
   useEffect(() => {
     if (mapScope !== "territorial") {
@@ -299,8 +308,8 @@ export function QgMapPage() {
 
   const activeTerritoryLevel = toManifestTerritoryLevel(appliedLevel);
   const levelScopedLayers = useMemo(
-    () => (mapLayersQuery.data?.items ?? []).filter((layerItem) => layerItem.territory_level === activeTerritoryLevel),
-    [activeTerritoryLevel, mapLayersQuery.data?.items],
+    () => territorialLayers.filter((layerItem) => layerItem.territory_level === activeTerritoryLevel),
+    [activeTerritoryLevel, territorialLayers],
   );
   const resolvedDefaultLayerId =
     levelScopedLayers.find((layerItem) => layerItem.default_visibility)?.id ??
@@ -308,7 +317,7 @@ export function QgMapPage() {
     mapLayersQuery.data?.default_layer_id;
 
   const autoLayer = useAutoLayerSwitch(
-    levelScopedLayers.length > 0 ? levelScopedLayers : mapLayersQuery.data?.items,
+    levelScopedLayers.length > 0 ? levelScopedLayers : territorialLayers,
     currentZoom,
     resolvedDefaultLayerId,
   );
@@ -330,14 +339,15 @@ export function QgMapPage() {
     [normalizedItems],
   );
 
-  const canUseVectorMap = appliedMapScope === "urban" ? true : Boolean(resolvedDefaultLayerId);
   const availableLevelLayerIds = useMemo(() => new Set(levelScopedLayers.map((item) => item.id)), [levelScopedLayers]);
+  const availableUrbanLayers = urbanLayers.length > 0 ? urbanLayers : FALLBACK_URBAN_LAYER_ITEMS;
+  const selectedUrbanLayer =
+    availableUrbanLayers.find((layerItem) => layerItem.id === appliedUrbanLayerId) ?? availableUrbanLayers[0]!;
+  const canUseVectorMap = appliedMapScope === "urban" ? Boolean(selectedUrbanLayer) : Boolean(resolvedDefaultLayerId);
   const selectedLayerCoverage =
     appliedMapScope === "territorial"
       ? layersCoverageQuery.data?.items.find((item) => item.territory_level === activeTerritoryLevel)
-      : null;
-  const selectedUrbanLayer =
-    URBAN_LAYER_ITEMS.find((layerItem) => layerItem.id === appliedUrbanLayerId) ?? URBAN_LAYER_ITEMS[0]!;
+      : layersCoverageQuery.data?.items.find((item) => item.layer_id === selectedUrbanLayer.id);
 
   useEffect(() => {
     setVectorMapError(null);
@@ -583,7 +593,7 @@ export function QgMapPage() {
             <label>
               Camada urbana
               <select value={urbanLayerId} onChange={(event) => setUrbanLayerId(event.target.value)}>
-                {URBAN_LAYER_ITEMS.map((layerItem) => (
+                {availableUrbanLayers.map((layerItem) => (
                   <option key={layerItem.id} value={layerItem.id}>
                     {layerItem.label}
                   </option>

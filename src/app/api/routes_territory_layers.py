@@ -25,7 +25,7 @@ router = APIRouter(prefix="/territory/layers", tags=["territory-layers"])
 
 @router.get("/catalog", response_model=MapLayersResponse)
 def get_territory_layers_catalog() -> MapLayersResponse:
-    return get_map_layers()
+    return get_map_layers(include_urban=False)
 
 
 @router.get("/coverage", response_model=MapLayersCoverageResponse)
@@ -34,7 +34,7 @@ def get_territory_layers_coverage(
     period: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> MapLayersCoverageResponse:
-    return get_map_layers_coverage(metric=metric, period=period, db=db)
+    return get_map_layers_coverage(metric=metric, period=period, include_urban=False, db=db)
 
 
 @router.get("/{layer_id}/metadata", response_model=MapLayerMetadataResponse)
@@ -48,8 +48,8 @@ def get_territory_layers_readiness(
     period: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> MapLayersReadinessResponse:
-    catalog = get_map_layers()
-    coverage = get_map_layers_coverage(metric=metric, period=period, db=db)
+    catalog = get_map_layers(include_urban=False)
+    coverage = get_map_layers_coverage(metric=metric, period=period, include_urban=False, db=db)
 
     latest_quality_run = db.execute(
         text(

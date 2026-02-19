@@ -169,6 +169,9 @@ Progresso atual:
     - `scripts/backfill_robust_database.py` com `--include-wave7`.
   - geocodificacao local inicial publicada:
     - `GET /v1/map/urban/geocode`.
+  - catalogo e cobertura de camadas com dominio urbano no backend de mapa:
+    - `GET /v1/map/layers?include_urban=true`
+    - `GET /v1/map/layers/coverage?include_urban=true`
   - tiles vetoriais urbanos multi-zoom habilitados:
     - `GET /v1/map/tiles/urban_roads/{z}/{x}/{y}.mvt`
     - `GET /v1/map/tiles/urban_pois/{z}/{x}/{y}.mvt`
@@ -305,3 +308,6 @@ Executar Sprint D3 nesta ordem:
    - aplicar tuning de indices/consulta se p95 > 1.0s.
 4. preparar camada de tiles urbanos multi-zoom (aceite final D3).
 5. iniciar `BD-033` para aproximar UX de navegacao (basemap comutavel no mapa executivo).
+
+
+

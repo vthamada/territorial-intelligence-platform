@@ -22,8 +22,8 @@ export function getChoropleth(query?: Record<string, string | number | boolean |
   return requestJson<PaginatedResponse<ChoroplethItem>>("/geo/choropleth", { query });
 }
 
-export function getMapLayers() {
-  return requestJson<MapLayersResponse>("/map/layers");
+export function getMapLayers(query?: Record<string, string | number | boolean | undefined>) {
+  return requestJson<MapLayersResponse>("/map/layers", { query });
 }
 
 export function getMapLayersCoverage(query?: Record<string, string | number | boolean | undefined>) {

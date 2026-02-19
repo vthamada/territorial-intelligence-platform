@@ -35,7 +35,7 @@ from app.schemas.map import (
 
 router = APIRouter(prefix="/map", tags=["map"])
 _STATIC_METADATA_GENERATED_AT = datetime.now(tz=UTC)
-_LAYER_ITEMS: list[MapLayerItem] = [
+_BASE_LAYER_ITEMS: list[MapLayerItem] = [
     MapLayerItem(
         id="territory_municipality",
         label="Municipios",
@@ -119,7 +119,36 @@ _LAYER_ITEMS: list[MapLayerItem] = [
         notes="Camada de apoio para base eleitoral; geocodificacao fina de endereco segue como evolucao futura.",
     ),
 ]
-_LAYER_INDEX: dict[str, MapLayerItem] = {item.id: item for item in _LAYER_ITEMS}
+_URBAN_LAYER_ITEMS: list[MapLayerItem] = [
+    MapLayerItem(
+        id="urban_roads",
+        label="Viario urbano",
+        territory_level="urban",
+        is_official=False,
+        official_status="hybrid",
+        layer_kind="line",
+        source="map.urban_road_segment",
+        default_visibility=False,
+        zoom_min=12,
+        zoom_max=None,
+        notes="Rede viaria urbana para navegacao operacional e contexto de mobilidade.",
+    ),
+    MapLayerItem(
+        id="urban_pois",
+        label="Pontos de interesse urbanos",
+        territory_level="urban",
+        is_official=False,
+        official_status="hybrid",
+        layer_kind="point",
+        source="map.urban_poi",
+        default_visibility=False,
+        zoom_min=12,
+        zoom_max=None,
+        notes="POIs operacionais para leitura territorial de servicos e equipamentos.",
+    ),
+]
+_ALL_LAYER_ITEMS: list[MapLayerItem] = [*_BASE_LAYER_ITEMS, *_URBAN_LAYER_ITEMS]
+_LAYER_INDEX: dict[str, MapLayerItem] = {item.id: item for item in _ALL_LAYER_ITEMS}
 
 _LAYER_EXTRA_WHERE: dict[str, str] = {
     "territory_polling_place": "AND dt.metadata ? 'polling_place_name'",
@@ -162,12 +191,15 @@ def _parse_geojson(raw: str | None) -> dict:
 
 
 @router.get("/layers", response_model=MapLayersResponse)
-def get_map_layers() -> MapLayersResponse:
+def get_map_layers(
+    include_urban: bool = Query(default=False, description="Inclui camadas urbanas no catalogo."),
+) -> MapLayersResponse:
+    items = _ALL_LAYER_ITEMS if include_urban else _BASE_LAYER_ITEMS
     return MapLayersResponse(
         generated_at_utc=_STATIC_METADATA_GENERATED_AT,
         default_layer_id="territory_municipality",
         fallback_endpoint="/v1/geo/choropleth",
-        items=_LAYER_ITEMS,
+        items=items,
     )
 
 
@@ -175,11 +207,85 @@ def get_map_layers() -> MapLayersResponse:
 def get_map_layers_coverage(
     metric: str | None = Query(default=None),
     period: str | None = Query(default=None),
+    include_urban: bool = Query(default=False, description="Inclui cobertura das camadas urbanas."),
     db: Session = Depends(get_db),
 ) -> MapLayersCoverageResponse:
     items: list[MapLayerCoverageItem] = []
     filters_applied = metric is not None or period is not None
-    for layer in _LAYER_ITEMS:
+    catalog = _ALL_LAYER_ITEMS if include_urban else _BASE_LAYER_ITEMS
+    for layer in catalog:
+        if layer.id == "urban_roads":
+            try:
+                coverage_row = db.execute(
+                    text(
+                        """
+                        SELECT
+                            COUNT(*)::int AS territories_total,
+                            COUNT(*) FILTER (WHERE geom IS NOT NULL)::int AS territories_with_geometry
+                        FROM map.urban_road_segment
+                        """
+                    )
+                ).mappings().first()
+            except SQLAlchemyError:
+                coverage_row = None
+            territories_total = int(coverage_row["territories_total"]) if coverage_row else 0
+            territories_with_geometry = int(coverage_row["territories_with_geometry"]) if coverage_row else 0
+            territories_with_indicator = territories_with_geometry
+            is_ready = territories_with_geometry > 0
+            notes: str | None = None
+            if territories_total == 0:
+                notes = "Sem segmentos viarios urbanos carregados."
+            elif territories_with_geometry == 0:
+                notes = "Segmentos viarios sem geometria valida."
+            items.append(
+                MapLayerCoverageItem(
+                    layer_id=layer.id,
+                    territory_level=layer.territory_level,
+                    territories_total=territories_total,
+                    territories_with_geometry=territories_with_geometry,
+                    territories_with_indicator=territories_with_indicator,
+                    is_ready=is_ready,
+                    notes=notes,
+                )
+            )
+            continue
+
+        if layer.id == "urban_pois":
+            try:
+                coverage_row = db.execute(
+                    text(
+                        """
+                        SELECT
+                            COUNT(*)::int AS territories_total,
+                            COUNT(*) FILTER (WHERE geom IS NOT NULL)::int AS territories_with_geometry
+                        FROM map.urban_poi
+                        """
+                    )
+                ).mappings().first()
+            except SQLAlchemyError:
+                coverage_row = None
+            territories_total = int(coverage_row["territories_total"]) if coverage_row else 0
+            territories_with_geometry = int(coverage_row["territories_with_geometry"]) if coverage_row else 0
+            territories_with_indicator = territories_with_geometry
+            is_ready = territories_with_geometry > 0
+            notes = None
+            if territories_total == 0:
+                notes = "Sem POIs urbanos carregados."
+            elif territories_with_geometry == 0:
+                notes = "POIs urbanos sem geometria valida."
+            items.append(
+                MapLayerCoverageItem(
+                    layer_id=layer.id,
+                    territory_level=layer.territory_level,
+                    territories_total=territories_total,
+                    territories_with_geometry=territories_with_geometry,
+                    territories_with_indicator=territories_with_indicator,
+                    is_ready=is_ready,
+                    notes=notes,
+                )
+            )
+            continue
+
         layer_filter = _LAYER_EXTRA_WHERE.get(layer.id, "")
         level = layer.territory_level
         coverage_row = db.execute(
@@ -263,6 +369,8 @@ def get_map_layer_metadata(layer_id: str) -> MapLayerMetadataResponse:
         "territory_electoral_zone": "Agregacao por zona eleitoral dependente da consolidacao territorial em dim_territory.",
         "territory_electoral_section": "Representacao agregada por secao eleitoral com precisao geometrica limitada.",
         "territory_polling_place": "Local de votacao detectado no payload eleitoral e associado a geometria de secao.",
+        "urban_roads": "Camada vetorial urbana de segmentos viarios consolidada em map.urban_road_segment.",
+        "urban_pois": "Camada vetorial urbana de pontos de interesse consolidada em map.urban_poi.",
     }
     limitations_by_layer = {
         "territory_municipality": [
@@ -286,6 +394,12 @@ def get_map_layer_metadata(layer_id: str) -> MapLayerMetadataResponse:
         "territory_polling_place": [
             "Cobertura depende da presenca de nome de local de votacao na base eleitoral.",
             "Geometria segue proxy de secao; geocodificacao de endereco nao esta inclusa nesta fase.",
+        ],
+        "urban_roads": [
+            "Dependente da atualizacao do conector urbano e da abrangencia do recorte espacial.",
+        ],
+        "urban_pois": [
+            "Dependente da atualizacao do conector urbano e da qualidade semantica de categorias.",
         ],
     }
     return MapLayerMetadataResponse(
@@ -697,7 +811,7 @@ def geocode_urban(
 
 
 _LAYER_TO_LEVEL: dict[str, str] = {
-    layer.id: layer.territory_level for layer in _LAYER_ITEMS
+    layer.id: layer.territory_level for layer in _ALL_LAYER_ITEMS
 }
 
 _URBAN_TILE_LAYERS: dict[str, dict[str, str]] = {
@@ -720,8 +834,6 @@ _URBAN_TILE_LAYERS: dict[str, dict[str, str]] = {
         "geom_expr": "p.geom",
     },
 }
-_LAYER_TO_LEVEL.update({"urban_roads": "urban", "urban_pois": "urban"})
-
 # Simplification tolerance in meters on EPSG:3857.
 _ZOOM_TOLERANCE_METERS: list[tuple[int, float]] = [
     (5, 20000.0),

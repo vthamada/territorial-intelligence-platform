@@ -74,6 +74,11 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
     - `urban_pois`
   - endpoint mantém contrato de cache/ETag e métricas (`X-Tile-Ms`) também para camadas urbanas.
   - `MapLayerItem.layer_kind` ampliado para aceitar `line` no schema.
+  - catalogo/cobertura de camadas agora pode incluir dominio urbano via query param:
+    - `GET /v1/map/layers?include_urban=true`
+    - `GET /v1/map/layers/coverage?include_urban=true`
+  - `GET /v1/territory/layers/*` permanece estritamente territorial (`include_urban=false`).
+  - `QgMapPage` atualizado para consumir catalogo/cobertura com `include_urban=true`.
 
 ### Verified
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_urban_connectors.py tests/unit/test_api_contract.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_ops_pipeline_runs.py tests/contracts/test_sql_contracts.py -p no:cacheprovider`:
@@ -1046,6 +1051,10 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - Suite de testes local: `20 passed`.
 - Fluxos MVP executados com sucesso em modo direto.
 - Fluxo Prefect completo validado em `dry_run`.
+
+
+
+
 
 
 

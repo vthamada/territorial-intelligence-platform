@@ -96,6 +96,11 @@ Contrato tecnico principal: `CONTRATO.md`
     - `GET /v1/map/tiles/urban_roads/{z}/{x}/{y}.mvt`
     - `GET /v1/map/tiles/urban_pois/{z}/{x}/{y}.mvt`
     - suporte mantido para cache/ETag (`Cache-Control`, `ETag`, `X-Tile-Ms`).
+  - catalogo e cobertura de camadas no backend de mapa ampliados para dominio urbano via query param:
+    - `GET /v1/map/layers?include_urban=true`
+    - `GET /v1/map/layers/coverage?include_urban=true`
+  - contrato tecnico territorial mantido sem mistura de escopos:
+    - `GET /v1/territory/layers/*` opera com `include_urban=false`.
   - qualidade ampliada:
     - `quality_suite` executa `check_urban_domain`.
     - thresholds urbanos em `configs/quality_thresholds.yml`.
@@ -840,6 +845,9 @@ Sprint atual recomendado:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_up.ps1`
 - Encerrar API + frontend iniciados pelo launcher:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_down.ps1`
+
+
+
 
 
 

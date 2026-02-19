@@ -172,6 +172,19 @@ def test_map_layers_contract_shape() -> None:
     assert response.headers.get("x-request-id")
 
 
+def test_map_layers_include_urban_contract_shape() -> None:
+    client = TestClient(app)
+
+    response = client.get("/v1/map/layers?include_urban=true")
+
+    assert response.status_code == 200
+    payload = response.json()
+    layer_ids = {item["id"] for item in payload["items"]}
+    assert "urban_roads" in layer_ids
+    assert "urban_pois" in layer_ids
+    assert response.headers.get("x-request-id")
+
+
 def test_map_style_metadata_contract_shape() -> None:
     client = TestClient(app)
 
