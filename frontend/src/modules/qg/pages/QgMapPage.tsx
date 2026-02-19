@@ -9,7 +9,7 @@ import { ChoroplethMiniMap } from "../../../shared/ui/ChoroplethMiniMap";
 import { Panel } from "../../../shared/ui/Panel";
 import { formatDecimal, formatLevelLabel, toNumber } from "../../../shared/ui/presentation";
 import { StateBlock } from "../../../shared/ui/StateBlock";
-import type { BasemapMode, VizMode } from "../../../shared/ui/VectorMap";
+import type { BasemapMode, VectorMapFeatureSelection, VizMode } from "../../../shared/ui/VectorMap";
 import { useFilterStore } from "../../../shared/stores/filterStore";
 
 const TILE_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:8000/v1";
@@ -77,6 +77,33 @@ function formatNumber(value: unknown) {
   return formatDecimal(numeric);
 }
 
+function optionalText(value: unknown): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const token = String(value).trim();
+  if (!token) {
+    return null;
+  }
+  return token;
+}
+
+function buildApiHref(path: string, params: Record<string, string | number | null | undefined>) {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === null || value === undefined) {
+      continue;
+    }
+    search.set(key, String(value));
+  }
+  const queryString = search.toString();
+  return `${TILE_BASE_URL}${path}${queryString ? `?${queryString}` : ""}`;
+}
+
+function normalizeText(value: string) {
+  return value.trim().toLowerCase();
+}
+
 function normalizeMapLevel(value: string | null) {
   const normalized = (value ?? "").trim().toLowerCase();
   if (normalized === "municipio" || normalized === "municipality") {
@@ -131,6 +158,13 @@ function toFormLevel(level: string) {
 
 function supportsChoropleth(level: string) {
   return level === "municipio" || level === "distrito";
+}
+
+function toPriorityLevel(level: string) {
+  if (level === "distrito") {
+    return "district";
+  }
+  return "municipality";
 }
 
 function normalizeBasemap(value: string | null): BasemapMode {
@@ -265,7 +299,10 @@ export function QgMapPage() {
   const [vizMode, setVizMode] = useState<VizMode>(initialVizMode);
   const [basemapMode, setBasemapMode] = useState<BasemapMode>(initialBasemap);
   const [useVectorMap, setUseVectorMap] = useState(initialUseVectorMap);
-  const [selectedFeature, setSelectedFeature] = useState<{ tid: string; tname: string; val?: number } | null>(null);
+  const [selectedFeature, setSelectedFeature] = useState<VectorMapFeatureSelection | null>(null);
+  const [territorySearch, setTerritorySearch] = useState("");
+  const [focusSignal, setFocusSignal] = useState(initialTerritoryId ? 1 : 0);
+  const [resetViewSignal, setResetViewSignal] = useState(0);
   const [selectedVectorLayerId, setSelectedVectorLayerId] = useState<string | null>(
     initialScope === "territorial" ? initialLayerId : null,
   );
@@ -376,6 +413,16 @@ export function QgMapPage() {
     [normalizedItems],
   );
 
+  useEffect(() => {
+    if (appliedMapScope !== "territorial" || !selectedTerritoryId) {
+      return;
+    }
+    const selected = sortedItems.find((item) => item.territory_id === selectedTerritoryId);
+    if (selected) {
+      setTerritorySearch(selected.territory_name);
+    }
+  }, [appliedMapScope, selectedTerritoryId, sortedItems]);
+
   const availableLevelLayerIds = useMemo(() => new Set(levelScopedLayers.map((item) => item.id)), [levelScopedLayers]);
   const availableUrbanLayers = urbanLayers.length > 0 ? urbanLayers : FALLBACK_URBAN_LAYER_ITEMS;
   const selectedUrbanLayer =
@@ -434,7 +481,7 @@ export function QgMapPage() {
       }
     }
 
-    if (selectedTerritoryId) {
+    if (selectedTerritoryId && appliedMapScope === "territorial") {
       nextSearch.set("territory_id", selectedTerritoryId);
     }
     if (basemapMode !== "streets") {
@@ -473,6 +520,34 @@ export function QgMapPage() {
     globalFilters.setZoom(newZoom);
   }
 
+  function focusTerritoryFromSearch() {
+    if (appliedMapScope !== "territorial" || sortedItems.length === 0) {
+      return;
+    }
+    const searchValue = normalizeText(territorySearch);
+    const match =
+      sortedItems.find((item) => normalizeText(item.territory_name) === searchValue) ??
+      sortedItems.find((item) => normalizeText(item.territory_name).includes(searchValue)) ??
+      sortedItems[0];
+    if (!match) {
+      return;
+    }
+    setSelectedTerritoryId(match.territory_id);
+    setTerritorySearch(match.territory_name);
+    setFocusSignal((value) => value + 1);
+  }
+
+  function focusSelectedTerritory() {
+    if (!selectedTerritoryId) {
+      return;
+    }
+    setFocusSignal((value) => value + 1);
+  }
+
+  function recenterMap() {
+    setResetViewSignal((value) => value + 1);
+  }
+
   function applyFilters() {
     setAppliedMetric(metric);
     setAppliedPeriod(period);
@@ -480,6 +555,7 @@ export function QgMapPage() {
     setAppliedMapScope(mapScope);
     setAppliedUrbanLayerId(urbanLayerId);
     setSelectedTerritoryId(undefined);
+    setTerritorySearch("");
     setSelectedFeature(null);
     if (mapScope === "urban") {
       setSelectedVectorLayerId(null);
@@ -500,6 +576,7 @@ export function QgMapPage() {
     setAppliedPeriod("2025");
     setAppliedLevel("municipio");
     setSelectedTerritoryId(undefined);
+    setTerritorySearch("");
     setSelectedFeature(null);
     setExportError(null);
     setVectorMapError(null);
@@ -508,6 +585,7 @@ export function QgMapPage() {
     setUseVectorMap(true);
     setCurrentZoom(4);
     globalFilters.setZoom(4);
+    recenterMap();
   }
 
   function exportCsv() {
@@ -658,10 +736,77 @@ export function QgMapPage() {
   const vectorLayers = appliedMapScope === "urban" ? [selectedUrbanLayer] : effectiveLayer ? [effectiveLayer] : levelScopedLayers;
   const effectiveVizMode: VizMode =
     effectiveLayer?.layer_kind === "point" && vizMode === "choropleth" ? "points" : vizMode;
+  const isElectoralSectionLevel = appliedMapScope === "territorial" && activeTerritoryLevel === "electoral_section";
+  const pollingPlaceLayer = isElectoralSectionLevel
+    ? levelScopedLayers.find((layerItem) => layerItem.id === "territory_polling_place") ?? null
+    : null;
+  const sectionGeometryLayer = isElectoralSectionLevel
+    ? levelScopedLayers.find((layerItem) => layerItem.id === "territory_electoral_section") ?? null
+    : null;
+  const isPollingPlaceActive = effectiveLayer?.id === "territory_polling_place";
 
   const selectedTerritoryName = selectedItem?.territory_name ?? selectedFeature?.tname;
   const selectedTerritoryValue = selectedItem?.value ?? selectedFeature?.val;
   const selectedTerritoryIdSafe = selectedItem?.territory_id ?? selectedFeature?.tid;
+  const selectedFeatureLabel = selectedFeature?.label ?? selectedTerritoryName;
+  const selectedFeatureCategory = selectedFeature?.category ?? null;
+  const selectedFeatureQueryText = optionalText(selectedFeatureLabel ?? selectedTerritoryName);
+  const selectedFeatureSubcategory = optionalText(selectedFeature?.rawProperties?.subcategory);
+  const selectedFeatureSource = optionalText(selectedFeature?.rawProperties?.source);
+  const selectedFeatureRoadClass = optionalText(selectedFeature?.rawProperties?.road_class);
+  const selectedFeatureLon = typeof selectedFeature?.lon === "number" ? selectedFeature.lon : null;
+  const selectedFeatureLat = typeof selectedFeature?.lat === "number" ? selectedFeature.lat : null;
+  const selectedFeatureMetadata = Object.entries(selectedFeature?.rawProperties ?? {})
+    .filter(([key]) => !["tid", "tname", "val", "value", "geometry", "geom"].includes(key))
+    .filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== "")
+    .slice(0, 6);
+
+  const selectedTerritoryActions = appliedMapScope === "territorial" && selectedTerritoryIdSafe
+    ? {
+        profile: `/territorio/${encodeURIComponent(selectedTerritoryIdSafe)}`,
+        priorities: `/prioridades?period=${encodeURIComponent(appliedPeriod)}&level=${encodeURIComponent(
+          toPriorityLevel(appliedLevel),
+        )}`,
+        insights: `/insights?period=${encodeURIComponent(appliedPeriod)}`,
+        briefs: `/briefs?territory_id=${encodeURIComponent(selectedTerritoryIdSafe)}&period=${encodeURIComponent(
+          appliedPeriod,
+        )}`,
+      }
+    : null;
+  const selectedUrbanActions =
+    appliedMapScope === "urban" && selectedFeature
+      ? {
+          scopedCollection:
+            selectedUrbanLayer.id === "urban_pois"
+              ? buildApiHref("/map/urban/pois", {
+                  category: selectedFeatureCategory,
+                  limit: 200,
+                })
+              : buildApiHref("/map/urban/roads", {
+                  road_class: selectedFeatureRoadClass ?? selectedFeatureCategory,
+                  limit: 200,
+                }),
+          geocode: selectedFeatureQueryText
+            ? buildApiHref("/map/urban/geocode", {
+                q: selectedFeatureQueryText,
+                kind: selectedUrbanLayer.id === "urban_pois" ? "poi" : "road",
+                limit: 20,
+              })
+            : null,
+          nearbyPois:
+            selectedFeatureLon !== null && selectedFeatureLat !== null
+              ? buildApiHref("/map/urban/nearby-pois", {
+                  lon: selectedFeatureLon.toFixed(6),
+                  lat: selectedFeatureLat.toFixed(6),
+                  radius_m: 1200,
+                  category: selectedUrbanLayer.id === "urban_pois" ? selectedFeatureCategory : null,
+                  limit: 50,
+                })
+              : null,
+          scopedLabel:
+            selectedUrbanLayer.id === "urban_pois" ? "Filtrar POIs desta categoria" : "Filtrar vias desta classe",
+        }
+      : null;
 
   return (
     <main className="page-grid">
@@ -735,11 +880,11 @@ export function QgMapPage() {
         {hasMultipleLevelLayers ? (
           <div className="map-layer-toggle">
             <label>
-              Camada de secao
+              {isElectoralSectionLevel ? "Camada eleitoral detalhada" : "Camada detalhada"}
               <select
                 value={selectedVectorLayerId ?? ""}
                 onChange={(event) => setSelectedVectorLayerId(event.target.value || null)}
-                aria-label="Camada de secao"
+                aria-label={isElectoralSectionLevel ? "Camada eleitoral detalhada" : "Camada detalhada"}
               >
                 <option value="">Automatica (recomendada)</option>
                 {levelScopedLayers.map((layerItem) => (
@@ -758,6 +903,14 @@ export function QgMapPage() {
             </p>
           </div>
         ) : null}
+        {isElectoralSectionLevel && pollingPlaceLayer ? (
+          <p className="map-layer-guidance">
+            {isPollingPlaceActive
+              ? "Local de votacao ativo: pontos derivados de secao eleitoral com nome detectado no payload oficial."
+              : "Dica: selecione 'Locais de votacao' para ver o campo local_votacao quando disponivel."}
+            {sectionGeometryLayer ? ` Camada de referencia territorial: ${sectionGeometryLayer.label}.` : ""}
+          </p>
+        ) : null}
         <div className="zoom-control compact" aria-label="Controle de zoom">
           <label>
             Zoom
@@ -773,6 +926,43 @@ export function QgMapPage() {
             <span className="zoom-value">{currentZoom}</span>
           </label>
         </div>
+        {appliedMapScope === "territorial" ? (
+          <div className="map-territory-search">
+            <label htmlFor="territory-search-input">Buscar territorio</label>
+            <div className="map-territory-search-row">
+              <input
+                id="territory-search-input"
+                list="territory-search-options"
+                value={territorySearch}
+                onChange={(event) => setTerritorySearch(event.target.value)}
+                placeholder="Digite o nome do territorio"
+              />
+              <button type="button" className="button-secondary" onClick={focusTerritoryFromSearch} disabled={sortedItems.length === 0}>
+                Focar territorio
+              </button>
+              <button type="button" className="button-secondary" onClick={focusSelectedTerritory} disabled={!selectedTerritoryId}>
+                Focar selecionado
+              </button>
+              <button type="button" className="button-secondary" onClick={recenterMap}>
+                Recentrar mapa
+              </button>
+            </div>
+            <datalist id="territory-search-options">
+              {sortedItems.map((item) => (
+                <option key={item.territory_id} value={item.territory_name} />
+              ))}
+            </datalist>
+          </div>
+        ) : (
+          <div className="map-territory-search-row">
+            <button type="button" className="button-secondary" onClick={focusSelectedTerritory} disabled={!selectedTerritoryId}>
+              Focar selecionado
+            </button>
+            <button type="button" className="button-secondary" onClick={recenterMap}>
+              Recentrar mapa
+            </button>
+          </div>
+        )}
         {mapLayersQuery.error ? (
           <p className="map-export-error">
             Manifesto de camadas indisponivel; mantendo fallback em {choroplethParams.level}.
@@ -863,6 +1053,9 @@ export function QgMapPage() {
                 </span>
               ))}
             </div>
+            {isPollingPlaceActive ? (
+              <p>Camada local_votacao: o tooltip e a selecao priorizam o nome do local de votacao detectado.</p>
+            ) : null}
             {effectiveLayer?.layer_kind === "point" ? (
               <p>Camada atual e pontual; coropletico muda automaticamente para pontos.</p>
             ) : null}
@@ -892,14 +1085,17 @@ export function QgMapPage() {
                 zoom={currentZoom}
                 onZoomChange={(z) => handleZoomChange(z)}
                 onFeatureClick={(feature) => {
-                  setSelectedTerritoryId(feature.tid);
+                  setSelectedTerritoryId(feature.tid || undefined);
                   setSelectedFeature(feature);
+                  setTerritorySearch(feature.tname ?? "");
                 }}
                 onError={() => {
                   setVectorMapError("Falha no modo vetorial, fallback SVG aplicado.");
                   setUseVectorMap(false);
                 }}
                 selectedTerritoryId={selectedTerritoryId}
+                focusTerritorySignal={focusSignal}
+                resetViewSignal={resetViewSignal}
                 colorStops={mapStyleQuery.data?.legend_ranges?.map((range) => ({
                   value: range.min_value,
                   color: range.color,
@@ -921,7 +1117,14 @@ export function QgMapPage() {
               geometry: item.geometry,
             }))}
             selectedTerritoryId={selectedTerritoryId}
-            onSelect={setSelectedTerritoryId}
+            onSelect={(territoryId) => {
+              setSelectedTerritoryId(territoryId);
+              const selected = sortedItems.find((item) => item.territory_id === territoryId);
+              if (selected) {
+                setTerritorySearch(selected.territory_name);
+              }
+              setSelectedFeature(null);
+            }}
           />
         ) : (
           <StateBlock
@@ -931,18 +1134,70 @@ export function QgMapPage() {
           />
         )}
         {selectedTerritoryName ? (
-          <p className="map-selected-note">
-            Selecionado: <strong>{selectedTerritoryName}</strong> | valor: {formatNumber(selectedTerritoryValue)}
-            {selectedTerritoryIdSafe ? (
-              <>
-                {" "}
-                |{" "}
-                <Link className="inline-link" to={`/territorio/${selectedTerritoryIdSafe}`}>
-                  abrir perfil
+          <section className="map-context-card" aria-label="Contexto do item selecionado">
+            <p className="map-selected-note">
+              Selecionado: <strong>{selectedFeatureLabel ?? selectedTerritoryName}</strong> | valor:{" "}
+              {formatNumber(selectedTerritoryValue)}
+              {selectedFeatureCategory ? <> | categoria: {selectedFeatureCategory}</> : null}
+            </p>
+            {isPollingPlaceActive && selectedFeatureLabel ? (
+              <p className="map-selected-note">
+                local_votacao: <strong>{selectedFeatureLabel}</strong>
+              </p>
+            ) : null}
+            {selectedFeatureMetadata.length > 0 ? (
+              <dl className="map-context-grid">
+                {selectedFeatureMetadata.map(([key, value]) => (
+                  <div key={key}>
+                    <dt>{key}</dt>
+                    <dd>{String(value)}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
+            {selectedTerritoryActions ? (
+              <nav className="map-context-actions" aria-label="Acoes contextuais">
+                <Link className="inline-link" to={selectedTerritoryActions.profile}>
+                  Abrir perfil selecionado
                 </Link>
+                <Link className="inline-link" to={selectedTerritoryActions.priorities}>
+                  Abrir prioridades do territorio
+                </Link>
+                <Link className="inline-link" to={selectedTerritoryActions.insights}>
+                  Ver insights deste recorte
+                </Link>
+                <Link className="inline-link" to={selectedTerritoryActions.briefs}>
+                  Abrir brief do territorio
+                </Link>
+              </nav>
+            ) : null}
+            {selectedUrbanActions ? (
+              <>
+                <nav className="map-context-actions" aria-label="Acoes urbanas">
+                  <a className="inline-link" href={selectedUrbanActions.scopedCollection} target="_blank" rel="noreferrer">
+                    {selectedUrbanActions.scopedLabel}
+                  </a>
+                  {selectedUrbanActions.geocode ? (
+                    <a className="inline-link" href={selectedUrbanActions.geocode} target="_blank" rel="noreferrer">
+                      Geocodificar selecao
+                    </a>
+                  ) : null}
+                  {selectedUrbanActions.nearbyPois ? (
+                    <a className="inline-link" href={selectedUrbanActions.nearbyPois} target="_blank" rel="noreferrer">
+                      Buscar POIs proximos
+                    </a>
+                  ) : null}
+                </nav>
+                {selectedFeatureSubcategory || selectedFeatureSource ? (
+                  <p className="map-context-meta">
+                    {selectedFeatureSubcategory ? `Subcategoria: ${selectedFeatureSubcategory}` : ""}
+                    {selectedFeatureSubcategory && selectedFeatureSource ? " | " : ""}
+                    {selectedFeatureSource ? `Fonte: ${selectedFeatureSource}` : ""}
+                  </p>
+                ) : null}
               </>
             ) : null}
-          </p>
+          </section>
         ) : null}
         {vectorMapError ? <p className="map-export-error">{vectorMapError}</p> : null}
         {exportError ? <p className="map-export-error">{exportError}</p> : null}
@@ -992,11 +1247,17 @@ export function QgMapPage() {
                   <tr
                     key={item.territory_id}
                     className={item.territory_id === selectedTerritoryId ? "territory-selected-row" : undefined}
-                    onClick={() => setSelectedTerritoryId(item.territory_id)}
+                    onClick={() => {
+                      setSelectedTerritoryId(item.territory_id);
+                      setTerritorySearch(item.territory_name);
+                      setFocusSignal((value) => value + 1);
+                    }}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
                         setSelectedTerritoryId(item.territory_id);
+                        setTerritorySearch(item.territory_name);
+                        setFocusSignal((value) => value + 1);
                       }
                     }}
                     tabIndex={0}

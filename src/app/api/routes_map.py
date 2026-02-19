@@ -79,6 +79,20 @@ _BASE_LAYER_ITEMS: list[MapLayerItem] = [
         notes="Cobertura depende da disponibilidade da malha setorial para o recorte.",
     ),
     MapLayerItem(
+        id="territory_neighborhood_proxy",
+        label="Bairros (proxy)",
+        territory_level="census_sector",
+        is_official=False,
+        official_status="proxy",
+        layer_kind="polygon",
+        source="silver.dim_territory",
+        default_visibility=False,
+        zoom_min=12,
+        zoom_max=15,
+        proxy_method="Agrupamento proxy baseado em setor censitario com rotulo de bairro quando disponivel.",
+        notes="Camada de transicao ate a publicacao de malha oficial de bairros.",
+    ),
+    MapLayerItem(
         id="territory_electoral_zone",
         label="Zonas eleitorais",
         territory_level="electoral_zone",
@@ -157,6 +171,13 @@ _LAYER_EXTRA_WHERE: dict[str, str] = {
 }
 
 _LAYER_NAME_EXPR: dict[str, str] = {
+    "territory_neighborhood_proxy": (
+        "COALESCE("
+        "NULLIF(dt.metadata->>'bairro_nome', ''), "
+        "NULLIF(dt.metadata->>'neighborhood_name', ''), "
+        "dt.name"
+        ")"
+    ),
     "territory_polling_place": "COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name)",
 }
 
@@ -468,6 +489,9 @@ def get_map_layer_metadata(layer_id: str) -> MapLayerMetadataResponse:
         "territory_municipality": "Recorte oficial municipal em silver.dim_territory com geometria PostGIS.",
         "territory_district": "Recorte oficial distrital consolidado a partir da malha territorial IBGE.",
         "territory_census_sector": "Setores censitarios carregados no Silver e simplificados para uso vetorial por zoom.",
+        "territory_neighborhood_proxy": (
+            "Bairros proxy gerados sobre base setorial com rotulo de bairro quando presente em metadata."
+        ),
         "territory_electoral_zone": "Agregacao por zona eleitoral dependente da consolidacao territorial em dim_territory.",
         "territory_electoral_section": "Representacao agregada por secao eleitoral com precisao geometrica limitada.",
         "territory_polling_place": "Local de votacao detectado no payload eleitoral e associado a geometria de secao.",
@@ -484,6 +508,10 @@ def get_map_layer_metadata(layer_id: str) -> MapLayerMetadataResponse:
         "territory_census_sector": [
             "Cobertura parcial em algumas janelas de dados.",
             "Recomenda-se supressao para volumes muito baixos.",
+        ],
+        "territory_neighborhood_proxy": [
+            "Representacao proxy dependente da granularidade de setor censitario no municipio.",
+            "Nomes de bairro podem nao estar disponiveis em todos os registros.",
         ],
         "territory_electoral_zone": [
             "Camada depende de consolidacao da chave territorial eleitoral no Silver.",
@@ -922,9 +950,15 @@ _URBAN_TILE_LAYERS: dict[str, dict[str, str]] = {
         "alias": "r",
         "id_expr": "r.road_id::text",
         "name_expr": "COALESCE(NULLIF(r.name, ''), 'Via ' || r.road_id::text)",
-        "value_expr": "COALESCE(r.length_m, ST_Length(ST_Transform(r.geom, 31983)))::double precision",
+        "value_expr": "COALESCE(ST_Length(ST_Transform(r.geom, 31983)), 0)::double precision",
         "metric_expr": "'urban_roads'::text",
         "geom_expr": "r.geom",
+        "base_extra_sql": (
+            "COALESCE(NULLIF(r.road_class, ''), 'unknown')::text AS road_class,\n"
+            "                    COALESCE(r.is_oneway::text, 'unknown') AS is_oneway,\n"
+            "                    COALESCE(NULLIF(r.source, ''), 'unknown')::text AS source,"
+        ),
+        "feature_extra_sql": "base.road_class, base.is_oneway, base.source,",
     },
     "urban_pois": {
         "table": "map.urban_poi",
@@ -934,6 +968,12 @@ _URBAN_TILE_LAYERS: dict[str, dict[str, str]] = {
         "value_expr": "1::double precision",
         "metric_expr": "'urban_pois'::text",
         "geom_expr": "p.geom",
+        "base_extra_sql": (
+            "COALESCE(NULLIF(p.category, ''), 'unknown')::text AS category,\n"
+            "                    COALESCE(NULLIF(p.subcategory, ''), 'unknown')::text AS subcategory,\n"
+            "                    COALESCE(NULLIF(p.source, ''), 'unknown')::text AS source,"
+        ),
+        "feature_extra_sql": "base.category, base.subcategory, base.source,",
     },
 }
 # Simplification tolerance in meters on EPSG:3857.
@@ -998,6 +1038,8 @@ def get_mvt_tile(
     name_expr = _LAYER_NAME_EXPR.get(layer, "dt.name")
 
     if urban_layer is not None:
+        base_extra_sql = urban_layer.get("base_extra_sql", "")
+        feature_extra_sql = urban_layer.get("feature_extra_sql", "")
         sql = text(
             f"""
             WITH tile_extent AS (
@@ -1009,6 +1051,7 @@ def get_mvt_tile(
                     {urban_layer["name_expr"]} AS tname,
                     {urban_layer["value_expr"]} AS val,
                     {urban_layer["metric_expr"]} AS metric,
+                    {base_extra_sql}
                     ST_Transform({urban_layer["geom_expr"]}, 3857) AS geom_3857
                 FROM {urban_layer["table"]} {urban_layer["alias"]}
                 CROSS JOIN tile_extent te
@@ -1021,6 +1064,7 @@ def get_mvt_tile(
                     base.tname,
                     base.val,
                     base.metric,
+                    {feature_extra_sql}
                     ST_AsMVTGeom(
                         ST_SimplifyPreserveTopology(base.geom_3857, :tolerance_meters),
                         te.envelope,

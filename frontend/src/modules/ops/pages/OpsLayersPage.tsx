@@ -92,6 +92,11 @@ export function OpsLayersPage() {
 
   const hasResults = displayedItems.length > 0;
   const statusCounts = useMemo(() => countByStatus(displayedItems), [displayedItems]);
+  const degradedItems = useMemo(
+    () => displayedItems.filter((item) => item.readiness_status === "fail" || item.readiness_status === "warn" || item.readiness_status === "pending"),
+    [displayedItems],
+  );
+  const hasHardDegradation = degradedItems.some((item) => item.readiness_status === "fail");
 
   function applyFilters() {
     setAppliedFilters(draftFilters);
@@ -173,6 +178,25 @@ export function OpsLayersPage() {
           <StateBlock tone="empty" title="Sem camadas" message="Nenhuma camada retornada pelo endpoint de readiness." />
         ) : (
           <>
+            {degradedItems.length > 0 ? (
+              <section
+                className={`ops-degradation-alert ${hasHardDegradation ? "ops-degradation-critical" : "ops-degradation-warning"}`}
+                role={hasHardDegradation ? "alert" : "status"}
+                aria-live="polite"
+              >
+                <h3>Degradacao de camadas detectada</h3>
+                <p>
+                  {statusCounts.fail} fail | {statusCounts.warn} warn | {statusCounts.pending} pending
+                </p>
+                <ul className="ops-degradation-list">
+                  {degradedItems.slice(0, 6).map((item) => (
+                    <li key={`degradation-${item.layer.id}`}>
+                      <strong>{item.layer.label}</strong>: {item.readiness_reason ?? item.coverage.notes ?? "Sem detalhe"}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
             <p className="panel-subtitle">
               Run de qualidade: {readinessQuery.data?.quality_run_id ?? "-"} | iniciado em{" "}
               {readinessQuery.data?.quality_run_started_at_utc

@@ -399,5 +399,7 @@ describe("Ops pages filters", () => {
     expect(within(summary).getByText("rows: warn")).toBeInTheDocument();
     expect(within(summary).getByText("geom: pass")).toBeInTheDocument();
     expect(within(summary).getByText("readiness: warn")).toBeInTheDocument();
+    expect(screen.getByText("Degradacao de camadas detectada")).toBeInTheDocument();
+    expect(screen.getByText(/0 fail \| 1 warn \| 0 pending/)).toBeInTheDocument();
   });
 });

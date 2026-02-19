@@ -456,6 +456,10 @@ describe("QG pages", () => {
     await screen.findByLabelText("Codigo do indicador");
     expect(screen.getByRole("button", { name: /Exportar.*SVG/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Exportar.*PNG/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Abrir brief do territorio" })).toHaveAttribute(
+      "href",
+      "/briefs?territory_id=3121605&period=2025"
+    );
 
     await userEvent.clear(screen.getByLabelText("Codigo do indicador"));
     await userEvent.type(screen.getByLabelText("Codigo do indicador"), "DATASUS_APS_COBERTURA");
@@ -533,10 +537,11 @@ describe("QG pages", () => {
       ["/mapa?level=secao_eleitoral&metric=MTE_NOVO_CAGED_SALDO_TOTAL&period=2025"]
     );
 
-    expect(await screen.findByLabelText("Camada de secao")).toBeInTheDocument();
+    expect(await screen.findByLabelText("Camada eleitoral detalhada")).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Automatica (recomendada)" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Secoes eleitorais" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Locais de votacao" })).toBeInTheDocument();
+    expect(screen.getByText(/Dica: selecione 'Locais de votacao'/i)).toBeInTheDocument();
   });
 
   it("loads explicit layer selection from URL query param", async () => {
@@ -573,8 +578,9 @@ describe("QG pages", () => {
       ["/mapa?level=secao_eleitoral&layer_id=territory_polling_place&metric=MTE_NOVO_CAGED_SALDO_TOTAL&period=2025"]
     );
 
-    const selector = await screen.findByLabelText("Camada de secao");
+    const selector = await screen.findByLabelText("Camada eleitoral detalhada");
     expect(selector).toHaveValue("territory_polling_place");
+    expect(screen.getByText(/Local de votacao ativo/i)).toBeInTheDocument();
   });
 
   it("applies insights filters only on submit", async () => {
@@ -716,6 +722,21 @@ describe("QG pages", () => {
     expect(urbanLayerField).toHaveValue("urban_roads");
     expect(getChoropleth).not.toHaveBeenCalled();
     expect(screen.getByText(/Camada recomendada: Viario urbano/i)).toBeInTheDocument();
+  });
+
+  it("focuses territory from quick search and syncs territory_id in URL", async () => {
+    renderWithQueryClient(<QgMapPage />, ["/mapa"], { includeLocationProbe: true });
+    await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
+    await screen.findByLabelText("Buscar territorio");
+
+    await userEvent.clear(screen.getByLabelText("Buscar territorio"));
+    await userEvent.type(screen.getByLabelText("Buscar territorio"), "Diamantina");
+    await userEvent.click(screen.getByRole("button", { name: "Focar territorio" }));
+
+    await waitFor(() => {
+      const search = screen.getByTestId("location-search").textContent ?? "";
+      expect(search).toContain("territory_id=3121605");
+    });
   });
 
   it("loads priority filters from URL query params", async () => {

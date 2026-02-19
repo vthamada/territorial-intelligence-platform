@@ -84,6 +84,41 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
     - toolbar de controles reorganizada em blocos (`modo`, `mapa base`, `renderizacao`) com quebra responsiva.
     - ajustes visuais para evitar overflow horizontal em telas menores (`viz-mode-selector` com wrap, `zoom-control` adaptativo).
     - container do mapa padronizado com altura fluida (`.map-canvas-shell`) para desktop/mobile.
+  - UX de navegacao territorial ampliada no mapa executivo:
+    - busca rapida de territorio com `datalist` no `QgMapPage` (`Buscar territorio` + `Focar territorio`).
+    - novos controles explicitos de navegacao:
+      - `Focar selecionado`
+      - `Recentrar mapa`
+    - `VectorMap` agora aplica foco por territorio selecionado com ajuste de camera (`fitBounds`/`easeTo` com fallback seguro).
+    - sincronizacao `territory_id` validada por teste ao focar territorio via busca.
+    - `VectorMap` passou a aceitar sinais de foco/reset para controle de viewport sem quebrar deep-link existente.
+    - fallbacks adicionados para ambiente de teste (mocks sem `easeTo`/`fitBounds`/`GeolocateControl`).
+  - Home executiva (`QgOverviewPage`) migrada para `Layout B` de mapa dominante:
+    - adocao de `MapDominantLayout` com mapa em destaque e sidebar executiva colapsavel.
+    - filtros principais (`Periodo`, `Nivel territorial`, `Camada detalhada`) movidos para o painel lateral do mapa.
+    - cards de situacao geral e atalhos de decisao (`Prioridades`, `Mapa detalhado`, `Territorio critico`) integrados ao painel lateral.
+    - estado de territorio selecionado no mapa exibido no painel lateral com leitura de valor.
+    - ajustes de estilo no `global.css` para evitar overflow horizontal no painel e melhorar leitura mobile.
+  - Home executiva evoluida para navegacao vetorial no mapa dominante:
+    - `QgOverviewPage` agora renderiza `VectorMap` no bloco principal da Home com fallback SVG.
+    - comutacao de basemap no painel lateral (`Ruas`, `Claro`, `Sem base`) com controle de zoom acoplado.
+    - acoes de navegacao adicionadas no painel lateral:
+      - `Focar selecionado`
+      - `Recentrar mapa`
+    - clique no mapa vetorial sincroniza territorio selecionado e leitura contextual na sidebar.
+  - testes de navegacao atualizados para o novo contexto do mapa:
+    - `frontend/src/app/router.smoke.test.tsx` ajustado para duplicidade intencional de links `Abrir perfil`.
+    - `frontend/src/app/e2e-flow.test.tsx` ajustado para o mesmo comportamento sem ambiguidade.
+  - contexto urbano do mapa evoluido para acao operacional:
+    - `src/app/api/routes_map.py` passa a publicar metadados adicionais nas tiles urbanas:
+      - `urban_roads`: `road_class`, `is_oneway`, `source`.
+      - `urban_pois`: `category`, `subcategory`, `source`.
+    - `frontend/src/shared/ui/VectorMap.tsx` agora envia `lon`/`lat` do clique no payload de selecao.
+    - `frontend/src/modules/qg/pages/QgMapPage.tsx` adiciona acoes contextuais urbanas:
+      - filtro rapido por classe/categoria.
+      - geocodificacao contextual da selecao.
+      - consulta de POIs proximos ao ponto clicado.
+    - `territory_id` na URL do mapa passa a ser persistido apenas no escopo territorial.
   - chunking do frontend ajustado em `frontend/vite.config.ts`:
     - `manualChunks` para separar `vendor-react`, `vendor-router`, `vendor-query`, `vendor-maplibre` e `vendor-misc`.
     - `index-*.js` reduzido para ~`12KB` gzip ~`4.3KB`.
@@ -130,8 +165,26 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - `17 passed`.
 - `npm --prefix frontend run test`:
   - `68 passed`.
+- `npm --prefix frontend run test`:
+  - `69 passed`.
+- `npm --prefix frontend run test`:
+  - `69 passed` (revalidado apos evolucao do mapa dominante e ajustes de smoke/e2e).
+- `npm --prefix frontend run test`:
+  - `69 passed` (revalidado apos acoes contextuais urbanas).
 - `npm --prefix frontend run build`:
   - build concluido com sucesso.
+
+### Docs
+- Governanca de foco sem dispersao consolidada com data de corte em `2026-02-19`:
+  - `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` recebeu:
+    - plano operacional sem dispersao (secao 7);
+    - sequencia logica de implementacao (secao 8);
+    - regra de priorizacao para evitar dispersao (secao 9).
+  - `docs/HANDOFF.md` passou a registrar explicitamente a ordem de execucao ativa do ciclo:
+    - estabilizacao de telas e fluxo decisorio;
+    - gates de confiabilidade;
+    - fechamento de lacunas criticas de dados;
+    - expansao de escopo somente apos fechamento das etapas anteriores.
 
 ## 2026-02-13 (Sprint 9 - territorial layers TL-2/TL-3 + base eleitoral)
 
@@ -167,12 +220,18 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - `frontend/src/modules/admin/pages/AdminHubPage.tsx` com atalho para `/ops/layers`;
   - `frontend/src/modules/ops/pages/OpsPages.test.tsx` atualizado para cobrir fluxo de filtros da nova pagina.
 - **Mapa executivo (frontend)**:
-  - `frontend/src/modules/qg/pages/QgMapPage.tsx` com seletor explicito `Camada de secao` quando houver multiplas camadas no nivel.
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` com seletor explicito `Camada eleitoral detalhada` quando houver multiplas camadas no nivel eleitoral.
   - suporte para alternar entre `Secoes eleitorais` e `Locais de votacao`.
   - prefill do `layer_id` por query string (deep-link para camada explicita) preservado no carregamento inicial.
   - nota da camada ativa com tooltip de metodo (`proxy_method`) para transparencia operacional.
   - fallback do modo de visualizacao para `pontos` quando camada ativa for `point`.
   - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` agora propaga `layer_id` para links de mapa (atalho principal + cards Onda B/C), com seletor `Camada detalhada (Mapa)`.
+  - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` passa a aplicar a camada detalhada tambem no proprio mapa dominante, nao apenas nos links.
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` ganhou orientacao explicita de `local_votacao` (dica de uso, camada ativa e leitura contextual da selecao).
+- **Readiness tecnico de camadas**:
+  - `frontend/src/modules/ops/pages/OpsLayersPage.tsx` com alerta de degradacao (`fail`, `warn`, `pending`) e lista de camadas impactadas.
+- **Base de camadas territoriais**:
+  - `src/app/api/routes_map.py` com nova camada `territory_neighborhood_proxy` (bairro proxy sobre base setorial) publicada em catalogo, metadata, readiness e tiles.
 - **Estilos de UX**:
   - `frontend/src/styles/global.css` com bloco visual do seletor de camada (`.map-layer-toggle`).
 - **Schemas de mapa**:

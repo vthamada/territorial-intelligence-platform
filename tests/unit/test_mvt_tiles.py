@@ -43,6 +43,7 @@ class TestLayerMapping:
         assert _LAYER_TO_LEVEL["territory_municipality"] == "municipality"
         assert _LAYER_TO_LEVEL["territory_district"] == "district"
         assert _LAYER_TO_LEVEL["territory_census_sector"] == "census_sector"
+        assert _LAYER_TO_LEVEL["territory_neighborhood_proxy"] == "census_sector"
         assert _LAYER_TO_LEVEL["territory_electoral_zone"] == "electoral_zone"
         assert _LAYER_TO_LEVEL["territory_electoral_section"] == "electoral_section"
         assert _LAYER_TO_LEVEL["territory_polling_place"] == "electoral_section"

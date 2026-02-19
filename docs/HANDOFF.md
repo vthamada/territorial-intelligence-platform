@@ -4,6 +4,18 @@ Data de referencia: 2026-02-19
 Planejamento principal: `PLANO.md`
 Contrato tecnico principal: `CONTRATO.md`
 
+## Diretriz operacional sem dispersao (2026-02-19)
+
+- Diretriz oficial de foco publicada e consolidada em `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` (secoes 7, 8 e 9).
+- Ordem de execucao obrigatoria no ciclo atual:
+  - 1) estabilizar telas e fluxo de decisao (`/visao-geral`, `/mapa`, `/territorio-360`, `/eleitorado`);
+  - 2) fechar gates de confiabilidade (qualidade/readiness/smokes e evidencias operacionais);
+  - 3) fechar lacunas criticas de conectores e cobertura territorial;
+  - 4) so entao ampliar escopo (D4/D5) com novas frentes.
+- Regra de priorizacao ativa:
+  - nao abrir nova frente enquanto houver pendencia critica em UX, dados ou contrato tecnico da etapa corrente.
+  - qualquer item novo fora da trilha principal entra como backlog, sem interromper o fechamento da etapa em andamento.
+
 ## Atualizacao tecnica (2026-02-18) - Robustez de banco
 
 - Hardening de cobertura territorial concluido no backend:
@@ -144,6 +156,14 @@ Contrato tecnico principal: `CONTRATO.md`
       - `Territorial` (manifestao de camadas por nivel)
       - `Urbana` (`urban_roads` / `urban_pois`)
     - `VectorMap` atualizado para renderizar camadas lineares (`layer_kind=line`) para viario urbano.
+  - fechamento de lacunas de estrutura de camadas (2026-02-19):
+    - backend de mapa com camada proxy de bairro: `territory_neighborhood_proxy` (base setorial) no catalogo, metadata, readiness e tiles.
+    - `QgMapPage` com orientacao explicita para `local_votacao` no fluxo eleitoral:
+      - seletor `Camada eleitoral detalhada`
+      - nota de camada ativa para `Locais de votacao`
+      - leitura contextual `local_votacao` no card de selecao.
+    - `QgOverviewPage` passou a aplicar `Camada detalhada (Mapa)` no proprio mapa dominante, alem dos links para `/mapa`.
+    - `OpsLayersPage` ganhou alerta de degradacao por camada (`fail`, `warn`, `pending`) para triagem tecnica imediata.
     - fallback SVG bloqueado para escopo urbano com mensagem orientativa (somente modo vetorial).
     - teste de regressao para URL prefill urbana em `frontend/src/modules/qg/pages/QgPages.test.tsx`.
     - overrides por ambiente em `frontend/.env.example`:
@@ -163,12 +183,51 @@ Contrato tecnico principal: `CONTRATO.md`
       - toolbar de controles organizada em blocos (`modo`, `mapa base`, `renderizacao`) com layout responsivo.
       - selectors e controle de zoom ajustados para evitar overflow horizontal em viewport menor.
       - shell visual do mapa com altura fluida (`.map-canvas-shell`) para consistencia desktop/mobile.
+    - navegacao territorial ampliada para aproximar UX de mapa operacional:
+      - busca rapida de territorio no `QgMapPage` (`Buscar territorio` + `Focar territorio`).
+      - acoes diretas no painel de filtro:
+        - `Focar selecionado`
+        - `Recentrar mapa`
+      - `VectorMap` com foco por territorio selecionado via ajuste de camera (`fitBounds`/`easeTo`).
+      - `VectorMap` com sinais de controle de viewport:
+        - `focusTerritorySignal`
+        - `resetViewSignal`
+      - fallback seguro para ambiente de testes quando mocks nao expoem:
+        - `easeTo`
+        - `fitBounds`
+        - `GeolocateControl`
+    - acoes contextuais urbanas publicadas no card de selecao:
+      - filtro rapido por classe/categoria (`/v1/map/urban/roads` e `/v1/map/urban/pois`).
+      - geocodificacao contextual (`/v1/map/urban/geocode`).
+      - consulta de POIs proximos ao ponto clicado (`/v1/map/urban/nearby-pois`).
+      - links territoriais (`/territorio`, `/prioridades`, `/briefs`) mantidos apenas para escopo territorial.
+    - contrato de tiles urbanos enriquecido para contexto operacional:
+      - `urban_roads` inclui `road_class`, `is_oneway`, `source`.
+      - `urban_pois` inclui `category`, `subcategory`, `source`.
+      - `VectorMap` passou a propagar `lon`/`lat` da selecao para habilitar consulta por proximidade.
+    - `QgOverviewPage` evoluida para `Layout B` (mapa dominante):
+      - uso de `MapDominantLayout` para destacar o mapa na Home executiva.
+      - painel lateral colapsavel com filtros principais, cards de status e acoes rapidas.
+      - leitura do territorio selecionado diretamente no painel lateral.
+      - ajustes de CSS para reduzir overflow e melhorar responsividade do painel do mapa.
+    - Home executiva evoluida para modo vetorial no mapa dominante:
+      - `QgOverviewPage` agora usa `VectorMap` na area principal da Home com fallback SVG.
+      - basemap comutavel (`Ruas`, `Claro`, `Sem base`) e zoom adicionados no painel lateral.
+      - controles de navegacao adicionados no painel lateral:
+        - `Focar selecionado`
+        - `Recentrar mapa`
+      - clique no mapa vetorial sincroniza territorio selecionado no contexto lateral.
+    - suites de navegacao ajustadas para nova estrutura de links no mapa:
+      - `router.smoke.test.tsx` atualizado para selecionar link `Abrir perfil` de forma robusta.
+      - `e2e-flow.test.tsx` atualizado para o mesmo comportamento.
+    - cobertura de teste ampliada:
+      - `QgPages.test.tsx` valida foco por busca e sincronizacao de `territory_id` na URL.
     - build frontend com chunking manual configurado (`frontend/vite.config.ts`):
       - chunks dedicados para `vendor-react`, `vendor-router`, `vendor-query`, `vendor-maplibre`, `vendor-misc`.
       - `index` reduzido para ~`12KB` (gzip ~`4.3KB`) com melhor carregamento inicial.
     - validacao adicional:
-      - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx`: `17 passed`.
-      - `npm --prefix frontend run test`: `68 passed`.
+      - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx`: `18 passed`.
+      - `npm --prefix frontend run test`: `69 passed`.
       - `npm --prefix frontend run build`: `OK`.
 
 ## Governanca documental consolidada (2026-02-13)

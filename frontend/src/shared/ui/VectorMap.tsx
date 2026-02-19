@@ -7,6 +7,18 @@ import { resolveLayerForZoom } from "../hooks/useAutoLayerSwitch";
 export type VizMode = "choropleth" | "points" | "heatmap" | "hotspots";
 export type BasemapMode = "none" | "streets" | "light";
 
+export type VectorMapFeatureSelection = {
+  tid: string;
+  tname: string;
+  val?: number;
+  label?: string;
+  category?: string;
+  lon?: number;
+  lat?: number;
+  layerKind?: MapLayerItem["layer_kind"];
+  rawProperties?: Record<string, unknown>;
+};
+
 type BasemapTileUrls = {
   streets?: string;
   light?: string;
@@ -22,13 +34,15 @@ export type VectorMapProps = {
   vizMode?: VizMode;
   center?: [number, number];
   zoom?: number;
-  onFeatureClick?: (feature: { tid: string; tname: string; val?: number }) => void;
+  onFeatureClick?: (feature: VectorMapFeatureSelection) => void;
   onZoomChange?: (zoom: number) => void;
   onError?: (message: string) => void;
   colorStops?: Array<{ value: number; color: string }>;
   selectedTerritoryId?: string;
   basemapMode?: BasemapMode;
   basemapTileUrls?: BasemapTileUrls;
+  resetViewSignal?: number;
+  focusTerritorySignal?: number;
 };
 
 const DEFAULT_CENTER: [number, number] = [-43.62, -18.09];
@@ -79,6 +93,105 @@ function resolveBasemapTileUrl(mode: BasemapMode, urls?: BasemapTileUrls): strin
   return mode === "light" ? merged.light : merged.streets;
 }
 
+function safeEaseTo(map: maplibregl.Map, options: { center?: [number, number]; zoom?: number; duration?: number; essential?: boolean }) {
+  const maybeMap = map as maplibregl.Map & {
+    easeTo?: (next: { center?: [number, number]; zoom?: number; duration?: number; essential?: boolean }) => void;
+    setCenter?: (center: [number, number]) => void;
+    setZoom?: (zoom: number) => void;
+  };
+  if (typeof maybeMap.easeTo === "function") {
+    maybeMap.easeTo(options);
+    return;
+  }
+  if (options.center && typeof maybeMap.setCenter === "function") {
+    maybeMap.setCenter(options.center);
+  }
+  if (typeof options.zoom === "number" && typeof maybeMap.setZoom === "function") {
+    maybeMap.setZoom(options.zoom);
+  }
+}
+
+function safeFitBounds(map: maplibregl.Map, bounds: [[number, number], [number, number]]) {
+  const maybeMap = map as maplibregl.Map & {
+    fitBounds?: (nextBounds: [[number, number], [number, number]], options: { padding: number; maxZoom: number; duration: number; essential: boolean }) => void;
+    setCenter?: (center: [number, number]) => void;
+  };
+  if (typeof maybeMap.fitBounds === "function") {
+    maybeMap.fitBounds(bounds, {
+      padding: 40,
+      maxZoom: 15,
+      duration: 600,
+      essential: true,
+    });
+    return;
+  }
+  if (typeof maybeMap.setCenter === "function") {
+    const center: [number, number] = [
+      (bounds[0][0] + bounds[1][0]) / 2,
+      (bounds[0][1] + bounds[1][1]) / 2,
+    ];
+    maybeMap.setCenter(center);
+  }
+}
+
+function collectLngLatPairs(coordinates: unknown, target: Array<[number, number]>) {
+  if (!Array.isArray(coordinates)) {
+    return;
+  }
+  if (
+    coordinates.length >= 2 &&
+    typeof coordinates[0] === "number" &&
+    typeof coordinates[1] === "number"
+  ) {
+    target.push([coordinates[0], coordinates[1]]);
+    return;
+  }
+  for (const item of coordinates) {
+    collectLngLatPairs(item, target);
+  }
+}
+
+function buildBoundsFromGeometry(
+  geometry: maplibregl.MapGeoJSONFeature["geometry"],
+): maplibregl.LngLatBoundsLike | null {
+  const pairs: Array<[number, number]> = [];
+  if (geometry.type === "GeometryCollection") {
+    for (const childGeometry of geometry.geometries) {
+      const childBounds = buildBoundsFromGeometry(childGeometry);
+      if (!childBounds) {
+        continue;
+      }
+      const [childSw, childNe] = childBounds as [[number, number], [number, number]];
+      pairs.push(childSw, childNe);
+    }
+  } else {
+    collectLngLatPairs(geometry.coordinates, pairs);
+  }
+  if (pairs.length === 0) {
+    return null;
+  }
+  let minLng = Number.POSITIVE_INFINITY;
+  let minLat = Number.POSITIVE_INFINITY;
+  let maxLng = Number.NEGATIVE_INFINITY;
+  let maxLat = Number.NEGATIVE_INFINITY;
+  for (const [lng, lat] of pairs) {
+    if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
+      continue;
+    }
+    minLng = Math.min(minLng, lng);
+    minLat = Math.min(minLat, lat);
+    maxLng = Math.max(maxLng, lng);
+    maxLat = Math.max(maxLat, lat);
+  }
+  if (!Number.isFinite(minLng) || !Number.isFinite(minLat) || !Number.isFinite(maxLng) || !Number.isFinite(maxLat)) {
+    return null;
+  }
+  return [
+    [minLng, minLat],
+    [maxLng, maxLat],
+  ];
+}
+
 export function VectorMap({
   tileBaseUrl,
   metric,
@@ -96,6 +209,8 @@ export function VectorMap({
   selectedTerritoryId,
   basemapMode = "streets",
   basemapTileUrls,
+  resetViewSignal = 0,
+  focusTerritorySignal = 0,
 }: VectorMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -151,6 +266,16 @@ export function VectorMap({
     });
 
     map.addControl(new maplibregl.NavigationControl(), "top-right");
+    if (typeof maplibregl.GeolocateControl === "function") {
+      map.addControl(
+        new maplibregl.GeolocateControl({
+          positionOptions: { enableHighAccuracy: true },
+          trackUserLocation: false,
+          showUserLocation: true,
+        }),
+        "top-right",
+      );
+    }
     map.on("zoomend", () => {
       onZoomChange?.(Math.round(map.getZoom()));
     });
@@ -347,10 +472,43 @@ export function VectorMap({
         const clickHandler = (event: maplibregl.MapLayerMouseEvent) => {
           const feature = event.features?.[0];
           if (!feature || !feature.properties) return;
+          const properties = feature.properties as Record<string, unknown>;
+          const rawValue = properties.val ?? properties.value;
+          const numericValue =
+            typeof rawValue === "number"
+              ? rawValue
+              : typeof rawValue === "string" && rawValue.trim() !== ""
+                ? Number(rawValue)
+                : undefined;
+          const tidSource =
+            properties.tid ??
+            properties.territory_id ??
+            properties.id ??
+            properties.feature_id ??
+            "";
+          const tnameSource =
+            properties.tname ??
+            properties.territory_name ??
+            properties.name ??
+            properties.label ??
+            "";
+          const labelSource = properties.label ?? properties.name ?? properties.territory_name ?? null;
+          const categorySource =
+            properties.category ??
+            properties.road_class ??
+            properties.poi_category ??
+            properties.class ??
+            null;
           onFeatureClick?.({
-            tid: String(feature.properties.tid ?? ""),
-            tname: String(feature.properties.tname ?? ""),
-            val: feature.properties.val != null ? Number(feature.properties.val) : undefined,
+            tid: String(tidSource ?? ""),
+            tname: String(tnameSource ?? ""),
+            val: typeof numericValue === "number" && Number.isFinite(numericValue) ? numericValue : undefined,
+            label: labelSource == null ? undefined : String(labelSource),
+            category: categorySource == null ? undefined : String(categorySource),
+            lon: Number.isFinite(event.lngLat.lng) ? event.lngLat.lng : undefined,
+            lat: Number.isFinite(event.lngLat.lat) ? event.lngLat.lat : undefined,
+            layerKind: layerKind,
+            rawProperties: properties,
           });
         };
         const enterHandler = () => {
@@ -413,6 +571,22 @@ export function VectorMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    const clampedZoom = Math.max(0, Math.min(18, zoom));
+    if (Math.abs(map.getZoom() - clampedZoom) < 0.01) {
+      return;
+    }
+    safeEaseTo(map, { zoom: clampedZoom, duration: 250, essential: true });
+  }, [zoom]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    safeEaseTo(map, { center, zoom: Math.max(0, Math.min(18, zoom)), duration: 500, essential: true });
+  }, [center, zoom, resetViewSignal]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
 
     if (map.getLayer("selection-highlight")) {
       map.removeLayer("selection-highlight");
@@ -434,6 +608,48 @@ export function VectorMap({
       },
     });
   }, [selectedTerritoryId, currentLayerId]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !selectedTerritoryId || !currentLayerId) {
+      return;
+    }
+
+    const focusTerritory = () => {
+      if (!map.getSource(SOURCE_ID)) {
+        return;
+      }
+      const features = map.querySourceFeatures(SOURCE_ID, { sourceLayer: currentLayerId });
+      const feature = features.find((item) => String(item.properties?.tid ?? "") === selectedTerritoryId);
+      if (!feature?.geometry) {
+        return;
+      }
+
+      const bounds = buildBoundsFromGeometry(feature.geometry);
+      if (!bounds) {
+        return;
+      }
+
+      const [sw, ne] = bounds as [[number, number], [number, number]];
+      const isPointLike = Math.abs(sw[0] - ne[0]) < 1e-9 && Math.abs(sw[1] - ne[1]) < 1e-9;
+      if (isPointLike) {
+        safeEaseTo(map, {
+          center: [sw[0], sw[1]],
+          zoom: Math.max(map.getZoom(), 14),
+          duration: 550,
+          essential: true,
+        });
+        return;
+      }
+      safeFitBounds(map, bounds as [[number, number], [number, number]]);
+    };
+
+    if (map.isStyleLoaded() && map.areTilesLoaded()) {
+      focusTerritory();
+      return;
+    }
+    map.once("idle", focusTerritory);
+  }, [selectedTerritoryId, currentLayerId, focusTerritorySignal]);
 
   return (
     <div

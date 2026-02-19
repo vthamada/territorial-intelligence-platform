@@ -198,6 +198,40 @@ Issues:
    - code-splitting aplicado no mapa executivo (`React.lazy` para `VectorMap`) para reduzir custo de carregamento inicial.
    - toolbar de controles do mapa ajustada para responsividade (sem overflow horizontal em mobile).
    - build frontend com `manualChunks` para separar vendors e reduzir payload inicial do app.
+   - navegacao territorial reforcada no `QgMapPage`:
+     - busca rapida (`Buscar territorio`) com foco por nome.
+     - controles explicitos (`Focar territorio`, `Focar selecionado`, `Recentrar mapa`).
+     - sincronizacao de `territory_id` na URL apos foco por busca.
+   - `VectorMap` com controle de viewport por sinais:
+     - `focusTerritorySignal` para enquadrar territorio selecionado.
+     - `resetViewSignal` para retorno rapido ao centro/zoom base.
+     - fallback seguro para ambientes de teste sem `easeTo`/`fitBounds`.
+   - Home executiva com `Layout B` ativado:
+     - `QgOverviewPage` com mapa dominante e painel lateral colapsavel.
+     - filtros/atalhos executivos migrados para o painel lateral do mapa.
+     - leitura de territorio selecionado no mesmo painel para reduzir troca de contexto.
+   - Home executiva com navegacao vetorial no proprio mapa dominante:
+     - `QgOverviewPage` renderizando `VectorMap` com fallback SVG.
+     - basemap comutavel (`Ruas`, `Claro`, `Sem base`) e controle de zoom no painel lateral.
+     - controles de navegacao rapida (`Focar selecionado`, `Recentrar mapa`) diretamente na Home.
+   - hardening de testes de navegacao para nova UI do mapa:
+     - `router.smoke.test.tsx` e `e2e-flow.test.tsx` ajustados para duplicidade intencional de links contextuais.
+   - contexto urbano com acao operacional no `QgMapPage`:
+     - card contextual urbano com links para filtros por classe/categoria:
+       - `/v1/map/urban/roads`
+       - `/v1/map/urban/pois`
+     - link de geocodificacao contextual (`/v1/map/urban/geocode`).
+     - link de proximidade por clique (`/v1/map/urban/nearby-pois` com `lon`/`lat`).
+   - contrato MVT urbano enriquecido para leitura contextual:
+     - `urban_roads`: `road_class`, `is_oneway`, `source`.
+     - `urban_pois`: `category`, `subcategory`, `source`.
+   - sincronizacao de URL refinada:
+     - `territory_id` persistido apenas no escopo territorial.
+   - fechamento incremental de lacunas de camada:
+     - `territory_neighborhood_proxy` (bairro proxy sobre base setorial) publicado no backend de mapa.
+     - `QgMapPage` com fluxo explicito de `local_votacao` (toggle, orientacao e contexto da selecao).
+     - `QgOverviewPage` aplicando `layer_id` tambem no mapa dominante da home executiva.
+     - `OpsLayersPage` com alerta de degradacao de readiness por camada (`fail`, `warn`, `pending`).
 
 Aceite:
 1. tiles vetoriais multi-zoom para camadas urbanas.
@@ -303,19 +337,70 @@ Padrao de issue:
 4. checks criticos `pass/fail` por dominio.
 5. lag de atualizacao por fonte (horas/dias).
 
-## 7) Proximo passo imediato
+## 7) Plano operacional sem dispersao (atualizado em 2026-02-19)
 
-Executar Sprint D3 nesta ordem:
-1. executar primeira carga urbana real:
-   - `scripts/backfill_robust_database.py --skip-wave1 --skip-tse --skip-wave4 --skip-wave5 --include-wave7 --indicator-periods 2026 --output-json data/reports/robustness_backfill_report.json`
-2. validar qualidade e readiness apos carga urbana:
-   - `scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json`
-   - `scripts/backend_readiness.py --output-json`
-3. executar `BD-032` de performance:
-   - medir p95 dos endpoints `roads`, `pois`, `nearby-pois`, `geocode`.
-   - aplicar tuning de indices/consulta se p95 > 1.0s.
-4. preparar camada de tiles urbanos multi-zoom (aceite final D3).
-5. iniciar `BD-033` para aproximar UX de navegacao (basemap comutavel no mapa executivo).
+Objetivo:
+1. fechar primeiro a estabilidade funcional do mapa e telas criticas.
+2. travar a entrada em novas frentes ate cumprir os gates de qualidade desta fase.
 
+### Fase 1 - Estabilizacao de execucao D3 (foco unico)
 
+Escopo:
+1. `Mapa` (`/mapa`) sem regressao funcional em fluxo territorial e urbano.
+2. `Visao Geral` (`/`) com mapa dominante consistente com filtros e camada detalhada.
+3. `Territorio 360` e `Eleitorado` sem estado vazio por falha de contrato/back-end.
+4. `OpsLayersPage` com leitura de degradacao (`fail`, `warn`, `pending`) operacional.
 
+Gate de saida da Fase 1:
+1. `npm --prefix frontend run test` sem falhas.
+2. `npm --prefix frontend run build` concluido.
+3. smoke local das telas criticas sem erro de carregamento.
+
+### Fase 2 - Confiabilidade de dados (gate de producao tecnica)
+
+Escopo:
+1. consolidar evidencias da janela corrente em scorecard, readiness e benchmark.
+2. eliminar divergencia entre "dados existem no banco" e "dados aparecem na UX".
+
+Comandos obrigatorios:
+1. `python scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json`
+2. `python scripts/backend_readiness.py --output-json`
+3. `python scripts/benchmark_api.py --suite urban --rounds 30 --json-output data/reports/benchmark_urban_map.json`
+
+Gate de saida da Fase 2:
+1. `backend_readiness`: `READY`, `hard_failures=0`.
+2. benchmark urbano dentro do alvo definido para D3.
+3. scorecard atualizado e versionado em `data/reports/`.
+
+### Fase 3 - Fechamento de pendencias de fonte/conector criticas
+
+Escopo:
+1. atacar itens `partial/blocked` que impactam diretamente telas executivas.
+2. priorizar conectores que afetam mapas e indicadores usados no QG.
+
+Gate de saida da Fase 3:
+1. lista de conectores criticos com dono e prazo.
+2. reducao objetiva de `partial/blocked` no `ops.connector_registry`.
+
+### Fase 4 - Expansao controlada (D4/D5)
+
+Regra de entrada:
+1. so iniciar novas implementacoes amplas de D4/D5 apos gates das Fases 1-3.
+
+Escopo:
+1. mobilidade/infraestrutura (D4) e ambiental/risco (D5) com aceite mensuravel por sprint.
+
+## 8) Sequencia logica de implementacao (resumo executivo)
+
+1. estabilizar produto visivel (mapa + telas criticas).
+2. validar confiabilidade operacional (readiness + qualidade + benchmark).
+3. fechar pendencias de dados/conectores que travam valor de negocio.
+4. expandir dominos novos apenas com base estavel.
+
+## 9) Regra de priorizacao para evitar dispersao
+
+Antes de iniciar qualquer nova issue, responder "sim" para todos:
+1. esta entrega aumenta confiabilidade das telas criticas agora?
+2. existe criterio de aceite objetivo e medivel?
+3. existe evidencia automatizavel (teste/script/relatorio)?
+4. nao abre nova frente sem fechar uma frente critica atual?

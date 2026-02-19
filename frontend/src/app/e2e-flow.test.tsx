@@ -248,10 +248,10 @@ describe("E2E decision flow", () => {
     expect(screen.getByRole("button", { name: /Exportar.*SVG/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Exportar.*PNG/ })).toBeInTheDocument();
     // Profile deep-link exists
-    expect(screen.getByRole("link", { name: "Abrir perfil" })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Abrir perfil" })[0]).toBeInTheDocument();
 
     // ── Step 4: Navigate to Território 360 (via profile link) ──
-    await user.click(screen.getByRole("link", { name: "Abrir perfil" }));
+    await user.click(screen.getAllByRole("link", { name: "Abrir perfil" })[0]);
     await screen.findByRole("heading", { name: /Diamantina/ });
     // Overall score/status displayed
     expect(screen.getByText("atencao")).toBeInTheDocument();
@@ -287,7 +287,7 @@ describe("E2E decision flow", () => {
     const user = userEvent.setup();
 
     await screen.findByText("Mapa estrategico");
-    const profileLink = screen.getByRole("link", { name: "Abrir perfil" });
+    const profileLink = screen.getAllByRole("link", { name: "Abrir perfil" })[0];
     expect(profileLink).toBeInTheDocument();
 
     await user.click(profileLink);
