@@ -196,6 +196,7 @@ Issues:
    - deep-link completo no `QgMapPage` para recorte + visualizacao:
      - `metric`, `period`, `level`, `scope`, `layer_id`, `territory_id`, `basemap`, `viz`, `renderer`, `zoom`.
    - code-splitting aplicado no mapa executivo (`React.lazy` para `VectorMap`) para reduzir custo de carregamento inicial.
+   - toolbar de controles do mapa ajustada para responsividade (sem overflow horizontal em mobile).
 
 Aceite:
 1. tiles vetoriais multi-zoom para camadas urbanas.

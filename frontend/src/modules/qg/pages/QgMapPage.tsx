@@ -795,44 +795,53 @@ export function QgMapPage() {
       </Panel>
 
       <Panel title="Mapa visual" subtitle="Visualizacao vetorial MVT com fallback SVG">
-        <div className="panel-actions-row">
-          <div className="viz-mode-selector" role="radiogroup" aria-label="Modo de visualizacao">
-            {VIZ_MODES.map((mode) => (
-              <button
-                key={mode.value}
-                type="button"
-                className={`viz-mode-btn${vizMode === mode.value ? " viz-mode-active" : ""}`}
-                onClick={() => setVizMode(mode.value)}
-                role="radio"
-                aria-checked={vizMode === mode.value}
-              >
-                {mode.label}
-              </button>
-            ))}
+        <div className="map-toolbar">
+          <div className="map-toolbar-block">
+            <p className="map-toolbar-label">Modo de visualizacao</p>
+            <div className="viz-mode-selector" role="radiogroup" aria-label="Modo de visualizacao">
+              {VIZ_MODES.map((mode) => (
+                <button
+                  key={mode.value}
+                  type="button"
+                  className={`viz-mode-btn${vizMode === mode.value ? " viz-mode-active" : ""}`}
+                  onClick={() => setVizMode(mode.value)}
+                  role="radio"
+                  aria-checked={vizMode === mode.value}
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="viz-mode-selector" role="radiogroup" aria-label="Mapa base">
-            {BASEMAP_MODES.map((mode) => (
-              <button
-                key={mode.value}
-                type="button"
-                className={`viz-mode-btn${basemapMode === mode.value ? " viz-mode-active" : ""}`}
-                onClick={() => setBasemapMode(mode.value)}
-                role="radio"
-                aria-checked={basemapMode === mode.value}
-              >
-                {mode.label}
-              </button>
-            ))}
+          <div className="map-toolbar-block">
+            <p className="map-toolbar-label">Mapa base</p>
+            <div className="viz-mode-selector" role="radiogroup" aria-label="Mapa base">
+              {BASEMAP_MODES.map((mode) => (
+                <button
+                  key={mode.value}
+                  type="button"
+                  className={`viz-mode-btn${basemapMode === mode.value ? " viz-mode-active" : ""}`}
+                  onClick={() => setBasemapMode(mode.value)}
+                  role="radio"
+                  aria-checked={basemapMode === mode.value}
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
           </div>
-          <button
-            type="button"
-            className="button-secondary"
-            onClick={() => setUseVectorMap((prev) => !prev)}
-            disabled={!canUseVectorMap}
-            aria-label={useVectorMap ? "Alternar para SVG fallback" : "Alternar para mapa vetorial"}
-          >
-            {useVectorMap ? "SVG fallback" : canUseVectorMap ? "Mapa vetorial" : "Somente SVG"}
-          </button>
+          <div className="map-toolbar-block">
+            <p className="map-toolbar-label">Renderizacao</p>
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={() => setUseVectorMap((prev) => !prev)}
+              disabled={!canUseVectorMap}
+              aria-label={useVectorMap ? "Alternar para SVG fallback" : "Alternar para mapa vetorial"}
+            >
+              {useVectorMap ? "SVG fallback" : canUseVectorMap ? "Mapa vetorial" : "Somente SVG"}
+            </button>
+          </div>
         </div>
         <div className="panel-actions-row">
           <button type="button" className="button-secondary" onClick={exportMapSvg} aria-label="Exportar mapa como SVG">
@@ -863,7 +872,7 @@ export function QgMapPage() {
           <p className="map-export-error">Metadados de estilo indisponiveis; legenda padrao mantida.</p>
         ) : null}
         {useVectorMap && canUseVectorMap ? (
-          <div style={{ height: 500, borderRadius: "0.5rem", overflow: "hidden", border: "1px solid var(--line)" }}>
+          <div className="map-canvas-shell">
             <Suspense
               fallback={
                 <StateBlock

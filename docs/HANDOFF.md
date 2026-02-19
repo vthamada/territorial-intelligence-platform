@@ -159,6 +159,10 @@ Contrato tecnico principal: `CONTRATO.md`
     - efeito imediato no build frontend:
       - `QgMapPage-*.js` ~`19KB` (antes ~`1.0MB`).
       - chunk pesado isolado em `VectorMap-*.js`.
+    - refinamento de UX responsiva no mapa executivo:
+      - toolbar de controles organizada em blocos (`modo`, `mapa base`, `renderizacao`) com layout responsivo.
+      - selectors e controle de zoom ajustados para evitar overflow horizontal em viewport menor.
+      - shell visual do mapa com altura fluida (`.map-canvas-shell`) para consistencia desktop/mobile.
     - validacao adicional:
       - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx`: `17 passed`.
       - `npm --prefix frontend run test`: `68 passed`.

@@ -80,6 +80,10 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
     - `VectorMap` passou a carregar sob demanda via `React.lazy` + `Suspense` em `QgMapPage`.
     - chunk de rota `QgMapPage` caiu de ~`1.0MB` para ~`19KB`.
     - chunk pesado ficou isolado em `VectorMap-*.js`, reduzindo custo de carregamento inicial da rota.
+  - UX responsiva do mapa refinada em `frontend/src/modules/qg/pages/QgMapPage.tsx` e `frontend/src/styles/global.css`:
+    - toolbar de controles reorganizada em blocos (`modo`, `mapa base`, `renderizacao`) com quebra responsiva.
+    - ajustes visuais para evitar overflow horizontal em telas menores (`viz-mode-selector` com wrap, `zoom-control` adaptativo).
+    - container do mapa padronizado com altura fluida (`.map-canvas-shell`) para desktop/mobile.
 - D3-3 (tiles urbanos multi-zoom) iniciado no backend:
   - `GET /v1/map/tiles/{layer}/{z}/{x}/{y}.mvt` agora suporta camadas urbanas:
     - `urban_roads`

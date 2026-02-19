@@ -792,6 +792,9 @@ label {
 .map-selected-note {
   margin-top: 0.5rem;
   color: var(--ink-soft);
+  font-size: 0.86rem;
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .map-layer-toggle {
@@ -804,6 +807,34 @@ label {
   display: grid;
   gap: 0.25rem;
   font-size: 0.82rem;
+}
+
+.map-toolbar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.map-toolbar-block {
+  min-width: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.map-toolbar-label {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.map-canvas-shell {
+  height: clamp(360px, 58vh, 540px);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
 }
 
 .map-style-meta {
@@ -1138,18 +1169,22 @@ label {
 /* ── Viz mode selector ─────────────────────────────────────── */
 .viz-mode-selector {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.25rem;
   border: 1px solid var(--line);
   border-radius: 0.5rem;
-  overflow: hidden;
+  overflow: visible;
+  padding: 0.2rem;
+  background: #fffdf9;
 }
 
 .viz-mode-btn {
-  padding: 0.35rem 0.7rem;
+  padding: 0.35rem 0.62rem;
   font-size: 0.78rem;
   font-weight: 500;
   background: var(--bg);
-  border: none;
+  border: 1px solid transparent;
+  border-radius: 0.42rem;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
@@ -1170,4 +1205,18 @@ label {
 /* ── Vector map container ──────────────────────────────────── */
 .vector-map-container canvas {
   border-radius: 0.5rem;
+}
+
+@media (max-width: 900px) {
+  .map-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-actions-row {
+    justify-content: flex-start;
+  }
+
+  .zoom-control label {
+    flex-wrap: wrap;
+  }
 }
