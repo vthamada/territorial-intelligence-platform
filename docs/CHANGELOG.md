@@ -88,6 +88,12 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - cache middleware ajustado para endpoints operacionais de camadas:
     - `/v1/map/layers/readiness` e `/v1/map/layers/coverage` com `max-age=60`.
     - `/v1/map/layers` mantido com `max-age=3600`.
+  - monitor tecnico de camadas em `OpsLayersPage` recebeu resumo operacional adicional:
+    - cards agregados de readiness (`pass`, `warn`, `fail`, `pending`) por recorte.
+    - grade de "Resumo rapido das camadas" com status de `rows`, `geom` e `readiness`.
+    - estilos dedicados para leitura rapida em `frontend/src/styles/global.css`.
+  - suite de testes da pagina ops de camadas ampliada:
+    - novo caso em `frontend/src/modules/ops/pages/OpsPages.test.tsx` cobrindo render do resumo rapido.
 
 ### Verified
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_urban_connectors.py tests/unit/test_api_contract.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_ops_pipeline_runs.py tests/contracts/test_sql_contracts.py -p no:cacheprovider`:
@@ -95,7 +101,11 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_mvt_tiles.py tests/unit/test_api_contract.py -p no:cacheprovider`:
   - `36 passed`.
 - `npm --prefix frontend run test -- --run src/modules/ops/pages/OpsPages.test.tsx`:
-  - `8 passed`.
+  - `8 passed` (iteracao anterior).
+- `npm --prefix frontend run test -- --run src/modules/ops/pages/OpsPages.test.tsx`:
+  - `9 passed`.
+- `npm --prefix frontend run build`:
+  - build concluido com sucesso.
 
 ## 2026-02-13 (Sprint 9 - territorial layers TL-2/TL-3 + base eleitoral)
 

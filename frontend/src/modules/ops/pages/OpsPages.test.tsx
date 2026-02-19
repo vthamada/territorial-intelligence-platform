@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OpsChecksPage } from "./OpsChecksPage";
@@ -336,5 +336,68 @@ describe("Ops pages filters", () => {
     expect(vi.mocked(getMapLayersReadiness).mock.calls[1]?.[0]).toMatchObject({
       include_urban: true
     });
+  });
+
+  it("renders quick summary cards for layers readiness", async () => {
+    vi.mocked(getMapLayersReadiness).mockResolvedValueOnce({
+      generated_at_utc: "2026-02-19T13:00:00Z",
+      metric: null,
+      period: null,
+      quality_run_id: "22222222-2222-2222-2222-222222222222",
+      quality_run_started_at_utc: "2026-02-19T12:59:00Z",
+      items: [
+        {
+          layer: {
+            id: "urban_roads",
+            label: "Viario urbano",
+            territory_level: "urban",
+            is_official: false,
+            source: "map.urban_road_segment",
+            default_visibility: false,
+            zoom_min: 12,
+            zoom_max: null,
+            official_status: "hybrid",
+            layer_kind: "line",
+            proxy_method: null,
+            notes: null
+          },
+          coverage: {
+            layer_id: "urban_roads",
+            territory_level: "urban",
+            territories_total: 12,
+            territories_with_geometry: 12,
+            territories_with_indicator: 12,
+            is_ready: true,
+            notes: null
+          },
+          readiness_status: "warn",
+          readiness_reason: "Camada com aviso de qualidade; revisar cobertura e geometria.",
+          row_check: {
+            check_name: "urban_roads_rows_after_filter",
+            status: "warn",
+            details: "few rows",
+            observed_value: 12,
+            threshold_value: 20
+          },
+          geometry_check: {
+            check_name: "urban_roads_invalid_geometry_rows",
+            status: "pass",
+            details: "ok",
+            observed_value: 0,
+            threshold_value: 0
+          }
+        }
+      ]
+    });
+
+    renderWithQueryClient(<OpsLayersPage />);
+
+    expect(await screen.findByText("Resumo rapido das camadas")).toBeInTheDocument();
+    expect(screen.getByText("Camadas no recorte")).toBeInTheDocument();
+    const summary = screen.getByLabelText("Resumo rapido das camadas");
+    expect(within(summary).getByText("Viario urbano")).toBeInTheDocument();
+    expect(within(summary).getByText("rows: warn")).toBeInTheDocument();
+    expect(within(summary).getByText("geom: pass")).toBeInTheDocument();
+    expect(within(summary).getByText("readiness: warn")).toBeInTheDocument();
   });
 });

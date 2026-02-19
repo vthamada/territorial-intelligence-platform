@@ -105,6 +105,10 @@ Contrato tecnico principal: `CONTRATO.md`
   - monitor tecnico de camadas atualizado no frontend Ops:
     - `OpsLayersPage` agora consulta `GET /v1/map/layers/readiness`.
     - filtro de escopo suportado: `Territorial`, `Territorial + Urbano`, `Somente urbano`.
+    - resumo operacional adicional publicado na tela:
+      - cards agregados (`Camadas no recorte`, `Readiness pass|warn|fail|pending`).
+      - grade de "Resumo rapido das camadas" por item com chips de `rows`, `geom` e `readiness`.
+    - cobertura de teste frontend ampliada em `frontend/src/modules/ops/pages/OpsPages.test.tsx`.
   - politica de cache HTTP para camadas ajustada:
     - `/v1/map/layers/readiness` e `/v1/map/layers/coverage` com `max-age=60`.
     - `/v1/map/layers` mantido em `max-age=3600`.
@@ -115,6 +119,8 @@ Contrato tecnico principal: `CONTRATO.md`
     - `urban_road_rows` e `urban_poi_rows` em `ops.v_data_coverage_scorecard`.
   - validacao deste incremento:
     - `pytest` focado em connectors/map/quality/flows/contracts: `40 passed`.
+    - `npm --prefix frontend run test -- --run src/modules/ops/pages/OpsPages.test.tsx`: `9 passed`.
+    - `npm --prefix frontend run build`: `OK`.
   - benchmark de performance para fechamento de `BD-032` executado:
     - `scripts/benchmark_api.py` com suites `executive`, `urban` e `all`.
     - suite `urban` mede p95 dos endpoints:

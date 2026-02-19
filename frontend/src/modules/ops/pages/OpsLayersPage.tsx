@@ -43,6 +43,27 @@ function toOfficialClass(status: string) {
   return "status-planned";
 }
 
+function countByStatus(items: MapLayerReadinessItem[]) {
+  const counts = {
+    pass: 0,
+    warn: 0,
+    fail: 0,
+    pending: 0
+  };
+  for (const item of items) {
+    if (item.readiness_status === "pass") {
+      counts.pass += 1;
+    } else if (item.readiness_status === "warn") {
+      counts.warn += 1;
+    } else if (item.readiness_status === "fail") {
+      counts.fail += 1;
+    } else {
+      counts.pending += 1;
+    }
+  }
+  return counts;
+}
+
 export function OpsLayersPage() {
   const [draftFilters, setDraftFilters] = useState<LayerFilters>(makeEmptyFilters);
   const [appliedFilters, setAppliedFilters] = useState<LayerFilters>(makeEmptyFilters);
@@ -70,6 +91,7 @@ export function OpsLayersPage() {
   }, [appliedFilters.scope, readinessQuery.data?.items]);
 
   const hasResults = displayedItems.length > 0;
+  const statusCounts = useMemo(() => countByStatus(displayedItems), [displayedItems]);
 
   function applyFilters() {
     setAppliedFilters(draftFilters);
@@ -157,6 +179,55 @@ export function OpsLayersPage() {
                 ? new Date(readinessQuery.data.quality_run_started_at_utc).toLocaleString("pt-BR")
                 : "-"}
             </p>
+            <div className="kpi-grid">
+              <article>
+                <span>Camadas no recorte</span>
+                <strong>{displayedItems.length}</strong>
+              </article>
+              <article>
+                <span>Readiness pass</span>
+                <strong>{statusCounts.pass}</strong>
+              </article>
+              <article>
+                <span>Readiness warn</span>
+                <strong>{statusCounts.warn}</strong>
+              </article>
+              <article>
+                <span>Readiness fail</span>
+                <strong>{statusCounts.fail}</strong>
+              </article>
+              <article>
+                <span>Readiness pending</span>
+                <strong>{statusCounts.pending}</strong>
+              </article>
+            </div>
+            <h3>Resumo rapido das camadas</h3>
+            <div className="ops-layer-check-grid" aria-label="Resumo rapido das camadas">
+              {displayedItems.map((item) => (
+                <article key={`summary-${item.layer.id}`} className="ops-layer-check-card">
+                  <header>
+                    <strong>{item.layer.label}</strong>
+                    <small>{item.layer.territory_level}</small>
+                  </header>
+                  <p className="ops-layer-check-meta">
+                    cobertura: {item.coverage.territories_with_geometry}/{item.coverage.territories_total} geom |{" "}
+                    {item.coverage.territories_with_indicator} indicador
+                  </p>
+                  <div className="ops-layer-check-chips">
+                    <span className={`status-chip ${toStatusClass(item.row_check?.status ?? "pending")}`}>
+                      rows: {item.row_check?.status ?? "pending"}
+                    </span>
+                    <span className={`status-chip ${toStatusClass(item.geometry_check?.status ?? "pending")}`}>
+                      geom: {item.geometry_check?.status ?? "pending"}
+                    </span>
+                    <span className={`status-chip ${toStatusClass(item.readiness_status)}`}>
+                      readiness: {item.readiness_status}
+                    </span>
+                  </div>
+                  <p className="ops-layer-check-reason">{item.readiness_reason ?? item.coverage.notes ?? "-"}</p>
+                </article>
+              ))}
+            </div>
             <div className="table-wrap">
               <table aria-label="Rastreabilidade de camadas">
                 <thead>
