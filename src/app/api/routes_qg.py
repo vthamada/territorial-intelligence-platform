@@ -63,6 +63,8 @@ CASE
     WHEN fi.source = 'ANA' THEN 'recursos_hidricos'
     WHEN fi.source = 'ANATEL' THEN 'conectividade'
     WHEN fi.source = 'ANEEL' THEN 'energia'
+    WHEN fi.source = 'CECAD' THEN 'assistencia_social'
+    WHEN fi.source = 'CENSO_SUAS' THEN 'assistencia_social'
     WHEN fi.source = 'IBGE' THEN 'socioeconomico'
     ELSE 'geral'
 END

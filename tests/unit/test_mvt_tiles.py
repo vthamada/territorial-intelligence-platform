@@ -89,9 +89,9 @@ class TestMultiLevelTolerance:
 
 
 class TestMvtEndpointValidation:
-    """Test that invalid layer returns 422 (no DB needed)."""
+    """Test that invalid layer returns 404 (no DB needed)."""
 
-    def test_unknown_layer_returns_422(self) -> None:
+    def test_unknown_layer_returns_404(self) -> None:
         from collections.abc import Generator
         from fastapi.testclient import TestClient
         from app.api.deps import get_db
@@ -105,7 +105,7 @@ class TestMvtEndpointValidation:
         try:
             client = TestClient(app)
             response = client.get("/v1/map/tiles/nonexistent_layer/0/0/0.mvt")
-            assert response.status_code == 422
+            assert response.status_code == 404
             body = response.json()
             assert body["error"]["code"] == "http_error"
             assert body["error"]["details"]["reason"] == "Unknown layer"

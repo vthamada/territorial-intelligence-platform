@@ -2,6 +2,44 @@
 
 Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-19
+
+### Changed
+- Sprint D3 avancou do contrato para ingestao operacional:
+  - novos conectores urbanos implementados:
+    - `src/pipelines/urban_roads.py` (`urban_roads_fetch`)
+    - `src/pipelines/urban_pois.py` (`urban_pois_fetch`)
+  - catalogos de extracao remota por bbox adicionados:
+    - `configs/urban_roads_catalog.yml`
+    - `configs/urban_pois_catalog.yml`
+  - carga idempotente publicada para:
+    - `map.urban_road_segment`
+    - `map.urban_poi`
+  - observabilidade dos jobs urbanos publicada em `ops.pipeline_runs` e `ops.pipeline_checks`.
+- Orquestracao e operacao atualizadas para D3:
+  - `src/orchestration/prefect_flows.py` com:
+    - inclusao de `urban_roads_fetch` e `urban_pois_fetch` em `run_mvp_all`
+    - novo fluxo `run_mvp_wave_7`
+  - `configs/jobs.yml`, `configs/waves.yml` e `configs/connectors.yml` atualizados para `MVP-7`.
+  - `scripts/backfill_robust_database.py` atualizado com `--include-wave7` e cobertura urbana no relatorio.
+- Geocodificacao local inicial publicada no backend:
+  - novo endpoint `GET /v1/map/urban/geocode` em `src/app/api/routes_map.py`.
+  - novos contratos de resposta:
+    - `UrbanGeocodeItem`
+    - `UrbanGeocodeResponse`
+    - arquivo: `src/app/schemas/map.py`.
+- Qualidade e scorecard ampliados para dominio urbano:
+  - `check_urban_domain` adicionado em `src/pipelines/common/quality.py`.
+  - `quality_suite` atualizado para executar checks urbanos.
+  - `configs/quality_thresholds.yml` com thresholds de `urban_domain`.
+  - `db/sql/007_data_coverage_scorecard.sql` ampliado com:
+    - `urban_road_rows`
+    - `urban_poi_rows`.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_urban_connectors.py tests/unit/test_api_contract.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_ops_pipeline_runs.py tests/contracts/test_sql_contracts.py -p no:cacheprovider`:
+  - `40 passed`.
+
 ## 2026-02-13 (Sprint 9 - territorial layers TL-2/TL-3 + base eleitoral)
 
 ### Added

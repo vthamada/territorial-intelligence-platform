@@ -1,0 +1,27 @@
+resources:
+  - uri: https://overpass-api.de/api/interpreter
+    method: POST
+    extension: .json
+    body_template: |
+      [out:json][timeout:120];
+      (
+        node["amenity"]({miny},{minx},{maxy},{maxx});
+        way["amenity"]({miny},{minx},{maxy},{maxx});
+        relation["amenity"]({miny},{minx},{maxy},{maxx});
+        node["healthcare"]({miny},{minx},{maxy},{maxx});
+        way["healthcare"]({miny},{minx},{maxy},{maxx});
+      );
+      out center tags;
+  - uri: https://overpass.kumi.systems/api/interpreter
+    method: POST
+    extension: .json
+    body_template: |
+      [out:json][timeout:120];
+      (
+        node["amenity"]({miny},{minx},{maxy},{maxx});
+        way["amenity"]({miny},{minx},{maxy},{maxx});
+        relation["amenity"]({miny},{minx},{maxy},{maxx});
+        node["healthcare"]({miny},{minx},{maxy},{maxx});
+        way["healthcare"]({miny},{minx},{maxy},{maxx});
+      );
+      out center tags;

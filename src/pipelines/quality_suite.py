@@ -11,11 +11,18 @@ from pipelines.common.observability import replace_pipeline_checks, upsert_pipel
 from pipelines.common.quality import (
     CheckResult,
     check_dim_territory,
+    check_dim_territory_electoral_zone_integrity,
+    check_fact_election_result_temporal_coverage,
     check_fact_election_result,
+    check_fact_electorate_temporal_coverage,
     check_fact_electorate,
+    check_fact_indicator_source_temporal_coverage,
+    check_fact_indicator_temporal_coverage,
     check_fact_indicator,
+    check_fact_social_assistance_network,
+    check_fact_social_protection,
     check_fact_indicator_source_rows,
-    check_map_layers,
+    check_urban_domain,
     check_ops_pipeline_runs,
 )
 from pipelines.common.quality_thresholds import load_quality_thresholds
@@ -63,11 +70,24 @@ def run(
     with session_scope(settings) as session:
         results: list[CheckResult] = []
         results.extend(check_dim_territory(session, settings.municipality_ibge_code, thresholds))
-        results.extend(check_map_layers(session, settings.municipality_ibge_code, thresholds))
+        results.extend(
+            check_dim_territory_electoral_zone_integrity(
+                session,
+                settings.municipality_ibge_code,
+                thresholds,
+            )
+        )
         results.extend(check_fact_electorate(session, settings.municipality_ibge_code, thresholds))
+        results.extend(check_fact_electorate_temporal_coverage(session, thresholds))
         results.extend(check_fact_election_result(session, thresholds))
+        results.extend(check_fact_election_result_temporal_coverage(session, thresholds))
         results.extend(check_fact_indicator(session, thresholds))
+        results.extend(check_fact_indicator_temporal_coverage(session, thresholds))
         results.extend(check_fact_indicator_source_rows(session, reference_period, thresholds))
+        results.extend(check_fact_indicator_source_temporal_coverage(session, thresholds))
+        results.extend(check_fact_social_protection(session, thresholds))
+        results.extend(check_fact_social_assistance_network(session, thresholds))
+        results.extend(check_urban_domain(session, thresholds))
         results.extend(check_ops_pipeline_runs(session, reference_period, thresholds))
 
     has_fail = any(result.status == "fail" for result in results)

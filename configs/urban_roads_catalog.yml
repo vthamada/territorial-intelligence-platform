@@ -1,0 +1,19 @@
+resources:
+  - uri: https://overpass-api.de/api/interpreter
+    method: POST
+    extension: .json
+    body_template: |
+      [out:json][timeout:120];
+      (
+        way["highway"]({miny},{minx},{maxy},{maxx});
+      );
+      out geom tags;
+  - uri: https://overpass.kumi.systems/api/interpreter
+    method: POST
+    extension: .json
+    body_template: |
+      [out:json][timeout:120];
+      (
+        way["highway"]({miny},{minx},{maxy},{maxx});
+      );
+      out geom tags;

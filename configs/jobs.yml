@@ -36,6 +36,14 @@ waves:
     - anatel_connectivity_fetch
     - aneel_energy_fetch
     - quality_suite
+  MVP-6:
+    - cecad_social_protection_fetch
+    - censo_suas_fetch
+    - quality_suite
+  MVP-7:
+    - urban_roads_fetch
+    - urban_pois_fetch
+    - quality_suite
 
 jobs:
   ibge_admin_fetch:
@@ -78,6 +86,14 @@ jobs:
     reference_period: "2025"
   aneel_energy_fetch:
     reference_period: "2025"
+  cecad_social_protection_fetch:
+    reference_period: "2025"
+  censo_suas_fetch:
+    reference_period: "2025"
+  urban_roads_fetch:
+    reference_period: "2026"
+  urban_pois_fetch:
+    reference_period: "2026"
   dbt_build:
     reference_period: "2026"
   quality_suite:

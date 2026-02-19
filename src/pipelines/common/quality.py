@@ -8,6 +8,26 @@ from sqlalchemy.orm import Session
 
 from pipelines.common.quality_thresholds import QualityThresholds, as_float
 
+_INDICATOR_SOURCE_MAP: tuple[tuple[str, str], ...] = (
+    ("datasus", "DATASUS"),
+    ("inep", "INEP"),
+    ("siconfi", "SICONFI"),
+    ("mte", "MTE"),
+    ("tse", "TSE"),
+    ("sidra", "SIDRA"),
+    ("senatran", "SENATRAN"),
+    ("sejusp_mg", "SEJUSP_MG"),
+    ("siops", "SIOPS"),
+    ("snis", "SNIS"),
+    ("inmet", "INMET"),
+    ("inpe_queimadas", "INPE_QUEIMADAS"),
+    ("ana", "ANA"),
+    ("anatel", "ANATEL"),
+    ("aneel", "ANEEL"),
+    ("cecad", "CECAD"),
+    ("censo_suas", "CENSO_SUAS"),
+)
+
 
 @dataclass(frozen=True)
 class CheckResult:
@@ -152,6 +172,95 @@ def check_dim_territory(
     return results
 
 
+def check_dim_territory_electoral_zone_integrity(
+    session: Session,
+    municipality_code: str,
+    thresholds: QualityThresholds,
+) -> list[CheckResult]:
+    results: list[CheckResult] = []
+    min_electoral_zone_count = thresholds.get(
+        "dim_territory",
+        "min_electoral_zone_count",
+        fallback=1,
+    )
+    electoral_zone_count = _scalar(
+        session,
+        """
+        SELECT COUNT(*)
+        FROM silver.dim_territory
+        WHERE level = 'electoral_zone'
+          AND municipality_ibge_code = :code
+        """,
+        {"code": municipality_code},
+    )
+    results.append(
+        CheckResult(
+            name="electoral_zone_count",
+            status="pass" if electoral_zone_count >= min_electoral_zone_count else "warn",
+            details="Expected electoral zones for municipality scope.",
+            observed_value=electoral_zone_count,
+            threshold_value=min_electoral_zone_count,
+        )
+    )
+
+    max_electoral_zone_orphans = thresholds.get(
+        "dim_territory",
+        "max_electoral_zone_orphans",
+        fallback=0,
+    )
+    electoral_zone_orphans = _scalar(
+        session,
+        """
+        SELECT COUNT(*)
+        FROM silver.dim_territory z
+        LEFT JOIN silver.dim_territory p ON p.territory_id = z.parent_territory_id
+        WHERE z.level = 'electoral_zone'
+          AND z.municipality_ibge_code = :code
+          AND (
+                z.parent_territory_id IS NULL
+                OR p.level::text <> 'municipality'
+              )
+        """,
+        {"code": municipality_code},
+    )
+    results.append(
+        CheckResult(
+            name="electoral_zone_orphans",
+            status="pass" if electoral_zone_orphans <= max_electoral_zone_orphans else "fail",
+            details="Electoral zones must have municipality parent_territory_id.",
+            observed_value=electoral_zone_orphans,
+            threshold_value=max_electoral_zone_orphans,
+        )
+    )
+
+    max_missing_canonical_key = thresholds.get(
+        "dim_territory",
+        "max_electoral_zone_missing_canonical_key",
+        fallback=0,
+    )
+    missing_canonical_key = _scalar(
+        session,
+        """
+        SELECT COUNT(*)
+        FROM silver.dim_territory
+        WHERE level = 'electoral_zone'
+          AND municipality_ibge_code = :code
+          AND (canonical_key IS NULL OR TRIM(canonical_key) = '')
+        """,
+        {"code": municipality_code},
+    )
+    results.append(
+        CheckResult(
+            name="electoral_zone_missing_canonical_key",
+            status="pass" if missing_canonical_key <= max_missing_canonical_key else "fail",
+            details="Electoral zones must have canonical_key.",
+            observed_value=missing_canonical_key,
+            threshold_value=max_missing_canonical_key,
+        )
+    )
+    return results
+
+
 def check_map_layers(
     session: Session,
     municipality_code: str,
@@ -201,11 +310,7 @@ def check_map_layers(
         geometry_ratio = (as_float(rows_with_geometry) / as_float(total_rows)) if total_rows > 0 else 0.0
 
         row_status = "pass" if total_rows >= min_rows else ("fail" if is_required else "warn")
-        geometry_status = (
-            "pass"
-            if geometry_ratio >= min_geometry_ratio
-            else ("fail" if is_required else "warn")
-        )
+        geometry_status = "pass" if geometry_ratio >= min_geometry_ratio else ("fail" if is_required else "warn")
 
         results.append(
             CheckResult(
@@ -225,7 +330,6 @@ def check_map_layers(
                 threshold_value=min_geometry_ratio,
             )
         )
-
     return results
 
 
@@ -443,25 +547,7 @@ def check_fact_indicator_source_rows(
     thresholds: QualityThresholds,
 ) -> list[CheckResult]:
     results: list[CheckResult] = []
-    source_map = (
-        ("datasus", "DATASUS"),
-        ("inep", "INEP"),
-        ("siconfi", "SICONFI"),
-        ("mte", "MTE"),
-        ("tse", "TSE"),
-        ("sidra", "SIDRA"),
-        ("senatran", "SENATRAN"),
-        ("sejusp_mg", "SEJUSP_MG"),
-        ("siops", "SIOPS"),
-        ("snis", "SNIS"),
-        ("inmet", "INMET"),
-        ("inpe_queimadas", "INPE_QUEIMADAS"),
-        ("ana", "ANA"),
-        ("anatel", "ANATEL"),
-        ("aneel", "ANEEL"),
-    )
-
-    for source_key, source_name in source_map:
+    for source_key, source_name in _INDICATOR_SOURCE_MAP:
         min_rows = thresholds.get(
             "fact_indicator",
             f"min_rows_{source_key}",
@@ -496,6 +582,509 @@ def check_fact_indicator_source_rows(
     return results
 
 
+def check_fact_social_protection(
+    session: Session,
+    thresholds: QualityThresholds,
+) -> list[CheckResult]:
+    results: list[CheckResult] = []
+    min_rows = int(thresholds.get("fact_social_protection", "min_rows_after_filter", fallback=1))
+    max_negative_rows = int(thresholds.get("fact_social_protection", "max_negative_rows", fallback=0))
+    max_empty_metric_rows = int(thresholds.get("fact_social_protection", "max_empty_metric_rows", fallback=0))
+
+    rows = int(_scalar(session, "SELECT COUNT(*) FROM silver.fact_social_protection") or 0)
+    results.append(
+        CheckResult(
+            name="social_protection_rows_after_filter",
+            status="pass" if rows >= min_rows else "warn",
+            details="Social protection fact should contain at least one municipality row.",
+            observed_value=rows,
+            threshold_value=min_rows,
+        )
+    )
+
+    negative_rows = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM silver.fact_social_protection
+            WHERE COALESCE(households_total, 0) < 0
+               OR COALESCE(people_total, 0) < 0
+               OR COALESCE(avg_income_per_capita, 0) < 0
+               OR COALESCE(poverty_rate, 0) < 0
+               OR COALESCE(extreme_poverty_rate, 0) < 0
+            """,
+        )
+        or 0
+    )
+    results.append(
+        CheckResult(
+            name="social_protection_negative_rows",
+            status="pass" if negative_rows <= max_negative_rows else "fail",
+            details="Social protection metrics should not have negative values.",
+            observed_value=negative_rows,
+            threshold_value=max_negative_rows,
+        )
+    )
+
+    empty_metric_rows = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM silver.fact_social_protection
+            WHERE households_total IS NULL
+              AND people_total IS NULL
+              AND avg_income_per_capita IS NULL
+              AND poverty_rate IS NULL
+              AND extreme_poverty_rate IS NULL
+            """,
+        )
+        or 0
+    )
+    results.append(
+        CheckResult(
+            name="social_protection_empty_metric_rows",
+            status="pass" if empty_metric_rows <= max_empty_metric_rows else "warn",
+            details="Rows in social protection fact should have at least one populated metric.",
+            observed_value=empty_metric_rows,
+            threshold_value=max_empty_metric_rows,
+        )
+    )
+    return results
+
+
+def check_fact_social_assistance_network(
+    session: Session,
+    thresholds: QualityThresholds,
+) -> list[CheckResult]:
+    results: list[CheckResult] = []
+    min_rows = int(thresholds.get("fact_social_assistance_network", "min_rows_after_filter", fallback=1))
+    max_negative_rows = int(thresholds.get("fact_social_assistance_network", "max_negative_rows", fallback=0))
+    max_empty_metric_rows = int(
+        thresholds.get("fact_social_assistance_network", "max_empty_metric_rows", fallback=0)
+    )
+
+    rows = int(_scalar(session, "SELECT COUNT(*) FROM silver.fact_social_assistance_network") or 0)
+    results.append(
+        CheckResult(
+            name="social_assistance_network_rows_after_filter",
+            status="pass" if rows >= min_rows else "warn",
+            details="Social assistance network fact should contain at least one municipality row.",
+            observed_value=rows,
+            threshold_value=min_rows,
+        )
+    )
+
+    negative_rows = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM silver.fact_social_assistance_network
+            WHERE COALESCE(cras_units, 0) < 0
+               OR COALESCE(creas_units, 0) < 0
+               OR COALESCE(social_units_total, 0) < 0
+               OR COALESCE(workers_total, 0) < 0
+               OR COALESCE(service_capacity_total, 0) < 0
+            """,
+        )
+        or 0
+    )
+    results.append(
+        CheckResult(
+            name="social_assistance_network_negative_rows",
+            status="pass" if negative_rows <= max_negative_rows else "fail",
+            details="Social assistance network metrics should not have negative values.",
+            observed_value=negative_rows,
+            threshold_value=max_negative_rows,
+        )
+    )
+
+    empty_metric_rows = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM silver.fact_social_assistance_network
+            WHERE cras_units IS NULL
+              AND creas_units IS NULL
+              AND social_units_total IS NULL
+              AND workers_total IS NULL
+              AND service_capacity_total IS NULL
+            """,
+        )
+        or 0
+    )
+    results.append(
+        CheckResult(
+            name="social_assistance_network_empty_metric_rows",
+            status="pass" if empty_metric_rows <= max_empty_metric_rows else "warn",
+            details="Rows in social assistance network fact should have at least one populated metric.",
+            observed_value=empty_metric_rows,
+            threshold_value=max_empty_metric_rows,
+        )
+    )
+    return results
+
+
+def check_urban_domain(
+    session: Session,
+    thresholds: QualityThresholds,
+) -> list[CheckResult]:
+    results: list[CheckResult] = []
+    min_road_rows = int(thresholds.get("urban_domain", "min_road_rows", fallback=0))
+    min_poi_rows = int(thresholds.get("urban_domain", "min_poi_rows", fallback=0))
+    max_invalid_geometries = int(
+        thresholds.get("urban_domain", "max_invalid_geometry_rows", fallback=0)
+    )
+
+    road_rows = int(_scalar(session, "SELECT COUNT(*) FROM map.urban_road_segment") or 0)
+    road_invalid = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM map.urban_road_segment
+            WHERE geom IS NULL
+               OR ST_IsEmpty(geom)
+               OR NOT ST_IsValid(geom)
+            """,
+        )
+        or 0
+    )
+    poi_rows = int(_scalar(session, "SELECT COUNT(*) FROM map.urban_poi") or 0)
+    poi_invalid = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM map.urban_poi
+            WHERE geom IS NULL
+               OR ST_IsEmpty(geom)
+               OR NOT ST_IsValid(geom)
+            """,
+        )
+        or 0
+    )
+
+    results.append(
+        CheckResult(
+            name="urban_roads_rows_after_filter",
+            status="pass" if road_rows >= min_road_rows else "warn",
+            details="Urban roads layer should have rows loaded in map.urban_road_segment.",
+            observed_value=road_rows,
+            threshold_value=min_road_rows,
+        )
+    )
+    results.append(
+        CheckResult(
+            name="urban_roads_invalid_geometry_rows",
+            status="pass" if road_invalid <= max_invalid_geometries else "fail",
+            details="Urban roads geometries must be valid.",
+            observed_value=road_invalid,
+            threshold_value=max_invalid_geometries,
+        )
+    )
+    results.append(
+        CheckResult(
+            name="urban_pois_rows_after_filter",
+            status="pass" if poi_rows >= min_poi_rows else "warn",
+            details="Urban POIs layer should have rows loaded in map.urban_poi.",
+            observed_value=poi_rows,
+            threshold_value=min_poi_rows,
+        )
+    )
+    results.append(
+        CheckResult(
+            name="urban_pois_invalid_geometry_rows",
+            status="pass" if poi_invalid <= max_invalid_geometries else "fail",
+            details="Urban POIs geometries must be valid.",
+            observed_value=poi_invalid,
+            threshold_value=max_invalid_geometries,
+        )
+    )
+    return results
+
+
+def check_fact_indicator_source_temporal_coverage(
+    session: Session,
+    thresholds: QualityThresholds,
+) -> list[CheckResult]:
+    results: list[CheckResult] = []
+    default_min_periods = int(
+        thresholds.get("fact_indicator", "min_source_distinct_periods_default", fallback=1)
+    )
+    for source_key, source_name in _INDICATOR_SOURCE_MAP:
+        min_periods = int(
+            thresholds.get(
+                "fact_indicator",
+                f"min_periods_{source_key}",
+                fallback=default_min_periods,
+            )
+        )
+        distinct_periods = int(
+            _scalar(
+                session,
+                """
+                SELECT COUNT(DISTINCT reference_period)
+                FROM silver.fact_indicator
+                WHERE source = :source
+                """,
+                {"source": source_name},
+            )
+            or 0
+        )
+        results.append(
+            CheckResult(
+                name=f"source_periods_{source_key}",
+                status="pass" if distinct_periods >= min_periods else "warn",
+                details=(
+                    f"Expected at least {min_periods} distinct period(s) for source {source_name}."
+                ),
+                observed_value=distinct_periods,
+                threshold_value=min_periods,
+            )
+        )
+    return results
+
+
+def check_fact_electorate_temporal_coverage(
+    session: Session,
+    thresholds: QualityThresholds,
+) -> list[CheckResult]:
+    results: list[CheckResult] = []
+    min_distinct_years = int(
+        thresholds.get("fact_electorate", "min_distinct_years", fallback=1)
+    )
+    distinct_years = int(
+        _scalar(
+            session,
+            "SELECT COUNT(DISTINCT reference_year) FROM silver.fact_electorate",
+        )
+        or 0
+    )
+    results.append(
+        CheckResult(
+            name="electorate_distinct_years",
+            status="pass" if distinct_years >= min_distinct_years else "warn",
+            details=(
+                "Electorate should keep historical coverage with at least "
+                f"{min_distinct_years} distinct year(s)."
+            ),
+            observed_value=distinct_years,
+            threshold_value=min_distinct_years,
+        )
+    )
+
+    min_zone_rows = int(
+        thresholds.get("fact_electorate", "min_electoral_zone_rows", fallback=0)
+    )
+    zone_rows = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM silver.fact_electorate fe
+            JOIN silver.dim_territory dt ON dt.territory_id = fe.territory_id
+            WHERE dt.level::text = 'electoral_zone'
+            """,
+        )
+        or 0
+    )
+    results.append(
+        CheckResult(
+            name="electorate_electoral_zone_rows",
+            status="pass" if zone_rows >= min_zone_rows else "warn",
+            details=(
+                "Electorate zone-level coverage should satisfy minimum expected rows."
+            ),
+            observed_value=zone_rows,
+            threshold_value=min_zone_rows,
+        )
+    )
+    max_year_gap = int(thresholds.get("fact_electorate", "max_year_gap", fallback=2))
+    observed_max_gap = int(
+        _scalar(
+            session,
+            """
+            WITH years AS (
+                SELECT DISTINCT reference_year::int AS ref_year
+                FROM silver.fact_electorate
+                WHERE reference_year IS NOT NULL
+            ),
+            gaps AS (
+                SELECT ref_year - LAG(ref_year) OVER (ORDER BY ref_year) AS year_gap
+                FROM years
+            )
+            SELECT COALESCE(MAX(year_gap), 0)
+            FROM gaps
+            WHERE year_gap IS NOT NULL
+            """,
+        )
+        or 0
+    )
+    results.append(
+        CheckResult(
+            name="electorate_max_year_gap",
+            status="pass" if observed_max_gap <= max_year_gap else "warn",
+            details="Electorate temporal series should avoid large year gaps.",
+            observed_value=observed_max_gap,
+            threshold_value=max_year_gap,
+        )
+    )
+    return results
+
+
+def check_fact_election_result_temporal_coverage(
+    session: Session,
+    thresholds: QualityThresholds,
+) -> list[CheckResult]:
+    results: list[CheckResult] = []
+    min_distinct_years = int(
+        thresholds.get("fact_election_result", "min_distinct_years", fallback=1)
+    )
+    distinct_years = int(
+        _scalar(
+            session,
+            "SELECT COUNT(DISTINCT election_year) FROM silver.fact_election_result",
+        )
+        or 0
+    )
+    results.append(
+        CheckResult(
+            name="election_result_distinct_years",
+            status="pass" if distinct_years >= min_distinct_years else "warn",
+            details=(
+                "Election results should keep historical coverage with at least "
+                f"{min_distinct_years} distinct year(s)."
+            ),
+            observed_value=distinct_years,
+            threshold_value=min_distinct_years,
+        )
+    )
+
+    min_zone_rows = int(
+        thresholds.get("fact_election_result", "min_electoral_zone_rows", fallback=0)
+    )
+    zone_rows = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM silver.fact_election_result fr
+            JOIN silver.dim_territory dt ON dt.territory_id = fr.territory_id
+            WHERE dt.level::text = 'electoral_zone'
+            """,
+        )
+        or 0
+    )
+    results.append(
+        CheckResult(
+            name="election_result_electoral_zone_rows",
+            status="pass" if zone_rows >= min_zone_rows else "warn",
+            details=(
+                "Election results zone-level coverage should satisfy minimum expected rows."
+            ),
+            observed_value=zone_rows,
+            threshold_value=min_zone_rows,
+        )
+    )
+    max_year_gap = int(thresholds.get("fact_election_result", "max_year_gap", fallback=2))
+    observed_max_gap = int(
+        _scalar(
+            session,
+            """
+            WITH years AS (
+                SELECT DISTINCT election_year::int AS ref_year
+                FROM silver.fact_election_result
+                WHERE election_year IS NOT NULL
+            ),
+            gaps AS (
+                SELECT ref_year - LAG(ref_year) OVER (ORDER BY ref_year) AS year_gap
+                FROM years
+            )
+            SELECT COALESCE(MAX(year_gap), 0)
+            FROM gaps
+            WHERE year_gap IS NOT NULL
+            """,
+        )
+        or 0
+    )
+    results.append(
+        CheckResult(
+            name="election_result_max_year_gap",
+            status="pass" if observed_max_gap <= max_year_gap else "warn",
+            details="Election result temporal series should avoid large year gaps.",
+            observed_value=observed_max_gap,
+            threshold_value=max_year_gap,
+        )
+    )
+    return results
+
+
+def check_fact_indicator_temporal_coverage(
+    session: Session,
+    thresholds: QualityThresholds,
+) -> list[CheckResult]:
+    results: list[CheckResult] = []
+    min_distinct_periods = int(
+        thresholds.get("fact_indicator", "min_distinct_periods", fallback=1)
+    )
+    distinct_periods = int(
+        _scalar(
+            session,
+            "SELECT COUNT(DISTINCT reference_period) FROM silver.fact_indicator",
+        )
+        or 0
+    )
+    results.append(
+        CheckResult(
+            name="indicator_distinct_periods",
+            status="pass" if distinct_periods >= min_distinct_periods else "warn",
+            details=(
+                "Indicators should keep historical coverage with at least "
+                f"{min_distinct_periods} distinct period(s)."
+            ),
+            observed_value=distinct_periods,
+            threshold_value=min_distinct_periods,
+        )
+    )
+
+    level_thresholds = (
+        ("municipality", "min_rows_level_municipality"),
+        ("district", "min_rows_level_district"),
+        ("census_sector", "min_rows_level_census_sector"),
+    )
+    for level, threshold_key in level_thresholds:
+        min_rows = int(thresholds.get("fact_indicator", threshold_key, fallback=0))
+        rows = int(
+            _scalar(
+                session,
+                """
+                SELECT COUNT(*)
+                FROM silver.fact_indicator fi
+                JOIN silver.dim_territory dt ON dt.territory_id = fi.territory_id
+                WHERE dt.level::text = :level
+                """,
+                {"level": level},
+            )
+            or 0
+        )
+        results.append(
+            CheckResult(
+                name=f"indicator_rows_level_{level}",
+                status="pass" if rows >= min_rows else "warn",
+                details=(
+                    f"Indicator coverage for level '{level}' should satisfy minimum rows."
+                ),
+                observed_value=rows,
+                threshold_value=min_rows,
+            )
+        )
+    return results
+
+
 def check_ops_pipeline_runs(
     session: Session,
     reference_period: str,
@@ -522,6 +1111,8 @@ def check_ops_pipeline_runs(
         ("ana_hydrology_fetch", "MVP-5"),
         ("anatel_connectivity_fetch", "MVP-5"),
         ("aneel_energy_fetch", "MVP-5"),
+        ("urban_roads_fetch", "MVP-7"),
+        ("urban_pois_fetch", "MVP-7"),
     )
 
     for job_name, wave in jobs:

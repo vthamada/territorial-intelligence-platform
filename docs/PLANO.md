@@ -14,6 +14,7 @@ Escopo deste arquivo: governanca de execucao, fases, prioridades e sequencia de 
 6. `CHANGELOG.md`: historico de mudancas e evidencias de validacao.
 7. `FRONTEND_SPEC.md`: referencia complementar de UX/produto para debate; nao substitui contrato nem plano executavel.
 8. `PLANO_FONTES_DADOS_DIAMANTINA.md`: catalogo e priorizacao de fontes; status operacional corrente fica em `HANDOFF.md`.
+9. `BACKLOG_DADOS_NIVEL_MAXIMO.md`: backlog tecnico executavel para atingir robustez maxima de base de dados.
 
 Regra: este arquivo nao detalha estado diario; ele define como executar e priorizar.
 

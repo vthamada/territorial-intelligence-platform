@@ -99,6 +99,26 @@ connectors:
     wave: MVP-5
     status: implemented
     notes: Tabular energy ingestion with remote catalog and manual fallback, Bronze snapshot, and Silver upsert.
+  - connector_name: cecad_social_protection_fetch
+    source: CECAD
+    wave: MVP-6
+    status: partial
+    notes: CECAD/CadUnico connector implemented in code; awaiting stable governed source access to promote to implemented.
+  - connector_name: censo_suas_fetch
+    source: CENSO_SUAS
+    wave: MVP-6
+    status: partial
+    notes: Censo SUAS connector implemented in code; awaiting stable governed source access to promote to implemented.
+  - connector_name: urban_roads_fetch
+    source: OSM
+    wave: MVP-7
+    status: implemented
+    notes: Urban roads extraction via Overpass API with manual fallback and idempotent load into map.urban_road_segment.
+  - connector_name: urban_pois_fetch
+    source: OSM
+    wave: MVP-7
+    status: implemented
+    notes: Urban POIs extraction via Overpass API with manual fallback and idempotent load into map.urban_poi.
   - connector_name: dbt_build
     source: INTERNAL
     wave: MVP-1

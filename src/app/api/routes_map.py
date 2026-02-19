@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 import time
 from datetime import UTC, datetime
@@ -8,6 +9,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
@@ -21,6 +23,14 @@ from app.schemas.map import (
     MapStyleLegendRangeItem,
     MapStyleMetadataResponse,
     MapStyleSeverityItem,
+    UrbanGeocodeItem,
+    UrbanGeocodeResponse,
+    UrbanNearbyPoiItem,
+    UrbanNearbyPoisResponse,
+    UrbanPoiCollectionResponse,
+    UrbanPoiFeatureItem,
+    UrbanRoadCollectionResponse,
+    UrbanRoadFeatureItem,
 )
 
 router = APIRouter(prefix="/map", tags=["map"])
@@ -118,6 +128,37 @@ _LAYER_EXTRA_WHERE: dict[str, str] = {
 _LAYER_NAME_EXPR: dict[str, str] = {
     "territory_polling_place": "COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name)",
 }
+
+
+def _parse_bbox(bbox: str | None) -> tuple[float, float, float, float] | None:
+    if not bbox:
+        return None
+    raw = [token.strip() for token in bbox.split(",")]
+    if len(raw) != 4:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid bbox format. Expected: minx,miny,maxx,maxy",
+        )
+    try:
+        minx, miny, maxx, maxy = (float(token) for token in raw)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="Invalid bbox numeric values.") from exc
+    if minx >= maxx or miny >= maxy:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid bbox range. Ensure minx<maxx and miny<maxy.",
+        )
+    return minx, miny, maxx, maxy
+
+
+def _parse_geojson(raw: str | None) -> dict:
+    if not raw:
+        return {"type": "GeometryCollection", "geometries": []}
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return {"type": "GeometryCollection", "geometries": []}
+    return parsed if isinstance(parsed, dict) else {"type": "GeometryCollection", "geometries": []}
 
 
 @router.get("/layers", response_model=MapLayersResponse)
@@ -316,6 +357,345 @@ def get_map_style_metadata() -> MapStyleMetadataResponse:
     )
 
 
+@router.get("/urban/roads", response_model=UrbanRoadCollectionResponse)
+def get_urban_roads(
+    bbox: str | None = Query(default=None, description="minx,miny,maxx,maxy in EPSG:4326."),
+    road_class: str | None = Query(default=None),
+    limit: int = Query(default=1000, ge=1, le=5000),
+    db: Session = Depends(get_db),
+) -> UrbanRoadCollectionResponse:
+    parsed_bbox = _parse_bbox(bbox)
+    minx = miny = maxx = maxy = None
+    if parsed_bbox is not None:
+        minx, miny, maxx, maxy = parsed_bbox
+
+    sql = """
+        SELECT
+            road_id::text AS road_id,
+            source,
+            name,
+            road_class,
+            COALESCE(ST_Length(ST_Transform(geom, 31983)), 0)::double precision AS length_m,
+            ST_AsGeoJSON(geom)::text AS geometry_json
+        FROM map.urban_road_segment
+        WHERE (
+                CAST(:road_class AS TEXT) IS NULL
+                OR lower(COALESCE(road_class, '')) = lower(CAST(:road_class AS TEXT))
+            )
+          AND (
+                CAST(:minx AS double precision) IS NULL
+                OR ST_Intersects(
+                    geom,
+                    ST_MakeEnvelope(
+                        CAST(:minx AS double precision),
+                        CAST(:miny AS double precision),
+                        CAST(:maxx AS double precision),
+                        CAST(:maxy AS double precision),
+                        4326
+                    )
+                )
+            )
+        ORDER BY road_id
+        LIMIT :limit
+    """
+    try:
+        rows = db.execute(
+            text(sql),
+            {
+                "road_class": road_class,
+                "minx": minx,
+                "miny": miny,
+                "maxx": maxx,
+                "maxy": maxy,
+                "limit": limit,
+            },
+        ).mappings().all()
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Urban road layer is unavailable. Ensure urban SQL objects are applied "
+                "with scripts/init_db.py."
+            ),
+        ) from exc
+
+    items = [
+        UrbanRoadFeatureItem(
+            road_id=str(row["road_id"]),
+            source=str(row["source"]),
+            name=row.get("name"),
+            road_class=row.get("road_class"),
+            length_m=float(row.get("length_m") or 0.0),
+            geometry=_parse_geojson(row.get("geometry_json")),
+        )
+        for row in rows
+    ]
+    return UrbanRoadCollectionResponse(
+        generated_at_utc=datetime.now(tz=UTC),
+        count=len(items),
+        items=items,
+    )
+
+
+@router.get("/urban/pois", response_model=UrbanPoiCollectionResponse)
+def get_urban_pois(
+    bbox: str | None = Query(default=None, description="minx,miny,maxx,maxy in EPSG:4326."),
+    category: str | None = Query(default=None),
+    limit: int = Query(default=1000, ge=1, le=5000),
+    db: Session = Depends(get_db),
+) -> UrbanPoiCollectionResponse:
+    parsed_bbox = _parse_bbox(bbox)
+    minx = miny = maxx = maxy = None
+    if parsed_bbox is not None:
+        minx, miny, maxx, maxy = parsed_bbox
+
+    sql = """
+        SELECT
+            poi_id::text AS poi_id,
+            source,
+            name,
+            category,
+            subcategory,
+            ST_AsGeoJSON(geom)::text AS geometry_json
+        FROM map.urban_poi
+        WHERE (
+                CAST(:category AS TEXT) IS NULL
+                OR lower(COALESCE(category, '')) = lower(CAST(:category AS TEXT))
+            )
+          AND (
+                CAST(:minx AS double precision) IS NULL
+                OR ST_Intersects(
+                    geom,
+                    ST_MakeEnvelope(
+                        CAST(:minx AS double precision),
+                        CAST(:miny AS double precision),
+                        CAST(:maxx AS double precision),
+                        CAST(:maxy AS double precision),
+                        4326
+                    )
+                )
+            )
+        ORDER BY poi_id
+        LIMIT :limit
+    """
+    try:
+        rows = db.execute(
+            text(sql),
+            {
+                "category": category,
+                "minx": minx,
+                "miny": miny,
+                "maxx": maxx,
+                "maxy": maxy,
+                "limit": limit,
+            },
+        ).mappings().all()
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Urban POI layer is unavailable. Ensure urban SQL objects are applied "
+                "with scripts/init_db.py."
+            ),
+        ) from exc
+
+    items = [
+        UrbanPoiFeatureItem(
+            poi_id=str(row["poi_id"]),
+            source=str(row["source"]),
+            name=row.get("name"),
+            category=row.get("category"),
+            subcategory=row.get("subcategory"),
+            geometry=_parse_geojson(row.get("geometry_json")),
+        )
+        for row in rows
+    ]
+    return UrbanPoiCollectionResponse(
+        generated_at_utc=datetime.now(tz=UTC),
+        count=len(items),
+        items=items,
+    )
+
+
+@router.get("/urban/nearby-pois", response_model=UrbanNearbyPoisResponse)
+def get_urban_nearby_pois(
+    lon: float = Query(..., ge=-180.0, le=180.0),
+    lat: float = Query(..., ge=-90.0, le=90.0),
+    radius_m: float = Query(default=1000.0, gt=0.0, le=50000.0),
+    category: str | None = Query(default=None),
+    limit: int = Query(default=200, ge=1, le=2000),
+    db: Session = Depends(get_db),
+) -> UrbanNearbyPoisResponse:
+    sql = """
+        WITH center AS (
+            SELECT ST_SetSRID(ST_MakePoint(:lon, :lat), 4326) AS geom
+        )
+        SELECT
+            p.poi_id::text AS poi_id,
+            p.source,
+            p.name,
+            p.category,
+            p.subcategory,
+            ST_Distance(
+                p.geom::geography,
+                (SELECT geom FROM center)::geography
+            )::double precision AS distance_m,
+            ST_AsGeoJSON(p.geom)::text AS geometry_json
+        FROM map.urban_poi p
+        WHERE ST_DWithin(
+                p.geom::geography,
+                (SELECT geom FROM center)::geography,
+                CAST(:radius_m AS double precision)
+            )
+          AND (
+                CAST(:category AS TEXT) IS NULL
+                OR lower(COALESCE(p.category, '')) = lower(CAST(:category AS TEXT))
+            )
+        ORDER BY distance_m ASC, p.poi_id ASC
+        LIMIT :limit
+    """
+    try:
+        rows = db.execute(
+            text(sql),
+            {
+                "lon": lon,
+                "lat": lat,
+                "radius_m": radius_m,
+                "category": category,
+                "limit": limit,
+            },
+        ).mappings().all()
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Urban nearby search is unavailable. Ensure urban SQL objects are applied "
+                "with scripts/init_db.py."
+            ),
+        ) from exc
+
+    items = [
+        UrbanNearbyPoiItem(
+            poi_id=str(row["poi_id"]),
+            source=str(row["source"]),
+            name=row.get("name"),
+            category=row.get("category"),
+            subcategory=row.get("subcategory"),
+            distance_m=float(row.get("distance_m") or 0.0),
+            geometry=_parse_geojson(row.get("geometry_json")),
+        )
+        for row in rows
+    ]
+    return UrbanNearbyPoisResponse(
+        generated_at_utc=datetime.now(tz=UTC),
+        center={"lon": lon, "lat": lat},
+        radius_m=radius_m,
+        count=len(items),
+        items=items,
+    )
+
+
+@router.get("/urban/geocode", response_model=UrbanGeocodeResponse)
+def geocode_urban(
+    q: str = Query(..., min_length=2, max_length=120),
+    kind: str = Query(default="all", pattern="^(all|road|poi)$"),
+    limit: int = Query(default=20, ge=1, le=200),
+    db: Session = Depends(get_db),
+) -> UrbanGeocodeResponse:
+    query = q.strip()
+    if not query:
+        raise HTTPException(status_code=422, detail="Query cannot be empty.")
+    q_like = f"%{query}%"
+    q_prefix = f"{query}%"
+
+    sql = """
+        WITH ranked AS (
+            SELECT
+                'road'::text AS feature_type,
+                r.road_id::text AS feature_id,
+                r.source,
+                r.name,
+                r.road_class::text AS category,
+                NULL::text AS subcategory,
+                CASE
+                    WHEN lower(COALESCE(r.name, '')) = lower(CAST(:q AS TEXT)) THEN 3
+                    WHEN lower(COALESCE(r.name, '')) LIKE lower(CAST(:q_prefix AS TEXT)) THEN 2
+                    ELSE 1
+                END AS score,
+                ST_AsGeoJSON(ST_LineInterpolatePoint(r.geom, 0.5))::text AS geometry_json
+            FROM map.urban_road_segment r
+            WHERE lower(COALESCE(r.name, '')) LIKE lower(CAST(:q_like AS TEXT))
+
+            UNION ALL
+
+            SELECT
+                'poi'::text AS feature_type,
+                p.poi_id::text AS feature_id,
+                p.source,
+                p.name,
+                p.category::text AS category,
+                p.subcategory::text AS subcategory,
+                CASE
+                    WHEN lower(COALESCE(p.name, '')) = lower(CAST(:q AS TEXT)) THEN 3
+                    WHEN lower(COALESCE(p.name, '')) LIKE lower(CAST(:q_prefix AS TEXT)) THEN 2
+                    ELSE 1
+                END AS score,
+                ST_AsGeoJSON(p.geom)::text AS geometry_json
+            FROM map.urban_poi p
+            WHERE lower(COALESCE(p.name, '')) LIKE lower(CAST(:q_like AS TEXT))
+        )
+        SELECT
+            feature_type,
+            feature_id,
+            source,
+            name,
+            category,
+            subcategory,
+            score,
+            geometry_json
+        FROM ranked
+        WHERE (
+                CAST(:kind AS TEXT) = 'all'
+                OR feature_type = CAST(:kind AS TEXT)
+            )
+        ORDER BY score DESC, name ASC NULLS LAST
+        LIMIT :limit
+    """
+    try:
+        rows = db.execute(
+            text(sql),
+            {"q": query, "q_like": q_like, "q_prefix": q_prefix, "kind": kind, "limit": limit},
+        ).mappings().all()
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Urban geocoding is unavailable. Ensure urban SQL objects are applied "
+                "with scripts/init_db.py."
+            ),
+        ) from exc
+
+    items = [
+        UrbanGeocodeItem(
+            feature_type=str(row["feature_type"]),
+            feature_id=str(row["feature_id"]),
+            source=str(row["source"]),
+            name=row.get("name"),
+            category=row.get("category"),
+            subcategory=row.get("subcategory"),
+            score=int(row.get("score") or 0),
+            geometry=_parse_geojson(row.get("geometry_json")),
+        )
+        for row in rows
+    ]
+    return UrbanGeocodeResponse(
+        generated_at_utc=datetime.now(tz=UTC),
+        query=query,
+        count=len(items),
+        items=items,
+    )
+
+
 _LAYER_TO_LEVEL: dict[str, str] = {
     layer.id: layer.territory_level for layer in _LAYER_ITEMS
 }
@@ -355,7 +735,7 @@ def _tile_to_bbox(z: int, x: int, y: int) -> tuple[float, float, float, float]:
     responses={
         200: {"content": {"application/vnd.mapbox-vector-tile": {}}},
         204: {"description": "Empty tile"},
-        422: {"description": "Unknown layer"},
+        404: {"description": "Unknown layer"},
     },
 )
 def get_mvt_tile(
@@ -373,7 +753,7 @@ def get_mvt_tile(
 
     level = _LAYER_TO_LEVEL.get(layer)
     if level is None:
-        raise HTTPException(status_code=422, detail={"reason": "Unknown layer", "layer": layer})
+        raise HTTPException(status_code=404, detail={"reason": "Unknown layer", "layer": layer})
 
     tolerance_meters = _tolerance_for_zoom(z)
     use_indicator_join = metric is not None and period is not None
@@ -428,7 +808,7 @@ def get_mvt_tile(
         )
     else:
         sql = text(
-            """
+            f"""
             WITH tile_extent AS (
                 SELECT ST_TileEnvelope(:z, :x, :y) AS envelope
             ),
@@ -478,7 +858,22 @@ def get_mvt_tile(
         if domain:
             params["domain"] = domain
 
-    result = db.execute(sql, params).scalar()
+    try:
+        execution = db.execute(sql, params)
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Map tile backend is unavailable. Ensure map SQL objects are applied "
+                "with scripts/init_db.py."
+            ),
+        ) from exc
+
+    scalar_one_or_none = getattr(execution, "scalar_one_or_none", None)
+    if callable(scalar_one_or_none):
+        result = scalar_one_or_none()
+    else:
+        result = execution.scalar()
     mvt_bytes = bytes(result) if result else b""
 
     elapsed_ms = round((time.monotonic() - t0) * 1000, 1)
@@ -497,13 +892,14 @@ def get_mvt_tile(
     if not mvt_bytes:
         return Response(status_code=204)
 
-    etag = f'W/"{hashlib.md5(mvt_bytes, usedforsecurity=False).hexdigest()[:16]}"'
+    etag = f"\"{hashlib.sha256(mvt_bytes).hexdigest()}\""
     if request.headers.get("if-none-match") == etag:
         return Response(
             status_code=304,
             headers={
-                "Cache-Control": "public, max-age=3600",
+                "Cache-Control": "public, max-age=900",
                 "ETag": etag,
+                "X-Map-Layer": layer,
                 "Access-Control-Allow-Origin": "*",
             },
         )
@@ -512,8 +908,9 @@ def get_mvt_tile(
         content=mvt_bytes,
         media_type="application/vnd.mapbox-vector-tile",
         headers={
-            "Cache-Control": "public, max-age=3600",
+            "Cache-Control": "public, max-age=900",
             "ETag": etag,
+            "X-Map-Layer": layer,
             "Access-Control-Allow-Origin": "*",
             "X-Tile-Ms": str(elapsed_ms),
         },

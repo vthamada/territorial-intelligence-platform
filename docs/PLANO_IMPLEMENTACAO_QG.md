@@ -236,3 +236,13 @@ Entregar e estabilizar o QG estrategico municipal de Diamantina/MG, com:
    - **status 2026-02-13: CONCLUIDO** — thresholds revisados por fonte; MVP-5 corrigido de 0→1.
 4. Congelar contrato v1.0 do QG para operacao assistida.
 5. Planejar proximo ciclo incremental (novas fontes e refinamentos analiticos).
+
+## 10) Trilha oficial para nivel maximo de dados
+
+Backlog executavel:
+- `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`
+
+Regra de execucao:
+1. a trilha D0-D8 do backlog de dados passa a ser o caminho oficial de evolucao de robustez.
+2. qualquer nova fonte fora do backlog precisa de registro de justificativa e impacto.
+3. o status de cada sprint D* deve ser refletido em `docs/HANDOFF.md` e `docs/CHANGELOG.md`.

@@ -7,6 +7,7 @@ from pipelines.common.quality import (
     check_fact_indicator,
     check_fact_indicator_source_rows,
     check_map_layers,
+    check_urban_domain,
 )
 from pipelines.common.quality_thresholds import QualityThresholds
 
@@ -55,6 +56,8 @@ def _default_thresholds() -> QualityThresholds:
                 "min_rows_ana": 1,
                 "min_rows_anatel": 1,
                 "min_rows_aneel": 1,
+                "min_rows_cecad": 1,
+                "min_rows_censo_suas": 1,
             },
             "map_layers": {
                 "min_rows_municipality": 1,
@@ -67,6 +70,11 @@ def _default_thresholds() -> QualityThresholds:
                 "min_geometry_ratio_electoral_zone": 0.0,
                 "min_rows_electoral_section": 1,
                 "min_geometry_ratio_electoral_section": 0.0,
+            },
+            "urban_domain": {
+                "min_road_rows": 1,
+                "min_poi_rows": 1,
+                "max_invalid_geometry_rows": 0,
             },
         },
     )
@@ -133,9 +141,9 @@ def test_check_fact_indicator_warns_when_source_probe_rows_are_present() -> None
 
 
 def test_check_fact_indicator_source_rows_passes_when_sources_have_minimum_rows() -> None:
-    # Order: DATASUS, INEP, SICONFI, MTE, TSE, SIDRA, SENATRAN, SEJUSP_MG, SIOPS, SNIS,
-    #        INMET, INPE_QUEIMADAS, ANA, ANATEL, ANEEL
-    session = _SequenceSession([3, 2, 4, 1, 5, 2, 3, 1, 4, 5, 2, 2, 1, 1, 1])
+    # calls: DATASUS, INEP, SICONFI, MTE, TSE, SIDRA, SENATRAN, SEJUSP_MG, SIOPS, SNIS,
+    #        INMET, INPE_QUEIMADAS, ANA, ANATEL, ANEEL, CECAD, CENSO_SUAS
+    session = _SequenceSession([3, 2, 4, 1, 5, 2, 3, 1, 4, 5, 2, 2, 1, 1, 1, 2, 2])
 
     results = check_fact_indicator_source_rows(
         session=session,
@@ -159,14 +167,16 @@ def test_check_fact_indicator_source_rows_passes_when_sources_have_minimum_rows(
         "source_rows_ana",
         "source_rows_anatel",
         "source_rows_aneel",
+        "source_rows_cecad",
+        "source_rows_censo_suas",
     ]
     assert all(result.status == "pass" for result in results)
 
 
 def test_check_fact_indicator_source_rows_warns_when_source_is_below_threshold() -> None:
-    # Order: DATASUS, INEP, SICONFI, MTE, TSE, SIDRA, SENATRAN (0), SEJUSP_MG, SIOPS, SNIS,
-    #        INMET, INPE_QUEIMADAS, ANA, ANATEL, ANEEL
-    session = _SequenceSession([3, 2, 4, 1, 5, 2, 0, 1, 4, 5, 2, 2, 1, 1, 1])
+    # calls: DATASUS, INEP, SICONFI, MTE, TSE, SIDRA, SENATRAN, SEJUSP_MG, SIOPS, SNIS,
+    #        INMET, INPE_QUEIMADAS, ANA, ANATEL, ANEEL, CECAD, CENSO_SUAS
+    session = _SequenceSession([3, 2, 4, 1, 5, 2, 0, 1, 4, 5, 2, 2, 1, 1, 1, 1, 1])
 
     results = check_fact_indicator_source_rows(
         session=session,
@@ -190,6 +200,8 @@ def test_check_fact_indicator_source_rows_warns_when_source_is_below_threshold()
     assert by_name["source_rows_ana"].status == "pass"
     assert by_name["source_rows_anatel"].status == "pass"
     assert by_name["source_rows_aneel"].status == "pass"
+    assert by_name["source_rows_cecad"].status == "pass"
+    assert by_name["source_rows_censo_suas"].status == "pass"
 
 
 def test_check_map_layers_returns_expected_checks_and_passes() -> None:
@@ -238,3 +250,29 @@ def test_check_map_layers_fails_required_and_warns_optional_layers() -> None:
     assert by_name["map_layer_geometry_ratio_electoral_zone"].status == "pass"
     assert by_name["map_layer_rows_electoral_section"].status == "warn"
     assert by_name["map_layer_geometry_ratio_electoral_section"].status == "pass"
+
+
+def test_check_urban_domain_applies_row_and_geometry_thresholds() -> None:
+    # calls: roads_rows, roads_invalid, pois_rows, pois_invalid
+    session = _SequenceSession([10, 0, 5, 0])
+
+    results = check_urban_domain(session, _default_thresholds())
+
+    by_name = {result.name: result for result in results}
+    assert by_name["urban_roads_rows_after_filter"].status == "pass"
+    assert by_name["urban_roads_invalid_geometry_rows"].status == "pass"
+    assert by_name["urban_pois_rows_after_filter"].status == "pass"
+    assert by_name["urban_pois_invalid_geometry_rows"].status == "pass"
+
+
+def test_check_urban_domain_warns_and_fails_when_thresholds_are_violated() -> None:
+    # calls: roads_rows, roads_invalid, pois_rows, pois_invalid
+    session = _SequenceSession([0, 2, 0, 1])
+
+    results = check_urban_domain(session, _default_thresholds())
+
+    by_name = {result.name: result for result in results}
+    assert by_name["urban_roads_rows_after_filter"].status == "warn"
+    assert by_name["urban_roads_invalid_geometry_rows"].status == "fail"
+    assert by_name["urban_pois_rows_after_filter"].status == "warn"
+    assert by_name["urban_pois_invalid_geometry_rows"].status == "fail"

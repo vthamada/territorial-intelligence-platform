@@ -1,8 +1,104 @@
 # Territorial Intelligence Platform - Handoff
 
-Data de referencia: 2026-02-13
+Data de referencia: 2026-02-18
 Planejamento principal: `PLANO.md`
 Contrato tecnico principal: `CONTRATO.md`
+
+## Atualizacao tecnica (2026-02-18) - Robustez de banco
+
+- Hardening de cobertura territorial concluido no backend:
+  - `tse_electorate_fetch` agora grava eleitorado municipal e por zona eleitoral (com upsert em `dim_territory` nivel `electoral_zone`).
+  - `ibge_geometries_fetch` agora grava `IBGE_GEOMETRY_AREA_KM2` em `silver.fact_indicator` para `municipality`, `district` e `census_sector`.
+- Backfill robusto executado com sucesso:
+  - comando (historico eleitoral): `scripts/backfill_robust_database.py --tse-years 2024,2022,2020,2018,2016 --indicator-periods 2025`.
+  - comando (multianual indicadores): `scripts/backfill_robust_database.py --skip-wave1 --skip-tse --indicator-periods 2025,2024,2023,2022,2021`.
+  - relatorio: `data/reports/robustness_backfill_report.json`.
+  - cobertura eleitoral consolidada:
+    - `fact_electorate`: `5` anos distintos (`2016`-`2024`) e `3562` linhas.
+    - `fact_election_result`: `5` anos distintos (`2016`-`2024`), `180` linhas totais e `90` por zona eleitoral.
+- Qualidade apos backfill:
+  - scorecard atualizado em `data/reports/data_coverage_scorecard.json`: `pass=10`, `warn=1`.
+  - `backend_readiness`: `READY`, `hard_failures=0`, `warnings=0`.
+  - `indicator_distinct_periods`: `5` (`pass`) e `implemented_runs_success_pct_7d`: `95.36` (`pass`).
+  - `implemented_connectors_pct`: `91.67` (`warn`) por entrada de 2 conectores sociais em `partial`.
+- Sprint D0 da trilha de robustez maxima concluido:
+  - `BD-001`: DoD de robustez maxima oficializado no `docs/CONTRATO.md`.
+  - `BD-002`: scorecard SQL versionado em `ops.v_data_coverage_scorecard` + export em `scripts/export_data_coverage_scorecard.py`.
+  - `BD-003`: runbook semanal publicado em `docs/RUNBOOK_ROBUSTEZ_DADOS_SEMANAL.md`.
+  - baseline semanal gerado em `data/reports/data_coverage_scorecard.json`.
+- Sprint D1 concluido:
+  - `BD-010`: historico TSE carregado para `2024,2022,2020,2018,2016`.
+  - `BD-011`: checks de integridade de `electoral_zone` ativos (`count`, `orphans`, `canonical_key`).
+  - `BD-012`: checks de continuidade temporal ativos (`max_year_gap` e `source_periods_*`).
+  - aceite D1 atendido:
+    - `fact_electorate` com `>=5` anos (`pass`).
+    - `fact_election_result` com `>=5` anos (`pass`).
+    - cobertura de `electoral_zone` em `pass` sem excecao.
+- Sprint D2 iniciado com entrega tecnica base:
+  - migration `db/sql/008_social_domain.sql` com:
+    - `silver.fact_social_protection`
+    - `silver.fact_social_assistance_network`
+  - conectores sociais implementados:
+    - `cecad_social_protection_fetch`
+    - `censo_suas_fetch`
+  - helper comum criado em `src/pipelines/common/social_tabular_connector.py`.
+  - endpoints sociais publicados:
+    - `GET /v1/social/protection`
+    - `GET /v1/social/assistance-network`
+  - checks sociais adicionados no `quality_suite`.
+  - status atual dos conectores sociais em `ops.connector_registry`: `partial` (aguardando fonte governada estavel).
+  - paths de fallback manual para ativacao controlada:
+    - `data/manual/cecad/`
+    - `data/manual/censo_suas/`
+- Sprint D2 consolidado com ciclo operacional social:
+  - comando executado:
+    - `scripts/backfill_robust_database.py --skip-wave1 --skip-tse --skip-wave4 --skip-wave5 --include-wave6 --indicator-periods 2014,2015,2016,2017 --output-json data/reports/robustness_backfill_report.json`.
+  - resultado:
+    - `censo_suas_fetch`: `success` em `2014..2017`.
+    - `cecad_social_protection_fetch`: `blocked` em `2014..2017` (esperado sem acesso governado).
+  - estado de dados apos ciclo:
+    - `silver.fact_social_assistance_network`: `4` linhas (`2014..2017`).
+    - `silver.fact_social_protection`: `0` linhas (pendencia externa de acesso CECAD).
+  - cobertura e readiness revalidados:
+    - `data/reports/data_coverage_scorecard.json`: `pass=10`, `warn=1`.
+    - `scripts/backend_readiness.py --output-json`: `READY`, `hard_failures=0`, `warnings=0`.
+- Encaminhamento:
+  - D2 fechado tecnicamente com ressalva de governanca CECAD.
+  - frente ativa passa para D3 (`BD-030`, `BD-031`, `BD-032`) com foco em vias, POIs e geocodificacao local.
+- Sprint D3 iniciado com incremento tecnico base (backend):
+  - migration `db/sql/009_urban_domain.sql` aplicada com objetos:
+    - `map.urban_road_segment`
+    - `map.urban_poi`
+    - `map.v_urban_data_coverage`
+  - novos endpoints urbanos publicados:
+    - `GET /v1/map/urban/roads`
+    - `GET /v1/map/urban/pois`
+    - `GET /v1/map/urban/nearby-pois`
+  - validacao tecnica:
+    - `scripts/init_db.py`: `Applied 9 SQL scripts`.
+    - `pytest (contracts + api_contract)`: `18 passed`.
+    - `backend_readiness`: `READY`, `hard_failures=0`, `warnings=0`.
+- Sprint D3 avancado para ingestao e geocodificacao local (2026-02-19):
+  - conectores urbanos implementados e integrados:
+    - `urban_roads_fetch` (`src/pipelines/urban_roads.py`)
+    - `urban_pois_fetch` (`src/pipelines/urban_pois.py`)
+  - catalogos urbanos adicionados:
+    - `configs/urban_roads_catalog.yml`
+    - `configs/urban_pois_catalog.yml`
+  - orquestracao atualizada:
+    - `run_mvp_all` inclui jobs urbanos.
+    - novo fluxo `run_mvp_wave_7`.
+    - `configs/jobs.yml` e `configs/waves.yml` incluem `MVP-7`.
+    - `scripts/backfill_robust_database.py` com flag `--include-wave7`.
+  - API urbana ampliada:
+    - novo endpoint `GET /v1/map/urban/geocode`.
+  - qualidade ampliada:
+    - `quality_suite` executa `check_urban_domain`.
+    - thresholds urbanos em `configs/quality_thresholds.yml`.
+  - scorecard de cobertura ampliado:
+    - `urban_road_rows` e `urban_poi_rows` em `ops.v_data_coverage_scorecard`.
+  - validacao deste incremento:
+    - `pytest` focado em connectors/map/quality/flows/contracts: `40 passed`.
 
 ## Governanca documental consolidada (2026-02-13)
 
@@ -453,6 +549,22 @@ Contrato tecnico principal: `CONTRATO.md`
    para evitar divergencia de leitura entre scripts, API e frontend.
 4. Avancar no fechamento de UX/QG (error boundaries por rota + mensagens de estado)
    antes do go-live controlado.
+
+## Proximos passos imediatos (trilha de robustez maxima de dados)
+
+Backlog oficial:
+- `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`
+
+Sprint atual recomendado:
+1. Executar Sprint D3 com foco em `BD-030`, `BD-031` e `BD-032`.
+2. Publicar schema/indices espaciais para vias e logradouros, com consulta por `bbox`.
+3. Publicar camada de POIs essenciais e endpoint de busca espacial por raio/bbox.
+4. Manter D2 com ressalva operacional aberta:
+   - `cecad_social_protection_fetch` depende de liberacao de acesso governado no CECAD.
+5. Para abertura/atualizacao rapida no GitHub:
+   - revisar `docs/GITHUB_ISSUES_BACKLOG_DADOS_NIVEL_MAXIMO.md`;
+   - opcionalmente executar
+     `powershell -ExecutionPolicy Bypass -File scripts/create_github_issues_backlog_dados.ps1 -Repo vthamada/territorial-intelligence-platform -Apply`.
 
 ## 1) O que foi implementado ate agora
 
