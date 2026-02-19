@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { formatApiError } from "../../../shared/api/http";
@@ -65,6 +65,8 @@ export function QgPrioritiesPage() {
   const [appliedOnlyCritical, setAppliedOnlyCritical] = useState(initialOnlyCritical);
   const [appliedSortBy, setAppliedSortBy] = useState<PrioritySort>(initialSortBy);
   const [appliedLimit, setAppliedLimit] = useState("24");
+  const [pageSize, setPageSize] = useState("24");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const query = useMemo(
     () => ({
@@ -88,6 +90,7 @@ export function QgPrioritiesPage() {
     setAppliedOnlyCritical(onlyCritical);
     setAppliedSortBy(sortBy);
     setAppliedLimit(limit);
+    setCurrentPage(1);
   }
 
   function clearFilters() {
@@ -103,6 +106,8 @@ export function QgPrioritiesPage() {
     setAppliedOnlyCritical(false);
     setAppliedSortBy("criticality_desc");
     setAppliedLimit("24");
+    setPageSize("24");
+    setCurrentPage(1);
   }
 
   const priorities = prioritiesQuery.data;
@@ -135,6 +140,22 @@ export function QgPrioritiesPage() {
     if (appliedLevel) tokens.push(`Nivel ${formatLevelLabel(appliedLevel)}`);
     return tokens;
   }, [appliedDomain, appliedLevel, appliedOnlyCritical, appliedPeriod]);
+  const normalizedPageSize = Math.max(1, Number(pageSize) || 24);
+  const totalPages = Math.max(1, Math.ceil(sortedItems.length / normalizedPageSize));
+  const visibleItems = useMemo(() => {
+    const start = (currentPage - 1) * normalizedPageSize;
+    return sortedItems.slice(start, start + normalizedPageSize);
+  }, [currentPage, normalizedPageSize, sortedItems]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [pageSize]);
 
   if (prioritiesQuery.isPending) {
     return (
@@ -279,20 +300,55 @@ export function QgPrioritiesPage() {
           <button type="button" className="button-secondary" onClick={exportCsv} disabled={sortedItems.length === 0}>
             Exportar CSV
           </button>
+          <label>
+            Itens por pagina
+            <select
+              aria-label="Itens por pagina"
+              value={pageSize}
+              onChange={(event) => setPageSize(event.target.value)}
+            >
+              <option value="12">12</option>
+              <option value="24">24</option>
+              <option value="48">48</option>
+            </select>
+          </label>
         </div>
         <p className="priority-summary">
-          Mostrando {sortedItems.length} de {priorities!.items.length} prioridade(s).
+          Mostrando {visibleItems.length} de {sortedItems.length} prioridade(s) filtradas ({priorities!.items.length} no retorno bruto).
           {activeFilterSummary.length > 0 ? ` Filtros ativos: ${activeFilterSummary.join(" | ")}.` : ""}
         </p>
         {sortedItems.length === 0 ? (
           <StateBlock tone="empty" title="Sem prioridades" message="Nenhuma prioridade encontrada para os filtros aplicados." />
         ) : (
           <div className="priority-card-grid" role="list" aria-label="Lista de prioridades">
-            {sortedItems.map((item) => (
+            {visibleItems.map((item) => (
               <PriorityItemCard key={`${item.territory_id}-${item.indicator_code}`} item={item} />
             ))}
           </div>
         )}
+        {sortedItems.length > normalizedPageSize ? (
+          <div className="pagination-row" aria-label="Paginacao de prioridades">
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={currentPage <= 1}
+            >
+              Anterior
+            </button>
+            <span>
+              Pagina {currentPage} de {totalPages}
+            </span>
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+              disabled={currentPage >= totalPages}
+            >
+              Proxima
+            </button>
+          </div>
+        ) : null}
       </Panel>
     </main>
   );

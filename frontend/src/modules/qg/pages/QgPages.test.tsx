@@ -450,6 +450,63 @@ describe("QG pages", () => {
     );
   });
 
+  it("paginates priority cards when result set is large", async () => {
+    vi.mocked(getPriorityList).mockResolvedValue({
+      period: "2025",
+      level: "municipio",
+      domain: null,
+      metadata: {
+        source_name: "silver.fact_indicator",
+        updated_at: null,
+        coverage_note: "territorial_aggregated",
+        unit: null,
+        notes: null
+      },
+      items: Array.from({ length: 30 }, (_, index) => {
+        const itemNumber = index + 1;
+        return {
+          territory_id: "3121605",
+          territory_name: "Diamantina",
+          territory_level: "municipio",
+          domain: "saude",
+          indicator_code: `INDICADOR_${itemNumber}`,
+          indicator_name: `Indicador ${itemNumber}`,
+          value: itemNumber,
+          unit: "%",
+          score: 101 - itemNumber,
+          trend: "stable",
+          status: "critical",
+          rationale: [`Racional ${itemNumber}`],
+          evidence: {
+            indicator_code: `INDICADOR_${itemNumber}`,
+            reference_period: "2025",
+            source: "DATASUS",
+            dataset: "datasus_health"
+          }
+        };
+      })
+    });
+
+    renderWithQueryClient(<QgPrioritiesPage />);
+    await waitFor(() => expect(getPriorityList).toHaveBeenCalledTimes(1));
+    await screen.findByText((_, element) => element?.textContent?.trim() === "Saude | Indicador 1");
+
+    expect(screen.getByText("Pagina 1 de 2")).toBeInTheDocument();
+    expect(
+      screen.queryByText((_, element) => element?.textContent?.trim() === "Saude | Indicador 30")
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Proxima" }));
+
+    expect(screen.getByText("Pagina 2 de 2")).toBeInTheDocument();
+    expect(
+      screen.getByText((_, element) => element?.textContent?.trim() === "Saude | Indicador 30")
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText((_, element) => element?.textContent?.trim() === "Saude | Indicador 1")
+    ).not.toBeInTheDocument();
+  });
+
   it("applies choropleth filters only on submit", async () => {
     renderWithQueryClient(<QgMapPage />);
     await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));

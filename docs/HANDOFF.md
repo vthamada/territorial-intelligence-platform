@@ -16,6 +16,22 @@ Contrato tecnico principal: `CONTRATO.md`
   - nao abrir nova frente enquanto houver pendencia critica em UX, dados ou contrato tecnico da etapa corrente.
   - qualquer item novo fora da trilha principal entra como backlog, sem interromper o fechamento da etapa em andamento.
 
+## Atualizacao tecnica (2026-02-19) - QG Prioridades (paginacao)
+
+- `frontend/src/modules/qg/pages/QgPrioritiesPage.tsx`:
+  - lista de prioridades passou a suportar paginacao client-side com:
+    - seletor `Itens por pagina` (`12`, `24`, `48`);
+    - controles `Anterior`/`Proxima`;
+    - indicador `Pagina X de Y`.
+  - pagina atual reinicia ao aplicar/limpar filtros e ao alterar tamanho de pagina.
+  - resumo da lista agora evidencia `visiveis`, `filtradas` e `retorno bruto`.
+- `frontend/src/modules/qg/pages/QgPages.test.tsx`:
+  - novo teste de regressao para cenario com `30` prioridades, validando navegacao entre paginas.
+- Validacao executada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `19 passed`.
+  - `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx src/modules/territory/pages/TerritoryProfilePage.test.tsx src/app/router.smoke.test.tsx src/app/e2e-flow.test.tsx` -> `11 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+
 ## Atualizacao tecnica (2026-02-19) - Estabilizacao de telas criticas
 
 - `Territorio 360`:

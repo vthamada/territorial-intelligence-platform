@@ -5,6 +5,13 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 ## 2026-02-19
 
 ### Changed
+- Frontend QG Prioridades:
+  - lista priorizada agora suporta paginacao client-side com controles `Anterior`/`Proxima`, indicador `Pagina X de Y` e seletor `Itens por pagina` (`12`, `24`, `48`) em `frontend/src/modules/qg/pages/QgPrioritiesPage.tsx`.
+  - pagina atual e tamanho de pagina resetam de forma previsivel ao aplicar/limpar filtros.
+  - cobertura de regressao adicionada em `frontend/src/modules/qg/pages/QgPages.test.tsx` para cenario com volume alto de cards (`30` itens).
+  - validacao executada:
+    - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `19 passed`.
+    - `npm --prefix frontend run build` -> `OK`.
 - Sprint D3 avancou do contrato para ingestao operacional:
   - novos conectores urbanos implementados:
     - `src/pipelines/urban_roads.py` (`urban_roads_fetch`)
