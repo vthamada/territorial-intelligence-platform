@@ -93,6 +93,26 @@ function resolveBasemapTileUrl(mode: BasemapMode, urls?: BasemapTileUrls): strin
   return mode === "light" ? merged.light : merged.streets;
 }
 
+function resolvePolygonFillOpacity(mode: BasemapMode): number {
+  if (mode === "none") {
+    return 0.75;
+  }
+  if (mode === "light") {
+    return 0.42;
+  }
+  return 0.34;
+}
+
+function resolveBoundaryPaint(mode: BasemapMode): { color: string; width: number } {
+  if (mode === "none") {
+    return { color: "#6b7280", width: 0.5 };
+  }
+  if (mode === "light") {
+    return { color: "rgba(15, 23, 42, 0.55)", width: 0.9 };
+  }
+  return { color: "rgba(15, 23, 42, 0.65)", width: 1.1 };
+}
+
 function safeEaseTo(map: maplibregl.Map, options: { center?: [number, number]; zoom?: number; duration?: number; essential?: boolean }) {
   const maybeMap = map as maplibregl.Map & {
     easeTo?: (next: { center?: [number, number]; zoom?: number; duration?: number; essential?: boolean }) => void;
@@ -310,6 +330,8 @@ export function VectorMap({
 
       const tileUrl = buildTileUrl(tileBaseUrl, layerId, metric, period, domain);
       const basemapTileUrl = resolveBasemapTileUrl(basemapMode, basemapTileUrls);
+      const polygonFillOpacity = resolvePolygonFillOpacity(basemapMode);
+      const boundaryPaint = resolveBoundaryPaint(basemapMode);
 
       detachInteractions(map);
 
@@ -374,7 +396,7 @@ export function VectorMap({
             "source-layer": layerId,
             paint: {
               "fill-color": buildFillColor(colorStops),
-              "fill-opacity": 0.75,
+              "fill-opacity": polygonFillOpacity,
             },
           });
           map.addLayer({
@@ -383,8 +405,8 @@ export function VectorMap({
             source: SOURCE_ID,
             "source-layer": layerId,
             paint: {
-              "line-color": "#6b7280",
-              "line-width": 0.5,
+              "line-color": boundaryPaint.color,
+              "line-width": boundaryPaint.width,
             },
           });
         } else if (effectiveVizMode === "points") {
@@ -446,7 +468,7 @@ export function VectorMap({
                 "#d97706",
                 "rgba(0,0,0,0.05)",
               ] as maplibregl.ExpressionSpecification,
-              "fill-opacity": 0.7,
+              "fill-opacity": polygonFillOpacity,
             },
           });
           map.addLayer({
@@ -455,8 +477,8 @@ export function VectorMap({
             source: SOURCE_ID,
             "source-layer": layerId,
             paint: {
-              "line-color": "#6b7280",
-              "line-width": 0.5,
+              "line-color": boundaryPaint.color,
+              "line-width": boundaryPaint.width,
             },
           });
         }

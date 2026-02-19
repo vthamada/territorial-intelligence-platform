@@ -195,6 +195,9 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
     - quando o ano filtrado nao possui dados, a tela aplica fallback automatico para o ultimo ano disponivel.
     - aviso de fallback explicito exibido para transparencia operacional.
     - evita painel executivo zerado/sem contexto no recorte filtrado sem dados.
+- Mapa vetorial executivo com melhor leitura sobre mapa-base:
+  - `frontend/src/shared/ui/VectorMap.tsx` ajustado para opacidade adaptativa de poligonos por basemap (`streets`, `light`, `none`).
+  - contorno territorial adaptativo por modo de basemap para preservar limites sem esconder vias/contexto urbano.
 
 ### Tests
 - Frontend:

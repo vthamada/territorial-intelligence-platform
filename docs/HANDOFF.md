@@ -26,6 +26,9 @@ Contrato tecnico principal: `CONTRATO.md`
   - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` passou a aplicar fallback automatico para o ultimo ano com dados quando o ano filtrado retorna vazio.
   - aviso explicito de fallback exibido na tela, mantendo leitura executiva (KPIs/tabela/composicao) sem tela morta.
   - cobertura de teste ampliada em `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx`.
+- `Mapa executivo`:
+  - `frontend/src/shared/ui/VectorMap.tsx` com opacidade de preenchimento e contorno territorial adaptativos por basemap.
+  - objetivo: reduzir efeito de "bloco chapado" do coropletico e preservar contexto de navegacao no mapa-base.
 - Validacao executada:
   - `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx src/modules/territory/pages/TerritoryProfilePage.test.tsx src/app/router.smoke.test.tsx src/app/e2e-flow.test.tsx` -> `11 passed`.
   - `npm --prefix frontend run build` -> `OK`.
