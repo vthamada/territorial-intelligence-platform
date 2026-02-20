@@ -7,6 +7,15 @@ Status deste documento: snapshot historico de criacao de issues.
 > Fonte oficial de status das tarefas: GitHub Issues/Projects.  
 > Os checklists deste arquivo podem estar defasados e devem ser usados apenas como referencia de escopo inicial.
 
+## Uso atual (para evitar trilhas paralelas)
+
+1. Este arquivo nao define ordem operacional diaria.
+2. Ordem operacional diaria:
+   - `docs/PLANO_IMPLEMENTACAO_QG.md` (fila ativa e sequencia).
+   - `docs/HANDOFF.md` (estado corrente da trilha ativa).
+3. Este snapshot representa o pacote original de abertura; pode nao refletir expansoes posteriores (ex.: BD-033+ no D3).
+4. Sempre priorizar o card/issue vivo no GitHub Project em vez do checklist local deste arquivo.
+
 ## Como usar
 1. Crie labels (se ainda nao existirem):
    - `area:data`

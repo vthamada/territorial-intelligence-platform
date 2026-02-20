@@ -4,6 +4,47 @@ Data de referencia: 2026-02-20
 Status: execucao ativa (fase de estabilizacao UX/mapa + go-live controlado)  
 Escopo: plano executavel para consolidar QG estrategico em producao com dados reais.
 
+## 0) Regra de foco operacional (WIP=1)
+
+1. Fila ativa unica de implementacao:
+   - trilha corrente: D3 / BD-033 (estabilizacao final de UX/mapa executivo) encerrada em 2026-02-20 (`issue #28` fechada).
+   - proxima trilha ativa: a definir (WIP=1, sem execucao paralela).
+2. Enquanto a trilha ativa nao fechar gate de saida, nao iniciar:
+   - D4, D5, D6, D7, D8;
+   - novas frentes de fonte/conector fora do escopo corrente;
+   - refinamentos nao criticos sem impacto direto no gate atual.
+3. Fonte unica de sequencia de execucao:
+   - este arquivo (secoes `5` e `9`).
+   - `docs/HANDOFF.md` registra apenas estado corrente e proximo passo imediato da mesma trilha.
+4. Demais documentos (`PLANO.md`, `BACKLOG_DADOS_NIVEL_MAXIMO.md`, `PLANO_FONTES_DADOS_DIAMANTINA.md`) sao norte macro/catalogo e nao devem abrir fila paralela no ciclo diario.
+
+## 0.1) Mapa de governanca documental (fonte unica)
+
+1. `docs/CONTRATO.md`:
+   - papel: requisitos tecnicos obrigatorios.
+   - pode abrir implementacao nova? nao.
+2. `docs/PLANO_IMPLEMENTACAO_QG.md`:
+   - papel: fila ativa, sequencia e criterio de aceite da rodada.
+   - pode abrir implementacao nova? sim (fonte unica).
+3. `docs/HANDOFF.md`:
+   - papel: estado corrente da trilha ativa + evidencias recentes.
+   - pode abrir implementacao nova? nao (apenas refletir fila do plano executavel).
+4. `docs/CHANGELOG.md`:
+   - papel: historico do que foi entregue e validado.
+   - pode abrir implementacao nova? nao.
+5. `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`:
+   - papel: backlog tecnico macro D0-D8.
+   - pode abrir implementacao nova? nao, sem passagem pelo plano executavel.
+6. `docs/PLANO.md`:
+   - papel: estrategia macro de fases.
+   - pode abrir implementacao nova? nao.
+7. `docs/PLANO_FONTES_DADOS_DIAMANTINA.md`:
+   - papel: catalogo de fontes e direcao de integracao.
+   - pode abrir implementacao nova? nao.
+8. `docs/GITHUB_ISSUES_BACKLOG_DADOS_NIVEL_MAXIMO.md`:
+   - papel: snapshot/template historico de issues.
+   - pode abrir implementacao nova? nao; status vivo fica no GitHub Project.
+
 ## 1) Objetivo
 
 Entregar e estabilizar o QG estrategico municipal de Diamantina/MG, com:
@@ -116,6 +157,21 @@ Entregar e estabilizar o QG estrategico municipal de Diamantina/MG, com:
 4. Validacao consolidada:
    - backend: `55 passed` (rotas qg/tse + mvt/cache).
    - frontend: `72 passed` + build `OK`.
+5. Revalidacao operacional (2026-02-20 - ciclo atual):
+   - gate BD-033 reexecutado:
+     - backend: `29 passed` + `26 passed`;
+     - frontend: `78 passed` + build `OK`.
+   - fase 2 executada:
+     - scorecard exportado em `data/reports/data_coverage_scorecard.json` (`pass=5`, `warn=8`);
+     - readiness `READY` (`hard_failures=0`, `warnings=0`);
+     - benchmark urbano `ALL PASS` em `data/reports/benchmark_urban_map.json` (p95 entre `103.7ms` e `123.5ms`).
+6. Hotfix de UX de mapa (2026-02-20 - pos-gate):
+   - contraste corrigido para botoes de `Modo de visualizacao` e `Mapa base` no frontend;
+   - toggle da sidebar da Home com texto legivel;
+   - layout dominante ajustado para eliminar faixa vazia sob o mapa;
+   - piso de zoom contextual aplicado no carregamento do mapa para evitar `z0`;
+   - painel de filtros da Home reposicionado para coluna lateral dedicada no desktop (sem sobrepor o mapa);
+   - alinhamento interno dos controles do painel revisado (acoes, mapa base, navegacao) com correcao de overflow textual em cards.
 
 ## 4) Status por sprint
 
@@ -143,6 +199,10 @@ Entregar e estabilizar o QG estrategico municipal de Diamantina/MG, com:
    - expor `local_votacao` com toggle/legenda/tooltip;
    - manter transparencia de `official/proxy/hybrid` nas camadas.
 4. Executar homologacao ponta a ponta com dados reais e registrar evidencia unica em `docs/HANDOFF.md`.
+5. Executar backlog UX executivo unificado em ciclo unico:
+   - fonte de execucao: `docs/BACKLOG_UX_EXECUTIVO_QG.md`;
+   - ordem obrigatoria: `P0 -> P1 -> P2`;
+   - sem abrir nova frente antes de concluir os itens `UX-P0-*`.
 
 ## 5.2 Prioridade media
 

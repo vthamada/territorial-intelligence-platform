@@ -16,7 +16,10 @@ Escopo deste arquivo: governanca de execucao, fases, prioridades e sequencia de 
 8. `PLANO_FONTES_DADOS_DIAMANTINA.md`: catalogo e priorizacao de fontes; status operacional corrente fica em `HANDOFF.md`.
 9. `BACKLOG_DADOS_NIVEL_MAXIMO.md`: backlog tecnico executavel para atingir robustez maxima de base de dados.
 
-Regra: este arquivo nao detalha estado diario; ele define como executar e priorizar.
+Regra: este arquivo nao detalha estado diario; ele define estrategia macro de execucao.
+Regra complementar de foco:
+1. fila operacional diaria e sequencia de sprint ficam exclusivamente em `docs/PLANO_IMPLEMENTACAO_QG.md` (secoes `5` e `9`);
+2. estado corrente e proximo passo imediato ficam exclusivamente em `docs/HANDOFF.md`.
 
 ## 2) Estrategia por ondas (MVP)
 
@@ -99,7 +102,11 @@ Aceite:
 2. documentacao de operacao e limites atualizada.
 3. release com evidencias em `CHANGELOG.md` + `HANDOFF.md`.
 
-## 4) Prioridades atuais (ordem)
+## 4) Prioridades macro (ordem)
+
+Nota:
+1. esta secao nao e backlog de sprint;
+2. uso operacional diario deve seguir a trilha unica definida em `docs/PLANO_IMPLEMENTACAO_QG.md`.
 
 P0:
 1. Fechar homologacao ponta a ponta com dados reais.

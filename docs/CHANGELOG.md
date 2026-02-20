@@ -2,9 +2,99 @@
 
 Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-20 — Fase UX-P0 (auditoria visual completa)
+
+### Fixed (frontend — presentation.ts)
+- UX-P0-01: `formatValueWithUnit()` agora mapeia unidades corretamente: `count` → sem unidade, `percent` → `%`, `ratio` → sem unidade, `C` → `°C`, `m3/s` → `m³/s`, `mm`/`ha`/`km`/`kwh` com simbolos corretos.
+- UX-P0-02: Novos helpers `humanizeSourceName()`, `humanizeCoverageNote()`, `humanizeDatasetSource()` — convertem nomes tecnicos de tabelas/datasets em labels legiveis.
+
+### Fixed (frontend — SourceFreshnessBadge.tsx)
+- UX-P0-03: `source_name` humanizado — "silver.fact_indicator" → "Indicadores consolidados", "silver.fact_electorate" → "Eleitorado consolidado".
+- UX-P0-04: `coverage_note` humanizado — "territorial_aggregated" → "Agregado territorial".
+
+### Fixed (frontend — QgOverviewPage.tsx)
+- UX-P0-05: "SVG fallback" renomeado para "Modo simplificado" (consistente com QgMapPage).
+- UX-P0-06: Coluna "Codigo" removida da tabela KPIs executivos — mostra apenas Dominio/Indicador/Valor/Nivel.
+- UX-P0-07: Coluna "Fonte" e "Codigo" removidas da tabela KPIs; coluna "Metrica de mapa" removida de Dominios Onda B/C.
+
+### Fixed (frontend — QgInsightsPage.tsx)
+- UX-P0-08: Severidade traduzida no badge do insight — `{item.severity}` → `{formatStatusLabel(item.severity)}`.
+- UX-P0-09: Fonte/dataset humanizados — `{source}/{dataset}` → `humanizeDatasetSource()`.
+
+### Fixed (frontend — QgBriefsPage.tsx)
+- UX-P0-10: Brief ID removido do subtitulo e do export HTML — substituido por "Gerado em {data}".
+- UX-P0-11: "Linha N" substituido por "Ponto N" no resumo executivo.
+- UX-P0-12: Coluna Fonte na tabela de evidencias e no export HTML agora usa `humanizeDatasetSource()`.
+
+### Fixed (frontend — QgScenariosPage.tsx)
+- UX-P0-13: Subtitulo usa `indicator_name` em vez de `indicator_code`.
+- UX-P0-14: "Leitura N" substituido por "Analise N" nas explicacoes.
+- UX-P0-15: Label do campo de indicador alterado de "Codigo do indicador" para "Indicador".
+
+### Fixed (frontend — TerritoryProfilePage.tsx)
+- UX-P0-16: Coluna "Codigo" removida da tabela de indicadores — mostra apenas Dominio/Indicador/Periodo/Valor.
+
+### Fixed (frontend — ElectorateExecutivePage.tsx)
+- UX-P0-17: "Total eleitores: 0" quando sem dados substituido por "-".
+
+### Fixed (frontend — PriorityItemCard.tsx)
+- UX-P0-18: Evidencia mostra `humanizeDatasetSource()` em vez de `{source} / {dataset}`.
+
+### Fixed (frontend — QgMapPage.tsx)
+- UX-P0-19: Label "Codigo do indicador" alterado para "Indicador" com placeholder descritivo.
+- UX-P0-20: Coluna "Metrica" removida da tabela de ranking (redundante — todas as linhas usam a metrica filtrada).
+
+### Fixed (backend — routes_qg.py)
+- UX-P0-21: `_format_highlight_value()` agora trata `percent` → `%`, `count` → sem unidade, `ratio` → sem unidade, `C` → `°C`, `m3/s` → `m³/s`.
+- UX-P0-22: Explicacao de cenarios usa `_format_highlight_value()` para valores e traduz `impact` para pt-BR ("melhora"/"piora"/"inalterado").
+
+### Changed (testes)
+- `SourceFreshnessBadge.test.tsx`: assertions atualizadas para labels humanizados.
+- `QgPages.test.tsx`: label "Codigo do indicador" atualizado para "Indicador".
+
+### Validacao
+- Backend: `55 passed` (29 qg_routes/tse_electorate + 26 mvt_tiles/cache_middleware).
+- Frontend: `78 passed`, build OK.
+
+## 2026-02-20 — Fase DATA (semantica de dados executiva)
+
+### Fixed (backend — `src/app/api/routes_qg.py`)
+- DATA-P0-01: Score mono-territorial corrigido de 100.0 para 50.0 em `_fetch_priority_rows`, `_fetch_territory_indicator_scores` e `_score_from_rank` — evita ranking inflacionado quando ha apenas 1 municipio.
+- DATA-P0-02: Trend real calculado via `_compute_trend()` e `_fetch_previous_values()` — compara indicador com periodo anterior (threshold 2%); substitui `trend="stable"` hardcoded.
+- DATA-P0-03: Codigos tecnicos de indicador removidos de todas as narrativas user-facing — `indicator_name` utilizado em rationale de prioridades, explanation de insights, highlights de territorio, explanation de cenarios e summary de briefs.
+- DATA-P0-04: Formatacao pt-BR de valores numericos via `_format_highlight_value()` — separador de milhar, moeda BRL com `R$`, percentuais e unidades explicitadas.
+- DATA-P0-06: Narrativa de insights diversificada via `_build_insight_explanation()` — templates por dominio (saude, educacao, trabalho, financas, eleitorado, etc.), linguagem contextual por severidade, fonte explicitada. Substituiu template formulaico identico para todos os insights.
+
+### Fixed (frontend)
+- DATA-P0-05: Filtro de severidade em Insights traduzido para pt-BR — dropdown mostra "critico"/"atencao"/"informativo" via `formatStatusLabel()` (`QgInsightsPage.tsx`).
+- DATA-P0-07: Jargao tecnico do mapa substituido por termos executivos — "Renderizacao" -> "Modo de exibicao", "SVG fallback" -> "Modo simplificado", "Mapa vetorial" -> "Modo avancado", "Somente SVG" -> "Somente simplificado" (`QgMapPage.tsx`).
+- DATA-P0-08: Deduplicacao de formatadores `statusText()`/`trendText()` em `StrategicIndexCard.tsx` — agora usa `formatStatusLabel()`/`formatTrendLabel()` centralizados de `presentation.ts`.
+
+### Changed (testes)
+- `tests/unit/test_qg_routes.py`: mock `_QgSession` atualizado com handler para `_fetch_previous_values` (retorna vazio para trend=stable em testes).
+- `frontend/src/modules/qg/pages/QgPages.test.tsx`: assertion atualizada para novo aria-label "Alternar para modo avancado".
+
+### Validacao
+- Backend: `55 passed` (18 qg_routes + 37 tse_electorate/mvt_tiles/cache_middleware).
+- Frontend: `78 passed`, build OK.
+
 ## 2026-02-20
 
 ### Fixed
+- Layout e formatacao do painel de filtros no mapa situacional (Home):
+  - `frontend/src/styles/global.css` ajustado para o painel lateral operar em coluna dedicada no desktop (sem sobreposicao sobre o mapa).
+  - `frontend/src/styles/global.css` ajustado para alinhar botoes e controles internos (`Aplicar/Limpar`, `Mapa base`, `Focar selecionado`, `Recentrar mapa`).
+  - `frontend/src/styles/global.css` ajustado com `overflow-wrap` em secoes/cards do painel para evitar texto vazando dos blocos.
+  - `frontend/src/shared/ui/MapDominantLayout.tsx` atualizado com semantica do layout dominante com sidebar colapsavel.
+- Legibilidade dos controles de mapa no frontend:
+  - `frontend/src/styles/global.css` corrigido para botoes de `Modo de visualizacao` e `Mapa base` manterem contraste em estado nao selecionado.
+  - `frontend/src/styles/global.css` corrigido para `map-sidebar-toggle` manter texto legivel na Home (`Mapa situacional`).
+- Area util do mapa no frontend:
+  - `frontend/src/styles/global.css` ajustado para ampliar altura de `map-canvas-shell`.
+  - `frontend/src/styles/global.css` ajustado em `map-dominant`/`map-dominant-canvas`/`map-overview-canvas` para remover faixa vazia abaixo do mapa dominante.
+- Zoom contextual inicial do mapa:
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` passou a aplicar piso de zoom contextual na inicializacao e no calculo de `resolveContextualZoom`, evitando abertura em `z0`.
+  - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` passou a aplicar piso de zoom recomendado por nivel no mapa dominante da Home.
 - Estabilidade de navegacao no mapa vetorial:
   - `frontend/src/shared/ui/VectorMap.tsx` corrigido para nao recentrar o mapa a cada alteracao de zoom (zoom e centro agora seguem efeitos separados).
   - tratamento de erro no vetor filtrando erros de abort/cancelamento para evitar degradacao indevida de UX.
@@ -23,16 +113,63 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - Correcao de regressao de hooks (runtime crash):
   - `frontend/src/modules/qg/pages/QgInsightsPage.tsx` e `frontend/src/modules/territory/pages/TerritoryProfilePage.tsx` ajustados para manter ordem estavel de hooks entre renders.
   - resolve erro `Rendered more hooks than during the previous render` que quebrava paginas e testes.
+- Contencao de crash de runtime por rota no frontend:
+  - novo `frontend/src/app/RouteRuntimeErrorBoundary.tsx` para capturar erro de render em paginas roteadas e evitar tela branca.
+  - fallback padronizado com retry e titulo contextual da rota.
+  - telemetria de erro de runtime por rota (`route_runtime_error`) para triagem operacional.
+- Mapa executivo com resiliencia nos estados auxiliares:
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` padronizado para exibir erro/loading em manifesto de camadas, cobertura e metadados de estilo.
+  - erros desses componentes agora exibem `request_id` quando disponivel e permitem retry dedicado por bloco.
+- Home QG com resiliencia a falhas parciais de dados:
+  - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` passou a manter a Home operacional quando falham apenas `Top prioridades` ou `Destaques`.
+  - hard-fail global ficou restrito a `kpis_overview` e `priority_summary`; blocos secundarios agora tratam `loading/error/empty` localmente com retry.
+- Quality suite com cobertura de checks de camadas territoriais:
+  - `src/pipelines/quality_suite.py` passou a incluir `check_map_layers` na execucao oficial.
+  - efeito direto: checks `map_layer_rows_*` e `map_layer_geometry_ratio_*` voltam a ser registrados em `ops.pipeline_checks` de forma recorrente.
 - Usabilidade de listas longas:
   - paginacao client-side em `QgInsightsPage` e tabela de indicadores do `TerritoryProfilePage`.
 
 ### Changed
+- Backlog UX executivo consolidado para ciclo unico:
+  - novo `docs/BACKLOG_UX_EXECUTIVO_QG.md` com mapeamento `P0/P1/P2`, arquivos/componentes alvo e criterios de aceite.
+  - `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado para apontar o backlog como fonte unica da proxima trilha de UX.
+  - `docs/HANDOFF.md` atualizado com regra operacional de foco nos itens `UX-P0-*` antes de novas frentes.
+- Ops Health com refresh manual e regressao de readiness:
+  - `frontend/src/modules/ops/pages/OpsHealthPage.tsx` recebeu acao `Atualizar painel` para refetch explicito dos dados operacionais.
+  - refetch de queries foi centralizado em funcao unica (`refetchAll`) e reutilizado em `onRetry`.
+  - `frontend/src/modules/ops/pages/OpsPages.test.tsx` ganhou teste de transicao `READY -> NOT_READY` apos refresh manual, incluindo exibicao de hard failure.
+- Home executiva com camada detalhada eleitoral mais previsivel:
+  - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` agora exibe `Camada detalhada (Mapa)` apenas em `Nivel territorial = secao_eleitoral`.
+  - propagacao de `layer_id` para links de mapa passou a ser condicionada ao contexto valido (sem carregar camada detalhada fora de secao eleitoral).
+  - deep-link de `Mapa detalhado` com camada detalhada agora inclui `level=secao_eleitoral` para evitar ambiguidade de contexto.
+  - limpeza automatica da selecao de camada detalhada quando o nivel volta para recortes nao eleitorais.
+- Cobertura de regressao de overview atualizada:
+  - `frontend/src/modules/qg/pages/QgPages.test.tsx` valida exibicao condicional do seletor detalhado e propagacao coerente de query string (`layer_id` + `level`).
 - Higienizacao documental e alinhamento de governanca:
   - `README.md` atualizado para refletir estado atual de 20/02/2026 e corrigir referencias para `docs/`.
   - `docs/PLANO.md` atualizado para remover backlog legado de specs `v0.1 -> v1.0` (agora consolidado em v1.0).
   - `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado com escopo de execucao do ciclo atual (removido bloco legado de Sprint 9 ja concluido).
   - `docs/MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md` atualizado (data de referencia e referencia oficial de frontend spec).
   - `docs/GITHUB_ISSUES_BACKLOG_DADOS_NIVEL_MAXIMO.md` marcado como snapshot historico, com GitHub como fonte oficial de status.
+- Governanca de trilha unica (anti-dispersao):
+  - `docs/PLANO_IMPLEMENTACAO_QG.md` passou a explicitar regra operacional `WIP=1` e fonte unica de sequencia no ciclo diario.
+  - `docs/PLANO.md` passou a explicitar papel macro (estrategia) e delegacao da fila diaria para `PLANO_IMPLEMENTACAO_QG.md` + `HANDOFF.md`.
+  - `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` passou a explicitar que "paralelo parcial" nao significa execucao simultanea no ciclo diario.
+  - `docs/HANDOFF.md` ganhou secao inicial de trilha ativa unica e marcou blocos antigos de "proximos passos" como historico.
+  - `docs/PLANO_FONTES_DADOS_DIAMANTINA.md` reforcou papel de catalogo (sem abrir frente diaria).
+  - `docs/GITHUB_ISSUES_BACKLOG_DADOS_NIVEL_MAXIMO.md` reforcou uso como snapshot/template, sem definir ordem operacional.
+- Governanca de execucao no GitHub alinhada com trilha unica:
+  - issue `BD-033` criada em `#28` e marcada como trilha ativa (`status:active`).
+  - issue `BD-033` (`#28`) encerrada apos fechamento de gate e fase 2.
+  - issue `BD-021` (`#8`) encerrada por entrega tecnica concluida.
+  - labels operacionais adicionadas: `status:active`, `status:blocked`, `status:external`.
+  - `BD-020` (`#7`) marcada como `status:external` + `status:blocked` por dependencia externa.
+  - issues abertas de D4-D8 marcadas com `status:blocked` para explicitar sequenciamento.
+- Gate da trilha ativa revalidado e fase 2 executada:
+  - gate BD-033 (backend + frontend + build) em `pass`.
+  - scorecard atualizado em `data/reports/data_coverage_scorecard.json` (`pass=5`, `warn=8`).
+  - readiness atualizado com `READY`, `hard_failures=0`, `warnings=0`.
+  - benchmark urbano atualizado em `data/reports/benchmark_urban_map.json` com `ALL PASS`.
 - Mapa vetorial com semantica explicita para ausencia de dados:
   - `frontend/src/shared/ui/VectorMap.tsx` deixou de tratar ausencia de `val` como `0` no coropletico.
   - features sem valor agora aparecem com cor neutra (`#d1d5db`) em vez de cor de faixa baixa.
@@ -50,9 +187,61 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - UI agora exibe referencia explicita: `Zoom contextual minimo recomendado`.
 - Legenda de estilo no mapa executivo atualizada:
   - `frontend/src/modules/qg/pages/QgMapPage.tsx` agora exibe chip explicito `Sem dado`.
+- Transparencia de classificacao das camadas do mapa:
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` agora explicita `classificacao` (`oficial`, `proxy`, `hibrida`) em camada recomendada, camada ativa e metadados visuais.
+  - tooltip da camada passou a priorizar `proxy_method` quando disponivel para expor limitacoes/metodologia.
+  - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` passou a exibir classificacao da camada detalhada ativa no painel lateral da Home.
+- Cobertura de regressao para transparencia de camada:
+  - `frontend/src/modules/qg/pages/QgPages.test.tsx` valida exibicao de classificacao no fluxo eleitoral detalhado (`territory_polling_place`).
+- Router com protecao explicita por rota:
+  - `frontend/src/app/router.tsx` passou a envolver paginas com `RouteRuntimeErrorBoundary` via `withPageFallback`.
+  - labels de rota adicionados para mensagens de erro mais objetivas.
+- Cobertura de regressao para runtime boundary:
+  - novo `frontend/src/app/RouteRuntimeErrorBoundary.test.tsx` cobrindo crash de render + recuperacao por retry.
+- Cobertura de regressao para estados auxiliares do mapa:
+  - `frontend/src/modules/qg/pages/QgPages.test.tsx` recebeu cenarios de erro para:
+    - manifesto + metadados de estilo (com retry e `request_id`);
+    - cobertura de camadas (com retry e preservacao do fluxo principal).
+- Cobertura de regressao para falha parcial da Home:
+  - `frontend/src/modules/qg/pages/QgPages.test.tsx` passou a validar falha simultanea de `Top prioridades` e `Destaques` sem derrubar o restante da Home.
+- Cobertura de regressao para quality suite:
+  - novo `tests/unit/test_quality_suite.py` valida execucao e serializacao de `check_map_layers`.
+- Ajuste de regressao em cobertura temporal por fonte:
+  - `tests/unit/test_quality_coverage_checks.py` atualizado para refletir a ordem/quantidade atual de fontes (`DATASUS..CENSO_SUAS`).
+- Ajuste de regressao de zoom do mapa:
+  - `frontend/src/modules/qg/pages/QgPages.test.tsx` atualizado para refletir piso contextual de zoom no carregamento via query string.
+- Revalidacao do ajuste de layout do painel situacional:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `22 passed`.
+  - `npm --prefix frontend run test -- --run` -> `78 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
 - Validacao executada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `22 passed`.
+  - `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=5 warn=8`.
+  - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY` (`hard_failures=0`, `warnings=0`).
+  - `.\.venv\Scripts\python.exe scripts/benchmark_api.py --suite urban --rounds 30 --json-output data/reports/benchmark_urban_map.json` -> `ALL PASS` (p95 `103.7ms`-`123.5ms`).
+  - `npm --prefix frontend run test -- --run` -> `73 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `19 passed` (revalidado).
+  - `npm --prefix frontend run build` -> `OK` (revalidado).
   - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `19 passed`.
   - `npm --prefix frontend run build` -> `OK`.
+  - `npm --prefix frontend run test -- --run src/app/RouteRuntimeErrorBoundary.test.tsx src/app/router.smoke.test.tsx src/modules/qg/pages/QgPages.test.tsx src/modules/ops/pages/OpsPages.test.tsx` -> `32 passed`.
+  - `npm --prefix frontend run test -- --run` -> `75 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `21 passed`.
+  - `npm --prefix frontend run test -- --run` -> `77 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `22 passed`.
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `22 passed` (revalidado com classificacao de camadas).
+  - `npm --prefix frontend run test -- --run` -> `78 passed`.
+  - `npm --prefix frontend run test -- --run` -> `78 passed` (revalidado com classificacao de camadas).
+  - `npm --prefix frontend run build` -> `OK`.
+  - `npm --prefix frontend run build` -> `OK` (revalidado com classificacao de camadas).
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_quality_suite.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_coverage_checks.py tests/unit/test_quality_ops_pipeline_runs.py -q` -> `17 passed`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
 
 ## 2026-02-19
 

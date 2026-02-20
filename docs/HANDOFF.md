@@ -4,6 +4,287 @@ Data de referencia: 2026-02-20
 Planejamento principal: `PLANO.md`
 Contrato tecnico principal: `CONTRATO.md`
 
+## Trilha ativa unica (executavel no ciclo atual)
+
+1. Trilha ativa (WIP=1):
+   - Fase UX-P0 (auditoria visual completa) entregue em 2026-02-20:
+     - 22 itens UX-P0-01 a UX-P0-22 implementados e validados.
+     - Cobre todas as 10 telas auditadas por screenshot.
+   - proxima trilha ativa: Fase UX-P1/responsividade ou Fase 2 (scorecard + readiness).
+2. Gate de saida da Fase UX-P0:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
+   - `npm --prefix frontend run test -- --run` -> `78 passed`.
+   - `npm --prefix frontend run build` -> `OK`.
+3. Em espera ate decisao de prioridade:
+   - Fase C (responsividade/mobile);
+   - Fase 2 (scorecard + readiness + benchmark urbano);
+   - D4+ e qualquer expansao de fonte/domino fora da trilha ativa.
+4. Regra de leitura:
+   - apenas esta secao define "proximo passo executavel" no momento;
+   - secoes de "proximos passos" antigas abaixo devem ser lidas como historico.
+
+## Atualizacao tecnica (2026-02-20) — Fase UX-P0 entregue
+
+1. Escopo: corrigir todas as inconsistencias de UI/UX identificadas por auditoria visual de 10 telas.
+2. Itens entregues (22 correcoes):
+   - **UX-P0-01/02**: Helpers `formatValueWithUnit()`, `humanizeSourceName()`, `humanizeCoverageNote()`, `humanizeDatasetSource()` em `presentation.ts`.
+   - **UX-P0-03/04**: SourceFreshnessBadge humanizado (source_name + coverage_note).
+   - **UX-P0-05/06/07**: Home — "SVG fallback" renomeado; colunas tecnicas removidas de KPIs e Onda B/C.
+   - **UX-P0-08/09**: Insights — severity + source humanizados.
+   - **UX-P0-10/11/12**: Briefs — Brief ID removido, "Linha" → "Ponto", source humanizado.
+   - **UX-P0-13/14/15**: Cenarios — indicator_name no subtitulo, "Leitura" → "Analise", label do campo.
+   - **UX-P0-16**: Territorio 360 — coluna Codigo removida.
+   - **UX-P0-17**: Eleitorado — zero display → "-".
+   - **UX-P0-18**: PriorityItemCard — source humanizado.
+   - **UX-P0-19/20**: Mapa — label e coluna tecnica removidos.
+   - **UX-P0-21/22**: Backend — `_format_highlight_value()` melhorado + cenarios em pt-BR.
+3. Arquivos modificados:
+   - `frontend/src/shared/ui/presentation.ts` (helpers novos + unit mapping).
+   - `frontend/src/shared/ui/SourceFreshnessBadge.tsx` (humanizacao).
+   - `frontend/src/shared/ui/PriorityItemCard.tsx` (source humanizado).
+   - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` (SVG label + colunas).
+   - `frontend/src/modules/qg/pages/QgInsightsPage.tsx` (severity + source).
+   - `frontend/src/modules/qg/pages/QgBriefsPage.tsx` (Brief ID + Linha + source).
+   - `frontend/src/modules/qg/pages/QgScenariosPage.tsx` (indicator_name + Leitura + label).
+   - `frontend/src/modules/qg/pages/QgMapPage.tsx` (label + coluna Metrica).
+   - `frontend/src/modules/territory/pages/TerritoryProfilePage.tsx` (coluna Codigo).
+   - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` (zero display).
+   - `src/app/api/routes_qg.py` (format + impact pt-BR).
+   - Testes atualizados: `SourceFreshnessBadge.test.tsx`, `QgPages.test.tsx`.
+
+## Atualizacao tecnica (2026-02-20) — Fase DATA entregue
+
+1. Escopo: corrigir 8 inconsistencias de semantica de dados identificadas por auditoria visual.
+2. Itens entregues:
+   - **DATA-P0-01**: Score mono-territorial 100->50 (3 locais em routes_qg.py).
+   - **DATA-P0-02**: Trend real via `_compute_trend()` + `_fetch_previous_values()`.
+   - **DATA-P0-03**: Codigos tecnicos removidos de narrativas (5 endpoints).
+   - **DATA-P0-04**: Formatacao pt-BR via `_format_highlight_value()`.
+   - **DATA-P0-05**: Severidade em pt-BR no filtro de Insights.
+   - **DATA-P0-06**: Narrativa de insights diversificada por dominio e severidade via `_build_insight_explanation()`.
+   - **DATA-P0-07**: Jargao tecnico do mapa substituido por termos executivos.
+   - **DATA-P0-08**: Dedup de formatadores em StrategicIndexCard.
+3. Arquivos modificados:
+   - `src/app/api/routes_qg.py` (backend — 6 alteracoes + 4 funcoes novas).
+   - `frontend/src/modules/qg/pages/QgInsightsPage.tsx` (import + labels traduzidos).
+   - `frontend/src/modules/qg/pages/QgMapPage.tsx` (8 substituicoes de labels).
+   - `frontend/src/shared/ui/StrategicIndexCard.tsx` (rewrite para usar presentation.ts).
+   - `tests/unit/test_qg_routes.py` (mock atualizado).
+   - `frontend/src/modules/qg/pages/QgPages.test.tsx` (assertion atualizada).
+   - `docs/BACKLOG_UX_EXECUTIVO_QG.md` (Fase DATA adicionada).
+
+## Atualizacao de planejamento (2026-02-20) - Backlog UX executivo unificado
+
+1. Backlog unico consolidado para correcoes de layout/legibilidade:
+   - `docs/BACKLOG_UX_EXECUTIVO_QG.md`.
+2. Ordem de execucao definida:
+   - `P0` (estrutural/legibilidade) -> `P1` (harmonizacao visual) -> `P2` (refinamento).
+3. Regra de foco:
+   - nao iniciar novas frentes enquanto itens `UX-P0-*` nao estiverem entregues e validados.
+4. Mapeamento de escopo:
+   - backlog ja inclui arquivos/componentes alvo por pagina (`Prioridades`, `Mapa`, `Territorio 360`, `Insights`, `Cenarios`, `Briefs`, `Eleitorado`, `App shell`).
+
+## Atualizacao operacional (2026-02-20) - Governanca de issues GitHub
+
+1. Trilha ativa oficial no GitHub:
+   - `BD-033` criada em `#28` com label `status:active`.
+2. Fechamento de item concluido:
+   - `BD-021` (`#8`) encerrada por entrega tecnica concluida.
+3. Bloqueios explicitados por sequencia:
+   - labels `status:blocked` e `status:external` criadas para leitura operacional.
+   - `BD-020` (`#7`) marcada como `status:external` + `status:blocked` (dependencia externa CECAD).
+   - issues abertas de D4-D8 marcadas como `status:blocked` ate fechamento da trilha ativa.
+4. Regra operacional mantida:
+   - nenhuma reativacao de item bloqueado antes do gate de saida de `BD-033` (`#28`).
+
+## Atualizacao operacional (2026-02-20) - Fechamento de gate BD-033 + fase 2
+
+1. Gate tecnico da trilha ativa revalidado:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
+   - `npm --prefix frontend run test -- --run` -> `78 passed`.
+   - `npm --prefix frontend run build` -> `OK`.
+2. Pacote de confiabilidade (fase 2) executado:
+   - `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json`
+     -> `pass=5`, `warn=8`.
+   - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json`
+     -> `READY`, `hard_failures=0`, `warnings=0`.
+   - `.\.venv\Scripts\python.exe scripts/benchmark_api.py --suite urban --rounds 30 --json-output data/reports/benchmark_urban_map.json`
+     -> `ALL PASS`, p95 urbano entre `103.7ms` e `123.5ms`.
+3. Evidencias atualizadas:
+   - `data/reports/data_coverage_scorecard.json`
+   - `data/reports/benchmark_urban_map.json`
+4. Estado de issue:
+   - `BD-033` encerrada no GitHub em `2026-02-20` (`issue #28`).
+
+## Atualizacao tecnica (2026-02-20) - Hotfix UX mapa (legibilidade + area util)
+
+1. Correcoes de legibilidade dos controles do mapa:
+   - `frontend/src/styles/global.css` ajustado para garantir contraste dos botoes em:
+     - `Modo de visualizacao`;
+     - `Mapa base`;
+     - toggle da sidebar (`map-sidebar-toggle`) na Home.
+   - impacto: botoes nao selecionados deixaram de ficar visualmente "invisiveis".
+2. Correcoes de dimensao/utilizacao de area do mapa:
+   - `frontend/src/styles/global.css` com altura ampliada em `map-canvas-shell`.
+   - `map-dominant` e `map-dominant-canvas` ajustados para evitar area vazia abaixo do mapa.
+   - classe `map-overview-canvas` passou a ocupar a altura util do layout dominante.
+3. Correcoes de zoom inicial/contextual:
+   - `frontend/src/modules/qg/pages/QgMapPage.tsx`:
+     - `resolveContextualZoom` passa a respeitar piso do contexto (territorial/urbano), evitando abertura em `z0`.
+     - zoom inicial do mapa aplica piso contextual ao ler query string.
+   - `frontend/src/modules/qg/pages/QgOverviewPage.tsx`:
+     - zoom inicial/minimo da Home passa a usar piso recomendado por nivel.
+4. Regressao de testes atualizada:
+   - `frontend/src/modules/qg/pages/QgPages.test.tsx` ajustado para novo comportamento de piso de zoom.
+5. Validacao executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
+   - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `22 passed`.
+   - `npm --prefix frontend run test -- --run` -> `78 passed`.
+   - `npm --prefix frontend run build` -> `OK`.
+
+## Atualizacao tecnica (2026-02-20) - Painel de filtros do mapa situacional (layout e formatacao)
+
+1. Reposicionamento do painel de filtros na Home:
+   - `frontend/src/styles/global.css` deixou de usar painel sobreposto ao mapa no desktop.
+   - `map-dominant-sidebar` passou a operar como coluna lateral (docked), mantendo controle por `Ocultar/Mostrar filtros`.
+   - `frontend/src/shared/ui/MapDominantLayout.tsx` atualizado para refletir semantica de layout dominante com sidebar colapsavel.
+2. Formatacao interna do menu lateral:
+   - botoes de `Aplicar/Limpar` alinhados em grade com largura consistente.
+   - botoes de navegacao (`Focar selecionado` e `Recentrar mapa`) padronizados em largura e empilhamento no painel.
+   - seletor de `Mapa base` reorganizado em grade para evitar desalinhamento.
+3. Controle de overflow visual:
+   - cards e blocos do painel (`Situacao geral`, metadados de fonte, notas) receberam quebra de linha segura (`overflow-wrap`) para evitar texto vazando.
+   - ajuste de topo do botao de toggle para fora da area do mapa (sem sobreposicao no canvas).
+4. Validacao executada:
+   - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `22 passed`.
+   - `npm --prefix frontend run test -- --run` -> `78 passed`.
+   - `npm --prefix frontend run build` -> `OK`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
+
+## Atualizacao tecnica (2026-02-20) - Transparencia de classificacao de camadas (mapa)
+
+- `frontend/src/modules/qg/pages/QgMapPage.tsx`:
+  - classificacao de camada (`oficial`, `proxy`, `hibrida`) agora aparece de forma explicita em:
+    - camada recomendada do contexto atual;
+    - camada ativa no seletor detalhado;
+    - metadados visuais do painel do mapa.
+  - tooltip da camada ativa passou a priorizar metodologia (`proxy_method`) para leitura rapida de limitacoes.
+  - fluxo de `local_votacao` foi preservado, com transparencia adicional sobre a natureza `proxy` da camada.
+- `frontend/src/modules/qg/pages/QgOverviewPage.tsx`:
+  - painel lateral da Home executiva passou a exibir classificacao da camada detalhada ativa, com hint de metodologia.
+  - objetivo: manter consistencia de leitura entre `Visao Geral` e `Mapa`.
+- `frontend/src/modules/qg/pages/QgPages.test.tsx`:
+  - regressao ampliada para validar exibicao de classificacao no fluxo eleitoral detalhado (`territory_polling_place`).
+- Validacao executada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `22 passed`.
+  - `npm --prefix frontend run test -- --run` -> `78 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
+
+## Atualizacao tecnica (2026-02-20) - Quality Suite (ativacao de checks de camadas do mapa)
+
+- `src/pipelines/quality_suite.py`:
+  - `quality_suite` passou a executar `check_map_layers` dentro do fluxo padrao.
+  - impacto: checks de cobertura/geom de camadas territoriais (`map_layer_rows_*` e `map_layer_geometry_ratio_*`) voltam a ser persistidos em `ops.pipeline_checks` a cada rodada de qualidade.
+  - alinhamento com backlog D3/D6: readiness de camadas e governanca de qualidade ficam acoplados ao pipeline oficial.
+- `tests/unit/test_quality_suite.py`:
+  - novo teste unitario garantindo que `check_map_layers` e executado e serializado no resultado da `quality_suite`.
+- `tests/unit/test_quality_coverage_checks.py`:
+  - ajuste do teste de cobertura temporal por fonte para refletir o mapa atual de fontes do `fact_indicator` (`DATASUS..CENSO_SUAS`), evitando falso negativo por ordem incompleta.
+- Validacao executada:
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_quality_suite.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_coverage_checks.py tests/unit/test_quality_ops_pipeline_runs.py -q` -> `17 passed`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
+  - `npm --prefix frontend run test -- --run` -> `78 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+
+## Atualizacao tecnica (2026-02-20) - Home QG (degradacao parcial de prioridades/destaques)
+
+- `frontend/src/modules/qg/pages/QgOverviewPage.tsx`:
+  - Home executiva deixou de falhar por completo quando apenas `Top prioridades` ou `Destaques` estiverem indisponiveis.
+  - hard-fail da pagina permanece restrito ao nucleo de leitura (`kpis_overview` + `priority_summary`).
+  - blocos `Top prioridades` e `Destaques` agora possuem estados independentes `loading/error/empty` com `request_id` e `Tentar novamente`.
+  - objetivo: preservar navegacao do mapa, situacao geral e acoes rapidas mesmo com falha parcial de dados secundarios.
+- `frontend/src/modules/qg/pages/QgPages.test.tsx`:
+  - nova regressao valida falha simultanea de `priority preview` e `insights highlights` sem derrubar a Home.
+  - cobertura inclui exibicao de `request_id` e retry dedicado por bloco.
+- Validacao executada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `22 passed`.
+  - `npm --prefix frontend run test -- --run` -> `78 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
+
+## Atualizacao tecnica (2026-02-20) - Mapa executivo (estados de suporte padronizados)
+
+- `frontend/src/modules/qg/pages/QgMapPage.tsx`:
+  - estados auxiliares do mapa (manifesto de camadas, cobertura e metadados de estilo) padronizados com `StateBlock`.
+  - erros desses componentes agora exibem mensagem de API + `request_id` quando disponivel.
+  - cada estado de erro recebeu acao `Tentar novamente` com `refetch` dedicado.
+  - estados de carregamento explicitos adicionados para manifesto/cobertura/estilo, evitando lacunas de feedback no fluxo operacional.
+- `frontend/src/modules/qg/pages/QgPages.test.tsx`:
+  - novas regressões cobrindo:
+    - erro de manifesto + metadados de estilo com retry e `request_id`;
+    - erro de cobertura com retry sem quebrar a interacao principal do mapa.
+- Validacao executada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `21 passed`.
+  - `npm --prefix frontend run test -- --run` -> `77 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
+
+## Atualizacao tecnica (2026-02-20) - Boundary de erro por rota (frontend)
+
+- `frontend/src/app/RouteRuntimeErrorBoundary.tsx`:
+  - novo error boundary de runtime para telas roteadas, com fallback padronizado via `StateBlock`.
+  - exibicao de contexto de falha por rota (`Falha na tela: <rota>`) + acao de retry sem reload total.
+  - emissao de telemetria `frontend_error/route_runtime_error` com `route_label`, `message` e `component_stack`.
+- `frontend/src/app/router.tsx`:
+  - `withPageFallback` passou a encapsular cada pagina em `RouteRuntimeErrorBoundary` com rotulo explicito.
+  - objetivo: evitar tela branca em erro de render e manter navegacao operacional previsivel.
+- `frontend/src/app/RouteRuntimeErrorBoundary.test.tsx`:
+  - novo teste cobrindo:
+    - exibicao de estado de erro e emissao de telemetria em crash de render;
+    - recuperacao da tela apos `Tentar novamente`.
+- Validacao executada:
+  - `npm --prefix frontend run test -- --run src/app/RouteRuntimeErrorBoundary.test.tsx src/app/router.smoke.test.tsx src/modules/qg/pages/QgPages.test.tsx src/modules/ops/pages/OpsPages.test.tsx` -> `32 passed`.
+  - `npm --prefix frontend run test -- --run` -> `75 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
+
+## Atualizacao tecnica (2026-02-20) - Ops Health (refresh + regressao readiness)
+
+- `frontend/src/modules/ops/pages/OpsHealthPage.tsx`:
+  - adicionado botao `Atualizar painel` no bloco `Status geral` para refetch manual dos datasets operacionais da tela.
+  - fluxo de recarga consolidado em funcao unica (`refetchAll`) reutilizada no erro (`onRetry`) e no refresh manual para manter comportamento consistente.
+- `frontend/src/modules/ops/pages/OpsPages.test.tsx`:
+  - novo teste de regressao cobrindo transicao de readiness no `OpsHealthPage`:
+    - estado inicial `READY`;
+    - refresh manual via botao;
+    - atualizacao para `NOT_READY` com exibicao de `Hard failures`.
+- Validacao executada:
+  - `npm --prefix frontend run test -- --run` -> `73 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+
+## Atualizacao tecnica (2026-02-20) - Home QG (camada detalhada coerente)
+
+- `frontend/src/modules/qg/pages/QgOverviewPage.tsx`:
+  - seletor `Camada detalhada (Mapa)` agora aparece somente quando `Nivel territorial` estiver em `secao_eleitoral`.
+  - propagacao de camada detalhada para links deixa de ocorrer fora do contexto eleitoral detalhado.
+  - links de `Mapa detalhado` com camada detalhada passam a forcar contexto coerente com `level=secao_eleitoral`, evitando deep-link ambiguo.
+  - ao trocar para nivel diferente de `secao_eleitoral`, a selecao local de camada detalhada e limpa para evitar estado residual.
+- `frontend/src/modules/qg/pages/QgPages.test.tsx`:
+  - regressao atualizada para validar exibicao condicional do seletor detalhado e propagacao coerente de `layer_id` + `level`.
+- Validacao executada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `19 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+
 ## Atualizacao tecnica (2026-02-20) - Estabilizacao mapa + eleitorado
 
 - Mapa vetorial:
@@ -778,7 +1059,7 @@ Contrato tecnico principal: `CONTRATO.md`
   - `npm --prefix frontend run build`: `OK` (Vite build concluido).
   - warnings de `future flags` do React Router removidos da suite de testes.
 
-## Proximos passos imediatos (apos iteracao readiness API)
+## [HISTORICO] Proximos passos imediatos (apos iteracao readiness API)
 
 1. Expor `GET /v1/ops/readiness` tambem no painel tecnico `/admin` como card de status unico
    para triagem rapida de ambiente.
@@ -789,7 +1070,7 @@ Contrato tecnico principal: `CONTRATO.md`
 4. Avancar no fechamento de UX/QG (error boundaries por rota + mensagens de estado)
    antes do go-live controlado.
 
-## Proximos passos imediatos (trilha de robustez maxima de dados)
+## [HISTORICO] Proximos passos imediatos (trilha de robustez maxima de dados)
 
 Backlog oficial:
 - `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`
@@ -1017,7 +1298,7 @@ Sprint atual recomendado:
    - `python scripts/validate_mte_p0.py --reference-period 2025 --runs 3 --bootstrap-municipality --output-json`
 6. Resultado mais recente no ambiente local (2026-02-10): `3/3 success` via `bronze_cache`, sem arquivo manual presente durante a validacao.
 
-## 5) Proximos passos recomendados
+## [HISTORICO] 5) Proximos passos recomendados
 
 ### Prioridade alta
 1. Fechar estabilizacao de UX nas telas executivas (`/mapa`, `/territorio/:id`, `/eleitorado`) e registrar evidencias de teste.

@@ -11,6 +11,9 @@ Regras:
 1. O estado operacional corrente (readiness, SLO, bloqueios) deve ser consultado em `docs/HANDOFF.md` e em `scripts/backend_readiness.py --output-json`.
 2. Os itens abaixo representam direcao de produto/engenharia e backlog de fonte, nao um status diario de execucao.
 3. Quando uma fonte mudar de prioridade, o ajuste deve ser refletido aqui e tambem em `docs/PLANO_IMPLEMENTACAO_QG.md`.
+4. Este arquivo nao abre frente de execucao diaria:
+   - fila ativa e ordem de implementacao ficam em `docs/PLANO_IMPLEMENTACAO_QG.md`;
+   - `docs/HANDOFF.md` registra apenas o estado da trilha ativa.
 
 Snapshot historico (2026-02-11):
 - readiness local reportado como `READY`.

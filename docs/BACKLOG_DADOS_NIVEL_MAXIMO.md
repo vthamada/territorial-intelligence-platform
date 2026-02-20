@@ -313,6 +313,13 @@ Aceite:
 4. D6 obrigatorio antes de D7.
 5. D8 fecha operacao.
 
+Regra operacional para evitar bifurcacao de frente:
+1. "paralelo parcial" nesta secao indica dependencia/arquitetura, nao execucao simultanea no ciclo diario.
+2. no ciclo diario, operar com WIP=1:
+   - uma trilha ativa por vez;
+   - trilha definida em `docs/PLANO_IMPLEMENTACAO_QG.md`.
+3. backlog deste arquivo nao substitui fila ativa de sprint.
+
 Dependencias criticas:
 1. acesso e governanca para fontes sociais (CECAD/Censo SUAS).
 2. definicao de politica de dados para camadas urbanas externas.
@@ -342,6 +349,11 @@ Padrao de issue:
 Objetivo:
 1. fechar primeiro a estabilidade funcional do mapa e telas criticas.
 2. travar a entrada em novas frentes ate cumprir os gates de qualidade desta fase.
+
+Fonte de controle de execucao:
+1. este bloco define guardrails de foco;
+2. a fila ativa e ordem diaria continuam sob `docs/PLANO_IMPLEMENTACAO_QG.md`;
+3. `docs/HANDOFF.md` registra apenas o estado da trilha ativa.
 
 ### Fase 1 - Estabilizacao de execucao D3 (foco unico)
 

@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-02-19T13:07:11.570286+00:00",
+  "generated_at_utc": "2026-02-20T17:46:37.419558+00:00",
   "municipality_ibge_code": "3121605",
   "window_days": 7,
   "scorecard": {
@@ -16,7 +16,7 @@
       {
         "metric_group": "operations",
         "metric_name": "implemented_runs_success_pct_7d",
-        "observed_value": "96.30",
+        "observed_value": "100.00",
         "target_value": "95",
         "comparator": "gte",
         "unit": "pct",
@@ -215,7 +215,7 @@
     }
   ],
   "readiness": {
-    "generated_at_utc": "2026-02-19T13:07:11.533445Z",
+    "generated_at_utc": "2026-02-20T17:46:37.407812Z",
     "window_days": 7,
     "postgis": {
       "installed": true,
@@ -292,132 +292,6 @@
       "window_days": 7,
       "target_pct": 95.0,
       "include_blocked_as_success": false,
-      "total_runs": 27,
-      "successful_runs": 26,
-      "success_rate_pct": 96.3,
-      "meets_target": true,
-      "below_target_jobs": [
-        "ana_hydrology_fetch"
-      ],
-      "items": [
-        {
-          "job_name": "ana_hydrology_fetch",
-          "total_runs": 3,
-          "successful_runs": 2,
-          "success_rate_pct": 66.67,
-          "meets_target": false
-        },
-        {
-          "job_name": "anatel_connectivity_fetch",
-          "total_runs": 2,
-          "successful_runs": 2,
-          "success_rate_pct": 100.0,
-          "meets_target": true
-        },
-        {
-          "job_name": "aneel_energy_fetch",
-          "total_runs": 2,
-          "successful_runs": 2,
-          "success_rate_pct": 100.0,
-          "meets_target": true
-        },
-        {
-          "job_name": "education_inep_fetch",
-          "total_runs": 1,
-          "successful_runs": 1,
-          "success_rate_pct": 100.0,
-          "meets_target": true
-        },
-        {
-          "job_name": "inmet_climate_fetch",
-          "total_runs": 2,
-          "successful_runs": 2,
-          "success_rate_pct": 100.0,
-          "meets_target": true
-        },
-        {
-          "job_name": "inpe_queimadas_fetch",
-          "total_runs": 2,
-          "successful_runs": 2,
-          "success_rate_pct": 100.0,
-          "meets_target": true
-        },
-        {
-          "job_name": "labor_mte_fetch",
-          "total_runs": 1,
-          "successful_runs": 1,
-          "success_rate_pct": 100.0,
-          "meets_target": true
-        },
-        {
-          "job_name": "quality_suite",
-          "total_runs": 6,
-          "successful_runs": 6,
-          "success_rate_pct": 100.0,
-          "meets_target": true
-        },
-        {
-          "job_name": "sejusp_public_safety_fetch",
-          "total_runs": 1,
-          "successful_runs": 1,
-          "success_rate_pct": 100.0,
-          "meets_target": true
-        },
-        {
-          "job_name": "senatran_fleet_fetch",
-          "total_runs": 1,
-          "successful_runs": 1,
-          "success_rate_pct": 100.0,
-          "meets_target": true
-        },
-        {
-          "job_name": "sidra_indicators_fetch",
-          "total_runs": 1,
-          "successful_runs": 1,
-          "success_rate_pct": 100.0,
-          "meets_target": true
-        },
-        {
-          "job_name": "siops_health_finance_fetch",
-          "total_runs": 1,
-          "successful_runs": 1,
-          "success_rate_pct": 100.0,
-          "meets_target": true
-        },
-        {
-          "job_name": "snis_sanitation_fetch",
-          "total_runs": 1,
-          "successful_runs": 1,
-          "success_rate_pct": 100.0,
-          "meets_target": true
-        },
-        {
-          "job_name": "tse_electorate_fetch",
-          "total_runs": 1,
-          "successful_runs": 1,
-          "success_rate_pct": 100.0,
-          "meets_target": true
-        },
-        {
-          "job_name": "urban_pois_fetch",
-          "total_runs": 1,
-          "successful_runs": 1,
-          "success_rate_pct": 100.0,
-          "meets_target": true
-        },
-        {
-          "job_name": "urban_roads_fetch",
-          "total_runs": 1,
-          "successful_runs": 1,
-          "success_rate_pct": 100.0,
-          "meets_target": true
-        }
-      ]
-    },
-    "slo1_current": {
-      "window_days": 1,
-      "target_pct": 95.0,
-      "include_blocked_as_success": false,
       "total_runs": 3,
       "successful_runs": 3,
       "success_rate_pct": 100.0,
@@ -445,13 +319,24 @@
           "success_rate_pct": 100.0,
           "meets_target": true
         }
-      ],
+      ]
+    },
+    "slo1_current": {
+      "window_days": 1,
+      "target_pct": 95.0,
+      "include_blocked_as_success": false,
+      "total_runs": 0,
+      "successful_runs": 0,
+      "success_rate_pct": 0.0,
+      "meets_target": false,
+      "below_target_jobs": [],
+      "items": [],
       "window_role": "current_health"
     },
     "slo3": {
       "window_days": 7,
-      "total_runs": 27,
-      "runs_with_checks": 27,
+      "total_runs": 3,
+      "runs_with_checks": 3,
       "runs_missing_checks": 0,
       "meets_target": true,
       "sample_missing_run_ids": []
