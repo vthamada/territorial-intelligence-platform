@@ -12,6 +12,7 @@ from pipelines.common.quality import (
     CheckResult,
     check_dim_territory,
     check_dim_territory_electoral_zone_integrity,
+    check_map_layers,
     check_fact_election_result_temporal_coverage,
     check_fact_election_result,
     check_fact_electorate_temporal_coverage,
@@ -77,6 +78,7 @@ def run(
                 thresholds,
             )
         )
+        results.extend(check_map_layers(session, settings.municipality_ibge_code, thresholds))
         results.extend(check_fact_electorate(session, settings.municipality_ibge_code, thresholds))
         results.extend(check_fact_electorate_temporal_coverage(session, thresholds))
         results.extend(check_fact_election_result(session, thresholds))

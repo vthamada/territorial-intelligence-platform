@@ -99,6 +99,68 @@ def _classify_source(source_name: str) -> str:
     return "misto"
 
 
+def _format_highlight_value(value: float, unit: str | None) -> str:
+    """Format a numeric value with thousand separators and unit for user-facing text."""
+    normalized_unit = (unit or "").strip().lower()
+    if normalized_unit in ("brl", "r$"):
+        return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    if normalized_unit in ("%", "percent"):
+        return f"{value:,.2f}%".replace(",", "X").replace(".", ",").replace("X", ".")
+    if normalized_unit == "count":
+        return f"{value:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    if normalized_unit == "ratio":
+        return f"{value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    _UNIT_MAP = {"c": "°C", "mm": "mm", "m3/s": "m³/s", "m3s": "m³/s", "ha": "ha", "km": "km", "kwh": "kWh"}
+    display_unit = _UNIT_MAP.get(normalized_unit, unit)
+    formatted = f"{value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    if display_unit:
+        return f"{formatted} {display_unit}"
+    return formatted
+
+
+_DOMAIN_INSIGHT_TEMPLATES: dict[str, str] = {
+    "saude": "O indicador de saude {name} registrou {value} em {territory}, periodo {period}.",
+    "educacao": "Na area de educacao, {name} atingiu {value} em {territory} ({period}).",
+    "trabalho": "No mercado de trabalho, {name} ficou em {value} para {territory} ({period}).",
+    "financas": "Nas financas publicas, {name} totalizou {value} em {territory} ({period}).",
+    "eleitorado": "O perfil eleitoral de {territory} mostra {name} em {value} ({period}).",
+    "conectividade": "Em conectividade, {name} alcancou {value} em {territory} ({period}).",
+    "saneamento": "No saneamento basico, {name} ficou em {value} para {territory} ({period}).",
+    "seguranca": "Em seguranca publica, {name} registrou {value} em {territory} ({period}).",
+    "meio_ambiente": "Na area ambiental, {name} atingiu {value} em {territory} ({period}).",
+    "socioeconomico": "No perfil socioeconomico, {name} ficou em {value} para {territory} ({period}).",
+    "energia": "No setor de energia, {name} registrou {value} em {territory} ({period}).",
+    "assistencia_social": "Na assistencia social, {name} atingiu {value} em {territory} ({period}).",
+}
+_DEFAULT_INSIGHT_TEMPLATE = "O indicador {name} apresentou valor de {value} em {territory} ({period})."
+
+
+def _build_insight_explanation(row: dict[str, Any]) -> list[str]:
+    """Build contextual insight explanation based on domain and status."""
+    domain = str(row["domain"])
+    template = _DOMAIN_INSIGHT_TEMPLATES.get(domain, _DEFAULT_INSIGHT_TEMPLATE)
+    formatted_value = _format_highlight_value(float(row["value"]), row.get("unit"))
+    period_str = str(row.get("reference_period", "-"))
+
+    line1 = template.format(
+        name=row["indicator_name"],
+        value=formatted_value,
+        territory=row["territory_name"],
+        period=period_str,
+    )
+
+    status = row["status"]
+    if status == "critical":
+        line2 = f"Este indicador esta em faixa critica (score {row['score']:.0f}) e exige atencao imediata."
+    elif status == "attention":
+        line2 = f"Indicador na faixa de atencao (score {row['score']:.0f}), recomenda-se acompanhamento proximo."
+    else:
+        line2 = f"Indicador em faixa estavel (score {row['score']:.0f}), sem necessidade de acao urgente."
+
+    line3 = f"Fonte: {row['source']}/{row.get('dataset', '-')}."
+    return [line1, line2, line3]
+
+
 def _qg_metadata(updated_at: datetime | None, notes: str | None = None, unit: str | None = None, source_classification: str | None = None) -> QgMetadata:
     cfg = load_strategic_engine_config()
     return QgMetadata(
@@ -159,7 +221,7 @@ def _fetch_priority_rows(
             SELECT
                 *,
                 CASE
-                    WHEN total_rows <= 1 THEN 100.0
+                    WHEN total_rows <= 1 THEN 50.0
                     ELSE ROUND((1 - ((row_num - 1)::numeric / (total_rows - 1))) * 100, 2)::double precision
                 END AS score
             FROM ranked
@@ -261,7 +323,7 @@ def _score_to_status(score: float) -> str:
 
 def _score_from_rank(rank: int, total_items: int) -> float:
     if total_items <= 1:
-        return 100.0
+        return 50.0
     return round((1 - ((rank - 1) / (total_items - 1))) * 100, 2)
 
 
@@ -276,6 +338,48 @@ def _previous_reference_period(period: str | None) -> str | None:
     if normalized.isdigit() and len(normalized) == 4:
         return str(int(normalized) - 1)
     return None
+
+
+def _compute_trend(current_value: float, previous_value: float | None) -> str:
+    """Return 'up', 'down' or 'stable' based on value delta."""
+    if previous_value is None:
+        return "stable"
+    if current_value == previous_value:
+        return "stable"
+    delta_pct = ((current_value - previous_value) / abs(previous_value)) * 100 if previous_value != 0 else 0
+    if delta_pct >= 2:
+        return "up"
+    if delta_pct <= -2:
+        return "down"
+    return "stable"
+
+
+def _fetch_previous_values(
+    db: Session,
+    *,
+    period: str,
+    level: str | None,
+) -> dict[tuple[str, str], float]:
+    """Return {(territory_id, indicator_code): value} for the previous period."""
+    prev_period = _previous_reference_period(period)
+    if prev_period is None:
+        return {}
+    rows = db.execute(
+        text(
+            """
+            SELECT
+                dt.territory_id::text AS territory_id,
+                fi.indicator_code,
+                fi.value::double precision AS value
+            FROM silver.fact_indicator fi
+            JOIN silver.dim_territory dt ON dt.territory_id = fi.territory_id
+            WHERE fi.reference_period = CAST(:period AS TEXT)
+              AND (CAST(:level AS TEXT) IS NULL OR dt.level::text = CAST(:level AS TEXT))
+            """
+        ),
+        {"period": prev_period, "level": level},
+    ).mappings().all()
+    return {(str(row["territory_id"]), str(row["indicator_code"])): float(row["value"]) for row in rows}
 
 
 def _fetch_territory_indicator_scores(
@@ -329,7 +433,7 @@ def _fetch_territory_indicator_scores(
                 SELECT
                     *,
                     CASE
-                        WHEN total_rows <= 1 THEN 100.0
+                        WHEN total_rows <= 1 THEN 50.0
                         ELSE ROUND((1 - ((row_num - 1)::numeric / (total_rows - 1))) * 100, 2)::double precision
                     END AS score
                 FROM ranked
@@ -650,10 +754,14 @@ def get_priority_list(
     level_en = normalize_level(level)
     rows = _fetch_priority_rows(db=db, period=period, level=level_en, domain=domain, limit=limit)
 
+    previous_values: dict[tuple[str, str], float] = {}
+    if period:
+        previous_values = _fetch_previous_values(db, period=period, level=level_en)
+
     items = []
     for row in rows:
         rationale = [
-            f"Indicador {row['indicator_code']} com valor {row['value']:.2f}.",
+            f"Indicador {row['indicator_name']} com valor {row['value']:.2f}.",
             f"Dominio {row['domain']} em {row['territory_name']}.",
         ]
         if row["status"] == "critical":
@@ -662,6 +770,9 @@ def get_priority_list(
             rationale.append("Indicador em faixa de atencao no recorte atual.")
         else:
             rationale.append("Indicador em faixa estavel no recorte atual.")
+
+        prev_val = previous_values.get((row["territory_id"], row["indicator_code"]))
+        trend = _compute_trend(float(row["value"]), prev_val)
 
         items.append(
             PriorityItem(
@@ -674,7 +785,7 @@ def get_priority_list(
                 value=float(row["value"]),
                 unit=row["unit"],
                 score=float(row["score"]),
-                trend="stable",
+                trend=trend,
                 status=row["status"],
                 rationale=rationale,
                 evidence=PriorityEvidence(
@@ -765,11 +876,7 @@ def get_insight_highlights(
                 domain=row["domain"],
                 territory_id=row["territory_id"],
                 territory_name=row["territory_name"],
-                explanation=[
-                    f"O indicador {row['indicator_code']} apresentou valor {row['value']:.2f}.",
-                    f"Score de priorizacao calculado em {row['score']:.2f}.",
-                    "Insight inicial baseado em ranking do recorte atual.",
-                ],
+                explanation=_build_insight_explanation(row),
                 evidence=PriorityEvidence(
                     indicator_code=row["indicator_code"],
                     reference_period=row["reference_period"],
@@ -886,11 +993,23 @@ def simulate_scenario(
     else:
         impact = "unchanged"
 
+    _IMPACT_LABELS = {
+        "improved": "melhora",
+        "worsened": "piora",
+        "unchanged": "inalterado",
+    }
+
+    unit = target_row.get("unit")
+    fmt_base = _format_highlight_value(base_value, unit)
+    fmt_sim = _format_highlight_value(simulated_value, unit)
+    fmt_delta = _format_highlight_value(delta_value, unit)
+    impact_label = _IMPACT_LABELS.get(impact, impact)
+
     explanation = [
-        f"Ajuste aplicado: {payload.adjustment_percent:.2f}% no indicador {target_indicator_code}.",
-        f"Valor base {base_value:.2f} para valor simulado {simulated_value:.2f} (delta {delta_value:.2f}).",
+        f"Ajuste aplicado: {payload.adjustment_percent:.2f}% no indicador {str(target_row['indicator_name'])}.",
+        f"Valor base {fmt_base} para valor simulado {fmt_sim} (delta {fmt_delta}).",
         f"Posicao no ranking do indicador: {base_rank} -> {simulated_rank} entre {peer_count} territorios.",
-        f"Score de ranking estimado: {base_score:.2f} -> {simulated_score:.2f}, impacto {impact}.",
+        f"Score de ranking estimado: {base_score:.2f} -> {simulated_score:.2f}, impacto {impact_label}.",
     ]
 
     return ScenarioSimulateResponse(
@@ -959,7 +1078,7 @@ def generate_brief(
     ]
     if rows:
         summary_lines.append(
-            f"Indicador de maior score: {rows[0]['indicator_name']} ({rows[0]['indicator_code']}) em {rows[0]['territory_name']}."
+            f"Indicador de maior score: {rows[0]['indicator_name']} em {rows[0]['territory_name']}."
         )
     else:
         summary_lines.append("Nao ha evidencias para os filtros aplicados.")
@@ -1072,8 +1191,9 @@ def get_territory_profile(
 
     highlights: list[str] = []
     for row in sorted(rows, key=lambda item: abs(float(item["value"])), reverse=True)[:3]:
+        formatted_value = _format_highlight_value(float(row["value"]), row.get("unit"))
         highlights.append(
-            f"{row['indicator_name']} ({row['indicator_code']}) em {row['reference_period']}: {float(row['value']):.2f}."
+            f"Destaque: {row['indicator_name']} em {row['reference_period']}: {formatted_value}."
         )
     if not highlights:
         highlights = ["Sem indicadores disponiveis para os filtros aplicados."]

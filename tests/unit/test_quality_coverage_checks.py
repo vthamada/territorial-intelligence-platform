@@ -99,10 +99,13 @@ def test_check_fact_indicator_temporal_coverage_warns_for_missing_levels() -> No
 
 
 def test_check_fact_indicator_source_temporal_coverage_warns_when_source_has_few_periods() -> None:
-    # calls follow source map order: SIDRA..CENSO_SUAS
-    session = _SequenceSession([2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2])
+    # calls follow source map order:
+    # DATASUS, INEP, SICONFI, MTE, TSE, SIDRA, SENATRAN, SEJUSP_MG, SIOPS, SNIS,
+    # INMET, INPE_QUEIMADAS, ANA, ANATEL, ANEEL, CECAD, CENSO_SUAS
+    session = _SequenceSession([2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2])
     results = check_fact_indicator_source_temporal_coverage(session, _thresholds())
     by_name = {result.name: result for result in results}
+    assert by_name["source_periods_datasus"].status == "pass"
     assert by_name["source_periods_sidra"].status == "pass"
     assert by_name["source_periods_senatran"].status == "warn"
     assert by_name["source_periods_aneel"].status == "pass"

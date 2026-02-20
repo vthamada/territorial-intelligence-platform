@@ -124,6 +124,10 @@ class _QgSession:
                 ]
             )
 
+        # _fetch_previous_values: return empty so trend defaults to stable
+        if "fi.reference_period = cast(:period as text)" in sql and "fi.indicator_code" in sql and "fi.value" in sql:
+            return _RowsResult([])
+
         raise AssertionError(f"Unexpected SQL in QG test: {sql}")
 
 
