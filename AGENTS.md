@@ -29,24 +29,26 @@ Entregar evolucao do QG estrategico com estabilidade de ponta a ponta:
 
 Antes de codar:
 1. `docs/CONTRATO.md` (fonte suprema de requisitos tecnicos)
-2. `docs/PLANO_IMPLEMENTACAO_QG.md` (prioridades e sequencia de execucao)
-3. `docs/HANDOFF.md` (estado corrente e proximos passos imediatos)
-4. `docs/CHANGELOG.md` (historico + validacoes recentes)
+2. `docs/VISION.md` (north star de produto e mapa)
+3. `docs/PLANO_IMPLEMENTACAO_QG.md` (prioridades e sequencia de execucao)
+4. `docs/HANDOFF.md` (estado corrente e proximos passos imediatos)
+5. `docs/CHANGELOG.md` (historico + validacoes recentes)
 
 Leitura complementar por dominio:
 1. Mapa: `docs/MAP_PLATFORM_SPEC.md`, `docs/TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md`
 2. Motor estrategico: `docs/STRATEGIC_ENGINE_SPEC.md`
-3. Robustez de dados: `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`, `docs/RUNBOOK_ROBUSTEZ_DADOS_SEMANAL.md`
+3. Robustez de dados: `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`
 4. Operacao: `docs/OPERATIONS_RUNBOOK.md`
 
 ## 4) Hierarquia de verdade (resolucao de conflito)
 
 Se houver conflito entre fontes:
 1. `docs/CONTRATO.md`
-2. `docs/PLANO_IMPLEMENTACAO_QG.md`
-3. `docs/HANDOFF.md`
-4. specs de dominio (`MAP`, `TERRITORIAL`, `STRATEGIC`)
-5. docs complementares (`FRONTEND_SPEC`, visao de evolucao, matriz)
+2. `docs/VISION.md`
+3. `docs/PLANO_IMPLEMENTACAO_QG.md`
+4. `docs/HANDOFF.md`
+5. specs de dominio (`MAP`, `TERRITORIAL`, `STRATEGIC`)
+6. docs operacionais complementares
 
 Regra: nunca implementar algo que viole contrato tecnico.
 
@@ -122,36 +124,40 @@ Validacao padrao:
 
 Nucleo ativo (sempre manter atualizado):
 1. `docs/CONTRATO.md`
-2. `docs/PLANO_IMPLEMENTACAO_QG.md`
-3. `docs/HANDOFF.md`
-4. `docs/CHANGELOG.md`
-5. `docs/PLANO.md`
+2. `docs/VISION.md`
+3. `docs/PLANO_IMPLEMENTACAO_QG.md`
+4. `docs/HANDOFF.md`
+5. `docs/CHANGELOG.md`
+6. `docs/GOVERNANCA_DOCUMENTAL.md`
 
 Ativo por dominio:
 1. `docs/MAP_PLATFORM_SPEC.md`
 2. `docs/TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md`
 3. `docs/STRATEGIC_ENGINE_SPEC.md`
 4. `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`
-5. `docs/PLANO_FONTES_DADOS_DIAMANTINA.md`
-6. `docs/OPERATIONS_RUNBOOK.md`
-7. `docs/RUNBOOK_ROBUSTEZ_DADOS_SEMANAL.md`
-8. `docs/BRONZE_POLICY.md`
-9. `docs/MTE_RUNBOOK.md`
+5. `docs/OPERATIONS_RUNBOOK.md`
 
-Complementar (nao usar como fonte unica):
-1. `docs/FRONTEND_SPEC.md`
-2. `docs/PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md`
-3. `docs/MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md`
+Complementar (nao executavel):
+1. nenhum documento complementar ativo no momento
 
-Candidato a arquivamento:
-1. `docs/GITHUB_ISSUES_BACKLOG_DADOS_NIVEL_MAXIMO.md`
+Descontinuados (removidos do repositorio em 2026-02-20):
+1. `FRONTEND_SPEC.md`
+2. `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md`
+3. `MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md`
+4. `GITHUB_ISSUES_BACKLOG_DADOS_NIVEL_MAXIMO.md`
+5. `PLANO_FONTES_DADOS_DIAMANTINA.md`
+6. `RUNBOOK_ROBUSTEZ_DADOS_SEMANAL.md`
+7. `MTE_RUNBOOK.md`
+8. `BRONZE_POLICY.md`
+9. `BACKLOG_UX_EXECUTIVO_QG.md`
+10. `PLANO.md`
 
 ## 11) Guardrails de execucao
 
 Nunca:
-1. implementar sem ler os 4 docs obrigatorios;
+1. implementar sem ler os docs obrigatorios do nucleo ativo;
 2. abrir nova frente antes de fechar validacao da atual;
-3. tratar `docs/FRONTEND_SPEC.md` como contrato tecnico;
+3. usar docs descontinuados como fonte de decisao;
 4. encerrar rodada sem atualizar docs de estado;
 5. declarar pronto sem evidencias de teste/build.
 
@@ -173,5 +179,6 @@ Para manter consistencia:
 ## 13) Prompt curto recomendado para bootstrap
 
 "Leia `docs/CONTRATO.md`, `docs/PLANO_IMPLEMENTACAO_QG.md`, `docs/HANDOFF.md` e `docs/CHANGELOG.md`.  
+Use `docs/VISION.md` como norte de produto.  
 Use `AGENTS.md` como manual de execucao.  
 Foque em P0, implemente em ciclo curto, rode testes/build relevantes e atualize docs obrigatorios antes de encerrar."

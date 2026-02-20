@@ -4,6 +4,9 @@ Data de referencia: 2026-02-19
 Status: ativo  
 Escopo: plano tecnico para levar a base de dados ao nivel maximo de robustez para inteligencia territorial de Diamantina/MG.
 
+Fonte oficial de catalogo/priorizacao de fontes:
+1. este proprio documento (substitui `docs/PLANO_FONTES_DADOS_DIAMANTINA.md` para decisao).
+
 ## 1) Objetivo
 
 Sair de um estado "robusto para o MVP" para um estado "robusto maximo", com:
@@ -45,7 +48,7 @@ Evidencias:
 - `docs/CONTRATO.md` (secao 14 atualizada).
 - `db/sql/007_data_coverage_scorecard.sql`.
 - `scripts/export_data_coverage_scorecard.py`.
-- `docs/RUNBOOK_ROBUSTEZ_DADOS_SEMANAL.md`.
+- `docs/OPERATIONS_RUNBOOK.md` (secao de rotina semanal consolidada).
 - `data/reports/data_coverage_scorecard.json`.
 
 Issues:
@@ -416,3 +419,21 @@ Antes de iniciar qualquer nova issue, responder "sim" para todos:
 2. existe criterio de aceite objetivo e medivel?
 3. existe evidencia automatizavel (teste/script/relatorio)?
 4. nao abre nova frente sem fechar uma frente critica atual?
+
+## 10) Catalogo consolidado de fontes (oficial)
+
+Ja implementadas no produto:
+1. IBGE (admin, geometrias, indicadores)
+2. TSE (eleitorado, resultados)
+3. INEP, DATASUS, SICONFI, MTE
+4. SIDRA, SENATRAN, SEJUSP-MG, SIOPS, SNIS
+5. INMET, INPE Queimadas, ANA, ANATEL, ANEEL
+6. Urbano: OSM vias (`urban_roads`) e POIs (`urban_pois`)
+
+Em consolidacao/expansao pela trilha D*:
+1. D2: CECAD/CadUnico e Censo SUAS (com governanca de acesso)
+2. D4: mobilidade e infraestrutura urbana complementar
+3. D5: historico ambiental multi-ano e agregacoes por territorio fino
+
+Regra:
+1. qualquer nova fonte deve entrar como issue BD-* neste backlog antes de integrar ao plano executavel.

@@ -1,7 +1,8 @@
 # Territorial Intelligence Platform - Handoff
 
 Data de referencia: 2026-02-20
-Planejamento principal: `PLANO.md`
+Planejamento principal: `docs/PLANO_IMPLEMENTACAO_QG.md`
+North star de produto: `docs/VISION.md`
 Contrato tecnico principal: `CONTRATO.md`
 
 ## Trilha ativa unica (executavel no ciclo atual)
@@ -23,6 +24,20 @@ Contrato tecnico principal: `CONTRATO.md`
 4. Regra de leitura:
    - apenas esta secao define "proximo passo executavel" no momento;
    - secoes de "proximos passos" antigas abaixo devem ser lidas como historico.
+
+## Atualizacao operacional (2026-02-20) - Filtro rigoroso de documentos
+
+1. Governanca documental centralizada em `docs/GOVERNANCA_DOCUMENTAL.md`.
+2. Nucleo ativo de decisao reforcado:
+   - `docs/CONTRATO.md`
+   - `docs/VISION.md`
+   - `docs/PLANO_IMPLEMENTACAO_QG.md`
+   - `docs/HANDOFF.md`
+   - `docs/CHANGELOG.md`
+3. Documentos descontinuados para decisao:
+   - removidos do repositorio em 2026-02-20 (ver `docs/GOVERNANCA_DOCUMENTAL.md` secao 6).
+4. Regra obrigatoria:
+   - nenhum desses documentos descontinuados abre prioridade, trilha ou backlog.
 
 ## Atualizacao tecnica (2026-02-20) — Fase UX-P0 entregue
 

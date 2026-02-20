@@ -50,6 +50,23 @@ Banco:
 - PostgreSQL + PostGIS
 - Schemas principais: `silver`, `gold`, `ops`
 
+## 4.1) Politica Bronze (consolidada)
+
+Regras obrigatorias:
+1. Bronze armazena arquivos exatamente como recebidos da fonte oficial, sem transformacao.
+2. Path imutavel por timestamp de extracao:
+   - `data/bronze/{source}/{dataset}/{reference_period}/extracted_at={iso_ts}/raw.ext`
+3. Todo artefato bruto deve ter:
+   - checksum SHA256
+   - manifesto correspondente em `data/manifests/...`
+4. Retries nunca podem sobrescrever arquivos Bronze existentes.
+5. `dry_run=True` nao pode escrever em Bronze nem banco.
+
+Retencao e salvaguardas:
+1. Retencao minima conforme `BRONZE_RETENTION_DAYS`.
+2. Limpeza remove apenas dados fora da janela de retencao.
+3. Limpeza deve preservar consistencia entre arquivos removidos e manifestos/checksums.
+
 ## 5) Modelo de dados mínimo (contrato)
 
 Silver:
@@ -281,9 +298,10 @@ O sistema é considerado finalizado quando:
 ## 13) Governança documental
 
 1. Mudanças de requisito técnico devem ser feitas em `CONTRATO.md`.
-2. Mudanças de execução e sequência de entregas devem ser feitas em `PLANO.md`.
+2. Mudanças de execução e sequência de entregas devem ser feitas em `docs/PLANO_IMPLEMENTACAO_QG.md`.
 3. Estado atual e decisões operacionais transitórias devem ser registradas em `HANDOFF.md`.
 4. Evidências históricas e validações executadas devem ser registradas em `CHANGELOG.md`.
+5. Classificação oficial de quais documentos são ativos/descontinuados deve ser mantida em `docs/GOVERNANCA_DOCUMENTAL.md`.
 
 ## 14) Meta oficial de robustez maxima da base de dados
 
@@ -309,4 +327,4 @@ Mecanismo oficial de medicao:
 1. scorecard SQL versionado em `ops.v_data_coverage_scorecard`.
 2. export semanal em `data/reports/data_coverage_scorecard.json` via
    `scripts/export_data_coverage_scorecard.py`.
-3. rotina operacional documentada em `docs/RUNBOOK_ROBUSTEZ_DADOS_SEMANAL.md`.
+3. rotina operacional documentada em `docs/OPERATIONS_RUNBOOK.md` (secao `11.1`).

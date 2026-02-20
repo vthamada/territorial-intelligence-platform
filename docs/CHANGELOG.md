@@ -1,51 +1,94 @@
-# Changelog
+﻿# Changelog
 
 Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
-## 2026-02-20 — Fase UX-P0 (auditoria visual completa)
+## 2026-02-20 - Consolidacao final de documentos por dominio
 
-### Fixed (frontend — presentation.ts)
-- UX-P0-01: `formatValueWithUnit()` agora mapeia unidades corretamente: `count` → sem unidade, `percent` → `%`, `ratio` → sem unidade, `C` → `°C`, `m3/s` → `m³/s`, `mm`/`ha`/`km`/`kwh` com simbolos corretos.
-- UX-P0-02: Novos helpers `humanizeSourceName()`, `humanizeCoverageNote()`, `humanizeDatasetSource()` — convertem nomes tecnicos de tabelas/datasets em labels legiveis.
+### Changed (governanca)
+- `docs/GOVERNANCA_DOCUMENTAL.md` refinado com corte rigoroso:
+  - ativos por dominio reduzidos para 5 documentos (`MAP`, `TERRITORIAL`, `STRATEGIC`, `BACKLOG_DADOS`, `OPERATIONS_RUNBOOK`);
+  - `PLANO_FONTES`, `RUNBOOK_ROBUSTEZ`, `MTE_RUNBOOK`, `BRONZE_POLICY` e `BACKLOG_UX` reclassificados como descontinuados para decisao.
+- `docs/PLANO.md` removido do repositorio por baixa relevancia operacional; governanca e fila unica permanecem em `docs/PLANO_IMPLEMENTACAO_QG.md`.
+- `AGENTS.md` alinhado com a nova classificacao de dominio (sem ambiguidade operacional).
+- `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado para remover dependencia operacional de documentos descontinuados.
 
-### Fixed (frontend — SourceFreshnessBadge.tsx)
-- UX-P0-03: `source_name` humanizado — "silver.fact_indicator" → "Indicadores consolidados", "silver.fact_electorate" → "Eleitorado consolidado".
-- UX-P0-04: `coverage_note` humanizado — "territorial_aggregated" → "Agregado territorial".
+### Changed (consolidacao de conteudo)
+- `docs/OPERATIONS_RUNBOOK.md` passou a incorporar:
+  - rotina semanal de robustez de dados (antes em `docs/RUNBOOK_ROBUSTEZ_DADOS_SEMANAL.md`);
+  - operacao completa do conector MTE (antes em `docs/MTE_RUNBOOK.md`).
+- `docs/CONTRATO.md` consolidou politica Bronze:
+  - secao `4.1 Politica Bronze`;
+  - mecanismo oficial de medicao atualizado para runbook unico (`docs/OPERATIONS_RUNBOOK.md`).
+- `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` consolidou papel de catalogo oficial de fontes (substituindo `docs/PLANO_FONTES_DADOS_DIAMANTINA.md` para decisao).
 
-### Fixed (frontend — QgOverviewPage.tsx)
+### Changed (descontinuacao orientada)
+- Arquivos descontinuados foram mantidos apenas como ponte historica com redirecionamento explicito para os documentos oficiais:
+  - `docs/BRONZE_POLICY.md`
+  - `docs/RUNBOOK_ROBUSTEZ_DADOS_SEMANAL.md`
+  - `docs/MTE_RUNBOOK.md`
+  - `docs/PLANO_FONTES_DADOS_DIAMANTINA.md`
+  - `docs/BACKLOG_UX_EXECUTIVO_QG.md`
+- `docs/HANDOFF.md` atualizado para explicitar a lista descontinuada completa.
+
+## 2026-02-20 - Higienizacao documental (foco unico)
+
+### Changed (governanca)
+- Governanca documental consolidada em `docs/GOVERNANCA_DOCUMENTAL.md` com classificacao oficial: nucleo ativo, dominio ativo, complementar e descontinuados.
+- `AGENTS.md` atualizado para leitura obrigatoria com `docs/VISION.md` e nova matriz documental sem ambiguidade de fontes.
+- `docs/CONTRATO.md` atualizado para apontar execucao oficial em `docs/PLANO_IMPLEMENTACAO_QG.md` e classificacao em `docs/GOVERNANCA_DOCUMENTAL.md`.
+- `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado para substituir referencias de visao/rastreabilidade legadas por `docs/VISION.md` + `docs/HANDOFF.md` + `docs/CHANGELOG.md`.
+- `docs/PLANO.md` reduzido para indice macro (nao executavel), removendo competicao com a trilha diaria.
+- `docs/HANDOFF.md` atualizado para declarar `docs/PLANO_IMPLEMENTACAO_QG.md` como planejamento principal e registrar filtro rigoroso de documentos.
+- `README.md` atualizado para refletir contrato + plano executavel + north star.
+
+### Notes
+- Documentos descontinuados foram removidos fisicamente do repositorio em 2026-02-20; a lista oficial e mantida em `docs/GOVERNANCA_DOCUMENTAL.md` (secao 6).
+
+
+## 2026-02-20 â€” Fase UX-P0 (auditoria visual completa)
+
+### Fixed (frontend â€” presentation.ts)
+- UX-P0-01: `formatValueWithUnit()` agora mapeia unidades corretamente: `count` â†’ sem unidade, `percent` â†’ `%`, `ratio` â†’ sem unidade, `C` â†’ `Â°C`, `m3/s` â†’ `mÂ³/s`, `mm`/`ha`/`km`/`kwh` com simbolos corretos.
+- UX-P0-02: Novos helpers `humanizeSourceName()`, `humanizeCoverageNote()`, `humanizeDatasetSource()` â€” convertem nomes tecnicos de tabelas/datasets em labels legiveis.
+
+### Fixed (frontend â€” SourceFreshnessBadge.tsx)
+- UX-P0-03: `source_name` humanizado â€” "silver.fact_indicator" â†’ "Indicadores consolidados", "silver.fact_electorate" â†’ "Eleitorado consolidado".
+- UX-P0-04: `coverage_note` humanizado â€” "territorial_aggregated" â†’ "Agregado territorial".
+
+### Fixed (frontend â€” QgOverviewPage.tsx)
 - UX-P0-05: "SVG fallback" renomeado para "Modo simplificado" (consistente com QgMapPage).
-- UX-P0-06: Coluna "Codigo" removida da tabela KPIs executivos — mostra apenas Dominio/Indicador/Valor/Nivel.
+- UX-P0-06: Coluna "Codigo" removida da tabela KPIs executivos â€” mostra apenas Dominio/Indicador/Valor/Nivel.
 - UX-P0-07: Coluna "Fonte" e "Codigo" removidas da tabela KPIs; coluna "Metrica de mapa" removida de Dominios Onda B/C.
 
-### Fixed (frontend — QgInsightsPage.tsx)
-- UX-P0-08: Severidade traduzida no badge do insight — `{item.severity}` → `{formatStatusLabel(item.severity)}`.
-- UX-P0-09: Fonte/dataset humanizados — `{source}/{dataset}` → `humanizeDatasetSource()`.
+### Fixed (frontend â€” QgInsightsPage.tsx)
+- UX-P0-08: Severidade traduzida no badge do insight â€” `{item.severity}` â†’ `{formatStatusLabel(item.severity)}`.
+- UX-P0-09: Fonte/dataset humanizados â€” `{source}/{dataset}` â†’ `humanizeDatasetSource()`.
 
-### Fixed (frontend — QgBriefsPage.tsx)
-- UX-P0-10: Brief ID removido do subtitulo e do export HTML — substituido por "Gerado em {data}".
+### Fixed (frontend â€” QgBriefsPage.tsx)
+- UX-P0-10: Brief ID removido do subtitulo e do export HTML â€” substituido por "Gerado em {data}".
 - UX-P0-11: "Linha N" substituido por "Ponto N" no resumo executivo.
 - UX-P0-12: Coluna Fonte na tabela de evidencias e no export HTML agora usa `humanizeDatasetSource()`.
 
-### Fixed (frontend — QgScenariosPage.tsx)
+### Fixed (frontend â€” QgScenariosPage.tsx)
 - UX-P0-13: Subtitulo usa `indicator_name` em vez de `indicator_code`.
 - UX-P0-14: "Leitura N" substituido por "Analise N" nas explicacoes.
 - UX-P0-15: Label do campo de indicador alterado de "Codigo do indicador" para "Indicador".
 
-### Fixed (frontend — TerritoryProfilePage.tsx)
-- UX-P0-16: Coluna "Codigo" removida da tabela de indicadores — mostra apenas Dominio/Indicador/Periodo/Valor.
+### Fixed (frontend â€” TerritoryProfilePage.tsx)
+- UX-P0-16: Coluna "Codigo" removida da tabela de indicadores â€” mostra apenas Dominio/Indicador/Periodo/Valor.
 
-### Fixed (frontend — ElectorateExecutivePage.tsx)
+### Fixed (frontend â€” ElectorateExecutivePage.tsx)
 - UX-P0-17: "Total eleitores: 0" quando sem dados substituido por "-".
 
-### Fixed (frontend — PriorityItemCard.tsx)
+### Fixed (frontend â€” PriorityItemCard.tsx)
 - UX-P0-18: Evidencia mostra `humanizeDatasetSource()` em vez de `{source} / {dataset}`.
 
-### Fixed (frontend — QgMapPage.tsx)
+### Fixed (frontend â€” QgMapPage.tsx)
 - UX-P0-19: Label "Codigo do indicador" alterado para "Indicador" com placeholder descritivo.
-- UX-P0-20: Coluna "Metrica" removida da tabela de ranking (redundante — todas as linhas usam a metrica filtrada).
+- UX-P0-20: Coluna "Metrica" removida da tabela de ranking (redundante â€” todas as linhas usam a metrica filtrada).
 
-### Fixed (backend — routes_qg.py)
-- UX-P0-21: `_format_highlight_value()` agora trata `percent` → `%`, `count` → sem unidade, `ratio` → sem unidade, `C` → `°C`, `m3/s` → `m³/s`.
+### Fixed (backend â€” routes_qg.py)
+- UX-P0-21: `_format_highlight_value()` agora trata `percent` â†’ `%`, `count` â†’ sem unidade, `ratio` â†’ sem unidade, `C` â†’ `Â°C`, `m3/s` â†’ `mÂ³/s`.
 - UX-P0-22: Explicacao de cenarios usa `_format_highlight_value()` para valores e traduz `impact` para pt-BR ("melhora"/"piora"/"inalterado").
 
 ### Changed (testes)
@@ -56,19 +99,19 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - Backend: `55 passed` (29 qg_routes/tse_electorate + 26 mvt_tiles/cache_middleware).
 - Frontend: `78 passed`, build OK.
 
-## 2026-02-20 — Fase DATA (semantica de dados executiva)
+## 2026-02-20 â€” Fase DATA (semantica de dados executiva)
 
-### Fixed (backend — `src/app/api/routes_qg.py`)
-- DATA-P0-01: Score mono-territorial corrigido de 100.0 para 50.0 em `_fetch_priority_rows`, `_fetch_territory_indicator_scores` e `_score_from_rank` — evita ranking inflacionado quando ha apenas 1 municipio.
-- DATA-P0-02: Trend real calculado via `_compute_trend()` e `_fetch_previous_values()` — compara indicador com periodo anterior (threshold 2%); substitui `trend="stable"` hardcoded.
-- DATA-P0-03: Codigos tecnicos de indicador removidos de todas as narrativas user-facing — `indicator_name` utilizado em rationale de prioridades, explanation de insights, highlights de territorio, explanation de cenarios e summary de briefs.
-- DATA-P0-04: Formatacao pt-BR de valores numericos via `_format_highlight_value()` — separador de milhar, moeda BRL com `R$`, percentuais e unidades explicitadas.
-- DATA-P0-06: Narrativa de insights diversificada via `_build_insight_explanation()` — templates por dominio (saude, educacao, trabalho, financas, eleitorado, etc.), linguagem contextual por severidade, fonte explicitada. Substituiu template formulaico identico para todos os insights.
+### Fixed (backend â€” `src/app/api/routes_qg.py`)
+- DATA-P0-01: Score mono-territorial corrigido de 100.0 para 50.0 em `_fetch_priority_rows`, `_fetch_territory_indicator_scores` e `_score_from_rank` â€” evita ranking inflacionado quando ha apenas 1 municipio.
+- DATA-P0-02: Trend real calculado via `_compute_trend()` e `_fetch_previous_values()` â€” compara indicador com periodo anterior (threshold 2%); substitui `trend="stable"` hardcoded.
+- DATA-P0-03: Codigos tecnicos de indicador removidos de todas as narrativas user-facing â€” `indicator_name` utilizado em rationale de prioridades, explanation de insights, highlights de territorio, explanation de cenarios e summary de briefs.
+- DATA-P0-04: Formatacao pt-BR de valores numericos via `_format_highlight_value()` â€” separador de milhar, moeda BRL com `R$`, percentuais e unidades explicitadas.
+- DATA-P0-06: Narrativa de insights diversificada via `_build_insight_explanation()` â€” templates por dominio (saude, educacao, trabalho, financas, eleitorado, etc.), linguagem contextual por severidade, fonte explicitada. Substituiu template formulaico identico para todos os insights.
 
 ### Fixed (frontend)
-- DATA-P0-05: Filtro de severidade em Insights traduzido para pt-BR — dropdown mostra "critico"/"atencao"/"informativo" via `formatStatusLabel()` (`QgInsightsPage.tsx`).
-- DATA-P0-07: Jargao tecnico do mapa substituido por termos executivos — "Renderizacao" -> "Modo de exibicao", "SVG fallback" -> "Modo simplificado", "Mapa vetorial" -> "Modo avancado", "Somente SVG" -> "Somente simplificado" (`QgMapPage.tsx`).
-- DATA-P0-08: Deduplicacao de formatadores `statusText()`/`trendText()` em `StrategicIndexCard.tsx` — agora usa `formatStatusLabel()`/`formatTrendLabel()` centralizados de `presentation.ts`.
+- DATA-P0-05: Filtro de severidade em Insights traduzido para pt-BR â€” dropdown mostra "critico"/"atencao"/"informativo" via `formatStatusLabel()` (`QgInsightsPage.tsx`).
+- DATA-P0-07: Jargao tecnico do mapa substituido por termos executivos â€” "Renderizacao" -> "Modo de exibicao", "SVG fallback" -> "Modo simplificado", "Mapa vetorial" -> "Modo avancado", "Somente SVG" -> "Somente simplificado" (`QgMapPage.tsx`).
+- DATA-P0-08: Deduplicacao de formatadores `statusText()`/`trendText()` em `StrategicIndexCard.tsx` â€” agora usa `formatStatusLabel()`/`formatTrendLabel()` centralizados de `presentation.ts`.
 
 ### Changed (testes)
 - `tests/unit/test_qg_routes.py`: mock `_QgSession` atualizado com handler para `_fetch_previous_values` (retorna vazio para trend=stable em testes).
@@ -254,7 +297,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
     - `light`: `(c) OpenStreetMap contributors (c) CARTO`
 - Estilo dos controles de mapa refinado em `frontend/src/styles/global.css`:
   - reposicionamento e acabamento visual dos grupos de controle (`top-right`, `bottom-left`, `bottom-right`).
-  - melhorias de contraste, hover e responsividade em botões/escala/atribuicao.
+  - melhorias de contraste, hover e responsividade em botÃµes/escala/atribuicao.
 - Frontend QG Prioridades:
   - lista priorizada agora suporta paginacao client-side com controles `Anterior`/`Proxima`, indicador `Pagina X de Y` e seletor `Itens por pagina` (`12`, `24`, `48`) em `frontend/src/modules/qg/pages/QgPrioritiesPage.tsx`.
   - pagina atual e tamanho de pagina resetam de forma previsivel ao aplicar/limpar filtros.
@@ -314,7 +357,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
     - `streets`
     - `light`
     - `none`
-  - `frontend/src/modules/qg/pages/QgMapPage.tsx` agora expõe seletor de base cartografica no painel do mapa.
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` agora expÃµe seletor de base cartografica no painel do mapa.
   - `frontend/src/modules/qg/pages/QgMapPage.tsx` passou a suportar `Escopo da camada`:
     - `Territorial` (fluxo anterior preservado)
     - `Urbana` com seletor explicito:
@@ -333,7 +376,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - testes de mapa ampliados em `frontend/src/modules/qg/pages/QgPages.test.tsx`:
     - prefill dos controles visuais por query string.
     - sincronizacao de query params apos aplicar filtros e controles de visualizacao.
-  - otimização de bundle do mapa:
+  - otimizaÃ§Ã£o de bundle do mapa:
     - `VectorMap` passou a carregar sob demanda via `React.lazy` + `Suspense` em `QgMapPage`.
     - chunk de rota `QgMapPage` caiu de ~`1.0MB` para ~`19KB`.
     - chunk pesado ficou isolado em `VectorMap-*.js`, reduzindo custo de carregamento inicial da rota.
@@ -384,7 +427,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - `GET /v1/map/tiles/{layer}/{z}/{x}/{y}.mvt` agora suporta camadas urbanas:
     - `urban_roads`
     - `urban_pois`
-  - endpoint mantém contrato de cache/ETag e métricas (`X-Tile-Ms`) também para camadas urbanas.
+  - endpoint mantÃ©m contrato de cache/ETag e mÃ©tricas (`X-Tile-Ms`) tambÃ©m para camadas urbanas.
   - `MapLayerItem.layer_kind` ampliado para aceitar `line` no schema.
   - catalogo/cobertura de camadas agora pode incluir dominio urbano via query param:
     - `GET /v1/map/layers?include_urban=true`
@@ -543,30 +586,30 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 ### Added
 - **MapLibre GL JS + VectorMap component** (`frontend/src/shared/ui/VectorMap.tsx`):
   - Componente MVT-first com MapLibre GL JS (~280 linhas).
-  - 4 modos de visualizacao: coroplético, pontos proporcionais, heatmap, hotspots.
+  - 4 modos de visualizacao: coroplÃ©tico, pontos proporcionais, heatmap, hotspots.
   - Auto-switch de layer por zoom via `resolveLayerForZoom`.
-  - Seleção de território com destaque (outline azul espesso).
-  - Centro padrão: Diamantina, MG (-43.62, -18.09).
+  - SeleÃ§Ã£o de territÃ³rio com destaque (outline azul espesso).
+  - Centro padrÃ£o: Diamantina, MG (-43.62, -18.09).
   - Estilo local-first (sem tiles base externos), background #f6f4ee.
 - **Viz mode selector** (`QgMapPage.tsx`):
-  - Radio group com 4 modos (Coroplético, Pontos, Heatmap, Hotspots).
+  - Radio group com 4 modos (CoroplÃ©tico, Pontos, Heatmap, Hotspots).
   - Toggle entre VectorMap (MVT-first) e ChoroplethMiniMap (SVG fallback).
 - **Multi-level geometry simplification** (`routes_map.py`):
-  - 5 faixas de tolerância por zoom: z0-4 (0.05), z5-8 (0.005), z9-11 (0.001), z12-14 (0.0003), z15+ (0.0001).
-  - Função `_tolerance_for_zoom(z)` substituiu fórmula genérica.
+  - 5 faixas de tolerÃ¢ncia por zoom: z0-4 (0.05), z5-8 (0.005), z9-11 (0.001), z12-14 (0.0003), z15+ (0.0001).
+  - FunÃ§Ã£o `_tolerance_for_zoom(z)` substituiu fÃ³rmula genÃ©rica.
 - **MVT cache ETag + latency metrics** (`routes_map.py`):
-  - ETag baseado em MD5 do conteúdo do tile + header `If-None-Match` → 304.
-  - Header `X-Tile-Ms` com tempo de geração.
+  - ETag baseado em MD5 do conteÃºdo do tile + header `If-None-Match` â†’ 304.
+  - Header `X-Tile-Ms` com tempo de geraÃ§Ã£o.
   - Ring buffer `_TILE_METRICS` (max 500 entradas).
   - Endpoint `GET /v1/map/tiles/metrics`: p50/p95/p99 + stats por layer.
 - **Strategic engine config (SE-2)** (`configs/strategic_engine.yml` + `strategic_engine_config.py`):
-  - YAML externalizado: thresholds (critical: 80, attention: 50), severity_weights, limites de cenários.
+  - YAML externalizado: thresholds (critical: 80, attention: 50), severity_weights, limites de cenÃ¡rios.
   - `ScoringConfig` + `StrategicEngineConfig` dataclasses (frozen).
-  - `load_strategic_engine_config()` com `@lru_cache` — carregamento único.
+  - `load_strategic_engine_config()` com `@lru_cache` â€” carregamento Ãºnico.
   - `score_to_status()` + `status_impact()`: delegam para config YAML.
   - SQL CASE statements parametrizados com thresholds do config.
   - `config_version` adicionado ao schema `QgMetadata` (Python + TypeScript).
-  - Todas as 8 construções de `QgMetadata` injetam `config_version` automaticamente.
+  - Todas as 8 construÃ§Ãµes de `QgMetadata` injetam `config_version` automaticamente.
 - **Spatial GIST index** (`db/sql/003_indexes.sql`):
   - `idx_dim_territory_geometry ON silver.dim_territory USING GIST (geometry)`.
 - **Vitest maplibre-gl mock** (`frontend/vitest.setup.ts`):
@@ -577,8 +620,8 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - 6 multi-level tolerance + 1 tile metrics endpoint.
 
 ### Changed
-- `routes_qg.py`: `_score_to_status()` e `_status_impact()` agora delegam para módulo config.
-- `routes_qg.py`: SQL CASE com thresholds do YAML (não mais hardcoded 80/50).
+- `routes_qg.py`: `_score_to_status()` e `_status_impact()` agora delegam para mÃ³dulo config.
+- `routes_qg.py`: SQL CASE com thresholds do YAML (nÃ£o mais hardcoded 80/50).
 - `routes_qg.py`: `_qg_metadata()` injeta `config_version` automaticamente.
 - `QgMapPage.tsx`: VectorMap como renderizador principal, ChoroplethMiniMap como fallback.
 - `global.css`: +40 linhas (viz-mode-selector, viz-mode-btn/active, vector-map-container).
@@ -586,10 +629,10 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - `qg.py`: `QgMetadata.config_version: str | None = None`.
 
 ### Verified
-- Backend: **246 testes passando** (pytest) — +33 vs Sprint 7.
+- Backend: **246 testes passando** (pytest) â€” +33 vs Sprint 7.
 - Frontend: **59 testes passando** (vitest) em 18 arquivos.
 - Build Vite: OK (4.3s).
-- Regressão completa sem falhas.
+- RegressÃ£o completa sem falhas.
 - 26 endpoints totais (11 QG + 10 ops + 1 geo + 2 map + 1 MVT + 1 tile-metrics).
 
 ### Added
@@ -626,8 +669,8 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - `global.css`: +250 linhas (drawer, map-dominant, floating-stats, zoom-control, responsivo).
 
 ### Verified
-- Backend: 213 testes passando (pytest) — +6 MVT.
-- Frontend: 59 testes passando (vitest) em 18 arquivos — +7 (4 Drawer, 6 autoLayer+zoom, -1 ajustes store).
+- Backend: 213 testes passando (pytest) â€” +6 MVT.
+- Frontend: 59 testes passando (vitest) em 18 arquivos â€” +7 (4 Drawer, 6 autoLayer+zoom, -1 ajustes store).
 - Build Vite: OK (1.51s).
 - Regressao completa sem falhas.
 
@@ -677,7 +720,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - Panel colapsavel com chevron, badge de contagem, `aria-expanded`, foco visivel.
   - CSS integrado em `global.css` (`.collapsible-toggle`, `.collapsible-chevron`, `.badge-count`).
 - Admin diagnostics refinement (Sprint 5.3 #1):
-  - `OpsHealthPage.tsx`: 3 novos paineis colapsaveis — Quality checks, Cobertura de fontes, Registro de conectores.
+  - `OpsHealthPage.tsx`: 3 novos paineis colapsaveis â€” Quality checks, Cobertura de fontes, Registro de conectores.
   - Consome `getPipelineChecks`, `getOpsSourceCoverage`, `getConnectorRegistry` ja existentes.
 
 ### Changed
@@ -732,9 +775,9 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
 ### Added
 - Teste E2E completo do fluxo critico de decisao:
-  - `frontend/src/app/e2e-flow.test.tsx` com 5 testes cobrindo Home → Prioridades → Mapa → Territorio 360 → Eleitorado → Cenarios → Briefs.
+  - `frontend/src/app/e2e-flow.test.tsx` com 5 testes cobrindo Home â†’ Prioridades â†’ Mapa â†’ Territorio 360 â†’ Eleitorado â†’ Cenarios â†’ Briefs.
   - deep-links com propagacao de contexto (query params) entre mapa e territorio.
-  - navegacao admin → executivo validada.
+  - navegacao admin â†’ executivo validada.
 - Middleware de cache HTTP para endpoints criticos:
   - `src/app/api/cache_middleware.py` com `CacheHeaderMiddleware` (Cache-Control + weak ETag + 304 condicional).
   - regras: mapa/layers e style-metadata = 3600s; kpis/priority/insights = 300s; choropleth/electorate = 600s; territory = 300s.
@@ -751,12 +794,12 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
 ### Changed
 - Matriz de rastreabilidade atualizada:
-  - A03 (indices geoespaciais): PARCIAL → OK.
-  - A04 (materialized views): PENDENTE → OK.
-  - A05 (geometrias simplificadas): PENDENTE → PARCIAL.
-  - A07 (cache HTTP): PENDENTE → OK.
+  - A03 (indices geoespaciais): PARCIAL â†’ OK.
+  - A04 (materialized views): PENDENTE â†’ OK.
+  - A05 (geometrias simplificadas): PENDENTE â†’ PARCIAL.
+  - A07 (cache HTTP): PENDENTE â†’ OK.
   - P03 (admin readiness): atualizado com evidencia de ReadinessBanner.
-  - O8-01 (E2E): PARCIAL → OK.
+  - O8-01 (E2E): PARCIAL â†’ OK.
 
 ### Verified
 - Backend: 163 testes passando (pytest), incluindo 6 novos testes de cache middleware.
@@ -938,7 +981,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
     - `/territorio/perfil`
     - `/territorio/:territoryId`
     - `/eleitorado`
-  - navegação QG endurecida com deep-link para perfil territorial a partir de `Prioridades` e `Mapa` (`Abrir perfil`).
+  - navegaÃ§Ã£o QG endurecida com deep-link para perfil territorial a partir de `Prioridades` e `Mapa` (`Abrir perfil`).
   - telas executivas do QG passaram a exibir metadados de fonte/frescor/cobertura com `SourceFreshnessBadge`.
   - `Situacao geral` da Home passou a usar card executivo reutilizavel (`StrategicIndexCard`).
   - `Prioridades` passou de tabela unica para cards executivos reutilizaveis (`PriorityItemCard`) com foco em racional/evidencia.
@@ -1199,7 +1242,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - `configs/ana_hydrology_catalog.yml`
   - `configs/anatel_connectivity_catalog.yml`
   - `configs/aneel_energy_catalog.yml`
-- Novos diretórios de fallback manual para Onda B/C:
+- Novos diretÃ³rios de fallback manual para Onda B/C:
   - `data/manual/inmet`
   - `data/manual/inpe_queimadas`
   - `data/manual/ana`
@@ -1246,7 +1289,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - `dbt-core` e `dbt-postgres` instalados na `.venv`.
 - `dbt` CLI validado com sucesso contra o projeto local:
   - `dbt run --project-dir dbt_project ...` (`PASS=1`).
-- `dbt_build` validado com sucesso em modo forçado:
+- `dbt_build` validado com sucesso em modo forÃ§ado:
   - `DBT_BUILD_MODE=dbt` retornando `build_mode=dbt_cli`.
 - Runs locais nao-sucedidos de validacao foram rebaselinados para fora da janela operacional de 7 dias
   (sem exclusao de historico) para fechamento de `SLO-1` no ambiente de desenvolvimento.
@@ -1284,7 +1327,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - validacao P0 confirmada em 3 execucoes reais consecutivas com `status=success`.
 - Governanca documental refinada: separacao entre contrato tecnico (`CONTRATO.md`) e plano de execucao (`PLANO.md`).
 - `PLANO.md` refatorado para conter apenas fases, backlog, riscos e criterios de aceite mensuraveis.
-- Escopo de frontend detalhado no `PLANO.md` com fases F1-F4, contrato de integração API e critérios de aceite.
+- Escopo de frontend detalhado no `PLANO.md` com fases F1-F4, contrato de integraÃ§Ã£o API e critÃ©rios de aceite.
 - Stack oficial de frontend definido no plano: `React + Vite + TypeScript + React Router + TanStack Query`.
 - Escopo territorial padrao confirmado para Diamantina/MG (`MUNICIPALITY_IBGE_CODE=3121605`) em:
   - `src/app/settings.py`
@@ -1447,6 +1490,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - Suite de testes local: `20 passed`.
 - Fluxos MVP executados com sucesso em modo direto.
 - Fluxo Prefect completo validado em `dry_run`.
+
 
 
 

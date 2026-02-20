@@ -1,4 +1,4 @@
-# Runbook de Operacoes — Plataforma de Inteligencia Territorial
+﻿# Runbook de Operacoes - Plataforma de Inteligencia Territorial
 
 Data de referencia: 2026-02-13  
 Versao: v1.0
@@ -133,7 +133,7 @@ Configurados em `configs/quality_thresholds.yml`. Fontes com min_rows:
 
 - `pass`: check dentro dos limites
 - `warn`: check abaixo do threshold mas nao critico
-- `fail`: requer acao corretiva — registrar em HANDOFF.md
+- `fail`: requer acao corretiva â€” registrar em HANDOFF.md
 
 ---
 
@@ -170,7 +170,7 @@ Criados em `db/sql/007_spatial_indexes.sql`:
 
 ---
 
-## 6) API — operacao
+## 6) API â€” operacao
 
 ### 6.1 Iniciar servidor
 
@@ -201,7 +201,7 @@ Endpoints com cache: `/map/layers`, `/map/style-metadata`, `/kpis/*`, `/priority
 
 ---
 
-## 7) Frontend — build e deploy
+## 7) Frontend â€” build e deploy
 
 ### 7.1 Build
 
@@ -345,24 +345,87 @@ npm --prefix frontend run build
 
 ---
 
-## 11) Conectores com procedimento especial
+## 11) Rotinas especiais consolidadas
 
-### 11.1 MTE (Novo CAGED)
+### 11.1 Rotina semanal de robustez de dados
 
-Procedimento detalhado em `docs/MTE_RUNBOOK.md`. Cascata de fallback:
-1. Web probe → FTP download → Bronze cache → Manual fallback → `blocked`
+Pre-requisitos:
+1. `.venv` ativo.
+2. PostgreSQL/PostGIS acessivel no `.env`.
+3. Schemas `silver` e `ops` inicializados.
 
-### 11.2 TSE
+Execucao padrao:
 
-Discovery automatico via CKAN. Se CKAN indisponivel, usar Bronze cache.
+```powershell
+# Passo A - baseline de cobertura robusta
+.\.venv\Scripts\python.exe scripts/backfill_robust_database.py --tse-years 2024,2022,2020 --indicator-periods 2025 --output-json data/reports/robustness_backfill_report.json
 
-### 11.3 Fontes MVP-5
+# Passo B - scorecard oficial
+.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json
 
-INMET, INPE, ANA, ANATEL, ANEEL — fontes mais novas, min_rows=1.
-Monitorar runs iniciais apos deploy para garantir estabilidade.
+# Passo C - readiness operacional
+.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json
+```
 
----
+Passo opcional (onda social):
 
+```powershell
+.\.venv\Scripts\python.exe scripts/backfill_robust_database.py --include-wave6 --skip-wave1 --skip-tse --skip-wave4 --skip-wave5 --indicator-periods 2025 --output-json data/reports/robustness_backfill_report.json
+```
+
+Triagem:
+1. Critico: `hard_failure` no readiness ou qualquer check `fail`.
+2. Alto: `warn` recorrente por 2 semanas na mesma metrica.
+3. Medio: oscilacao pontual sem regressao estrutural.
+
+Evidencias obrigatorias:
+1. `data/reports/robustness_backfill_report.json`
+2. `data/reports/data_coverage_scorecard.json`
+3. saida de `scripts/backend_readiness.py --output-json`
+4. sintese em `docs/HANDOFF.md`
+5. registro relevante em `docs/CHANGELOG.md`
+
+### 11.2 MTE (Novo CAGED)
+
+Fonte primaria:
+1. FTP oficial `ftp://ftp.mtps.gov.br/pdet/microdados/`.
+2. Roots tentados automaticamente:
+   - `/pdet/microdados/NOVO CAGED`
+   - `/pdet/microdados/NOVO_CAGED`
+
+Parametros `.env`:
+1. `MTE_FTP_HOST` (default `ftp.mtps.gov.br`)
+2. `MTE_FTP_PORT` (default `21`)
+3. `MTE_FTP_ROOT_CANDIDATES`
+4. `MTE_FTP_MAX_DEPTH` (default `4`)
+5. `MTE_FTP_MAX_DIRS` (default `300`)
+
+Cascata de fallback:
+1. Web probe -> FTP download -> Bronze cache -> manual (`data/manual/mte`) -> `blocked`.
+
+Execucao:
+
+```powershell
+# Dry-run
+python -c "import json; from pipelines.mte_labor import run; print(json.dumps(run(reference_period='2024', dry_run=True), ensure_ascii=False, indent=2, default=str))"
+
+# Carga real
+python -c "import json; from pipelines.mte_labor import run; print(json.dumps(run(reference_period='2024', dry_run=False), ensure_ascii=False, indent=2, default=str))"
+
+# Validacao P0
+python scripts/validate_mte_p0.py --reference-period 2025 --runs 3 --bootstrap-municipality --output-json
+```
+
+Interpretacao rapida:
+1. `status=success` + `source_type=ftp`: ingestao automatica.
+2. `status=success` + `source_type=bronze_cache`: fonte indisponivel, cache reutilizado.
+3. `status=success` + `source_type=manual`: fallback manual aplicado.
+4. `status=blocked`: sem dado em nenhuma camada de fallback.
+
+### 11.3 TSE e MVP-5
+
+1. TSE: discovery automatico via CKAN; fallback por Bronze cache quando necessario.
+2. Fontes MVP-5 (`INMET`, `INPE_QUEIMADAS`, `ANA`, `ANATEL`, `ANEEL`): monitorar `min_rows=1` e estabilidade dos runs apos deploy.
 ## 12) Procedimento de deploy
 
 ### 12.1 Pre-deploy checklist
@@ -395,3 +458,4 @@ Monitorar runs iniciais apos deploy para garantir estabilidade.
 3. Rebuild frontend
 4. Reiniciar API
 5. Verificar health
+

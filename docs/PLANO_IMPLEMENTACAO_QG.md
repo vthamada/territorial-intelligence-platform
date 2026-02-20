@@ -16,7 +16,8 @@ Escopo: plano executavel para consolidar QG estrategico em producao com dados re
 3. Fonte unica de sequencia de execucao:
    - este arquivo (secoes `5` e `9`).
    - `docs/HANDOFF.md` registra apenas estado corrente e proximo passo imediato da mesma trilha.
-4. Demais documentos (`PLANO.md`, `BACKLOG_DADOS_NIVEL_MAXIMO.md`, `PLANO_FONTES_DADOS_DIAMANTINA.md`) sao norte macro/catalogo e nao devem abrir fila paralela no ciclo diario.
+4. Demais documentos (`BACKLOG_DADOS_NIVEL_MAXIMO.md`) sao norte macro/catalogo e nao devem abrir fila paralela no ciclo diario.
+5. Classificacao oficial de documentos ativos/descontinuados fica em `docs/GOVERNANCA_DOCUMENTAL.md`.
 
 ## 0.1) Mapa de governanca documental (fonte unica)
 
@@ -32,18 +33,15 @@ Escopo: plano executavel para consolidar QG estrategico em producao com dados re
 4. `docs/CHANGELOG.md`:
    - papel: historico do que foi entregue e validado.
    - pode abrir implementacao nova? nao.
-5. `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`:
+5. `docs/VISION.md`:
+   - papel: north star de produto (direcao da experiencia e do valor de negocio).
+   - pode abrir implementacao nova? nao, sem passagem pela fila deste plano.
+6. `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`:
    - papel: backlog tecnico macro D0-D8.
    - pode abrir implementacao nova? nao, sem passagem pelo plano executavel.
-6. `docs/PLANO.md`:
-   - papel: estrategia macro de fases.
+7. `docs/GOVERNANCA_DOCUMENTAL.md`:
+   - papel: inventario e regra de uso dos docs (ativos, complementares, descontinuados).
    - pode abrir implementacao nova? nao.
-7. `docs/PLANO_FONTES_DADOS_DIAMANTINA.md`:
-   - papel: catalogo de fontes e direcao de integracao.
-   - pode abrir implementacao nova? nao.
-8. `docs/GITHUB_ISSUES_BACKLOG_DADOS_NIVEL_MAXIMO.md`:
-   - papel: snapshot/template historico de issues.
-   - pode abrir implementacao nova? nao; status vivo fica no GitHub Project.
 
 ## 1) Objetivo
 
@@ -60,20 +58,19 @@ Entregar e estabilizar o QG estrategico municipal de Diamantina/MG, com:
 ## 2) Premissas e decisoes vigentes
 
 1. Fonte de verdade tecnica: `CONTRATO.md`.
-2. `docs/FRONTEND_SPEC.md` permanece como referencia complementar de produto/UX, sem substituir contrato tecnico ou este plano executavel.
+2. `docs/VISION.md` define a direcao de produto (north star), sem substituir contrato tecnico nem a fila executavel deste plano.
 3. Camada tecnica segue separada da UX executiva (sem foco em auth nesta fase).
 4. Entrega segue vertical (API + pipeline + UI + teste), por bloco de valor.
 5. Modelo principal de integracao de dados continua em `silver.fact_indicator`, com rastreabilidade de `source`, `dataset`, `reference_period` e metadados.
-6. `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md` e o documento de visao estrategica (north star), sem competir com este plano executavel.
-7. `PLANO_FONTES_DADOS_DIAMANTINA.md` e documento de catalogo/priorizacao de fontes; validacao de estado atual fica em `HANDOFF.md` e `ops/readiness`.
+6. O north star de produto e concentrado em `docs/VISION.md`, sem competir com este plano executavel.
+7. Catalogo/priorizacao de fontes e consolidado em `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`; validacao de estado atual fica em `HANDOFF.md` e `ops/readiness`.
 
 ## 2.1 Consolidacao documental (feito em 2026-02-13)
 
-1. Visao estrategica consolidada em `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md`.
+1. Visao estrategica consolidada em `docs/VISION.md`.
 2. Execucao e priorizacao consolidada neste arquivo.
 3. Estado operacional e validacoes correntes consolidadas em `HANDOFF.md`.
-4. Rastreabilidade item a item do plano de evolucao consolidada em
-   `docs/MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md`.
+4. Rastreabilidade operacional consolidada em `docs/HANDOFF.md` + `docs/CHANGELOG.md`.
 5. Specs-base da visao estrategica consolidadas (v1.0):
    - `MAP_PLATFORM_SPEC.md`
    - `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md`
@@ -200,18 +197,16 @@ Entregar e estabilizar o QG estrategico municipal de Diamantina/MG, com:
    - manter transparencia de `official/proxy/hybrid` nas camadas.
 4. Executar homologacao ponta a ponta com dados reais e registrar evidencia unica em `docs/HANDOFF.md`.
 5. Executar backlog UX executivo unificado em ciclo unico:
-   - fonte de execucao: `docs/BACKLOG_UX_EXECUTIVO_QG.md`;
+   - fonte de execucao: secoes de prioridade deste plano (`5.1`, `5.2`, `5.3`);
    - ordem obrigatoria: `P0 -> P1 -> P2`;
-   - sem abrir nova frente antes de concluir os itens `UX-P0-*`.
+   - sem abrir nova frente antes de concluir os itens de prioridade alta.
 
 ## 5.2 Prioridade media
 
 1. Revalidar desempenho das rotas executivas e de mapa com benchmark recorrente:
    - alvo p95 <= 800ms (executivo) e <= 1000ms (urbano), conforme runbook vigente.
 2. Fechar consolidacao operacional de runbooks:
-   - `docs/OPERATIONS_RUNBOOK.md`
-   - `docs/RUNBOOK_ROBUSTEZ_DADOS_SEMANAL.md`
-   - `docs/MTE_RUNBOOK.md`
+   - `docs/OPERATIONS_RUNBOOK.md` (runbook unico)
 3. Fortalecer cobertura de testes:
    - backend: rotas qg/map/electorate para cenarios limite e regressao;
    - frontend: fluxos completos de navegacao e estados de erro/vazio.
