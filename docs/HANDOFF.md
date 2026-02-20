@@ -1,8 +1,20 @@
 # Territorial Intelligence Platform - Handoff
 
-Data de referencia: 2026-02-19
+Data de referencia: 2026-02-20
 Planejamento principal: `PLANO.md`
 Contrato tecnico principal: `CONTRATO.md`
+
+## Atualizacao tecnica (2026-02-20) - Mapa semantico (sem dado)
+
+- `frontend/src/shared/ui/VectorMap.tsx`:
+  - coropletico vetorial deixou de mapear ausencia de valor para faixa baixa.
+  - features sem metrica agora usam cor neutra (`#d1d5db`), separando claramente "sem dado" de "baixo desempenho".
+  - modos `points` e `heatmap` passaram a considerar somente features com valor presente.
+- `frontend/src/modules/qg/pages/QgMapPage.tsx`:
+  - legenda visual ganhou chip `Sem dado`, alinhado ao comportamento do mapa vetorial.
+- Validacao executada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `19 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
 
 ## Diretriz operacional sem dispersao (2026-02-19)
 

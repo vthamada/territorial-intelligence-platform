@@ -64,6 +64,19 @@ const DEFAULT_COLOR_STOPS: Array<{ value: number; color: string }> = [
   { value: 85, color: "#1d4ed8" },
 ];
 
+function buildValueExpression(): maplibregl.ExpressionSpecification {
+  return ["coalesce", ["get", "val"], ["get", "value"]] as maplibregl.ExpressionSpecification;
+}
+
+function buildNumericValueExpression(): maplibregl.ExpressionSpecification {
+  return ["to-number", buildValueExpression(), -1] as maplibregl.ExpressionSpecification;
+}
+
+function buildHasValueFilter(): maplibregl.ExpressionSpecification {
+  const valueExpression = buildValueExpression();
+  return ["all", ["!=", valueExpression, null], ["!=", valueExpression, ""]] as maplibregl.ExpressionSpecification;
+}
+
 function buildTileUrl(baseUrl: string, layerId: string, metric?: string, period?: string, domain?: string): string {
   const params = new URLSearchParams();
   if (metric) params.set("metric", metric);
@@ -74,12 +87,13 @@ function buildTileUrl(baseUrl: string, layerId: string, metric?: string, period?
 }
 
 function buildFillColor(stops: Array<{ value: number; color: string }>): maplibregl.ExpressionSpecification {
-  const expression: unknown[] = ["interpolate", ["linear"], ["coalesce", ["get", "val"], 0]];
+  const interpolationExpression: unknown[] = ["interpolate", ["linear"], buildNumericValueExpression()];
   for (const stop of stops) {
-    expression.push(stop.value);
-    expression.push(stop.color);
+    interpolationExpression.push(stop.value);
+    interpolationExpression.push(stop.color);
   }
-  return expression as maplibregl.ExpressionSpecification;
+  const interpolation = interpolationExpression as maplibregl.ExpressionSpecification;
+  return ["case", buildHasValueFilter(), interpolation, "#d1d5db"] as unknown as maplibregl.ExpressionSpecification;
 }
 
 function resolveBasemapTileUrl(mode: BasemapMode, urls?: BasemapTileUrls): string | null {
@@ -453,8 +467,9 @@ export function VectorMap({
             type: "circle",
             source: SOURCE_ID,
             "source-layer": layerId,
+            filter: buildHasValueFilter(),
             paint: {
-              "circle-radius": ["interpolate", ["linear"], ["coalesce", ["get", "val"], 0], 0, 3, 50, 8, 100, 16] as maplibregl.ExpressionSpecification,
+              "circle-radius": ["interpolate", ["linear"], buildNumericValueExpression(), 0, 3, 50, 8, 100, 16] as maplibregl.ExpressionSpecification,
               "circle-color": buildFillColor(colorStops),
               "circle-opacity": 0.8,
               "circle-stroke-width": 1,
@@ -467,8 +482,9 @@ export function VectorMap({
             type: "heatmap",
             source: SOURCE_ID,
             "source-layer": layerId,
+            filter: buildHasValueFilter(),
             paint: {
-              "heatmap-weight": ["interpolate", ["linear"], ["coalesce", ["get", "val"], 0], 0, 0, 100, 1] as maplibregl.ExpressionSpecification,
+              "heatmap-weight": ["interpolate", ["linear"], buildNumericValueExpression(), 0, 0, 100, 1] as maplibregl.ExpressionSpecification,
               "heatmap-intensity": 1,
               "heatmap-radius": 30,
               "heatmap-opacity": 0.7,
@@ -500,11 +516,13 @@ export function VectorMap({
             paint: {
               "fill-color": [
                 "case",
-                [">=", ["coalesce", ["get", "val"], 0], 80],
+                ["!", buildHasValueFilter()],
+                "#d1d5db",
+                [">=", buildNumericValueExpression(), 80],
                 "#b91c1c",
-                [">=", ["coalesce", ["get", "val"], 0], 50],
+                [">=", buildNumericValueExpression(), 50],
                 "#d97706",
-                "rgba(0,0,0,0.05)",
+                "rgba(0,0,0,0.12)",
               ] as maplibregl.ExpressionSpecification,
               "fill-opacity": polygonFillOpacity,
             },

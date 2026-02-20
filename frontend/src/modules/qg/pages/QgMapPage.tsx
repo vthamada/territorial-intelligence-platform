@@ -1052,6 +1052,9 @@ export function QgMapPage() {
                   {item.label}
                 </span>
               ))}
+              <span className="map-style-chip" style={{ borderColor: "#9ca3af", color: "#6b7280" }}>
+                Sem dado
+              </span>
             </div>
             {isPollingPlaceActive ? (
               <p>Camada local_votacao: o tooltip e a selecao priorizam o nome do local de votacao detectado.</p>

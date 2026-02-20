@@ -2,6 +2,19 @@
 
 Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-20
+
+### Changed
+- Mapa vetorial com semantica explicita para ausencia de dados:
+  - `frontend/src/shared/ui/VectorMap.tsx` deixou de tratar ausencia de `val` como `0` no coropletico.
+  - features sem valor agora aparecem com cor neutra (`#d1d5db`) em vez de cor de faixa baixa.
+  - filtros de valor aplicados nos modos `points` e `heatmap` para evitar ruido de geometria sem metrica.
+- Legenda de estilo no mapa executivo atualizada:
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` agora exibe chip explicito `Sem dado`.
+- Validacao executada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `19 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+
 ## 2026-02-19
 
 ### Changed
