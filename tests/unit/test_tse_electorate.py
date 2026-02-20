@@ -162,3 +162,27 @@ def test_extract_rows_from_zip_works_when_zone_column_is_missing() -> None:
     assert len(municipality_rows) == 1
     assert zone_rows == []
     assert info["has_zone_column"] is False
+
+
+def test_extract_rows_from_zip_rewrites_outlier_year_to_requested_year() -> None:
+    csv_content = (
+        "ANO_ELEICAO;NR_ZONA;SG_UF;NM_MUNICIPIO;DS_GENERO;DS_FAIXA_ETARIA;"
+        "DS_GRAU_ESCOLARIDADE;QT_ELEITORES_PERFIL\n"
+        "9999;145;MG;Diamantina;MASCULINO;25-29;SUPERIOR COMPLETO;10\n"
+    )
+    payload = io.BytesIO()
+    with zipfile.ZipFile(payload, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("perfil_eleitorado_9999.csv", csv_content.encode("latin1"))
+
+    municipality_rows, zone_rows, info = _extract_rows_from_zip(
+        zip_bytes=payload.getvalue(),
+        municipality_name="Diamantina",
+        uf="MG",
+        requested_year=2024,
+    )
+
+    assert len(municipality_rows) == 1
+    assert municipality_rows[0]["reference_year"] == 2024
+    assert len(zone_rows) == 1
+    assert zone_rows[0]["reference_year"] == 2024
+    assert info["outlier_year_rows_rewritten"] > 0

@@ -1162,7 +1162,9 @@ label {
   width: min(360px, 90vw);
   max-height: calc(100dvh - 220px);
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: clip;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(8px);
   border-left: 1px solid var(--line);
@@ -1213,6 +1215,14 @@ label {
 .map-dominant-sidebar .filter-grid.compact {
   grid-template-columns: 1fr;
   margin-bottom: 0;
+}
+
+.map-dominant-sidebar .kpi-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.map-dominant-sidebar .viz-mode-selector {
+  overflow-x: auto;
 }
 
 .map-dominant-sidebar .filter-actions {

@@ -372,6 +372,10 @@ export function VectorMap({
     });
     const errorHandler = (event: maplibregl.ErrorEvent) => {
       const reason = event.error instanceof Error ? event.error.message : "falha ao carregar mapa vetorial";
+      const normalizedReason = reason.toLowerCase();
+      if (normalizedReason.includes("abort") || normalizedReason.includes("aborted")) {
+        return;
+      }
       onError?.(reason);
     };
     map.on("error", errorHandler);
@@ -720,8 +724,8 @@ export function VectorMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    safeEaseTo(map, { center, zoom: Math.max(0, Math.min(18, zoom)), duration: 500, essential: true });
-  }, [center, zoom, resetViewSignal]);
+    safeEaseTo(map, { center, duration: 500, essential: true });
+  }, [center, resetViewSignal]);
 
   useEffect(() => {
     const map = mapRef.current;

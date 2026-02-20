@@ -1,12 +1,12 @@
 # Plataforma de Inteligencia Territorial
 
-Plataforma de inteligencia territorial para Diamantina/MG, alinhada ao contrato tecnico em `CONTRATO.md` e ao plano de execucao em `PLANO.md`.
+Plataforma de inteligencia territorial para Diamantina/MG, alinhada ao contrato tecnico em `docs/CONTRATO.md` e ao plano de execucao em `docs/PLANO.md`.
 
-## Estado atual (13/02/2026)
+## Estado atual (20/02/2026)
 
 - Backend e frontend estaveis em desenvolvimento local.
 - API versionada em `/v1` com saude operacional, QG executivo, geografia e observabilidade.
-- MP-1 da plataforma de mapa iniciado com manifesto de camadas (`GET /v1/map/layers`) e integracao no frontend (`/mapa`) com fallback em choropleth.
+- Plataforma de mapa com manifesto de camadas (`GET /v1/map/layers`), metadata de estilo (`GET /v1/map/style-metadata`) e tiles vetoriais MVT com fallback SVG no frontend (`/mapa`).
 - Metadados de estilo do mapa ativos em `GET /v1/map/style-metadata` (modo padrao, paleta e ranges de legenda).
 - Conectores implementados ate `MVP-5` (ondas A e B/C) com persistencia em Bronze/Silver e metadados operacionais em `ops`.
 - Frontend executivo ativo com paginas de:
@@ -21,8 +21,8 @@ Plataforma de inteligencia territorial para Diamantina/MG, alinhada ao contrato 
   - Hub tecnico/Admin (ops)
 - Readiness local: `READY` (com warning historico de SLO-1 na janela de 7 dias).
 - Validacoes recentes:
-  - `pytest -q -p no:cacheprovider`: `152 passed`
-  - `npm --prefix frontend run test`: `38 passed`
+  - `pytest -q -p no:cacheprovider`: `55 passed` (suite alvo de rotas qg/tse + mvt/cache)
+  - `npm --prefix frontend run test`: `72 passed`
   - `npm --prefix frontend run build`: `OK`
 
 ## Stack
@@ -159,5 +159,5 @@ Plataforma de inteligencia territorial para Diamantina/MG, alinhada ao contrato 
 - Dados Bronze: `data/bronze/`
 - Manifestos Bronze: `data/manifests/`
 - Fallback/manual de fontes: `data/manual/`
-- Handoff tecnico: `HANDOFF.md`
-- Historico de mudancas: `CHANGELOG.md`
+- Handoff tecnico: `docs/HANDOFF.md`
+- Historico de mudancas: `docs/CHANGELOG.md`

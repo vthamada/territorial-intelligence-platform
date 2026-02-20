@@ -2,6 +2,10 @@
 
 Data de referencia: 2026-02-18  
 Origem: `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`
+Status deste documento: snapshot historico de criacao de issues.
+
+> Fonte oficial de status das tarefas: GitHub Issues/Projects.  
+> Os checklists deste arquivo podem estar defasados e devem ser usados apenas como referencia de escopo inicial.
 
 ## Como usar
 1. Crie labels (se ainda nao existirem):

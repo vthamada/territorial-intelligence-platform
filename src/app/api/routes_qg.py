@@ -438,6 +438,79 @@ def _resolve_available_year(
     return latest_year_int
 
 
+def _resolve_outlier_electorate_storage_year(
+    db: Session,
+    *,
+    level: str,
+) -> int | None:
+    max_allowed_year = datetime.now(UTC).year + _MAX_ALLOWED_YEAR_OFFSET
+    outlier_year = db.execute(
+        text(
+            """
+            SELECT MAX(fe.reference_year)
+            FROM silver.fact_electorate fe
+            JOIN silver.dim_territory dt ON dt.territory_id = fe.territory_id
+            WHERE dt.level::text = :level
+              AND fe.reference_year > :max_allowed_year
+            """
+        ),
+        {"level": level, "max_allowed_year": max_allowed_year},
+    ).scalar_one()
+    if outlier_year is None:
+        return None
+    outlier_year_int = int(outlier_year)
+    if outlier_year_int <= max_allowed_year:
+        return None
+    return outlier_year_int
+
+
+def _resolve_electorate_year_binding(
+    db: Session,
+    *,
+    level: str,
+    requested_year: int | None,
+) -> tuple[int | None, int | None, str | None]:
+    resolved_year = _resolve_available_year(
+        db,
+        level=level,
+        requested_year=requested_year,
+        table_kind="electorate",
+    )
+    if resolved_year is not None:
+        return resolved_year, resolved_year, None
+
+    if requested_year is None:
+        return None, None, None
+
+    outlier_storage_year = _resolve_outlier_electorate_storage_year(db, level=level)
+    if outlier_storage_year is None:
+        return None, None, None
+
+    outlier_count = db.execute(
+        text(
+            """
+            SELECT COUNT(*)
+            FROM silver.fact_electorate fe
+            JOIN silver.dim_territory dt ON dt.territory_id = fe.territory_id
+            WHERE dt.level::text = :level
+              AND fe.reference_year = :storage_year
+            """
+        ),
+        {"level": level, "storage_year": outlier_storage_year},
+    ).scalar_one()
+    if int(outlier_count) <= 0:
+        return None, None, None
+
+    return (
+        requested_year,
+        outlier_storage_year,
+        (
+            "electorate_outlier_year_fallback:"
+            f"requested_year={requested_year},storage_year={outlier_storage_year}"
+        ),
+    )
+
+
 def _fetch_electorate_breakdown(
     db: Session,
     *,
@@ -1223,14 +1296,13 @@ def get_electorate_summary(
     db: Session = Depends(get_db),  # noqa: B008
 ) -> ElectorateSummaryResponse:
     level_en = normalize_level(level) or "municipality"
-    effective_year = _resolve_available_year(
+    effective_year, electorate_storage_year, electorate_year_note = _resolve_electorate_year_binding(
         db,
         level=level_en,
         requested_year=year,
-        table_kind="electorate",
     )
 
-    if effective_year is None:
+    if effective_year is None or electorate_storage_year is None:
         return ElectorateSummaryResponse(
             level=to_external_level(level_en),
             year=None,
@@ -1265,13 +1337,13 @@ def get_electorate_summary(
                   AND fe.reference_year = :year
                 """
             ),
-            {"level": level_en, "year": effective_year},
+            {"level": level_en, "year": electorate_storage_year},
         ).scalar_one()
     )
 
-    by_sex = _fetch_electorate_breakdown(db, level=level_en, year=effective_year, breakdown_kind="sex")
-    by_age = _fetch_electorate_breakdown(db, level=level_en, year=effective_year, breakdown_kind="age")
-    by_education = _fetch_electorate_breakdown(db, level=level_en, year=effective_year, breakdown_kind="education")
+    by_sex = _fetch_electorate_breakdown(db, level=level_en, year=electorate_storage_year, breakdown_kind="sex")
+    by_age = _fetch_electorate_breakdown(db, level=level_en, year=electorate_storage_year, breakdown_kind="age")
+    by_education = _fetch_electorate_breakdown(db, level=level_en, year=electorate_storage_year, breakdown_kind="education")
 
     election_year = _resolve_available_year(
         db,
@@ -1311,7 +1383,7 @@ def get_electorate_summary(
             updated_at=None,
             coverage_note="territorial_aggregated",
             unit="voters",
-            notes="electorate_summary_v1",
+            notes=electorate_year_note or "electorate_summary_v1",
             source_classification="oficial",
             config_version=load_strategic_engine_config().version,
         ),
@@ -1340,13 +1412,12 @@ def get_electorate_map(
     geometry_select = "ST_AsGeoJSON(dt.geometry)::jsonb AS geometry" if include_geometry else "NULL::jsonb AS geometry"
 
     if metric == "voters":
-        effective_year = _resolve_available_year(
+        effective_year, electorate_storage_year, electorate_year_note = _resolve_electorate_year_binding(
             db,
             level=level_en,
             requested_year=year,
-            table_kind="electorate",
         )
-        if effective_year is None:
+        if effective_year is None or electorate_storage_year is None:
             return ElectorateMapResponse(
                 level=to_external_level(level_en),
                 metric=metric,
@@ -1381,7 +1452,7 @@ def get_electorate_map(
                 LIMIT :limit
                 """
             ),
-            {"level": level_en, "year": effective_year, "limit": limit},
+            {"level": level_en, "year": electorate_storage_year, "limit": limit},
         ).mappings().all()
 
         items = [
@@ -1405,7 +1476,7 @@ def get_electorate_map(
                 updated_at=None,
                 coverage_note="territorial_aggregated",
                 unit="voters",
-                notes="electorate_map_v1",
+                notes=electorate_year_note or "electorate_map_v1",
                 source_classification="oficial",
                 config_version=load_strategic_engine_config().version,
             ),

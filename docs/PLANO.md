@@ -1,6 +1,6 @@
 ﻿# Plano de Execucao do Projeto
 
-Data de referencia: 2026-02-13  
+Data de referencia: 2026-02-20  
 Status: ativo  
 Escopo deste arquivo: governanca de execucao, fases, prioridades e sequencia de entrega.
 
@@ -116,13 +116,13 @@ P2:
 
 ## 5) Deltas incorporados do plano de evolucao
 
-Specs estrategicas base (v0.1) criadas:
+Specs estrategicas consolidadas (v1.0):
 1. `MAP_PLATFORM_SPEC.md`
 2. `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md`
 3. `STRATEGIC_ENGINE_SPEC.md`
 
-Proximo passo: evoluir as tres para v1.0 e executar backlog tecnico correspondente,
-com priorizacao em `docs/PLANO_IMPLEMENTACAO_QG.md`.
+Proximo passo: executar backlog tecnico pos-v1 (estabilizacao UX/mapa, robustez de dados e operacao),
+com priorizacao em `docs/PLANO_IMPLEMENTACAO_QG.md` e acompanhamento diario em `HANDOFF.md`.
 
 ## 6) Riscos principais e mitigacao
 

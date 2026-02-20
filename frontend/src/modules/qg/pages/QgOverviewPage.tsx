@@ -41,6 +41,18 @@ function resolveChoroplethLevel(level: string) {
   return level === "district" ? "distrito" : "municipio";
 }
 
+function formatVectorMapError(rawMessage: string) {
+  const token = rawMessage.trim();
+  if (!token) {
+    return "Falha temporaria no modo vetorial. Use o fallback SVG se o problema persistir.";
+  }
+  const normalized = token.toLowerCase();
+  if (normalized.includes("service unavailable") || normalized.includes("503")) {
+    return "Camada vetorial temporariamente indisponivel (503). Tente novamente em instantes.";
+  }
+  return `Falha temporaria no modo vetorial: ${token}`;
+}
+
 export function QgOverviewPage() {
   const globalFilters = useFilterStore();
   const [period, setPeriod] = useState(globalFilters.period);
@@ -298,9 +310,9 @@ export function QgOverviewPage() {
                             setSelectedTerritoryId(feature.tid || undefined);
                             setSelectedFeatureName(feature.tname || feature.label || null);
                           }}
-                          onError={() => {
-                            setVectorMapError("Falha no modo vetorial; fallback SVG aplicado.");
-                            setUseVectorMap(false);
+                          onError={(message) => {
+                            const nextError = formatVectorMapError(message);
+                            setVectorMapError((current) => (current === nextError ? current : nextError));
                           }}
                           colorStops={mapColorStops}
                           basemapMode={basemapMode}

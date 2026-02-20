@@ -490,6 +490,52 @@ class _ElectorateSummaryOutlierYearSession:
         raise AssertionError(f"Unexpected SQL in electorate outlier year test: {sql}")
 
 
+class _ElectorateOutlierFallbackSession:
+    def execute(self, *_args: Any, **_kwargs: Any) -> _ScalarResult | _RowsResult:
+        sql = str(_args[0]).lower() if _args else ""
+
+        if "from silver.fact_electorate fe" in sql and "count(*)" in sql and "fe.reference_year = :year" in sql:
+            return _ScalarResult(0)
+        if "select max(fe.reference_year)" in sql and "fe.reference_year > :max_allowed_year" in sql:
+            return _ScalarResult(9999)
+        if "from silver.fact_electorate fe" in sql and "count(*)" in sql and "fe.reference_year = :storage_year" in sql:
+            return _ScalarResult(5)
+        if "select coalesce(sum(fe.voters), 0)::bigint as total_voters" in sql:
+            return _ScalarResult(12500)
+        if "group by label" in sql and "fe.sex" in sql:
+            return _RowsResult([{"label": "MASCULINO", "voters": 6000}, {"label": "FEMININO", "voters": 6500}])
+        if "group by label" in sql and "fe.age_range" in sql:
+            return _RowsResult([{"label": "25-34", "voters": 4500}, {"label": "35-44", "voters": 4000}])
+        if "group by label" in sql and "fe.education" in sql:
+            return _RowsResult([{"label": "ENSINO MEDIO", "voters": 7000}, {"label": "SUPERIOR", "voters": 2000}])
+        if "from silver.fact_election_result fr" in sql and "count(*)" in sql:
+            return _ScalarResult(1)
+        if "group by fr.metric" in sql:
+            return _RowsResult(
+                [
+                    {"metric": "turnout", "total_value": 8200.0},
+                    {"metric": "abstention", "total_value": 1800.0},
+                    {"metric": "votes_total", "total_value": 8000.0},
+                    {"metric": "votes_blank", "total_value": 200.0},
+                    {"metric": "votes_null", "total_value": 300.0},
+                ]
+            )
+        if "sum(fe.voters)::double precision as value" in sql:
+            return _RowsResult(
+                [
+                    {
+                        "territory_id": "3121605",
+                        "territory_name": "Diamantina",
+                        "territory_level": "municipality",
+                        "value": 12500.0,
+                        "geometry": None,
+                    }
+                ]
+            )
+
+        raise AssertionError(f"Unexpected SQL in electorate outlier fallback test: {sql}")
+
+
 def _qg_db() -> Generator[_QgSession, None, None]:
     yield _QgSession()
 
@@ -800,4 +846,40 @@ def test_electorate_map_returns_values_for_rate_metric() -> None:
     assert payload["year"] == 2024
     assert payload["metadata"]["unit"] == "%"
     assert len(payload["items"]) == 1
+    app.dependency_overrides.clear()
+
+
+def test_electorate_summary_uses_outlier_storage_year_when_requested_year_is_valid() -> None:
+    def _db() -> Generator[_ElectorateOutlierFallbackSession, None, None]:
+        yield _ElectorateOutlierFallbackSession()
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/electorate/summary?level=municipio&year=2024")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["year"] == 2024
+    assert payload["total_voters"] == 12500
+    assert payload["metadata"]["notes"].startswith("electorate_outlier_year_fallback")
+    assert len(payload["by_sex"]) == 2
+    app.dependency_overrides.clear()
+
+
+def test_electorate_map_uses_outlier_storage_year_when_requested_year_is_valid() -> None:
+    def _db() -> Generator[_ElectorateOutlierFallbackSession, None, None]:
+        yield _ElectorateOutlierFallbackSession()
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/electorate/map?metric=voters&level=municipio&year=2024")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["year"] == 2024
+    assert payload["metric"] == "voters"
+    assert len(payload["items"]) == 1
+    assert payload["metadata"]["notes"].startswith("electorate_outlier_year_fallback")
     app.dependency_overrides.clear()

@@ -4,6 +4,37 @@ Data de referencia: 2026-02-20
 Planejamento principal: `PLANO.md`
 Contrato tecnico principal: `CONTRATO.md`
 
+## Atualizacao tecnica (2026-02-20) - Estabilizacao mapa + eleitorado
+
+- Mapa vetorial:
+  - `frontend/src/shared/ui/VectorMap.tsx` corrigido para evitar recenter forcado durante zoom.
+  - erros de abort/cancelamento deixam de acionar fluxo de erro visual.
+  - `QgMapPage` e `QgOverviewPage` nao derrubam mais automaticamente para SVG em erro transitorio do vetor.
+- Backend de tiles:
+  - `src/app/api/routes_map.py` passou a usar geometria saneada (`ST_IsValid`/`ST_MakeValid`) no caminho territorial de tiles MVT para reduzir `503`.
+- Eleitorado:
+  - `src/app/api/routes_qg.py` com fallback de binding de ano logico x ano de armazenamento outlier.
+  - resultado pratico: requests `year=2024` voltam a responder com dados mesmo em base com `reference_year=9999`.
+  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` recebeu tratamento de estado vazio/erro mais explicito para cenarios sem dados.
+- Correcao de regressao de render:
+  - erro de hooks (`Rendered more hooks than during the previous render`) removido em:
+    - `frontend/src/modules/qg/pages/QgInsightsPage.tsx`
+    - `frontend/src/modules/territory/pages/TerritoryProfilePage.tsx`
+- Usabilidade:
+  - paginacao adicionada em Insights e na tabela de indicadores do Territorio 360 para evitar listas extensas sem controle.
+
+## Validacao executada (2026-02-20)
+
+- Backend:
+  - `pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
+  - `pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
+- Frontend:
+  - `npm --prefix frontend run test -- --run` -> `72 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+- Smoke API (eleitorado):
+  - `GET /v1/electorate/summary?level=municipality&year=2024` -> `200`, `38127` eleitores.
+  - `GET /v1/electorate/map?level=municipality&year=2024&metric=voters` -> `200`, com itens retornados.
+
 ## Atualizacao tecnica (2026-02-20) - Mapa semantico (sem dado)
 
 - `frontend/src/shared/ui/VectorMap.tsx`:
@@ -989,30 +1020,29 @@ Sprint atual recomendado:
 ## 5) Proximos passos recomendados
 
 ### Prioridade alta
-1. Rodar suite completa em ambiente limpo e consolidar baseline de regressao.
-2. Publicar frontend em homologacao integrado a API real.
-3. Planejar kickoff da Onda A de novas fontes apos estabilizacao do frontend.
+1. Fechar estabilizacao de UX nas telas executivas (`/mapa`, `/territorio/:id`, `/eleitorado`) e registrar evidencias de teste.
+2. Revalidar homologacao ponta a ponta em ambiente limpo (backend + frontend + benchmark + readiness).
+3. Concluir exposicao operacional da camada eleitoral territorial (`local_votacao`) no frontend.
 
 ### Prioridade media
-1. Consolidar execucao `dbt` CLI em ambiente alvo (profiles, target e permissao de runtime).
-2. Entregar telas frontend de saude operacional e pipelines com dados reais.
-3. Expandir checks de qualidade por dominio com thresholds por dataset.
-4. Entregar tela frontend de territorios/indicadores com filtros por periodo e nivel.
+1. Consolidar runbooks de operacao e rotina semanal de robustez de dados.
+2. Fortalecer cobertura de testes de regressao para fluxos de erro/vazio do frontend.
+3. Executar ciclo de revisao de performance com metas p95 (executivo e urbano).
 
 ### Prioridade baixa
-1. Hardening de observabilidade (SLA por job e alertas).
-2. Revisao de politicas de retencao Bronze por ambiente.
+1. Evoluir backlog pos-v2 do mapa (split view, time slider, comparacao temporal).
+2. Ajustar ergonomia final do `/admin` sem misturar UX tecnica com UX executiva.
 
 ## 6) Comandos uteis
 
 - Testes:
   - `pytest -q -p no:cacheprovider`
 - Fluxo completo em dry-run:
-  - `python -c "from orchestration.prefect_flows import run_mvp_all; print(run_mvp_all(reference_period='2024', dry_run=True))"`
+  - `python -c "from orchestration.prefect_flows import run_mvp_all; print(run_mvp_all(reference_period='2025', dry_run=True))"`
 - Sincronizar registry:
   - `python scripts/sync_connector_registry.py`
 - Rodar qualidade:
-  - `python -c "from pipelines.quality_suite import run; print(run(reference_period='2024', dry_run=False))"`
+  - `python -c "from pipelines.quality_suite import run; print(run(reference_period='2025', dry_run=False))"`
 - Subir API + frontend no Windows sem `make`:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_up.ps1`
 - Encerrar API + frontend iniciados pelo launcher:

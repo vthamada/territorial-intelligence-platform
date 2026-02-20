@@ -278,6 +278,18 @@ function sanitizeFilePart(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "mapa";
 }
 
+function formatVectorMapError(rawMessage: string) {
+  const token = rawMessage.trim();
+  if (!token) {
+    return "Falha temporaria no modo vetorial. Tente novamente ou use o fallback SVG.";
+  }
+  const normalized = token.toLowerCase();
+  if (normalized.includes("service unavailable") || normalized.includes("503")) {
+    return "Camada vetorial temporariamente indisponivel (503). O mapa continua ativo; tente novamente em instantes.";
+  }
+  return `Falha temporaria no modo vetorial: ${token}`;
+}
+
 function triggerDownload(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -1132,9 +1144,9 @@ export function QgMapPage() {
                   setSelectedFeature(feature);
                   setTerritorySearch(feature.tname ?? "");
                 }}
-                onError={() => {
-                  setVectorMapError("Falha no modo vetorial, fallback SVG aplicado.");
-                  setUseVectorMap(false);
+                onError={(message) => {
+                  const nextError = formatVectorMapError(message);
+                  setVectorMapError((current) => (current === nextError ? current : nextError));
                 }}
                 selectedTerritoryId={selectedTerritoryId}
                 focusTerritorySignal={focusSignal}

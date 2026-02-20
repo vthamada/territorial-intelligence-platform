@@ -1,6 +1,6 @@
 ﻿# Matriz de Rastreabilidade - Plano de Evolucao QG
 
-Data de referencia: 2026-02-13
+Data de referencia: 2026-02-20
 Fonte analisada: `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md` (versao 1.1.0)
 
 ## Regra de leitura
@@ -32,7 +32,7 @@ Fonte analisada: `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md` (versao 1.1.0)
 | D01 | `CONTRATO.md` como base tecnica | OK | `CONTRATO.md` v1.0 congelado (2026-02-13): endpoints executivos, SLOs validados, criterios de go-live com ferramentas, frontend executivo completo | N/A |
 | D02 | Plano executavel consolidado | OK | `docs/PLANO_IMPLEMENTACAO_QG.md` | Manter atualizacao por ciclo |
 | D03 | Estado operacional corrente | OK | `HANDOFF.md` | Atualizacao continua |
-| D04 | `FRONTEND_SPEC_QG_ESTRATEGICO_v2.0.0.md` | PENDENTE | existe `docs/FRONTEND_SPEC.md` | Decidir: criar arquivo v2.0.0 ou manter `FRONTEND_SPEC.md` como substituto oficial |
+| D04 | `docs/FRONTEND_SPEC.md` (referencia complementar) | OK | `docs/FRONTEND_SPEC.md` mantido como referencia oficial complementar de UX/produto | Revisar incrementalmente conforme evolucao de UX |
 | D05 | `MAP_PLATFORM_SPEC.md` | OK | `MAP_PLATFORM_SPEC.md` atualizado para v1.0.0 com MP-2/MP-3 entregues e backlog pos-v2 | Manter atualizacao incremental de backlog |
 | D06 | `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md` | OK | `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md` v1.0.0 com TL-2 concluido e TL-3 baseline entregue | Evoluir camada `local_votacao` |
 | D07 | `STRATEGIC_ENGINE_SPEC.md` | OK | `STRATEGIC_ENGINE_SPEC.md` v1.0.0 | Revisoes futuras de pesos/thresholds por dominio |

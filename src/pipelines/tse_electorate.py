@@ -35,6 +35,8 @@ _ELECTORATE_COLUMN_ALIASES: dict[str, tuple[str, ...]] = {
     "DS_GRAU_ESCOLARIDADE": ("DS_GRAU_ESCOLARIDADE", "DS_GRAU_INSTRUCAO"),
     "QT_ELEITORES_PERFIL": ("QT_ELEITORES_PERFIL", "QT_ELEITORES"),
 }
+_MIN_REFERENCE_YEAR = 1900
+_MAX_REFERENCE_YEAR_OFFSET = 1
 
 
 def _normalize_text(value: str) -> str:
@@ -57,6 +59,17 @@ def _normalize_zone_code(value: Any) -> str | None:
         return str(int(float(raw)))
     except (TypeError, ValueError):
         return raw
+
+
+def _normalize_reference_year(value: Any, *, requested_year: int) -> tuple[int, bool]:
+    max_allowed_year = datetime.now(UTC).year + _MAX_REFERENCE_YEAR_OFFSET
+    try:
+        raw_year = int(float(value))
+    except (TypeError, ValueError):
+        return requested_year, True
+    if _MIN_REFERENCE_YEAR <= raw_year <= max_allowed_year:
+        return raw_year, False
+    return requested_year, True
 
 
 def _resolve_municipality_context(settings: Settings) -> tuple[str, str, str]:
@@ -174,6 +187,7 @@ def _extract_rows_from_zip(
     csv_name = ""
     rows_scanned = 0
     rows_filtered = 0
+    outlier_year_rows_rewritten = 0
     column_mapping: dict[str, str] = {}
 
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
@@ -227,7 +241,12 @@ def _extract_rows_from_zip(
                     .reset_index()
                 )
                 for row in grouped.itertuples(index=False):
-                    year = int(float(row.ANO_ELEICAO))
+                    year, replaced = _normalize_reference_year(
+                        row.ANO_ELEICAO,
+                        requested_year=requested_year,
+                    )
+                    if replaced:
+                        outlier_year_rows_rewritten += 1
                     sex = _safe_dimension(row.DS_GENERO)
                     age = _safe_dimension(row.DS_FAIXA_ETARIA)
                     education = _safe_dimension(row.DS_GRAU_ESCOLARIDADE)
@@ -256,7 +275,12 @@ def _extract_rows_from_zip(
                         zone_code = _normalize_zone_code(row.NR_ZONA)
                         if zone_code is None:
                             continue
-                        year = int(float(row.ANO_ELEICAO))
+                        year, replaced = _normalize_reference_year(
+                            row.ANO_ELEICAO,
+                            requested_year=requested_year,
+                        )
+                        if replaced:
+                            outlier_year_rows_rewritten += 1
                         sex = _safe_dimension(row.DS_GENERO)
                         age = _safe_dimension(row.DS_FAIXA_ETARIA)
                         education = _safe_dimension(row.DS_GRAU_ESCOLARIDADE)
@@ -295,6 +319,7 @@ def _extract_rows_from_zip(
         "has_zone_column": "NR_ZONA" in column_mapping,
         "requested_year": requested_year,
         "column_mapping": column_mapping,
+        "outlier_year_rows_rewritten": outlier_year_rows_rewritten,
     }
     return municipality_rows, zone_rows, info
 

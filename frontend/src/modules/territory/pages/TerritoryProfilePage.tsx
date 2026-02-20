@@ -47,6 +47,8 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
   const [appliedTerritoryId, setAppliedTerritoryId] = useState(initialTerritoryId ?? "");
   const [appliedCompareWithId, setAppliedCompareWithId] = useState("");
   const [appliedPeriod, setAppliedPeriod] = useState("");
+  const [indicatorsPageSize, setIndicatorsPageSize] = useState("20");
+  const [indicatorsPage, setIndicatorsPage] = useState(1);
 
   useEffect(() => {
     if (!initialTerritoryId) {
@@ -118,6 +120,33 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
       }),
     enabled: Boolean(appliedTerritoryId),
   });
+  const profileData = profileQuery.data;
+  const flattenedIndicators = useMemo(
+    () =>
+      (profileData?.domains ?? []).flatMap((domain) =>
+        domain.indicators.map((indicator) => ({
+          domain: domain.domain,
+          indicator,
+        })),
+      ),
+    [profileData?.domains],
+  );
+  const normalizedIndicatorsPageSize = Math.max(1, Number(indicatorsPageSize) || 20);
+  const indicatorsTotalPages = Math.max(1, Math.ceil(flattenedIndicators.length / normalizedIndicatorsPageSize));
+  const visibleIndicators = useMemo(() => {
+    const start = (indicatorsPage - 1) * normalizedIndicatorsPageSize;
+    return flattenedIndicators.slice(start, start + normalizedIndicatorsPageSize);
+  }, [flattenedIndicators, indicatorsPage, normalizedIndicatorsPageSize]);
+
+  useEffect(() => {
+    if (indicatorsPage > indicatorsTotalPages) {
+      setIndicatorsPage(indicatorsTotalPages);
+    }
+  }, [indicatorsPage, indicatorsTotalPages]);
+
+  useEffect(() => {
+    setIndicatorsPage(1);
+  }, [indicatorsPageSize]);
 
   const territoryPickerError = appliedTerritoryId ? null : territoryListQuery.error;
   const firstError = profileQuery.error ?? territoryPickerError;
@@ -136,6 +165,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
     setAppliedTerritoryId(territoryId);
     setAppliedCompareWithId(compareWithId);
     setAppliedPeriod(period);
+    setIndicatorsPage(1);
   }
 
   function clearFilters() {
@@ -145,6 +175,8 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
     setAppliedTerritoryId(defaultTerritoryId);
     setAppliedCompareWithId("");
     setAppliedPeriod("");
+    setIndicatorsPageSize("20");
+    setIndicatorsPage(1);
   }
 
   if (isLoading) {
@@ -262,7 +294,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
     );
   }
 
-  const profile = profileQuery.data!;
+  const profile = profileData!;
   const compare = compareQuery.data;
   const peers = peersQuery.data;
   const overallScore = toNumber(profile.overall_score);
@@ -426,32 +458,70 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
         {profile.domains.length === 0 ? (
           <StateBlock tone="empty" title="Sem indicadores" message="Nao ha indicadores no recorte selecionado." />
         ) : (
-          <div className="table-wrap">
-            <table aria-label="Dominios e indicadores">
-              <thead>
-                <tr>
-                  <th>Dominio</th>
-                  <th>Indicador</th>
-                  <th>Codigo</th>
-                  <th>Periodo</th>
-                  <th>Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {profile.domains.flatMap((domain) =>
-                  domain.indicators.map((indicator) => (
-                    <tr key={`${domain.domain}-${indicator.indicator_code}`}>
-                      <td>{getQgDomainLabel(domain.domain)}</td>
+          <>
+            <div className="panel-actions-row">
+              <label>
+                Itens por pagina
+                <select
+                  aria-label="Itens por pagina"
+                  value={indicatorsPageSize}
+                  onChange={(event) => setIndicatorsPageSize(event.target.value)}
+                >
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="40">40</option>
+                  <option value="80">80</option>
+                </select>
+              </label>
+            </div>
+            <div className="table-wrap">
+              <table aria-label="Dominios e indicadores">
+                <thead>
+                  <tr>
+                    <th>Dominio</th>
+                    <th>Indicador</th>
+                    <th>Codigo</th>
+                    <th>Periodo</th>
+                    <th>Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleIndicators.map(({ domain, indicator }) => (
+                    <tr key={`${domain}-${indicator.indicator_code}`}>
+                      <td>{getQgDomainLabel(domain)}</td>
                       <td>{indicator.indicator_name}</td>
                       <td>{indicator.indicator_code}</td>
                       <td>{indicator.reference_period}</td>
                       <td>{formatValueWithUnit(indicator.value, indicator.unit)}</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {flattenedIndicators.length > normalizedIndicatorsPageSize ? (
+              <div className="pagination-row" aria-label="Paginacao de indicadores">
+                <button
+                  type="button"
+                  className="button-secondary"
+                  onClick={() => setIndicatorsPage((page) => Math.max(1, page - 1))}
+                  disabled={indicatorsPage <= 1}
+                >
+                  Anterior
+                </button>
+                <span>
+                  Pagina {indicatorsPage} de {indicatorsTotalPages}
+                </span>
+                <button
+                  type="button"
+                  className="button-secondary"
+                  onClick={() => setIndicatorsPage((page) => Math.min(indicatorsTotalPages, page + 1))}
+                  disabled={indicatorsPage >= indicatorsTotalPages}
+                >
+                  Proxima
+                </button>
+              </div>
+            ) : null}
+          </>
         )}
       </Panel>
 

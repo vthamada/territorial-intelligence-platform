@@ -81,7 +81,8 @@ export function ElectorateExecutivePage() {
     summaryQuery.isPending ||
     mapQuery.isPending ||
     (appliedYear !== undefined && (fallbackSummaryQuery.isPending || fallbackMapQuery.isPending));
-  const firstError = summaryQuery.error ?? mapQuery.error;
+  const fallbackError = appliedYear !== undefined ? fallbackSummaryQuery.error ?? fallbackMapQuery.error : null;
+  const firstError = summaryQuery.error ?? mapQuery.error ?? fallbackError;
 
   function applyFilters() {
     const parsedYear = yearInput.trim() ? Number(yearInput) : undefined;
@@ -182,6 +183,17 @@ export function ElectorateExecutivePage() {
               fallbackYear
                 ? `Nao ha dados consolidados para ${appliedYear}. Use ${fallbackYear} para visualizar o recorte mais recente.`
                 : `Nao ha dados consolidados para ${appliedYear}. Limpe o filtro de ano para tentar o ultimo recorte disponivel.`
+            }
+          />
+        ) : null}
+        {hasNoData && appliedYear === undefined && !showingFallbackData ? (
+          <StateBlock
+            tone="empty"
+            title="Sem dados de eleitorado no recorte atual"
+            message={
+              fallbackYear
+                ? `Nao ha dados consolidados no recorte padrao. Use ${fallbackYear} para visualizar o ultimo ano com dados.`
+                : "Nao ha dados consolidados no recorte padrao. Informe um ano e aplique filtros para consultar disponibilidade."
             }
           />
         ) : null}

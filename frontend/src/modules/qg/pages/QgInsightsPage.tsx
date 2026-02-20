@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { formatApiError } from "../../../shared/api/http";
@@ -27,6 +27,8 @@ export function QgInsightsPage() {
   const [appliedPeriod, setAppliedPeriod] = useState(initialPeriod);
   const [appliedDomain, setAppliedDomain] = useState(initialDomain);
   const [appliedSeverity, setAppliedSeverity] = useState(initialSeverity);
+  const [pageSize, setPageSize] = useState("20");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const query = useMemo(
     () => ({
@@ -42,11 +44,30 @@ export function QgInsightsPage() {
     queryKey: ["qg", "insights-page", query],
     queryFn: () => getInsightsHighlights(query)
   });
+  const insights = insightsQuery.data;
+  const insightItems = insights?.items ?? [];
+  const normalizedPageSize = Math.max(1, Number(pageSize) || 20);
+  const totalPages = Math.max(1, Math.ceil(insightItems.length / normalizedPageSize));
+  const visibleItems = useMemo(() => {
+    const start = (currentPage - 1) * normalizedPageSize;
+    return insightItems.slice(start, start + normalizedPageSize);
+  }, [currentPage, insightItems, normalizedPageSize]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [pageSize]);
 
   function applyFilters() {
     setAppliedPeriod(period);
     setAppliedDomain(domain);
     setAppliedSeverity(severity);
+    setCurrentPage(1);
   }
 
   function clearFilters() {
@@ -56,6 +77,8 @@ export function QgInsightsPage() {
     setAppliedPeriod("");
     setAppliedDomain("");
     setAppliedSeverity("");
+    setPageSize("20");
+    setCurrentPage(1);
   }
 
   if (insightsQuery.isPending) {
@@ -74,8 +97,7 @@ export function QgInsightsPage() {
       />
     );
   }
-
-  const insights = insightsQuery.data!;
+  const insightsData = insights!;
 
   return (
     <main className="page-grid">
@@ -118,15 +140,29 @@ export function QgInsightsPage() {
             </button>
           </div>
         </form>
-        <SourceFreshnessBadge metadata={insights.metadata} />
+        <SourceFreshnessBadge metadata={insightsData.metadata} />
       </Panel>
 
       <Panel title="Lista de insights" subtitle="Narrativa curta com evidencias por item">
-        {insights.items.length === 0 ? (
+        <div className="panel-actions-row">
+          <label>
+            Itens por pagina
+            <select
+              aria-label="Itens por pagina"
+              value={pageSize}
+              onChange={(event) => setPageSize(event.target.value)}
+            >
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+          </label>
+        </div>
+        {insightItems.length === 0 ? (
           <StateBlock tone="empty" title="Sem insights" message="Nenhum insight encontrado para os filtros aplicados." />
         ) : (
           <ul className="trend-list" aria-label="Lista de insights">
-            {insights.items.map((item) => (
+            {visibleItems.map((item) => (
               <li key={`${item.territory_id}-${item.evidence.indicator_code}-${item.severity}`}>
                 <div>
                   <strong>{item.title}</strong>
@@ -139,6 +175,29 @@ export function QgInsightsPage() {
             ))}
           </ul>
         )}
+        {insightItems.length > normalizedPageSize ? (
+          <div className="pagination-row" aria-label="Paginacao de insights">
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={currentPage <= 1}
+            >
+              Anterior
+            </button>
+            <span>
+              Pagina {currentPage} de {totalPages}
+            </span>
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+              disabled={currentPage >= totalPages}
+            >
+              Proxima
+            </button>
+          </div>
+        ) : null}
       </Panel>
     </main>
   );

@@ -1,7 +1,7 @@
 # Plano Integrado de Implementacao (Backend + Frontend QG)
 
-Data de referencia: 2026-02-13  
-Status: execucao ativa (fase de hardening + go-live controlado)  
+Data de referencia: 2026-02-20  
+Status: execucao ativa (fase de estabilizacao UX/mapa + go-live controlado)  
 Escopo: plano executavel para consolidar QG estrategico em producao com dados reais.
 
 ## 1) Objetivo
@@ -101,6 +101,22 @@ Entregar e estabilizar o QG estrategico municipal de Diamantina/MG, com:
 2. Estado de conectores sincronizado em `ops.connector_registry` com 22 conectores `implemented`.
 3. Fluxos reais recentes executados com sucesso para ondas 4 e 5.
 
+## 3.4 Atualizacao de estabilizacao (2026-02-20)
+
+1. Mapa vetorial:
+   - correcao de recenter indevido no zoom em `VectorMap`.
+   - reducao de fallback agressivo para SVG em erros transitorios.
+   - hardening de tiles MVT territoriais com saneamento de geometria no backend.
+2. Eleitorado:
+   - fallback de ano logico (`requested_year`) para ano de armazenamento outlier (`storage_year`) em endpoints de resumo e mapa.
+   - tela executiva de eleitorado com estados vazios/erros mais claros.
+3. Estabilidade de frontend:
+   - regressao de hooks corrigida em `QgInsightsPage` e `TerritoryProfilePage` (erro: `Rendered more hooks than during the previous render`).
+   - paginacao adicionada para listas longas em Insights e Territorio 360.
+4. Validacao consolidada:
+   - backend: `55 passed` (rotas qg/tse + mvt/cache).
+   - frontend: `72 passed` + build `OK`.
+
 ## 4) Status por sprint
 
 1. Sprint 0 (contratos e base): concluida.
@@ -111,75 +127,39 @@ Entregar e estabilizar o QG estrategico municipal de Diamantina/MG, com:
 6. Sprint 5 (hardening QG v1): em andamento.
 7. Sprint 6 (extensoes v1.1: cenarios/briefs): concluida.
 
-## 5) Escopo de proxima execucao (Sprint 9)
+## 5) Escopo de proxima execucao (ciclo atual)
 
 ## 5.1 Prioridade alta
 
-1. Fechar homologacao ponta a ponta com dados reais (API + frontend).
-2. Cobrir fluxo critico com E2E:
-   - Home -> Prioridades -> Mapa -> Territorio -> Eleitorado -> Cenarios/Briefs.
-   - **status 2026-02-13: CONCLUIDO** — `e2e-flow.test.tsx` com 5 testes cobrindo fluxo completo + deep-links + admin.
-3. Consolidar SLO-1 operacional sem ruido historico:
-   - ajustar janela/estrategia de leitura para separar historico legado de estado corrente.
-   - status 2026-02-12: parcial entregue no `scripts/backend_readiness.py` com
-     `--health-window-days` e bloco `slo1_current`; pendente refletir o mesmo
-     padrao nas visoes de frontend operacional.
-   - status 2026-02-12 (iteracao atual): monitor comparativo de janela (`7d` vs `1d`)
-     entregue na `OpsHealthPage` e endpoint dedicado `GET /v1/ops/readiness`
-     implementado para consumo direto por dashboards externos.
-   - **status 2026-02-13: CONCLUIDO** — `ReadinessBanner` no `/admin` consome `GET /v1/ops/readiness`
-     com exibicao de conectores, SLO-1 (7d/1d), falhas e avisos.
-4. Revisar performance das queries executivas mais usadas (`overview`, `priority`, `mapa`, `territory profile`).
-   - **status 2026-02-13: PARCIAL** — materialized views criadas (`db/sql/006_materialized_views.sql`),
-     indices GIST criados (`db/sql/007_spatial_indexes.sql`),
-     cache HTTP ativo via `CacheHeaderMiddleware`.
-   - **status 2026-02-13 (Sprint 5.2): OK** — script de benchmark criado (`scripts/benchmark_api.py`)
-     com medicao de p50/p95/p99 em 12 endpoints criticos, alvo p95<=800ms.
-5. Evoluir as specs estrategicas de `v0.1` para `v1.0` e iniciar execucao tecnica orientada por elas:
-   - `MAP_PLATFORM_SPEC.md`
-   - `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md`
-   - `STRATEGIC_ENGINE_SPEC.md`
-   - status 2026-02-13: MP-1 do mapa concluido (`/v1/map/layers` + integracao no `QgMapPage`).
+1. Fechar estabilizacao de UX nas telas executivas com foco em mapa, Territorio 360 e Eleitorado:
+   - eliminar estados vazios sem contexto;
+   - melhorar distribuicao visual de filtros, cards e tabelas;
+   - garantir comportamento previsivel de paginacao em listas longas.
+2. Consolidar navegacao do mapa vetorial para uso operacional continuo:
+   - manter zoom/drag sem recentralizacao indevida;
+   - reduzir degradacao para SVG apenas em indisponibilidade real do vetor;
+   - reforcar feedback de erro para tiles indisponiveis (`503`) sem quebrar o fluxo.
+3. Completar cobertura de camada eleitoral territorial no frontend:
+   - expor `local_votacao` com toggle/legenda/tooltip;
+   - manter transparencia de `official/proxy/hybrid` nas camadas.
+4. Executar homologacao ponta a ponta com dados reais e registrar evidencia unica em `docs/HANDOFF.md`.
 
 ## 5.2 Prioridade media
 
-1. Completar hardening de acessibilidade nas telas executivas (teclado, foco e contraste em todos os estados).
-   - **status 2026-02-13 (Sprint 5.2): CONCLUIDO** — `Panel` com `aria-labelledby` via `useId`, `StateBlock` com `role=alert/status`,
-     `StrategicIndexCard` com `aria-label`, paginas executivas com `<main>`, 7 tabelas com `aria-label`,
-     botoes de exportacao com `aria-label` contextual, ranking com keyboard support, quick-actions em `<nav>`.
-2. Revisar cobertura de testes de contrato backend para casos limite dos endpoints QG.
-   - **status 2026-02-13 (Sprint 5.2): CONCLUIDO** — `tests/unit/test_qg_edge_cases.py` com 44 testes
-     (nivel invalido, limites, dados vazios, request_id, content-type, electorate year/metric).
-3. Revisar thresholds de qualidade por dominio/fonte com base no comportamento real das ondas 4 e 5.
-   - **status 2026-02-13 (Sprint 5.3): CONCLUIDO** — 15 fontes com `min_rows` explicito em `quality_thresholds.yml`;
-     `quality.py` ampliado para 15 fontes em `source_rows` e 14 jobs em `ops_pipeline_runs`;
-     MVP-5 sources elevados de 0→1.
+1. Revalidar desempenho das rotas executivas e de mapa com benchmark recorrente:
+   - alvo p95 <= 800ms (executivo) e <= 1000ms (urbano), conforme runbook vigente.
+2. Fechar consolidacao operacional de runbooks:
+   - `docs/OPERATIONS_RUNBOOK.md`
+   - `docs/RUNBOOK_ROBUSTEZ_DADOS_SEMANAL.md`
+   - `docs/MTE_RUNBOOK.md`
+3. Fortalecer cobertura de testes:
+   - backend: rotas qg/map/electorate para cenarios limite e regressao;
+   - frontend: fluxos completos de navegacao e estados de erro/vazio.
 
 ## 5.3 Prioridade baixa
 
-1. Refinar UX de observabilidade no `/admin` para acelerar diagnostico operacional.
-   - **status 2026-02-13 (Sprint 5.3): CONCLUIDO** — 3 paineis colapsaveis adicionados em `OpsHealthPage`:
-     Quality checks, Cobertura de fontes, Registro de conectores.
-     `CollapsiblePanel` component criado com chevron, badge count, `aria-expanded`.
-     Progressive disclosure aplicado em `QgOverviewPage` (Dominios Onda B/C colapsado).
-2. Consolidar runbooks de operacao para ambiente de homologacao/producao.
-
-## 5.4 Atualizacao de foco (2026-02-13)
-
-1. Camadas territoriais:
-   - API tecnica de camadas publicada em `/v1/territory/layers/*` (catalogo, coverage, metadata e readiness).
-   - pagina tecnica `/ops/layers` ativa para rastreio operacional por camada.
-2. Qualidade de camadas:
-   - checks `map_layer_rows_*` e `map_layer_geometry_ratio_*` integrados ao `quality_suite`.
-3. Base eleitoral territorial:
-   - `tse_results_fetch` evoluido para carregar zona e secao eleitoral em `silver.dim_territory`.
-   - `tse_results_fetch` agora detecta `local_votacao` quando presente e preserva o dado em metadata da secao.
-   - gravacao de resultados eleitorais com resolucao de territorio por secao > zona > municipio.
-   - camada backend `territory_polling_place` publicada no manifesto de mapa para pontos eleitorais derivados.
-4. Proximos incrementos imediatos:
-   - consolidar o consumo explicito da camada `local_votacao` no frontend (toggle/legenda/tooltip) em todas as telas com mapa;
-   - fechamento de UX em `Territorio 360` e `Eleitorado` para eliminar estados vazios sem contexto;
-   - regressao completa de backend/frontend apos cada entrega vertical.
+1. Refinar painel tecnico `/admin` para diagnostico rapido sem poluir UX executiva.
+2. Evoluir backlog pos-v2 do mapa (split view, time slider e comparacao temporal), sem abrir nova frente antes dos gates de estabilizacao.
 
 ## 6) Matriz de fontes e consumo no QG
 
@@ -228,14 +208,11 @@ Entregar e estabilizar o QG estrategico municipal de Diamantina/MG, com:
 
 ## 9) Ordem recomendada para os proximos passos
 
-1. Fechar E2E dos fluxos executivos e registrar baseline de homologacao.
-2. Rodar bateria completa em ambiente limpo e publicar relatorio unico de readiness.
-   - **status 2026-02-13: CONCLUIDO** — `scripts/homologation_check.py` criado com 5 dimensoes
-     (backend readiness, quality suite, frontend build, test suites, API smoke).
-3. Ajustar pendencias de performance/thresholds detectadas na homologacao.
-   - **status 2026-02-13: CONCLUIDO** — thresholds revisados por fonte; MVP-5 corrigido de 0→1.
-4. Congelar contrato v1.0 do QG para operacao assistida.
-5. Planejar proximo ciclo incremental (novas fontes e refinamentos analiticos).
+1. Finalizar estabilizacao visual/UX nas telas executivas com evidencias de teste.
+2. Revalidar readiness completo (backend + frontend + benchmark) em ambiente limpo.
+3. Fechar pendencias de camada eleitoral territorial no mapa (`local_votacao`).
+4. Consolidar runbooks e rotina semanal de robustez de dados.
+5. Planejar proximo ciclo incremental (mapa pos-v2 e evolucoes analiticas controladas).
 
 ## 10) Trilha oficial para nivel maximo de dados
 

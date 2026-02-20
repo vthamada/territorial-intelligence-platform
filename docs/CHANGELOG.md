@@ -4,7 +4,35 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
 ## 2026-02-20
 
+### Fixed
+- Estabilidade de navegacao no mapa vetorial:
+  - `frontend/src/shared/ui/VectorMap.tsx` corrigido para nao recentrar o mapa a cada alteracao de zoom (zoom e centro agora seguem efeitos separados).
+  - tratamento de erro no vetor filtrando erros de abort/cancelamento para evitar degradacao indevida de UX.
+- Estabilidade de fallback do mapa:
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` e `frontend/src/modules/qg/pages/QgOverviewPage.tsx` deixaram de forcar fallback automatico para SVG em qualquer erro transitorio do modo vetorial.
+  - mensagens de erro vetorial padronizadas com orientacao explicita para indisponibilidade temporaria (`503`).
+- Robustez backend de tiles MVT:
+  - `src/app/api/routes_map.py` passou a sanitizar geometrias invalidas com `ST_IsValid`/`ST_MakeValid` antes de `ST_Transform`/`ST_Intersects` na geracao de tiles territoriais.
+  - objetivo: reduzir erro `503` em tiles com geometrias problematicas.
+- Eleitorado com fallback de ano de armazenamento outlier:
+  - `src/app/api/routes_qg.py` recebeu binding de ano logico x ano de armazenamento para casos como `reference_year=9999`.
+  - `GET /v1/electorate/summary` e `GET /v1/electorate/map` agora conseguem responder para `year=2024` quando os dados eleitorais estiverem armazenados em ano outlier.
+  - metadata das respostas passou a indicar fallback: `electorate_outlier_year_fallback:requested_year=...,storage_year=...`.
+- Frontend de eleitorado e estados vazios:
+  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` atualizado para considerar erros de fallback e exibir estado vazio orientativo quando nao houver ano aplicado e nao houver dados no recorte padrao.
+- Correcao de regressao de hooks (runtime crash):
+  - `frontend/src/modules/qg/pages/QgInsightsPage.tsx` e `frontend/src/modules/territory/pages/TerritoryProfilePage.tsx` ajustados para manter ordem estavel de hooks entre renders.
+  - resolve erro `Rendered more hooks than during the previous render` que quebrava paginas e testes.
+- Usabilidade de listas longas:
+  - paginacao client-side em `QgInsightsPage` e tabela de indicadores do `TerritoryProfilePage`.
+
 ### Changed
+- Higienizacao documental e alinhamento de governanca:
+  - `README.md` atualizado para refletir estado atual de 20/02/2026 e corrigir referencias para `docs/`.
+  - `docs/PLANO.md` atualizado para remover backlog legado de specs `v0.1 -> v1.0` (agora consolidado em v1.0).
+  - `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado com escopo de execucao do ciclo atual (removido bloco legado de Sprint 9 ja concluido).
+  - `docs/MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md` atualizado (data de referencia e referencia oficial de frontend spec).
+  - `docs/GITHUB_ISSUES_BACKLOG_DADOS_NIVEL_MAXIMO.md` marcado como snapshot historico, com GitHub como fonte oficial de status.
 - Mapa vetorial com semantica explicita para ausencia de dados:
   - `frontend/src/shared/ui/VectorMap.tsx` deixou de tratar ausencia de `val` como `0` no coropletico.
   - features sem valor agora aparecem com cor neutra (`#d1d5db`) em vez de cor de faixa baixa.
@@ -245,6 +273,17 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
     - `11 passed`.
   - `npm --prefix frontend run build`
     - `OK`.
+
+### Verified (ciclo atual - 2026-02-20)
+- Backend:
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
+- Frontend:
+  - `npm --prefix frontend run test -- --run` -> `72 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+- Smoke de API (eleitorado):
+  - `GET /v1/electorate/summary?level=municipality&year=2024` -> `200`, `total_voters=38127`, `year=2024`, `notes` com fallback outlier.
+  - `GET /v1/electorate/map?level=municipality&year=2024&metric=voters&include_geometry=false&limit=5` -> `200`, itens retornados com fallback outlier.
 
 ## 2026-02-13 (Sprint 9 - territorial layers TL-2/TL-3 + base eleitoral)
 
@@ -1135,8 +1174,8 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - testes Vitest para app shell, `StateBlock` e cliente HTTP
 
 ### Removed
-- `SPEC.md` removido do repositório.
-- `SPEC_v1.3.md` removido do repositório.
+- arquivo legado SPEC.md removido do repositorio.
+- arquivo legado SPEC_v1.3.md removido do repositorio.
 
 ### Verified
 - `python scripts/validate_mte_p0.py --reference-period 2025 --runs 3 --bootstrap-municipality --output-json`: `3/3 success` (primeira execucao com contingencia, execucoes seguintes via `bronze_cache`).

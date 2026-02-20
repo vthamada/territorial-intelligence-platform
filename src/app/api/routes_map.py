@@ -1036,6 +1036,7 @@ def get_mvt_tile(
     use_indicator_join = metric is not None and period is not None
     layer_filter = _LAYER_EXTRA_WHERE.get(layer, "")
     name_expr = _LAYER_NAME_EXPR.get(layer, "dt.name")
+    territory_geom_expr = "CASE WHEN ST_IsValid(dt.geometry) THEN dt.geometry ELSE ST_MakeValid(dt.geometry) END"
 
     if urban_layer is not None:
         base_extra_sql = urban_layer.get("base_extra_sql", "")
@@ -1093,14 +1094,14 @@ def get_mvt_tile(
                     {name_expr} AS tname,
                     fi.value::double precision AS val,
                     fi.indicator_code AS metric,
-                    ST_Transform(dt.geometry, 3857) AS geom_3857
+                    ST_Transform({territory_geom_expr}, 3857) AS geom_3857
                 FROM silver.dim_territory dt
                 JOIN silver.fact_indicator fi ON fi.territory_id = dt.territory_id
                 CROSS JOIN tile_extent te
                 WHERE dt.level::text = :level
                   AND dt.geometry IS NOT NULL
                   {layer_filter}
-                  AND ST_Intersects(ST_Transform(dt.geometry, 3857), te.envelope)
+                  AND ST_Intersects(ST_Transform({territory_geom_expr}, 3857), te.envelope)
                   AND fi.indicator_code = :metric
                   AND fi.reference_period = :period
                   {domain_filter}
@@ -1136,13 +1137,13 @@ def get_mvt_tile(
                 SELECT
                     dt.territory_id::text AS tid,
                     {name_expr} AS tname,
-                    ST_Transform(dt.geometry, 3857) AS geom_3857
+                    ST_Transform({territory_geom_expr}, 3857) AS geom_3857
                 FROM silver.dim_territory dt
                 CROSS JOIN tile_extent te
                 WHERE dt.level::text = :level
                   AND dt.geometry IS NOT NULL
                   {layer_filter}
-                  AND ST_Intersects(ST_Transform(dt.geometry, 3857), te.envelope)
+                  AND ST_Intersects(ST_Transform({territory_geom_expr}, 3857), te.envelope)
             ),
             features AS (
                 SELECT
