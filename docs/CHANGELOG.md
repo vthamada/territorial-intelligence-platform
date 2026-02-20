@@ -9,6 +9,17 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - `frontend/src/shared/ui/VectorMap.tsx` deixou de tratar ausencia de `val` como `0` no coropletico.
   - features sem valor agora aparecem com cor neutra (`#d1d5db`) em vez de cor de faixa baixa.
   - filtros de valor aplicados nos modos `points` e `heatmap` para evitar ruido de geometria sem metrica.
+- Mapa vetorial com navegacao mais contextual:
+  - `frontend/src/shared/ui/VectorMap.tsx` agora desenha rotulos contextuais (`label/name/tname/territory_name/road_name/poi_name`) na camada ativa.
+  - para camadas lineares urbanas, rotulos usam `symbol-placement=line` com zoom minimo contextual.
+  - atribuicoes de basemap normalizadas para ASCII:
+    - `streets`: `(c) OpenStreetMap contributors`
+    - `light`: `(c) OpenStreetMap contributors (c) CARTO`
+- Zoom contextual no fluxo de filtros:
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` aplica zoom minimo recomendado por contexto ao clicar em `Aplicar filtros`:
+    - territorial: municipio/distrito/setor/zona/secao
+    - urbano: piso de zoom compativel com `urban_roads`/`urban_pois`
+  - UI agora exibe referencia explicita: `Zoom contextual minimo recomendado`.
 - Legenda de estilo no mapa executivo atualizada:
   - `frontend/src/modules/qg/pages/QgMapPage.tsx` agora exibe chip explicito `Sem dado`.
 - Validacao executada:
@@ -22,8 +33,8 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - controles nativos adicionais: `FullscreenControl`, `ScaleControl` e `AttributionControl` compacto.
   - `NavigationControl` configurado com zoom + bussola.
   - atribuicao de basemap aplicada na fonte raster:
-    - `streets`: `© OpenStreetMap contributors`
-    - `light`: `© OpenStreetMap contributors © CARTO`
+    - `streets`: `(c) OpenStreetMap contributors`
+    - `light`: `(c) OpenStreetMap contributors (c) CARTO`
 - Estilo dos controles de mapa refinado em `frontend/src/styles/global.css`:
   - reposicionamento e acabamento visual dos grupos de controle (`top-right`, `bottom-left`, `bottom-right`).
   - melhorias de contraste, hover e responsividade em botões/escala/atribuicao.
@@ -1208,6 +1219,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - Suite de testes local: `20 passed`.
 - Fluxos MVP executados com sucesso em modo direto.
 - Fluxo Prefect completo validado em `dry_run`.
+
 
 
 

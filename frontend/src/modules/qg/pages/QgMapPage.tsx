@@ -202,6 +202,28 @@ function normalizeZoom(value: string | null, fallback: number) {
   return Math.max(0, Math.min(18, Math.round(parsed)));
 }
 
+function recommendedZoomByLevel(level: string) {
+  if (level === "distrito") return 10;
+  if (level === "setor_censitario") return 13;
+  if (level === "zona_eleitoral") return 11;
+  if (level === "secao_eleitoral") return 14;
+  return 8;
+}
+
+function resolveContextualZoom(
+  currentZoom: number,
+  scope: LayerScope,
+  level: string,
+  preferredLayer?: MapLayerItem,
+) {
+  const baseline = scope === "urban" ? 12 : recommendedZoomByLevel(level);
+  const layerZoomMin = preferredLayer?.zoom_min ?? baseline;
+  if (currentZoom < layerZoomMin) {
+    return Math.max(0, Math.min(18, layerZoomMin));
+  }
+  return Math.max(0, Math.min(18, currentZoom));
+}
+
 function normalizeScope(value: string | null, layerId: string | null): LayerScope {
   const normalized = (value ?? "").trim().toLowerCase();
   if (normalized === "urban" || normalized === "urbano") {
@@ -549,6 +571,15 @@ export function QgMapPage() {
   }
 
   function applyFilters() {
+    const formTerritoryLevel = toManifestTerritoryLevel(level);
+    const formLevelLayers = territorialLayers.filter((layerItem) => layerItem.territory_level === formTerritoryLevel);
+    const formPreferredTerritorialLayer =
+      formLevelLayers.find((layerItem) => layerItem.default_visibility) ?? formLevelLayers[0];
+    const formPreferredUrbanLayer =
+      availableUrbanLayers.find((layerItem) => layerItem.id === urbanLayerId) ?? availableUrbanLayers[0];
+    const preferredLayer = mapScope === "urban" ? formPreferredUrbanLayer : formPreferredTerritorialLayer;
+    const nextZoom = resolveContextualZoom(currentZoom, mapScope, level, preferredLayer);
+
     setAppliedMetric(metric);
     setAppliedPeriod(period);
     setAppliedLevel(level);
@@ -562,6 +593,13 @@ export function QgMapPage() {
     }
     setExportError(null);
     setVectorMapError(null);
+    if (nextZoom !== currentZoom) {
+      setCurrentZoom(nextZoom);
+      globalFilters.setZoom(nextZoom);
+    }
+    if (mapScope !== appliedMapScope || level !== appliedLevel || nextZoom !== currentZoom) {
+      recenterMap();
+    }
   }
 
   function clearFilters() {
@@ -733,6 +771,7 @@ export function QgMapPage() {
       ? levelScopedLayers.find((layerItem) => layerItem.id === selectedVectorLayerId) ?? null
       : null;
   const effectiveLayer = appliedMapScope === "urban" ? selectedUrbanLayer : explicitLayer ?? autoLayer ?? recommendedLayer;
+  const contextualZoomFloor = resolveContextualZoom(0, appliedMapScope, appliedLevel, effectiveLayer);
   const vectorLayers = appliedMapScope === "urban" ? [selectedUrbanLayer] : effectiveLayer ? [effectiveLayer] : levelScopedLayers;
   const effectiveVizMode: VizMode =
     effectiveLayer?.layer_kind === "point" && vizMode === "choropleth" ? "points" : vizMode;
@@ -926,6 +965,7 @@ export function QgMapPage() {
             <span className="zoom-value">{currentZoom}</span>
           </label>
         </div>
+        <p className="map-selected-note">Zoom contextual minimo recomendado: z{contextualZoomFloor}.</p>
         {appliedMapScope === "territorial" ? (
           <div className="map-territory-search">
             <label htmlFor="territory-search-input">Buscar territorio</label>

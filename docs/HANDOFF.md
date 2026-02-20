@@ -16,6 +16,22 @@ Contrato tecnico principal: `CONTRATO.md`
   - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `19 passed`.
   - `npm --prefix frontend run build` -> `OK`.
 
+## Atualizacao tecnica (2026-02-20) - Mapa com rotulos e zoom contextual
+
+- `frontend/src/shared/ui/VectorMap.tsx`:
+  - camada ativa agora exibe rotulos contextuais a partir de propriedades disponiveis (`label`, `name`, `tname`, `territory_name`, `road_name`, `poi_name`, `category`).
+  - camadas lineares urbanas usam `symbol-placement=line` para leitura mais natural de vias.
+  - atribuicao de basemap normalizada:
+    - `(c) OpenStreetMap contributors`
+    - `(c) OpenStreetMap contributors (c) CARTO`
+- `frontend/src/modules/qg/pages/QgMapPage.tsx`:
+  - `Aplicar filtros` agora respeita zoom minimo contextual por escopo/nivel.
+  - piso de zoom explicito para camadas urbanas e ajuste por metadata de camada (`zoom_min`).
+  - leitura de apoio adicionada na UI: `Zoom contextual minimo recomendado`.
+- Validacao executada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `19 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+
 ## Diretriz operacional sem dispersao (2026-02-19)
 
 - Diretriz oficial de foco publicada e consolidada em `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` (secoes 7, 8 e 9).
@@ -52,8 +68,8 @@ Contrato tecnico principal: `CONTRATO.md`
   - `ScaleControl` habilitado (unidade metrica) no canto inferior esquerdo.
   - `AttributionControl` compacto habilitado no canto inferior direito.
   - atribuicao dos basemaps aplicada na fonte raster:
-    - `streets`: `© OpenStreetMap contributors`
-    - `light`: `© OpenStreetMap contributors © CARTO`
+    - `streets`: `(c) OpenStreetMap contributors`
+    - `light`: `(c) OpenStreetMap contributors (c) CARTO`
 - `frontend/src/styles/global.css`:
   - refinamento visual dos controles `maplibregl` (grupo, botoes, escala e atribuicao).
   - ajustes de posicionamento e responsividade para reduzir sobreposicao em viewport menor.
@@ -1001,6 +1017,7 @@ Sprint atual recomendado:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_up.ps1`
 - Encerrar API + frontend iniciados pelo launcher:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_down.ps1`
+
 
 
 

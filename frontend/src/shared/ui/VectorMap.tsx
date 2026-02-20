@@ -43,6 +43,7 @@ export type VectorMapProps = {
   basemapTileUrls?: BasemapTileUrls;
   resetViewSignal?: number;
   focusTerritorySignal?: number;
+  showContextLabels?: boolean;
 };
 
 const DEFAULT_CENTER: [number, number] = [-43.62, -18.09];
@@ -75,6 +76,25 @@ function buildNumericValueExpression(): maplibregl.ExpressionSpecification {
 function buildHasValueFilter(): maplibregl.ExpressionSpecification {
   const valueExpression = buildValueExpression();
   return ["all", ["!=", valueExpression, null], ["!=", valueExpression, ""]] as maplibregl.ExpressionSpecification;
+}
+
+function buildLabelFieldExpression(): maplibregl.ExpressionSpecification {
+  return [
+    "coalesce",
+    ["get", "label"],
+    ["get", "name"],
+    ["get", "tname"],
+    ["get", "territory_name"],
+    ["get", "road_name"],
+    ["get", "poi_name"],
+    ["get", "category"],
+    "",
+  ] as maplibregl.ExpressionSpecification;
+}
+
+function buildHasLabelFilter(): maplibregl.ExpressionSpecification {
+  const labelExpression = buildLabelFieldExpression();
+  return ["all", ["!=", labelExpression, null], ["!=", labelExpression, ""]] as maplibregl.ExpressionSpecification;
 }
 
 function buildTileUrl(baseUrl: string, layerId: string, metric?: string, period?: string, domain?: string): string {
@@ -112,9 +132,9 @@ function resolveBasemapAttribution(mode: BasemapMode): string | undefined {
     return undefined;
   }
   if (mode === "light") {
-    return "© OpenStreetMap contributors © CARTO";
+    return "(c) OpenStreetMap contributors (c) CARTO";
   }
-  return "© OpenStreetMap contributors";
+  return "(c) OpenStreetMap contributors";
 }
 
 function resolvePolygonFillOpacity(mode: BasemapMode): number {
@@ -255,6 +275,7 @@ export function VectorMap({
   basemapTileUrls,
   resetViewSignal = 0,
   focusTerritorySignal = 0,
+  showContextLabels = true,
 }: VectorMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -386,7 +407,7 @@ export function VectorMap({
 
       detachInteractions(map);
 
-      for (const lid of ["selection-highlight", "fill-layer", "line-layer", "points-layer", "heatmap-layer"]) {
+      for (const lid of ["selection-highlight", "fill-layer", "line-layer", "points-layer", "heatmap-layer", "label-layer"]) {
         if (map.getLayer(lid)) map.removeLayer(lid);
       }
       if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
@@ -538,6 +559,45 @@ export function VectorMap({
             },
           });
         }
+        if (showContextLabels) {
+          const labelMinZoom = layerKind === "line" ? 12 : layerKind === "point" ? 11 : 9;
+          const labelLayout: Record<string, unknown> = {
+            "text-field": buildLabelFieldExpression(),
+            "text-size": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              labelMinZoom,
+              10,
+              14,
+              12,
+              17,
+              13,
+            ],
+            "text-font": ["Open Sans Semibold", "Arial Unicode MS Regular"],
+            "text-max-width": 10,
+            "text-allow-overlap": false,
+            "text-padding": 2,
+          };
+          if (layerKind === "line") {
+            labelLayout["symbol-placement"] = "line";
+            labelLayout["symbol-spacing"] = 320;
+          }
+          map.addLayer({
+            id: "label-layer",
+            type: "symbol",
+            source: SOURCE_ID,
+            "source-layer": layerId,
+            filter: buildHasLabelFilter(),
+            minzoom: labelMinZoom,
+            layout: labelLayout as maplibregl.SymbolLayerSpecification["layout"],
+            paint: {
+              "text-color": "#1f2937",
+              "text-halo-color": "rgba(255,255,255,0.92)",
+              "text-halo-width": 1.1,
+            },
+          });
+        }
       } catch (error) {
         const reason = error instanceof Error ? error.message : "falha ao montar camadas vetoriais";
         onError?.(reason);
@@ -626,6 +686,7 @@ export function VectorMap({
     onError,
     basemapMode,
     basemapTileUrls,
+    showContextLabels,
   ]);
 
   useEffect(() => {
@@ -739,3 +800,4 @@ export function VectorMap({
     />
   );
 }
+
