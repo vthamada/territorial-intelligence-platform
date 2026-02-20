@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { getChoropleth, getMapLayers, getMapStyleMetadata } from "../../../shared/api/domain";
 import { formatApiError } from "../../../shared/api/http";
+import type { MapLayerItem } from "../../../shared/api/types";
 import { getInsightsHighlights, getKpisOverview, getPriorityList, getPrioritySummary } from "../../../shared/api/qg";
 import { useFilterStore } from "../../../shared/stores/filterStore";
 import { CollapsiblePanel } from "../../../shared/ui/CollapsiblePanel";
@@ -41,6 +42,65 @@ function resolveChoroplethLevel(level: string) {
   return level === "district" ? "distrito" : "municipio";
 }
 
+function recommendedOverviewZoom(level: string) {
+  if (level === "district") {
+    return 10;
+  }
+  if (level === "census_sector") {
+    return 13;
+  }
+  if (level === "electoral_zone") {
+    return 11;
+  }
+  if (level === "electoral_section") {
+    return 14;
+  }
+  return 8;
+}
+
+function resolveLayerClassification(layer?: Pick<MapLayerItem, "official_status" | "is_official"> | null) {
+  if (!layer) {
+    return null;
+  }
+  const normalized = (layer.official_status ?? "").trim().toLowerCase();
+  if (normalized === "official" || normalized === "proxy" || normalized === "hybrid") {
+    return normalized;
+  }
+  return layer.is_official ? "official" : "proxy";
+}
+
+function formatLayerClassificationLabel(layer?: Pick<MapLayerItem, "official_status" | "is_official"> | null) {
+  const classification = resolveLayerClassification(layer);
+  if (classification === "official") {
+    return "oficial";
+  }
+  if (classification === "proxy") {
+    return "proxy";
+  }
+  if (classification === "hybrid") {
+    return "hibrida";
+  }
+  return "n/d";
+}
+
+function buildLayerClassificationHint(layer?: MapLayerItem | null) {
+  const classification = resolveLayerClassification(layer);
+  if (classification === "proxy") {
+    return (
+      layer?.proxy_method ??
+      layer?.notes ??
+      "Camada proxy derivada de agregacao espacial; validar limites antes de decisoes criticas."
+    );
+  }
+  if (classification === "hybrid") {
+    return layer?.notes ?? "Camada hibrida com composicao de fontes oficiais e auxiliares.";
+  }
+  if (classification === "official") {
+    return layer?.notes ?? "Camada oficial baseada em recorte territorial institucional.";
+  }
+  return layer?.notes ?? "Camada sem metadata adicional.";
+}
+
 function formatVectorMapError(rawMessage: string) {
   const token = rawMessage.trim();
   if (!token) {
@@ -67,7 +127,7 @@ export function QgOverviewPage() {
   const [basemapMode, setBasemapMode] = useState<BasemapMode>("streets");
   const [useVectorMap, setUseVectorMap] = useState(true);
   const [vectorMapError, setVectorMapError] = useState<string | null>(null);
-  const [mapZoom, setMapZoom] = useState(globalFilters.zoom);
+  const [mapZoom, setMapZoom] = useState(Math.max(globalFilters.zoom, recommendedOverviewZoom(globalFilters.level)));
   const [focusSignal, setFocusSignal] = useState(0);
   const [resetViewSignal, setResetViewSignal] = useState(0);
 
@@ -129,19 +189,21 @@ export function QgOverviewPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const isLoading =
-    kpiQuery.isPending || summaryQuery.isPending || prioritiesPreviewQuery.isPending || highlightsQuery.isPending;
-  const firstError = kpiQuery.error ?? summaryQuery.error ?? prioritiesPreviewQuery.error ?? highlightsQuery.error;
+  const isLoading = kpiQuery.isPending || summaryQuery.isPending;
+  const firstError = kpiQuery.error ?? summaryQuery.error;
 
   function applyFilters() {
+    const nextZoom = Math.max(mapZoom, recommendedOverviewZoom(level));
     setAppliedPeriod(period);
     setAppliedLevel(level);
-    setAppliedDetailedLayerId(detailedLayerId);
+    setAppliedDetailedLayerId(level === "electoral_section" ? detailedLayerId : "");
     setSelectedTerritoryId(undefined);
     setSelectedFeatureName(null);
     setVectorMapError(null);
+    setMapZoom(nextZoom);
     globalFilters.setPeriod(period);
     globalFilters.setLevel(level);
+    globalFilters.setZoom(nextZoom);
   }
 
   function clearFilters() {
@@ -156,9 +218,9 @@ export function QgOverviewPage() {
     setVectorMapError(null);
     setBasemapMode("streets");
     setUseVectorMap(true);
-    setMapZoom(4);
+    setMapZoom(8);
     globalFilters.applyDefaults();
-    globalFilters.setZoom(4);
+    globalFilters.setZoom(8);
     setResetViewSignal((value) => value + 1);
   }
 
@@ -183,8 +245,6 @@ export function QgOverviewPage() {
         onRetry={() => {
           void kpiQuery.refetch();
           void summaryQuery.refetch();
-          void prioritiesPreviewQuery.refetch();
-          void highlightsQuery.refetch();
         }}
       />
     );
@@ -192,20 +252,32 @@ export function QgOverviewPage() {
 
   const kpis = kpiQuery.data!;
   const summary = summaryQuery.data!;
-  const prioritiesPreview = prioritiesPreviewQuery.data!;
-  const highlights = highlightsQuery.data!;
+  const prioritiesPreview = prioritiesPreviewQuery.data;
+  const highlights = highlightsQuery.data;
+  const prioritiesPreviewItems = prioritiesPreview?.items ?? [];
+  const highlightsItems = highlights?.items ?? [];
+  const prioritiesPreviewError = prioritiesPreviewQuery.error ? formatApiError(prioritiesPreviewQuery.error) : null;
+  const highlightsError = highlightsQuery.error ? formatApiError(highlightsQuery.error) : null;
 
-  const topPriority = prioritiesPreview.items[0];
+  const topPriority = prioritiesPreviewItems[0];
   const mostCriticalTerritory = topPriority?.territory_id;
   const sectionDetailLayerOptions = (mapLayersQuery.data?.items ?? []).filter(
     (item) => item.territory_level === "electoral_section",
   );
+  const canSelectDetailedLayer = level === "electoral_section" && sectionDetailLayerOptions.length > 0;
+  const shouldAppendDetailedLayer =
+    appliedLevel === "electoral_section" &&
+    sectionDetailLayerOptions.some((item) => item.id === appliedDetailedLayerId);
+
   function appendDetailedLayer(path: string) {
-    if (!appliedDetailedLayerId) {
+    if (!shouldAppendDetailedLayer) {
       return path;
     }
-    const delimiter = path.includes("?") ? "&" : "?";
-    return `${path}${delimiter}layer_id=${encodeURIComponent(appliedDetailedLayerId)}`;
+    const [basePath, rawQuery = ""] = path.split("?");
+    const params = new URLSearchParams(rawQuery);
+    params.set("layer_id", appliedDetailedLayerId);
+    params.set("level", "secao_eleitoral");
+    return `${basePath}?${params.toString()}`;
   }
   const mapQuickLink = topPriority
     ? appendDetailedLayer(
@@ -233,6 +305,7 @@ export function QgOverviewPage() {
     levelScopedLayers[0]?.id ??
     mapLayersQuery.data?.default_layer_id;
   const appliedDetailedLayer = levelScopedLayers.find((item) => item.id === appliedDetailedLayerId) ?? null;
+  const appliedDetailedLayerClassification = formatLayerClassificationLabel(appliedDetailedLayer);
   const effectiveDefaultLayerId = appliedDetailedLayer?.id ?? baseDefaultLayerId;
   const canUseVectorMap = Boolean(effectiveDefaultLayerId);
   const isPollingPlaceDetailedLayer = appliedDetailedLayer?.id === "territory_polling_place";
@@ -368,7 +441,16 @@ export function QgOverviewPage() {
                   </label>
                   <label>
                     Nivel territorial
-                    <select value={level} onChange={(event) => setLevel(event.target.value)}>
+                    <select
+                      value={level}
+                      onChange={(event) => {
+                        const nextLevel = event.target.value;
+                        setLevel(nextLevel);
+                        if (nextLevel !== "electoral_section") {
+                          setDetailedLayerId("");
+                        }
+                      }}
+                    >
                       <option value="municipality">{formatLevelLabel("municipality")}</option>
                       <option value="district">{formatLevelLabel("district")}</option>
                       <option value="census_sector">{formatLevelLabel("census_sector")}</option>
@@ -376,7 +458,7 @@ export function QgOverviewPage() {
                       <option value="electoral_section">{formatLevelLabel("electoral_section")}</option>
                     </select>
                   </label>
-                  {sectionDetailLayerOptions.length > 0 ? (
+                  {canSelectDetailedLayer ? (
                     <label>
                       Camada detalhada (Mapa)
                       <select value={detailedLayerId} onChange={(event) => setDetailedLayerId(event.target.value)}>
@@ -398,8 +480,9 @@ export function QgOverviewPage() {
                 </form>
                 <SourceFreshnessBadge metadata={kpis.metadata} />
                 {appliedDetailedLayer ? (
-                  <p className="map-layer-guidance">
+                  <p className="map-layer-guidance" title={buildLayerClassificationHint(appliedDetailedLayer)}>
                     Camada detalhada ativa: <strong>{appliedDetailedLayer.label}</strong>.
+                    {" "}Classificacao: <strong>{appliedDetailedLayerClassification}</strong>.
                     {isPollingPlaceDetailedLayer
                       ? " O mapa esta priorizando local_votacao detectado por secao eleitoral."
                       : ""}
@@ -414,7 +497,7 @@ export function QgOverviewPage() {
                     Zoom
                     <input
                       type="range"
-                      min={0}
+                      min={recommendedOverviewZoom(appliedLevel)}
                       max={18}
                       step={1}
                       value={mapZoom}
@@ -465,7 +548,7 @@ export function QgOverviewPage() {
                   disabled={!canUseVectorMap}
                   onClick={() => setUseVectorMap((value) => !value)}
                 >
-                  {useVectorMap ? "SVG fallback" : canUseVectorMap ? "Mapa vetorial" : "Somente SVG"}
+                  {useVectorMap ? "Modo simplificado" : canUseVectorMap ? "Modo avancado" : "Somente simplificado"}
                 </button>
               </section>
 
@@ -527,24 +610,52 @@ export function QgOverviewPage() {
         />
       </section>
 
-      <CollapsiblePanel title="Top prioridades" defaultOpen={true} badgeCount={prioritiesPreview.items.length}>
-        {prioritiesPreview.items.length === 0 ? (
+      <CollapsiblePanel title="Top prioridades" defaultOpen={true} badgeCount={prioritiesPreviewItems.length}>
+        {prioritiesPreviewQuery.isPending && !prioritiesPreview ? (
+          <StateBlock
+            tone="loading"
+            title="Carregando top prioridades"
+            message="Buscando recorte executivo de prioridades para a Home."
+          />
+        ) : prioritiesPreviewError ? (
+          <StateBlock
+            tone="error"
+            title="Falha ao carregar top prioridades"
+            message={prioritiesPreviewError.message}
+            requestId={prioritiesPreviewError.requestId}
+            onRetry={() => void prioritiesPreviewQuery.refetch()}
+          />
+        ) : prioritiesPreviewItems.length === 0 ? (
           <StateBlock tone="empty" title="Sem prioridades" message="Nenhuma prioridade encontrada." />
         ) : (
           <div className="priority-card-grid">
-            {prioritiesPreview.items.map((item) => (
+            {prioritiesPreviewItems.map((item) => (
               <PriorityItemCard key={`${item.territory_id}-${item.indicator_code}`} item={item} />
             ))}
           </div>
         )}
       </CollapsiblePanel>
 
-      <CollapsiblePanel title="Destaques" defaultOpen={false} badgeCount={highlights.items.length}>
-        {highlights.items.length === 0 ? (
+      <CollapsiblePanel title="Destaques" defaultOpen={false} badgeCount={highlightsItems.length}>
+        {highlightsQuery.isPending && !highlights ? (
+          <StateBlock
+            tone="loading"
+            title="Carregando destaques"
+            message="Consultando insights executivos para o recorte aplicado."
+          />
+        ) : highlightsError ? (
+          <StateBlock
+            tone="error"
+            title="Falha ao carregar destaques"
+            message={highlightsError.message}
+            requestId={highlightsError.requestId}
+            onRetry={() => void highlightsQuery.refetch()}
+          />
+        ) : highlightsItems.length === 0 ? (
           <StateBlock tone="empty" title="Sem destaques" message="Sem insights para o recorte." />
         ) : (
           <ul className="trend-list" aria-label="Lista de destaques">
-            {highlights.items.map((item) => (
+            {highlightsItems.map((item) => (
               <li key={`${item.territory_id}-${item.evidence.indicator_code}-${item.severity}`}>
                 <div>
                   <strong>{item.title}</strong>
@@ -572,7 +683,6 @@ export function QgOverviewPage() {
                 <th>Dominio</th>
                 <th>Fonte</th>
                 <th>Itens no recorte</th>
-                <th>Metrica de mapa</th>
                 <th>Acoes</th>
               </tr>
             </thead>
@@ -592,7 +702,6 @@ export function QgOverviewPage() {
                     <td>{item.label}</td>
                     <td>{item.source}</td>
                     <td>{totalInDomain}</td>
-                    <td>{item.defaultMetric}</td>
                     <td>
                       <Link className="inline-link" to={prioritiesLink}>
                         Abrir prioridades
@@ -624,8 +733,6 @@ export function QgOverviewPage() {
               <thead>
                 <tr>
                   <th>Dominio</th>
-                  <th>Fonte</th>
-                  <th>Codigo</th>
                   <th>Indicador</th>
                   <th>Valor</th>
                   <th>Nivel</th>
@@ -635,8 +742,6 @@ export function QgOverviewPage() {
                 {kpis.items.map((item) => (
                   <tr key={`${item.domain}-${item.indicator_code}`}>
                     <td>{getQgDomainLabel(item.domain)}</td>
-                    <td>{item.source ?? "-"}</td>
-                    <td>{item.indicator_code}</td>
                     <td>{item.indicator_name}</td>
                     <td>{formatValueWithUnit(item.value, item.unit)}</td>
                     <td>{formatLevelLabel(item.territory_level)}</td>

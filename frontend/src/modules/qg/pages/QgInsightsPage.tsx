@@ -5,6 +5,7 @@ import { formatApiError } from "../../../shared/api/http";
 import { getInsightsHighlights } from "../../../shared/api/qg";
 import { getQgDomainLabel, normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
 import { Panel } from "../../../shared/ui/Panel";
+import { formatStatusLabel, humanizeDatasetSource } from "../../../shared/ui/presentation";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
 import { StateBlock } from "../../../shared/ui/StateBlock";
 
@@ -128,9 +129,9 @@ export function QgInsightsPage() {
             Severidade
             <select value={severity} onChange={(event) => setSeverity(event.target.value)}>
               <option value="">Todas</option>
-              <option value="critical">critical</option>
-              <option value="attention">attention</option>
-              <option value="info">info</option>
+              <option value="critical">{formatStatusLabel("critical")}</option>
+              <option value="attention">{formatStatusLabel("attention")}</option>
+              <option value="info">{formatStatusLabel("info")}</option>
             </select>
           </label>
           <div className="filter-actions">
@@ -169,7 +170,7 @@ export function QgInsightsPage() {
                   <p>{item.explanation[0] ?? "Sem explicacao."}</p>
                 </div>
                 <small>
-                  {getQgDomainLabel(item.domain)} | {item.severity} | evidencia: {item.evidence.source}/{item.evidence.dataset}
+                  {getQgDomainLabel(item.domain)} | {formatStatusLabel(item.severity)} | {humanizeDatasetSource(item.evidence.source, item.evidence.dataset)}
                 </small>
               </li>
             ))}

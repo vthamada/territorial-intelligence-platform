@@ -307,6 +307,137 @@ describe("Ops pages filters", () => {
     });
   });
 
+  it("updates readiness status after manual refresh on health page", async () => {
+    vi.mocked(getOpsReadiness).mockReset();
+    vi.mocked(getOpsReadiness)
+      .mockResolvedValueOnce({
+        status: "READY",
+        strict: false,
+        generated_at_utc: "2026-02-12T20:30:00Z",
+        window_days: 7,
+        postgis: {
+          installed: true,
+          version: "3.5.2"
+        },
+        required_tables: {
+          required: [],
+          found_count: 7,
+          missing: []
+        },
+        connector_registry: {
+          total: 22,
+          by_status: { implemented: 22 },
+          implemented_jobs: ["sidra_indicators_fetch"]
+        },
+        slo1: {
+          window_days: 7,
+          target_pct: 95,
+          include_blocked_as_success: false,
+          total_runs: 10,
+          successful_runs: 9,
+          success_rate_pct: 90,
+          meets_target: false,
+          below_target_jobs: ["labor_mte_fetch"],
+          items: []
+        },
+        slo1_current: {
+          window_days: 1,
+          target_pct: 95,
+          include_blocked_as_success: false,
+          total_runs: 3,
+          successful_runs: 3,
+          success_rate_pct: 100,
+          meets_target: true,
+          below_target_jobs: [],
+          items: [],
+          window_role: "current_health"
+        },
+        slo3: {
+          window_days: 7,
+          total_runs: 10,
+          runs_with_checks: 10,
+          runs_missing_checks: 0,
+          meets_target: true,
+          sample_missing_run_ids: []
+        },
+        source_probe: {
+          total_rows: 0,
+          by_source: {}
+        },
+        hard_failures: [],
+        warnings: ["SLO-1 below target in historical window."]
+      })
+      .mockResolvedValueOnce({
+        status: "NOT_READY",
+        strict: false,
+        generated_at_utc: "2026-02-12T20:40:00Z",
+        window_days: 7,
+        postgis: {
+          installed: true,
+          version: "3.5.2"
+        },
+        required_tables: {
+          required: [],
+          found_count: 7,
+          missing: []
+        },
+        connector_registry: {
+          total: 22,
+          by_status: { implemented: 22 },
+          implemented_jobs: ["sidra_indicators_fetch"]
+        },
+        slo1: {
+          window_days: 7,
+          target_pct: 95,
+          include_blocked_as_success: false,
+          total_runs: 10,
+          successful_runs: 6,
+          success_rate_pct: 60,
+          meets_target: false,
+          below_target_jobs: ["labor_mte_fetch", "inmet_climate_fetch"],
+          items: []
+        },
+        slo1_current: {
+          window_days: 1,
+          target_pct: 95,
+          include_blocked_as_success: false,
+          total_runs: 3,
+          successful_runs: 1,
+          success_rate_pct: 33.33,
+          meets_target: false,
+          below_target_jobs: ["labor_mte_fetch"],
+          items: [],
+          window_role: "current_health"
+        },
+        slo3: {
+          window_days: 7,
+          total_runs: 10,
+          runs_with_checks: 8,
+          runs_missing_checks: 2,
+          meets_target: false,
+          sample_missing_run_ids: []
+        },
+        source_probe: {
+          total_rows: 0,
+          by_source: {}
+        },
+        hard_failures: ["ops.pipeline_checks lag detected"],
+        warnings: []
+      });
+
+    renderWithQueryClient(<OpsHealthPage />);
+
+    await waitFor(() => expect(getOpsReadiness).toHaveBeenCalledTimes(1));
+    await screen.findByText("Status readiness");
+    expect(screen.getByText("READY")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Atualizar painel de saude" }));
+
+    await waitFor(() => expect(getOpsReadiness).toHaveBeenCalledTimes(2));
+    expect(screen.getByText("NOT_READY")).toBeInTheDocument();
+    expect(screen.getByText(/Hard failures:/)).toBeInTheDocument();
+  });
+
   it("applies territory layers filters only when submitting form", async () => {
     renderWithQueryClient(<OpsLayersPage />);
     await waitFor(() => expect(getMapLayersReadiness).toHaveBeenCalledTimes(1));

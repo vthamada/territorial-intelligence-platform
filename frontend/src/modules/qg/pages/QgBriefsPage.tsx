@@ -8,7 +8,7 @@ import type { BriefGenerateResponse } from "../../../shared/api/types";
 import { getQgDomainLabel, normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
 import { usePersistedFormState } from "../../../shared/hooks/usePersistedFormState";
 import { Panel } from "../../../shared/ui/Panel";
-import { formatLevelLabel, formatStatusLabel, formatValueWithUnit } from "../../../shared/ui/presentation";
+import { formatLevelLabel, formatStatusLabel, formatValueWithUnit, humanizeDatasetSource } from "../../../shared/ui/presentation";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
 import { StateBlock } from "../../../shared/ui/StateBlock";
 
@@ -45,7 +45,7 @@ function buildBriefHtml(brief: BriefGenerateResponse) {
           <td>${escapeHtml(formatValueWithUnit(item.value, item.unit))}</td>
           <td>${escapeHtml(formatValueWithUnit(item.score, null))}</td>
           <td>${escapeHtml(formatStatusLabel(item.status))}</td>
-          <td>${escapeHtml(`${item.source} / ${item.dataset}`)}</td>
+          <td>${escapeHtml(humanizeDatasetSource(item.source, item.dataset))}</td>
           <td>${escapeHtml(item.reference_period)}</td>
         </tr>
       `
@@ -72,7 +72,7 @@ function buildBriefHtml(brief: BriefGenerateResponse) {
   </head>
   <body>
     <h1>${escapeHtml(brief.title)}</h1>
-    <p class="meta">Brief ID: ${escapeHtml(brief.brief_id)} | Gerado em: ${escapeHtml(brief.generated_at)}</p>
+    <p class="meta">Gerado em: ${escapeHtml(brief.generated_at)}</p>
     <p class="meta">Periodo: ${escapeHtml(brief.period ?? "-")} | Nivel: ${escapeHtml(formatLevelLabel(brief.level))} | Dominio: ${escapeHtml(getQgDomainLabel(brief.domain))}</p>
 
     <h2>Resumo executivo</h2>
@@ -314,7 +314,7 @@ export function QgBriefsPage() {
       ) : null}
 
       {brief ? (
-        <Panel title={brief.title} subtitle={`Brief ID: ${brief.brief_id}`}>
+        <Panel title={brief.title} subtitle={`Gerado em ${brief.generated_at}`}>
           <div className="panel-actions-row">
             <button type="button" className="button-secondary" onClick={exportBriefHtml} aria-label="Exportar brief como HTML">
               Exportar HTML
@@ -330,7 +330,7 @@ export function QgBriefsPage() {
             {brief.summary_lines.map((line, index) => (
               <li key={`summary-${index}`}>
                 <div>
-                  <strong>Linha {index + 1}</strong>
+                  <strong>Ponto {index + 1}</strong>
                   <p>{line}</p>
                 </div>
               </li>
@@ -372,7 +372,7 @@ export function QgBriefsPage() {
                       <td>{formatValueWithUnit(item.score, null)}</td>
                       <td>{formatStatusLabel(item.status)}</td>
                       <td>
-                        {item.source} / {item.dataset}
+                        {humanizeDatasetSource(item.source, item.dataset)}
                       </td>
                       <td>{item.reference_period}</td>
                     </tr>

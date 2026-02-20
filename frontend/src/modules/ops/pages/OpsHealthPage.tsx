@@ -89,6 +89,17 @@ export function OpsHealthPage() {
     connectorsQuery.error ??
     coverageQuery.error;
 
+  function refetchAll() {
+    void healthQuery.refetch();
+    void summaryQuery.refetch();
+    void slaQuery.refetch();
+    void readinessQuery.refetch();
+    void timeseriesQuery.refetch();
+    void checksQuery.refetch();
+    void connectorsQuery.refetch();
+    void coverageQuery.refetch();
+  }
+
   if (isLoading) {
     return (
       <StateBlock
@@ -107,16 +118,7 @@ export function OpsHealthPage() {
         title="Falha ao carregar painel"
         message={message}
         requestId={requestId}
-        onRetry={() => {
-          void healthQuery.refetch();
-          void summaryQuery.refetch();
-          void slaQuery.refetch();
-          void readinessQuery.refetch();
-          void timeseriesQuery.refetch();
-          void checksQuery.refetch();
-          void connectorsQuery.refetch();
-          void coverageQuery.refetch();
-        }}
+        onRetry={refetchAll}
       />
     );
   }
@@ -139,7 +141,15 @@ export function OpsHealthPage() {
 
   return (
     <div className="page-grid">
-      <Panel title="Status geral" subtitle="Saude da API e volume operacional">
+      <Panel
+        title="Status geral"
+        subtitle="Saude da API e volume operacional"
+        actions={
+          <button type="button" className="button-secondary" onClick={refetchAll} aria-label="Atualizar painel de saude">
+            Atualizar painel
+          </button>
+        }
+      >
         <div className="kpi-grid">
           <article>
             <span>API</span>
@@ -327,4 +337,3 @@ export function OpsHealthPage() {
     </div>
   );
 }
-

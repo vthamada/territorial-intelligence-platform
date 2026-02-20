@@ -221,7 +221,7 @@ export function ElectorateExecutivePage() {
           </article>
           <article>
             <span>Total eleitores</span>
-            <strong>{formatInteger(effectiveSummary.total_voters)}</strong>
+            <strong>{effectiveSummary.total_voters ? formatInteger(effectiveSummary.total_voters) : "-"}</strong>
           </article>
           <article>
             <span>Taxa comparecimento</span>

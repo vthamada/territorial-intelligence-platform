@@ -228,8 +228,8 @@ export function QgScenariosPage() {
             </select>
           </label>
           <label>
-            Codigo do indicador (opcional)
-            <input value={indicatorCode} onChange={(event) => setIndicatorCode(event.target.value)} placeholder="DATASUS_APS_COBERTURA" />
+            Indicador (opcional)
+            <input value={indicatorCode} onChange={(event) => setIndicatorCode(event.target.value)} placeholder="Ex: DATASUS_APS_COBERTURA" />
           </label>
           <label>
             Percentual de ajuste
@@ -269,7 +269,7 @@ export function QgScenariosPage() {
       {simulation ? (
         <Panel
           title={`Resultado: ${simulation.territory_name}`}
-          subtitle={`${getQgDomainLabel(simulation.domain)} | ${simulation.indicator_code}`}
+          subtitle={`${getQgDomainLabel(simulation.domain)} | ${simulation.indicator_name}`}
         >
           {hasFormChangesAfterSimulation ? (
             <StateBlock
@@ -333,7 +333,7 @@ export function QgScenariosPage() {
             {simulation.explanation.map((entry, index) => (
               <li key={`${simulation.indicator_code}-${index}`}>
                 <div>
-                  <strong>Leitura {index + 1}</strong>
+                  <strong>Analise {index + 1}</strong>
                   <p>{entry}</p>
                 </div>
               </li>

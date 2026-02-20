@@ -34,6 +34,7 @@ const BASEMAP_MODES: { value: BasemapMode; label: string }[] = [
 ];
 
 type LayerScope = "territorial" | "urban";
+type LayerClassification = "official" | "proxy" | "hybrid";
 
 const LazyVectorMap = lazy(async () => {
   const module = await import("../../../shared/ui/VectorMap");
@@ -217,7 +218,7 @@ function resolveContextualZoom(
   preferredLayer?: MapLayerItem,
 ) {
   const baseline = scope === "urban" ? 12 : recommendedZoomByLevel(level);
-  const layerZoomMin = preferredLayer?.zoom_min ?? baseline;
+  const layerZoomMin = Math.max(baseline, preferredLayer?.zoom_min ?? baseline);
   if (currentZoom < layerZoomMin) {
     return Math.max(0, Math.min(18, layerZoomMin));
   }
@@ -269,6 +270,49 @@ function formatZoomRange(zoomMin: number, zoomMax: number | null) {
   return `z${zoomMin}-${zoomMax}`;
 }
 
+function resolveLayerClassification(layer?: Pick<MapLayerItem, "official_status" | "is_official"> | null): LayerClassification | null {
+  if (!layer) {
+    return null;
+  }
+  const normalized = (layer.official_status ?? "").trim().toLowerCase();
+  if (normalized === "official" || normalized === "proxy" || normalized === "hybrid") {
+    return normalized;
+  }
+  return layer.is_official ? "official" : "proxy";
+}
+
+function formatLayerClassificationLabel(layer?: Pick<MapLayerItem, "official_status" | "is_official"> | null): string {
+  const classification = resolveLayerClassification(layer);
+  if (classification === "official") {
+    return "oficial";
+  }
+  if (classification === "proxy") {
+    return "proxy";
+  }
+  if (classification === "hybrid") {
+    return "hibrida";
+  }
+  return "n/d";
+}
+
+function buildLayerClassificationHint(layer?: MapLayerItem | null): string {
+  const classification = resolveLayerClassification(layer);
+  if (classification === "proxy") {
+    return (
+      layer?.proxy_method ??
+      layer?.notes ??
+      "Camada proxy derivada de agregacao espacial; validar limites antes de decisoes criticas."
+    );
+  }
+  if (classification === "hybrid") {
+    return layer?.notes ?? "Camada hibrida com composicao de fontes oficiais e auxiliares.";
+  }
+  if (classification === "official") {
+    return layer?.notes ?? "Camada oficial baseada em recorte territorial institucional.";
+  }
+  return layer?.notes ?? "Camada sem metadata adicional.";
+}
+
 function csvEscape(value: string) {
   const escaped = value.split('"').join('""');
   return `"${escaped}"`;
@@ -314,7 +358,11 @@ export function QgMapPage() {
   const initialUseVectorMap = normalizeRenderer(searchParams.get("renderer"));
   const initialScope = normalizeScope(searchParams.get("scope"), initialLayerId);
   const initialUrbanLayerId = normalizeUrbanLayerId(initialLayerId);
-  const initialZoom = normalizeZoom(searchParams.get("zoom"), globalFilters.zoom);
+  const initialZoom = resolveContextualZoom(
+    normalizeZoom(searchParams.get("zoom"), globalFilters.zoom),
+    initialScope,
+    initialLevel,
+  );
 
   const [metric, setMetric] = useState(initialMetric);
   const [period, setPeriod] = useState(initialPeriod);
@@ -384,6 +432,9 @@ export function QgMapPage() {
     queryFn: () => getMapLayersCoverage({ metric: appliedMetric, period: appliedPeriod, include_urban: true }),
     staleTime: 60 * 1000,
   });
+  const mapLayersError = mapLayersQuery.error ? formatApiError(mapLayersQuery.error) : null;
+  const mapStyleError = mapStyleQuery.error ? formatApiError(mapStyleQuery.error) : null;
+  const layersCoverageError = layersCoverageQuery.error ? formatApiError(layersCoverageQuery.error) : null;
 
   const territorialLayers = useMemo(
     () => (mapLayersQuery.data?.items ?? []).filter((item) => item.territory_level !== "urban"),
@@ -686,7 +737,7 @@ export function QgMapPage() {
     setExportError(null);
     const serialized = serializeMapSvg();
     if (!serialized) {
-      setExportError("Nao foi possivel localizar o mapa para exportacao. Use o modo SVG fallback.");
+      setExportError("Nao foi possivel localizar o mapa para exportacao. Use o modo simplificado.");
       return;
     }
     const metricPart = sanitizeFilePart(appliedMetric);
@@ -700,7 +751,7 @@ export function QgMapPage() {
     setExportError(null);
     const serialized = serializeMapSvg();
     if (!serialized) {
-      setExportError("Nao foi possivel localizar o mapa para exportacao. Use o modo SVG fallback.");
+      setExportError("Nao foi possivel localizar o mapa para exportacao. Use o modo simplificado.");
       return;
     }
 
@@ -800,6 +851,9 @@ export function QgMapPage() {
   const selectedTerritoryValue = selectedItem?.value ?? selectedFeature?.val;
   const selectedTerritoryIdSafe = selectedItem?.territory_id ?? selectedFeature?.tid;
   const selectedFeatureLabel = selectedFeature?.label ?? selectedTerritoryName;
+  const recommendedLayerClassification = formatLayerClassificationLabel(recommendedLayer);
+  const effectiveLayerClassification = formatLayerClassificationLabel(effectiveLayer);
+  const effectiveLayerHint = buildLayerClassificationHint(effectiveLayer);
   const selectedFeatureCategory = selectedFeature?.category ?? null;
   const selectedFeatureQueryText = optionalText(selectedFeatureLabel ?? selectedTerritoryName);
   const selectedFeatureSubcategory = optionalText(selectedFeature?.rawProperties?.subcategory);
@@ -889,8 +943,8 @@ export function QgMapPage() {
             </label>
           ) : null}
           <label>
-            Codigo do indicador
-            <input value={metric} onChange={(event) => setMetric(event.target.value)} />
+            Indicador
+            <input value={metric} onChange={(event) => setMetric(event.target.value)} placeholder="Ex: MTE_NOVO_CAGED_SALDO_TOTAL" />
           </label>
           <label>
             Periodo
@@ -920,13 +974,17 @@ export function QgMapPage() {
           </div>
         </form>
         <p className="map-selected-note">
-          {recommendedLayer
-            ? `Camada recomendada: ${recommendedLayer.label} (${formatZoomRange(
-                recommendedLayer.zoom_min,
-                recommendedLayer.zoom_max,
-              )})`
-            : "Camada recomendada: manifesto de camadas em carregamento."}
-          {autoLayer && autoLayer.id !== recommendedLayer?.id ? ` | Auto-zoom: ${autoLayer.label} (z=${currentZoom})` : null}
+          {recommendedLayer ? (
+            <>
+              Camada recomendada: {recommendedLayer.label} ({formatZoomRange(recommendedLayer.zoom_min, recommendedLayer.zoom_max)}) | classificacao:{" "}
+              {recommendedLayerClassification}
+            </>
+          ) : (
+            "Camada recomendada: manifesto de camadas em carregamento."
+          )}
+          {autoLayer && autoLayer.id !== recommendedLayer?.id
+            ? ` | Auto-zoom: ${autoLayer.label} (${formatLayerClassificationLabel(autoLayer)}; z=${currentZoom})`
+            : null}
         </p>
         {hasMultipleLevelLayers ? (
           <div className="map-layer-toggle">
@@ -947,9 +1005,10 @@ export function QgMapPage() {
             </label>
             <p
               className="map-selected-note"
-              title={effectiveLayer?.proxy_method ?? effectiveLayer?.notes ?? "Camada sem metadata adicional."}
+              title={effectiveLayerHint}
             >
               Camada ativa: <strong>{effectiveLayer?.label ?? "n/d"}</strong>
+              {effectiveLayer ? ` | classificacao: ${effectiveLayerClassification}` : ""}
               {effectiveLayer?.proxy_method ? ` | metodo: ${effectiveLayer.proxy_method}` : ""}
             </p>
           </div>
@@ -967,7 +1026,7 @@ export function QgMapPage() {
             Zoom
             <input
               type="range"
-              min={0}
+              min={contextualZoomFloor}
               max={18}
               step={1}
               value={currentZoom}
@@ -1015,12 +1074,40 @@ export function QgMapPage() {
             </button>
           </div>
         )}
-        {mapLayersQuery.error ? (
-          <p className="map-export-error">
-            Manifesto de camadas indisponivel; mantendo fallback em {choroplethParams.level}.
-          </p>
+        {mapLayersQuery.isPending && !mapLayersQuery.data ? (
+          <StateBlock
+            tone="loading"
+            title="Carregando manifesto de camadas"
+            message="Buscando catalogo territorial e urbano para configuracao do mapa."
+          />
+        ) : mapLayersError ? (
+          <StateBlock
+            tone="error"
+            title="Manifesto de camadas indisponivel"
+            message={`${mapLayersError.message} ${
+              appliedMapScope === "territorial"
+                ? `Mantendo fallback em ${choroplethParams.level}.`
+                : "Mantendo camadas urbanas de contingencia."
+            }`}
+            requestId={mapLayersError.requestId}
+            onRetry={() => void mapLayersQuery.refetch()}
+          />
         ) : null}
-        {selectedLayerCoverage ? (
+        {layersCoverageQuery.isPending && !layersCoverageQuery.data ? (
+          <StateBlock
+            tone="loading"
+            title="Carregando cobertura da camada"
+            message="Conferindo geometrias e disponibilidade de indicador no recorte aplicado."
+          />
+        ) : layersCoverageError ? (
+          <StateBlock
+            tone="error"
+            title="Falha ao carregar cobertura da camada"
+            message={layersCoverageError.message}
+            requestId={layersCoverageError.requestId}
+            onRetry={() => void layersCoverageQuery.refetch()}
+          />
+        ) : selectedLayerCoverage ? (
           <p className="map-selected-note">
             Cobertura da camada: {selectedLayerCoverage.territories_with_geometry}/{selectedLayerCoverage.territories_total} com
             geometria
@@ -1073,15 +1160,15 @@ export function QgMapPage() {
             </div>
           </div>
           <div className="map-toolbar-block">
-            <p className="map-toolbar-label">Renderizacao</p>
+            <p className="map-toolbar-label">Modo de exibicao</p>
             <button
               type="button"
               className="button-secondary"
               onClick={() => setUseVectorMap((prev) => !prev)}
               disabled={!canUseVectorMap}
-              aria-label={useVectorMap ? "Alternar para SVG fallback" : "Alternar para mapa vetorial"}
+              aria-label={useVectorMap ? "Alternar para modo simplificado" : "Alternar para modo avancado"}
             >
-              {useVectorMap ? "SVG fallback" : canUseVectorMap ? "Mapa vetorial" : "Somente SVG"}
+              {useVectorMap ? "Modo simplificado" : canUseVectorMap ? "Modo avancado" : "Somente simplificado"}
             </button>
           </div>
         </div>
@@ -1108,6 +1195,12 @@ export function QgMapPage() {
                 Sem dado
               </span>
             </div>
+            {effectiveLayer ? (
+              <p title={effectiveLayerHint}>
+                Classificacao da camada: <strong>{effectiveLayerClassification}</strong>
+                {effectiveLayer?.proxy_method ? " | metodo proxy disponivel no tooltip." : ""}
+              </p>
+            ) : null}
             {isPollingPlaceActive ? (
               <p>Camada local_votacao: o tooltip e a selecao priorizam o nome do local de votacao detectado.</p>
             ) : null}
@@ -1116,8 +1209,20 @@ export function QgMapPage() {
             ) : null}
           </div>
         ) : null}
-        {mapStyleQuery.error ? (
-          <p className="map-export-error">Metadados de estilo indisponiveis; legenda padrao mantida.</p>
+        {mapStyleQuery.isPending && !mapStyleQuery.data ? (
+          <StateBlock
+            tone="loading"
+            title="Carregando metadados de estilo"
+            message="Preparando paleta, severidade e faixas para legenda do mapa."
+          />
+        ) : mapStyleError ? (
+          <StateBlock
+            tone="error"
+            title="Falha ao carregar metadados de estilo"
+            message={`${mapStyleError.message} Legenda padrao mantida.`}
+            requestId={mapStyleError.requestId}
+            onRetry={() => void mapStyleQuery.refetch()}
+          />
         ) : null}
         {useVectorMap && canUseVectorMap ? (
           <div className="map-canvas-shell">
@@ -1125,7 +1230,7 @@ export function QgMapPage() {
               fallback={
                 <StateBlock
                   tone="loading"
-                  title="Carregando mapa vetorial"
+                  title="Carregando mapa avancado"
                   message="Preparando camadas vetoriais e base cartografica."
                 />
               }
@@ -1185,7 +1290,7 @@ export function QgMapPage() {
           <StateBlock
             tone="empty"
             title="Modo SVG indisponivel para camadas urbanas"
-            message="Reative o mapa vetorial para explorar viario e pontos de interesse."
+            message="Reative o modo avancado para explorar viario e pontos de interesse."
           />
         )}
         {selectedTerritoryName ? (
@@ -1274,13 +1379,13 @@ export function QgMapPage() {
           <StateBlock
             tone="empty"
             title="Ranking indisponivel para camada urbana"
-            message="Use o mapa vetorial para explorar viario e pontos de interesse. O ranking tabular permanece no escopo territorial."
+            message="Use o modo avancado para explorar viario e pontos de interesse. O ranking tabular permanece no escopo territorial."
           />
         ) : !isChoroplethLevel ? (
           <StateBlock
             tone="empty"
             title="Ranking indisponivel neste nivel"
-            message="O ranking tabular ainda usa o endpoint de choropleth (municipio/distrito). O mapa vetorial continua ativo para exploracao."
+            message="O ranking tabular ainda usa o endpoint de choropleth (municipio/distrito). O modo avancado continua ativo para exploracao."
           />
         ) : sortedItems.length === 0 ? (
           <StateBlock tone="empty" title="Sem dados para mapa" message="Nenhum territorio encontrado para o recorte informado." />
@@ -1291,7 +1396,6 @@ export function QgMapPage() {
                 <tr>
                   <th>Territorio</th>
                   <th>Nivel</th>
-                  <th>Metrica</th>
                   <th>Periodo</th>
                   <th>Valor</th>
                   <th>Acao</th>
@@ -1321,7 +1425,6 @@ export function QgMapPage() {
                   >
                     <td>{item.territory_name}</td>
                     <td>{formatLevelLabel(item.level)}</td>
-                    <td>{item.metric}</td>
                     <td>{item.reference_period}</td>
                     <td>{formatNumber(item.value)}</td>
                     <td>

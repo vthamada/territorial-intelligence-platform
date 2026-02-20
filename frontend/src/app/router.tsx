@@ -2,6 +2,7 @@ import { Suspense, lazy, type ReactNode } from "react";
 import { createBrowserRouter, createMemoryRouter, type RouteObject } from "react-router-dom";
 import { App } from "./App";
 import { RouteErrorPage } from "./RouteErrorPage";
+import { RouteRuntimeErrorBoundary } from "./RouteRuntimeErrorBoundary";
 
 const routerFutureFlags = {
   v7_startTransition: true,
@@ -63,11 +64,13 @@ const ElectorateExecutivePage = lazy(() =>
   import("../modules/electorate/pages/ElectorateExecutivePage").then((mod) => ({ default: mod.ElectorateExecutivePage }))
 );
 
-function withPageFallback(element: ReactNode) {
+function withPageFallback(element: ReactNode, routeLabel: string) {
   return (
-    <Suspense fallback={<div className="state-block state-loading">Carregando pagina...</div>}>
-      {element}
-    </Suspense>
+    <RouteRuntimeErrorBoundary routeLabel={routeLabel}>
+      <Suspense fallback={<div className="state-block state-loading">Carregando pagina...</div>}>
+        {element}
+      </Suspense>
+    </RouteRuntimeErrorBoundary>
   );
 }
 
@@ -81,27 +84,27 @@ export const appRoutes: RouteObject[] = [
       </App>
     ),
     children: [
-      { index: true, element: withPageFallback(<QgOverviewPage />) },
-      { path: "prioridades", element: withPageFallback(<QgPrioritiesPage />) },
-      { path: "mapa", element: withPageFallback(<QgMapPage />) },
-      { path: "insights", element: withPageFallback(<QgInsightsPage />) },
-      { path: "cenarios", element: withPageFallback(<QgScenariosPage />) },
-      { path: "briefs", element: withPageFallback(<QgBriefsPage />) },
-      { path: "admin", element: withPageFallback(<AdminHubPage />) },
-      { path: "ops/health", element: withPageFallback(<OpsHealthPage />) },
-      { path: "ops/runs", element: withPageFallback(<OpsRunsPage />) },
-      { path: "ops/checks", element: withPageFallback(<OpsChecksPage />) },
-      { path: "ops/connectors", element: withPageFallback(<OpsConnectorsPage />) },
-      { path: "ops/frontend-events", element: withPageFallback(<OpsFrontendEventsPage />) },
-      { path: "ops/source-coverage", element: withPageFallback(<OpsSourceCoveragePage />) },
-      { path: "ops/layers", element: withPageFallback(<OpsLayersPage />) },
-      { path: "territory/indicators", element: withPageFallback(<TerritoryIndicatorsPage />) },
-      { path: "territorio/perfil", element: withPageFallback(<TerritoryProfilePage />) },
-      { path: "territorio/:territoryId", element: withPageFallback(<TerritoryProfileRoutePage />) },
-      { path: "territory/profile", element: withPageFallback(<TerritoryProfilePage />) },
-      { path: "territory/:territoryId", element: withPageFallback(<TerritoryProfileRoutePage />) },
-      { path: "eleitorado", element: withPageFallback(<ElectorateExecutivePage />) },
-      { path: "electorate/executive", element: withPageFallback(<ElectorateExecutivePage />) }
+      { index: true, element: withPageFallback(<QgOverviewPage />, "Visao Geral") },
+      { path: "prioridades", element: withPageFallback(<QgPrioritiesPage />, "Prioridades") },
+      { path: "mapa", element: withPageFallback(<QgMapPage />, "Mapa") },
+      { path: "insights", element: withPageFallback(<QgInsightsPage />, "Insights") },
+      { path: "cenarios", element: withPageFallback(<QgScenariosPage />, "Cenarios") },
+      { path: "briefs", element: withPageFallback(<QgBriefsPage />, "Briefs") },
+      { path: "admin", element: withPageFallback(<AdminHubPage />, "Admin") },
+      { path: "ops/health", element: withPageFallback(<OpsHealthPage />, "Ops Saude") },
+      { path: "ops/runs", element: withPageFallback(<OpsRunsPage />, "Ops Execucoes") },
+      { path: "ops/checks", element: withPageFallback(<OpsChecksPage />, "Ops Checks") },
+      { path: "ops/connectors", element: withPageFallback(<OpsConnectorsPage />, "Ops Conectores") },
+      { path: "ops/frontend-events", element: withPageFallback(<OpsFrontendEventsPage />, "Ops Eventos Frontend") },
+      { path: "ops/source-coverage", element: withPageFallback(<OpsSourceCoveragePage />, "Ops Cobertura") },
+      { path: "ops/layers", element: withPageFallback(<OpsLayersPage />, "Ops Camadas") },
+      { path: "territory/indicators", element: withPageFallback(<TerritoryIndicatorsPage />, "Territorios e Indicadores") },
+      { path: "territorio/perfil", element: withPageFallback(<TerritoryProfilePage />, "Territorio 360") },
+      { path: "territorio/:territoryId", element: withPageFallback(<TerritoryProfileRoutePage />, "Territorio 360") },
+      { path: "territory/profile", element: withPageFallback(<TerritoryProfilePage />, "Territory Profile") },
+      { path: "territory/:territoryId", element: withPageFallback(<TerritoryProfileRoutePage />, "Territory Profile") },
+      { path: "eleitorado", element: withPageFallback(<ElectorateExecutivePage />, "Eleitorado") },
+      { path: "electorate/executive", element: withPageFallback(<ElectorateExecutivePage />, "Electorate Executive") }
     ]
   }
 ];

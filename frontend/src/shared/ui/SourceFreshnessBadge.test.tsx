@@ -17,8 +17,8 @@ describe("SourceFreshnessBadge", () => {
     );
 
     expect(screen.getByRole("status", { name: "Metadados de fonte e atualizacao" })).toBeInTheDocument();
-    expect(screen.getByText("Fonte: silver.fact_indicator")).toBeInTheDocument();
+    expect(screen.getByText("Fonte: Indicadores consolidados")).toBeInTheDocument();
     expect(screen.getByText("Atualizacao: sem data")).toBeInTheDocument();
-    expect(screen.getByText("Cobertura: territorial_aggregated")).toBeInTheDocument();
+    expect(screen.getByText("Cobertura: Agregado territorial")).toBeInTheDocument();
   });
 });

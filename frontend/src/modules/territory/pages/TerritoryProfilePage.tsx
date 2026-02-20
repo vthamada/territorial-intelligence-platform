@@ -480,7 +480,6 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
                   <tr>
                     <th>Dominio</th>
                     <th>Indicador</th>
-                    <th>Codigo</th>
                     <th>Periodo</th>
                     <th>Valor</th>
                   </tr>
@@ -490,7 +489,6 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
                     <tr key={`${domain}-${indicator.indicator_code}`}>
                       <td>{getQgDomainLabel(domain)}</td>
                       <td>{indicator.indicator_name}</td>
-                      <td>{indicator.indicator_code}</td>
                       <td>{indicator.reference_period}</td>
                       <td>{formatValueWithUnit(indicator.value, indicator.unit)}</td>
                     </tr>

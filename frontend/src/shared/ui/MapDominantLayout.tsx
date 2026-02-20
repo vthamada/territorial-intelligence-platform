@@ -7,8 +7,8 @@ type MapDominantLayoutProps = {
 };
 
 /**
- * Layout B: full-width map with a collapsible sidebar overlay.
- * The map fills the entire content area; the sidebar slides over it.
+ * Layout B: dominant map with collapsible executive sidebar.
+ * On desktop the sidebar is docked; on narrow screens it stacks below the map.
  */
 export function MapDominantLayout({ map, sidebar, sidebarOpen }: MapDominantLayoutProps) {
   return (

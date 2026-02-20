@@ -1,10 +1,11 @@
 import type { ReactElement } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getChoropleth, getMapLayers, getMapLayersCoverage, getMapStyleMetadata, getTerritories } from "../../../shared/api/domain";
+import { ApiClientError } from "../../../shared/api/http";
 import { getInsightsHighlights, getKpisOverview, getPriorityList, getPrioritySummary, postBriefGenerate, postScenarioSimulate } from "../../../shared/api/qg";
 import { QgBriefsPage } from "./QgBriefsPage";
 import { QgInsightsPage } from "./QgInsightsPage";
@@ -193,6 +194,7 @@ describe("QG pages", () => {
           label: "Municipios",
           territory_level: "municipality",
           is_official: true,
+          official_status: "official",
           source: "silver.dim_territory",
           default_visibility: true,
           zoom_min: 0,
@@ -373,6 +375,40 @@ describe("QG pages", () => {
     expect(screen.getByRole("link", { name: "Territorio critico" })).toBeInTheDocument();
   });
 
+  it("keeps overview operational when priorities and highlights fail", async () => {
+    vi.mocked(getPriorityList).mockRejectedValueOnce(
+      new ApiClientError("Prioridades indisponiveis no backend", 503, "req-priority-preview-001"),
+    );
+    vi.mocked(getInsightsHighlights).mockRejectedValueOnce(
+      new ApiClientError("Destaques indisponiveis no backend", 503, "req-highlights-001"),
+    );
+
+    renderWithQueryClient(<QgOverviewPage />);
+    await waitFor(() => expect(getKpisOverview).toHaveBeenCalledTimes(1));
+
+    expect(await screen.findByText("Situacao geral")).toBeInTheDocument();
+    expect(await screen.findByText("Falha ao carregar top prioridades")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Destaques/i }));
+    expect(await screen.findByText("Falha ao carregar destaques")).toBeInTheDocument();
+    expect(screen.getByText("request_id: req-priority-preview-001")).toBeInTheDocument();
+    expect(screen.getByText("request_id: req-highlights-001")).toBeInTheDocument();
+
+    const prioritiesBlock = screen.getByText("Falha ao carregar top prioridades").closest(".state-block");
+    expect(prioritiesBlock).not.toBeNull();
+    await userEvent.click(within(prioritiesBlock as HTMLElement).getByRole("button", { name: "Tentar novamente" }));
+    await waitFor(() => expect(getPriorityList).toHaveBeenCalledTimes(2));
+
+    const highlightsBlock = screen.getByText("Falha ao carregar destaques").closest(".state-block");
+    expect(highlightsBlock).not.toBeNull();
+    await userEvent.click(within(highlightsBlock as HTMLElement).getByRole("button", { name: "Tentar novamente" }));
+    await waitFor(() => expect(getInsightsHighlights).toHaveBeenCalledTimes(2));
+
+    expect(screen.getByRole("link", { name: "Mapa detalhado" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("/mapa"),
+    );
+  });
+
   it("propagates detailed map layer from overview to map links", async () => {
     vi.mocked(getMapLayers).mockResolvedValueOnce({
       generated_at_utc: "2026-02-13T18:20:00Z",
@@ -394,6 +430,7 @@ describe("QG pages", () => {
           label: "Secoes eleitorais",
           territory_level: "electoral_section",
           is_official: false,
+          official_status: "proxy",
           source: "silver.dim_territory",
           default_visibility: false,
           zoom_min: 12,
@@ -404,6 +441,7 @@ describe("QG pages", () => {
           label: "Locais de votacao",
           territory_level: "electoral_section",
           is_official: false,
+          official_status: "proxy",
           source: "silver.dim_territory",
           default_visibility: false,
           zoom_min: 12,
@@ -414,6 +452,10 @@ describe("QG pages", () => {
 
     renderWithQueryClient(<QgOverviewPage />);
     await waitFor(() => expect(getKpisOverview).toHaveBeenCalledTimes(1));
+    await screen.findByLabelText("Periodo");
+    expect(screen.queryByLabelText("Camada detalhada (Mapa)")).not.toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByLabelText("Nivel territorial"), "electoral_section");
     await screen.findByLabelText("Camada detalhada (Mapa)");
 
     await userEvent.selectOptions(screen.getByLabelText("Camada detalhada (Mapa)"), "territory_polling_place");
@@ -421,8 +463,11 @@ describe("QG pages", () => {
 
     expect(screen.getByRole("link", { name: "Mapa detalhado" })).toHaveAttribute(
       "href",
-      "/mapa?metric=DATASUS_APS_COBERTURA&period=2025&territory_id=3121605&layer_id=territory_polling_place"
+      "/mapa?metric=DATASUS_APS_COBERTURA&period=2025&territory_id=3121605&layer_id=territory_polling_place&level=secao_eleitoral"
     );
+    expect(
+      screen.queryAllByText((_, element) => element?.textContent?.includes("Classificacao: proxy") ?? false).length,
+    ).toBeGreaterThan(0);
   });
 
   it("applies priority filters only on submit", async () => {
@@ -510,7 +555,7 @@ describe("QG pages", () => {
   it("applies choropleth filters only on submit", async () => {
     renderWithQueryClient(<QgMapPage />);
     await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
-    await screen.findByLabelText("Codigo do indicador");
+    await screen.findByLabelText("Indicador");
     expect(screen.getByRole("button", { name: /Exportar.*SVG/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Exportar.*PNG/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Abrir brief do territorio" })).toHaveAttribute(
@@ -518,8 +563,8 @@ describe("QG pages", () => {
       "/briefs?territory_id=3121605&period=2025"
     );
 
-    await userEvent.clear(screen.getByLabelText("Codigo do indicador"));
-    await userEvent.type(screen.getByLabelText("Codigo do indicador"), "DATASUS_APS_COBERTURA");
+    await userEvent.clear(screen.getByLabelText("Indicador"));
+    await userEvent.type(screen.getByLabelText("Indicador"), "DATASUS_APS_COBERTURA");
     await userEvent.clear(screen.getByLabelText("Periodo"));
     await userEvent.type(screen.getByLabelText("Periodo"), "2024");
     await userEvent.selectOptions(screen.getByLabelText("Nivel territorial"), "distrito");
@@ -638,6 +683,10 @@ describe("QG pages", () => {
     const selector = await screen.findByLabelText("Camada eleitoral detalhada");
     expect(selector).toHaveValue("territory_polling_place");
     expect(screen.getByText(/Local de votacao ativo/i)).toBeInTheDocument();
+    expect(
+      screen.queryAllByText((_, element) => element?.textContent?.includes("Classificacao da camada: proxy") ?? false)
+        .length,
+    ).toBeGreaterThan(0);
   });
 
   it("applies insights filters only on submit", async () => {
@@ -737,8 +786,8 @@ describe("QG pages", () => {
     await screen.findByRole("button", { name: /Exportar.*SVG/ });
     expect(screen.getByRole("radio", { name: "Claro" })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("radio", { name: "Pontos" })).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByRole("button", { name: "Alternar para mapa vetorial" })).toBeInTheDocument();
-    expect((screen.getByLabelText("Nivel de zoom do mapa") as HTMLInputElement).value).toBe("7");
+    expect(screen.getByRole("button", { name: "Alternar para modo avancado" })).toBeInTheDocument();
+    expect((screen.getByLabelText("Nivel de zoom do mapa") as HTMLInputElement).value).toBe("10");
   });
 
   it("syncs map query params after applying filters and view controls", async () => {
@@ -748,8 +797,8 @@ describe("QG pages", () => {
 
     await userEvent.selectOptions(screen.getByLabelText("Escopo da camada"), "urban");
     await userEvent.selectOptions(screen.getByLabelText("Camada urbana"), "urban_pois");
-    await userEvent.clear(screen.getByLabelText("Codigo do indicador"));
-    await userEvent.type(screen.getByLabelText("Codigo do indicador"), "DATASUS_APS_COBERTURA");
+    await userEvent.clear(screen.getByLabelText("Indicador"));
+    await userEvent.type(screen.getByLabelText("Indicador"), "DATASUS_APS_COBERTURA");
     await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
     await userEvent.click(screen.getByRole("radio", { name: "Claro" }));
     await userEvent.click(screen.getByRole("radio", { name: "Pontos" }));
@@ -779,6 +828,46 @@ describe("QG pages", () => {
     expect(urbanLayerField).toHaveValue("urban_roads");
     expect(getChoropleth).not.toHaveBeenCalled();
     expect(screen.getByText(/Camada recomendada: Viario urbano/i)).toBeInTheDocument();
+  });
+
+  it("shows retryable manifest and style metadata errors", async () => {
+    vi.mocked(getMapLayers).mockRejectedValueOnce(
+      new ApiClientError("Manifesto de camadas indisponivel no backend", 503, "req-map-layers-001"),
+    );
+    vi.mocked(getMapStyleMetadata).mockRejectedValueOnce(
+      new ApiClientError("Metadados de estilo indisponiveis no backend", 503, "req-style-001"),
+    );
+
+    renderWithQueryClient(<QgMapPage />);
+
+    expect(await screen.findByText("Manifesto de camadas indisponivel")).toBeInTheDocument();
+    expect(await screen.findByText("Falha ao carregar metadados de estilo")).toBeInTheDocument();
+    expect(screen.getByText("request_id: req-map-layers-001")).toBeInTheDocument();
+    expect(screen.getByText("request_id: req-style-001")).toBeInTheDocument();
+
+    const manifestBlock = screen.getByText("Manifesto de camadas indisponivel").closest(".state-block");
+    expect(manifestBlock).not.toBeNull();
+
+    await userEvent.click(within(manifestBlock as HTMLElement).getByRole("button", { name: "Tentar novamente" }));
+    await waitFor(() => expect(getMapLayers).toHaveBeenCalledTimes(2));
+  });
+
+  it("shows retryable layer coverage error without breaking map actions", async () => {
+    vi.mocked(getMapLayersCoverage).mockRejectedValueOnce(
+      new ApiClientError("Cobertura indisponivel no backend", 503, "req-coverage-001"),
+    );
+
+    renderWithQueryClient(<QgMapPage />);
+
+    expect(await screen.findByText("Falha ao carregar cobertura da camada")).toBeInTheDocument();
+    expect(screen.getByText("request_id: req-coverage-001")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Exportar.*SVG/ })).toBeInTheDocument();
+
+    const coverageBlock = screen.getByText("Falha ao carregar cobertura da camada").closest(".state-block");
+    expect(coverageBlock).not.toBeNull();
+
+    await userEvent.click(within(coverageBlock as HTMLElement).getByRole("button", { name: "Tentar novamente" }));
+    await waitFor(() => expect(getMapLayersCoverage).toHaveBeenCalledTimes(2));
   });
 
   it("focuses territory from quick search and syncs territory_id in URL", async () => {

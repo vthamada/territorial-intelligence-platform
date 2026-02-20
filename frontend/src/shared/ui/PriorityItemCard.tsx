@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import type { PriorityItem } from "../api/types";
 import { getQgDomainLabel } from "../../modules/qg/domainCatalog";
-import { formatLevelLabel, formatStatusLabel, formatTrendLabel, formatValueWithUnit } from "./presentation";
+import { formatLevelLabel, formatStatusLabel, formatTrendLabel, formatValueWithUnit, humanizeDatasetSource } from "./presentation";
 
 type PriorityItemCardProps = {
   item: PriorityItem;
@@ -61,7 +61,7 @@ export function PriorityItemCard({ item }: PriorityItemCardProps) {
       </ul>
 
       <p className="priority-item-evidence">
-        Evidencia: {item.evidence.source} / {item.evidence.dataset}
+        Evidencia: {humanizeDatasetSource(item.evidence.source, item.evidence.dataset)}
       </p>
 
       <div className="priority-item-actions">
