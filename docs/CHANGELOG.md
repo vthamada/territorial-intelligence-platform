@@ -48,9 +48,11 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
 ### Verified (issues GitHub)
 - Consulta de issues abertas no repositorio `vthamada/territorial-intelligence-platform`:
-  - `#13` (`BD-040`), `#14` (`BD-041`) e `#15` (`BD-042`) estao `open` com `status:blocked`;
+  - `#13` (`BD-040`) esta `open` com `status:active`;
+  - `#14` (`BD-041`) e `#15` (`BD-042`) estao `open` com `status:blocked`;
   - itens `D5..D8` permanecem `open` com `status:blocked`;
   - `#7` (`BD-020`) permanece `open` com `status:external` + `status:blocked`.
+  - `#28` (`BD-033`, `closed`) sem label `status:active`.
 
 ## 2026-02-20 - Consolidacao final de documentos por dominio
 

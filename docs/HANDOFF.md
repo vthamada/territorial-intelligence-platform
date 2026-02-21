@@ -20,17 +20,19 @@ Contrato tecnico principal: `CONTRATO.md`
    - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
 3. Verificacao de issues no GitHub (2026-02-21):
    - issues abertas:
-     - `#13` (`BD-040`), `#14` (`BD-041`), `#15` (`BD-042`) em `open` e com label `status:blocked`.
+     - `#13` (`BD-040`) em `open` com label `status:active`.
+     - `#14` (`BD-041`) e `#15` (`BD-042`) em `open` com label `status:blocked`.
    - observacao:
      - todas as issues de `D5..D8` seguem `status:blocked` (coerente com sequenciamento).
      - `#7` (`BD-020`) segue `status:external` + `status:blocked`.
+     - `#28` (`BD-033`, encerrada) sem `status:active` para evitar ambiguidade de trilha.
 4. Criterio de saida (DoD do ciclo D4):
    - suite backend/frontend em `pass`;
    - readiness com `status=READY` e `hard_failures=0`;
    - scorecard de cobertura sem regressao critica;
    - evidencias registradas no proprio `HANDOFF` e em `docs/CHANGELOG.md`.
 5. Proximo passo imediato:
-   - iniciar execucao de `BD-040` e ajustar labels no GitHub para refletir trilha ativa (`#13` como `status:active` e retirada de `status:blocked` da issue em execucao).
+   - iniciar execucao tecnica de `BD-040` (serie historica SENATRAN) com entrega vertical e gate D4.
 6. Observacao operacional desta rodada:
    - primeira tentativa de `npm --prefix frontend run test -- --run` falhou por dependencia ausente em `node_modules` (`zustand` nao resolvido em `src/shared/stores/filterStore.ts`).
    - acao corretiva aplicada: `npm install` em `frontend/`.
