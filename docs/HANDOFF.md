@@ -1,27 +1,40 @@
 # Territorial Intelligence Platform - Handoff
 
-Data de referencia: 2026-02-20
+Data de referencia: 2026-02-21
 Planejamento principal: `docs/PLANO_IMPLEMENTACAO_QG.md`
 North star de produto: `docs/VISION.md`
 Contrato tecnico principal: `CONTRATO.md`
 
 ## Trilha ativa unica (executavel no ciclo atual)
 
-1. Trilha ativa (WIP=1):
-   - Fase UX-P0 (auditoria visual completa) entregue em 2026-02-20:
-     - 22 itens UX-P0-01 a UX-P0-22 implementados e validados.
-     - Cobre todas as 10 telas auditadas por screenshot.
-   - proxima trilha ativa: Fase UX-P1/responsividade ou Fase 2 (scorecard + readiness).
-2. Gate de saida da Fase UX-P0:
+1. Trilha ativa oficial (WIP=1):
+   - `D4-mobilidade/frota`.
+   - escopo: `BD-040`, `BD-041`, `BD-042` com execucao sequencial (iniciando por `BD-040`).
+2. Status da trilha anterior (D3-hardening, encerrada em 2026-02-21):
    - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
    - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
-   - `npm --prefix frontend run test -- --run` -> `78 passed`.
-   - `npm --prefix frontend run build` -> `OK`.
-3. Em espera ate decisao de prioridade:
-   - Fase C (responsividade/mobile);
-   - Fase 2 (scorecard + readiness + benchmark urbano);
-   - D4+ e qualquer expansao de fonte/domino fora da trilha ativa.
-4. Regra de leitura:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_quality_suite.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_coverage_checks.py tests/unit/test_quality_ops_pipeline_runs.py -q` -> `17 passed`.
+   - `npm run test -- --run` (em `frontend/`) -> `78 passed`.
+   - `npm run build` (em `frontend/`) -> `OK`.
+   - `.\.venv\Scripts\python.exe scripts/benchmark_api.py --suite urban --rounds 30 --json-output data/reports/benchmark_urban_map.json` -> `ALL PASS`.
+   - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
+3. Verificacao de issues no GitHub (2026-02-21):
+   - issues abertas:
+     - `#13` (`BD-040`), `#14` (`BD-041`), `#15` (`BD-042`) em `open` e com label `status:blocked`.
+   - observacao:
+     - todas as issues de `D5..D8` seguem `status:blocked` (coerente com sequenciamento).
+     - `#7` (`BD-020`) segue `status:external` + `status:blocked`.
+4. Criterio de saida (DoD do ciclo D4):
+   - suite backend/frontend em `pass`;
+   - readiness com `status=READY` e `hard_failures=0`;
+   - scorecard de cobertura sem regressao critica;
+   - evidencias registradas no proprio `HANDOFF` e em `docs/CHANGELOG.md`.
+5. Proximo passo imediato:
+   - iniciar execucao de `BD-040` e ajustar labels no GitHub para refletir trilha ativa (`#13` como `status:active` e retirada de `status:blocked` da issue em execucao).
+6. Observacao operacional desta rodada:
+   - primeira tentativa de `npm --prefix frontend run test -- --run` falhou por dependencia ausente em `node_modules` (`zustand` nao resolvido em `src/shared/stores/filterStore.ts`).
+   - acao corretiva aplicada: `npm install` em `frontend/`.
+7. Regra de leitura:
    - apenas esta secao define "proximo passo executavel" no momento;
    - secoes de "proximos passos" antigas abaixo devem ser lidas como historico.
 

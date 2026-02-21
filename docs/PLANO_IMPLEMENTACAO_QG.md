@@ -1,23 +1,32 @@
 # Plano Integrado de Implementacao (Backend + Frontend QG)
 
-Data de referencia: 2026-02-20  
-Status: execucao ativa (fase de estabilizacao UX/mapa + go-live controlado)  
+Data de referencia: 2026-02-21  
+Status: execucao ativa (trilha unica D4-mobilidade/frota com gate formal de saida)  
 Escopo: plano executavel para consolidar QG estrategico em producao com dados reais.
 
 ## 0) Regra de foco operacional (WIP=1)
 
 1. Fila ativa unica de implementacao:
-   - trilha corrente: D3 / BD-033 (estabilizacao final de UX/mapa executivo) encerrada em 2026-02-20 (`issue #28` fechada).
-   - proxima trilha ativa: a definir (WIP=1, sem execucao paralela).
-2. Enquanto a trilha ativa nao fechar gate de saida, nao iniciar:
-   - D4, D5, D6, D7, D8;
-   - novas frentes de fonte/conector fora do escopo corrente;
+   - trilha ativa oficial (2026-02-21): `D4-mobilidade/frota`.
+   - escopo da trilha ativa: `BD-040`, `BD-041`, `BD-042` (execucao sequencial com WIP=1, iniciando por `BD-040`).
+2. Gate de saida obrigatorio (DoD da trilha ativa D4):
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_onda_a_connectors.py tests/unit/test_quality_coverage_checks.py -q` em `pass`;
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` em `pass`;
+   - `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` sem regressao critica de cobertura;
+   - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` com `status=READY` e `hard_failures=0`;
+   - `npm --prefix frontend run test -- --run` e `npm --prefix frontend run build` somente se houver mudanca no frontend.
+   - trilha anterior `D3-hardening` encerrada com `PASS` em 2026-02-21 (ver `docs/HANDOFF.md`).
+3. Enquanto a trilha ativa nao fechar gate de saida, nao iniciar:
+   - sprints `D5`, `D6`, `D7`, `D8`;
+   - novas frentes de fonte/conector fora de mobilidade/infra da trilha D4;
    - refinamentos nao criticos sem impacto direto no gate atual.
-3. Fonte unica de sequencia de execucao:
-   - este arquivo (secoes `5` e `9`).
+4. Proximo passo imediato:
+   - executar `BD-040` (issue `#13`) e atualizar status operacional no GitHub (`status:active` para a issue em execucao).
+5. Fonte unica de sequencia de execucao:
+   - este arquivo (secoes `0`, `5` e `9`).
    - `docs/HANDOFF.md` registra apenas estado corrente e proximo passo imediato da mesma trilha.
-4. Demais documentos (`BACKLOG_DADOS_NIVEL_MAXIMO.md`) sao norte macro/catalogo e nao devem abrir fila paralela no ciclo diario.
-5. Classificacao oficial de documentos ativos/descontinuados fica em `docs/GOVERNANCA_DOCUMENTAL.md`.
+6. Demais documentos (`BACKLOG_DADOS_NIVEL_MAXIMO.md`) sao norte macro/catalogo e nao devem abrir fila paralela no ciclo diario.
+7. Classificacao oficial de documentos ativos/descontinuados fica em `docs/GOVERNANCA_DOCUMENTAL.md`.
 
 ## 0.1) Mapa de governanca documental (fonte unica)
 

@@ -2,6 +2,56 @@
 
 Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-21 - Trilha unica ativa com gate formal (WIP=1)
+
+### Changed (planejamento)
+- `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado para fixar trilha ativa unica:
+  - trilha oficial definida como `D3-hardening`;
+  - escopo fechado em `BD-030`, `BD-031`, `BD-032` + pendencias de `BD-033`;
+  - gate/DoD formal com comandos de validacao backend, frontend, benchmark urbano e readiness.
+
+### Changed (estado operacional)
+- `docs/HANDOFF.md` atualizado para espelhar exatamente a mesma trilha e remover ambiguidade de proxima fase:
+  - proximo passo imediato consolidado em acao unica (execucao do pacote de gate);
+  - criterio de saida e bloqueio explicito de `D4..D8` ate fechamento do gate.
+
+### Notes
+- Objetivo do ajuste: eliminar bifurcacao de execucao ("ou fase A/ou fase B") e manter fila unica com criterio objetivo de encerramento.
+
+### Verified (execucao do gate em 2026-02-21)
+- Backend:
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_quality_suite.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_coverage_checks.py tests/unit/test_quality_ops_pipeline_runs.py -q` -> `17 passed`.
+- Frontend:
+  - `npm run test -- --run` (em `frontend/`) -> `78 passed`.
+  - `npm run build` (em `frontend/`) -> `OK`.
+- Operacional:
+  - `.\.venv\Scripts\python.exe scripts/benchmark_api.py --suite urban --rounds 30 --json-output data/reports/benchmark_urban_map.json` -> `ALL PASS`.
+  - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
+- Correcao de ambiente aplicada durante o gate:
+  - falha inicial de frontend por `Failed to resolve import "zustand"` em `src/shared/stores/filterStore.ts`;
+  - acao corretiva: `npm install` executado em `frontend/`.
+
+## 2026-02-21 - Ativacao de D4 e verificacao de issues GitHub
+
+### Changed (planejamento)
+- `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado para ativar trilha unica `D4-mobilidade/frota`:
+  - escopo oficial em `BD-040`, `BD-041`, `BD-042`;
+  - proximo passo imediato definido em `BD-040` (`issue #13`);
+  - gate de saida D4 explicitado com foco em conector de mobilidade, qualidade, scorecard e readiness.
+
+### Changed (estado operacional)
+- `docs/HANDOFF.md` atualizado para:
+  - registrar `D3-hardening` como trilha encerrada com evidencias;
+  - registrar verificacao das issues abertas no GitHub em `2026-02-21`.
+
+### Verified (issues GitHub)
+- Consulta de issues abertas no repositorio `vthamada/territorial-intelligence-platform`:
+  - `#13` (`BD-040`), `#14` (`BD-041`) e `#15` (`BD-042`) estao `open` com `status:blocked`;
+  - itens `D5..D8` permanecem `open` com `status:blocked`;
+  - `#7` (`BD-020`) permanece `open` com `status:external` + `status:blocked`.
+
 ## 2026-02-20 - Consolidacao final de documentos por dominio
 
 ### Changed (governanca)
