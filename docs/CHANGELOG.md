@@ -667,12 +667,12 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
 ### Changed (governanca)
 - Governança documental consolidada em `docs/GOVERNANCA_DOCUMENTAL.md` com classificação oficial: núcleo ativo, domínio ativo, complementar e descontinuados.
-- `AGENTS.md` atualizado para leitura obrigatoria com `docs/VISION.md` e nova matriz documental sem ambiguidade de fontes.
-- `docs/CONTRATO.md` atualizado para apontar execucao oficial em `docs/PLANO_IMPLEMENTACAO_QG.md` e classificacao em `docs/GOVERNANCA_DOCUMENTAL.md`.
-- `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado para substituir referencias de visao/rastreabilidade legadas por `docs/VISION.md` + `docs/HANDOFF.md` + `docs/CHANGELOG.md`.
-- `docs/PLANO.md` reduzido para indice macro (nao executavel), removendo competicao com a trilha diaria.
-- `docs/HANDOFF.md` atualizado para declarar `docs/PLANO_IMPLEMENTACAO_QG.md` como planejamento principal e registrar filtro rigoroso de documentos.
-- `README.md` atualizado para refletir contrato + plano executavel + north star.
+-- `AGENTS.md` atualizado para leitura obrigatória com `docs/VISION.md` e nova matriz documental sem ambiguidade de fontes.
+-- `docs/CONTRATO.md` atualizado para apontar execução oficial em `docs/PLANO_IMPLEMENTACAO_QG.md` e classificação em `docs/GOVERNANCA_DOCUMENTAL.md`.
+-- `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado para substituir referências de visão/rastreabilidade legadas por `docs/VISION.md` + `docs/HANDOFF.md` + `docs/CHANGELOG.md`.
+-- `docs/PLANO.md` reduzido para índice macro (não executável), removendo competição com a trilha diária.
+-- `docs/HANDOFF.md` atualizado para declarar `docs/PLANO_IMPLEMENTACAO_QG.md` como planejamento principal e registrar filtro rigoroso de documentos.
+-- `README.md` atualizado para refletir contrato + plano executável + north star.
 
 ### Notes
 - Documentos descontinuados foram removidos fisicamente do repositório em 2026-02-20; a lista oficial é mantida em `docs/GOVERNANCA_DOCUMENTAL.md` (seção 6).
@@ -708,7 +708,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - UX-P0-15: Label do campo de indicador alterado de "Codigo do indicador" para "Indicador".
 
 ### Fixed (frontend â€” TerritoryProfilePage.tsx)
-- UX-P0-16: Coluna "Codigo" removida da tabela de indicadores â€” mostra apenas Dominio/Indicador/Periodo/Valor.
+-- UX-P0-16: Coluna "Codigo" removida da tabela de indicadores â€” mostra apenas Domínio/Indicador/Período/Valor.
 
 ### Fixed (frontend â€” ElectorateExecutivePage.tsx)
 - UX-P0-17: "Total eleitores: 0" quando sem dados substituido por "-".
@@ -736,8 +736,8 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
 ### Fixed (backend â€” `src/app/api/routes_qg.py`)
 - DATA-P0-01: Score mono-territorial corrigido de 100.0 para 50.0 em `_fetch_priority_rows`, `_fetch_territory_indicator_scores` e `_score_from_rank` â€” evita ranking inflacionado quando ha apenas 1 municipio.
-- DATA-P0-02: Trend real calculado via `_compute_trend()` e `_fetch_previous_values()` â€” compara indicador com periodo anterior (threshold 2%); substitui `trend="stable"` hardcoded.
-- DATA-P0-03: Codigos tecnicos de indicador removidos de todas as narrativas user-facing â€” `indicator_name` utilizado em rationale de prioridades, explanation de insights, highlights de territorio, explanation de cenarios e summary de briefs.
+-- DATA-P0-02: Trend real calculado via `_compute_trend()` e `_fetch_previous_values()` â€” compara indicador com período anterior (threshold 2%); substitui `trend="stable"` hardcoded.
+-- DATA-P0-03: Códigos técnicos de indicador removidos de todas as narrativas user-facing â€” `indicator_name` utilizado em rationale de prioridades, explanation de insights, highlights de território, explanation de cenários e summary de briefs.
 - DATA-P0-04: Formatacao pt-BR de valores numericos via `_format_highlight_value()` â€” separador de milhar, moeda BRL com `R$`, percentuais e unidades explicitadas.
 - DATA-P0-06: Narrativa de insights diversificada via `_build_insight_explanation()` â€” templates por dominio (saude, educacao, trabalho, financas, eleitorado, etc.), linguagem contextual por severidade, fonte explicitada. Substituiu template formulaico identico para todos os insights.
 
@@ -785,7 +785,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `GET /v1/electorate/summary` e `GET /v1/electorate/map` agora conseguem responder para `year=2024` quando os dados eleitorais estiverem armazenados em ano outlier.
   - metadata das respostas passou a indicar fallback: `electorate_outlier_year_fallback:requested_year=...,storage_year=...`.
 - Frontend de eleitorado e estados vazios:
-  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` atualizado para considerar erros de fallback e exibir estado vazio orientativo quando nao houver ano aplicado e nao houver dados no recorte padrao.
+  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` atualizado para considerar erros de fallback e exibir estado vazio orientativo quando não houver ano aplicado e não houver dados no recorte padrão.
 - Correcao de regressao de hooks (runtime crash):
   - `frontend/src/modules/qg/pages/QgInsightsPage.tsx` e `frontend/src/modules/territory/pages/TerritoryProfilePage.tsx` ajustados para manter ordem estavel de hooks entre renders.
   - resolve erro `Rendered more hooks than during the previous render` que quebrava paginas e testes.
@@ -800,7 +800,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` passou a manter a Home operacional quando falham apenas `Top prioridades` ou `Destaques`.
   - hard-fail global ficou restrito a `kpis_overview` e `priority_summary`; blocos secundarios agora tratam `loading/error/empty` localmente com retry.
 - Quality suite com cobertura de checks de camadas territoriais:
-  - `src/pipelines/quality_suite.py` passou a incluir `check_map_layers` na execucao oficial.
+  - `src/pipelines/quality_suite.py` passou a incluir `check_map_layers` na execução oficial.
   - efeito direto: checks `map_layer_rows_*` e `map_layer_geometry_ratio_*` voltam a ser registrados em `ops.pipeline_checks` de forma recorrente.
 - Usabilidade de listas longas:
   - paginacao client-side em `QgInsightsPage` e tabela de indicadores do `TerritoryProfilePage`.
@@ -824,17 +824,17 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Higienizacao documental e alinhamento de governanca:
   - `README.md` atualizado para refletir estado atual de 20/02/2026 e corrigir referencias para `docs/`.
   - `docs/PLANO.md` atualizado para remover backlog legado de specs `v0.1 -> v1.0` (agora consolidado em v1.0).
-  - `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado com escopo de execucao do ciclo atual (removido bloco legado de Sprint 9 ja concluido).
+  - `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado com escopo de execução do ciclo atual (removido bloco legado de Sprint 9 já concluído).
   - `docs/MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md` atualizado (data de referencia e referencia oficial de frontend spec).
   - `docs/GITHUB_ISSUES_BACKLOG_DADOS_NIVEL_MAXIMO.md` marcado como snapshot historico, com GitHub como fonte oficial de status.
 - Governanca de trilha unica (anti-dispersao):
   - `docs/PLANO_IMPLEMENTACAO_QG.md` passou a explicitar regra operacional `WIP=1` e fonte unica de sequencia no ciclo diario.
   - `docs/PLANO.md` passou a explicitar papel macro (estrategia) e delegacao da fila diaria para `PLANO_IMPLEMENTACAO_QG.md` + `HANDOFF.md`.
-  - `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` passou a explicitar que "paralelo parcial" nao significa execucao simultanea no ciclo diario.
+  - `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` passou a explicitar que "paralelo parcial" não significa execução simultânea no ciclo diário.
   - `docs/HANDOFF.md` ganhou secao inicial de trilha ativa unica e marcou blocos antigos de "proximos passos" como historico.
   - `docs/PLANO_FONTES_DADOS_DIAMANTINA.md` reforcou papel de catalogo (sem abrir frente diaria).
   - `docs/GITHUB_ISSUES_BACKLOG_DADOS_NIVEL_MAXIMO.md` reforcou uso como snapshot/template, sem definir ordem operacional.
-- Governanca de execucao no GitHub alinhada com trilha unica:
+- Governança de execução no GitHub alinhada com trilha única:
   - issue `BD-033` criada em `#28` e marcada como trilha ativa (`status:active`).
   - issue `BD-033` (`#28`) encerrada apos fechamento de gate e fase 2.
   - issue `BD-021` (`#8`) encerrada por entrega tecnica concluida.
@@ -881,7 +881,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Cobertura de regressao para falha parcial da Home:
   - `frontend/src/modules/qg/pages/QgPages.test.tsx` passou a validar falha simultanea de `Top prioridades` e `Destaques` sem derrubar o restante da Home.
 - Cobertura de regressao para quality suite:
-  - novo `tests/unit/test_quality_suite.py` valida execucao e serializacao de `check_map_layers`.
+  - novo `tests/unit/test_quality_suite.py` valida execução e serialização de `check_map_layers`.
 - Ajuste de regressao em cobertura temporal por fonte:
   - `tests/unit/test_quality_coverage_checks.py` atualizado para refletir a ordem/quantidade atual de fontes (`DATASUS..CENSO_SUAS`).
 - Ajuste de regressao de zoom do mapa:
@@ -998,17 +998,17 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
       - `urban_pois` (pontos de interesse)
   - `frontend/src/shared/ui/VectorMap.tsx` passou a renderizar camadas `layer_kind=line` corretamente.
   - `frontend/src/modules/qg/pages/QgPages.test.tsx` inclui caso de URL prefill para modo urbano (`scope=urban` + `layer_id=urban_roads`).
-  - novas variaveis opcionais de ambiente no frontend:
+  - novas variáveis opcionais de ambiente no frontend:
     - `VITE_MAP_BASEMAP_STREETS_URL`
     - `VITE_MAP_BASEMAP_LIGHT_URL`
   - deep-link do mapa executivo ampliado em `frontend/src/modules/qg/pages/QgMapPage.tsx`:
     - leitura de `viz`, `renderer` e `zoom` por query string.
-    - sincronizacao automatica da URL com estado aplicado do mapa:
+    - sincronização automática da URL com estado aplicado do mapa:
       - `metric`, `period`, `level`, `scope`, `layer_id`, `territory_id`, `basemap`, `viz`, `renderer`, `zoom`.
     - reset completo no botao `Limpar` para baseline visual (`streets`, `choropleth`, vetorial, `zoom=4`).
   - testes de mapa ampliados em `frontend/src/modules/qg/pages/QgPages.test.tsx`:
     - prefill dos controles visuais por query string.
-    - sincronizacao de query params apos aplicar filtros e controles de visualizacao.
+    - sincronização de query params após aplicar filtros e controles de visualização.
   - otimizaÃ§Ã£o de bundle do mapa:
     - `VectorMap` passou a carregar sob demanda via `React.lazy` + `Suspense` em `QgMapPage`.
     - chunk de rota `QgMapPage` caiu de ~`1.0MB` para ~`19KB`.
@@ -1018,12 +1018,12 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
     - ajustes visuais para evitar overflow horizontal em telas menores (`viz-mode-selector` com wrap, `zoom-control` adaptativo).
     - container do mapa padronizado com altura fluida (`.map-canvas-shell`) para desktop/mobile.
   - UX de navegacao territorial ampliada no mapa executivo:
-    - busca rapida de territorio com `datalist` no `QgMapPage` (`Buscar territorio` + `Focar territorio`).
+    - busca rápida de território com `datalist` no `QgMapPage` (`Buscar território` + `Focar território`).
     - novos controles explicitos de navegacao:
       - `Focar selecionado`
       - `Recentrar mapa`
-    - `VectorMap` agora aplica foco por territorio selecionado com ajuste de camera (`fitBounds`/`easeTo` com fallback seguro).
-    - sincronizacao `territory_id` validada por teste ao focar territorio via busca.
+    - `VectorMap` agora aplica foco por território selecionado com ajuste de câmera (`fitBounds`/`easeTo` com fallback seguro).
+    - sincronização `territory_id` validada por teste ao focar território via busca.
     - `VectorMap` passou a aceitar sinais de foco/reset para controle de viewport sem quebrar deep-link existente.
     - fallbacks adicionados para ambiente de teste (mocks sem `easeTo`/`fitBounds`/`GeolocateControl`).
   - Home executiva (`QgOverviewPage`) migrada para `Layout B` de mapa dominante:
@@ -1113,7 +1113,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
     - plano operacional sem dispersao (secao 7);
     - sequencia logica de implementacao (secao 8);
     - regra de priorizacao para evitar dispersao (secao 9).
-  - `docs/HANDOFF.md` passou a registrar explicitamente a ordem de execucao ativa do ciclo:
+  - `docs/HANDOFF.md` passou a registrar explicitamente a ordem de execução ativa do ciclo:
     - estabilizacao de telas e fluxo decisorio;
     - gates de confiabilidade;
     - fechamento de lacunas criticas de dados;
@@ -1170,7 +1170,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - nova tela tecnica `frontend/src/modules/ops/pages/OpsLayersPage.tsx`;
   - rota adicionada em `frontend/src/app/router.tsx`.
 - **Qualidade de camadas no quality suite**:
-  - checks `map_layer_rows_*` e `map_layer_geometry_ratio_*` na execucao;
+  - checks `map_layer_rows_*` e `map_layer_geometry_ratio_*` na execução;
   - thresholds em `configs/quality_thresholds.yml`;
   - testes unitarios em `tests/unit/test_quality_core_checks.py`.
 - **Territorializacao eleitoral no pipeline TSE de resultados** (`src/pipelines/tse_results.py`):
@@ -1445,7 +1445,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ### Changed
 - Consolidacao documental do QG aplicada:
   - `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md` redefinido como visao estrategica (north star), sem status operacional diario.
-  - `PLANO.md` atualizado para governanca de execucao e referencia unica de papeis documentais.
+  - `PLANO.md` atualizado para governança de execução e referência única de papéis documentais.
   - `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado com consolidacao documental e status por onda.
   - `HANDOFF.md` atualizado para refletir a governanca documental consolidada.
 - Matriz de rastreabilidade atualizada para refletir criacao das specs estrategicas:
@@ -1640,11 +1640,11 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   compatibilidade com `status`.
 - `quality_suite` ganhou check adicional para legado em `silver.fact_indicator`:
   - `source_probe_rows` com threshold `fact_indicator.max_source_probe_rows`.
-- `dbt_build` agora persiste check explicito de falha (`dbt_build_execution`) quando a execucao falha,
+- `dbt_build` agora persiste check explícito de falha (`dbt_build_execution`) quando a execução falha,
   evitando lacunas em `ops.pipeline_checks`.
 - `dbt_build` passou a resolver automaticamente o executavel `dbt` da propria `.venv` quando ele nao
   esta no `PATH` do processo.
-- Logging da aplicacao endurecido para execucao local em Windows:
+- Logging da aplicação endurecido para execução local em Windows:
   - inicializacao lazy de `structlog` em `get_logger`.
   - reconfiguracao segura de `stdout` para evitar falha por encoding em erro de pipeline.
 - Frontend ops (F2) endurecido:
@@ -1958,7 +1958,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Fase 1 (P0) encerrada com evidencia operacional:
   - `labor_mte_fetch` promovido para `implemented` em `configs/connectors.yml`.
   - validacao P0 confirmada em 3 execucoes reais consecutivas com `status=success`.
-- Governanca documental refinada: separacao entre contrato tecnico (`CONTRATO.md`) e plano de execucao (`PLANO.md`).
+- Governança documental refinada: separação entre contrato técnico (`CONTRATO.md`) e plano de execução (`PLANO.md`).
 - `PLANO.md` refatorado para conter apenas fases, backlog, riscos e criterios de aceite mensuraveis.
 - Escopo de frontend detalhado no `PLANO.md` com fases F1-F4, contrato de integraÃ§Ã£o API e critÃ©rios de aceite.
 - Stack oficial de frontend definido no plano: `React + Vite + TypeScript + React Router + TanStack Query`.
@@ -2021,8 +2021,8 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - serie temporal agregada em `timeseries` por entidade (`runs|checks`) e granularidade (`day|hour`)
 - Testes unitarios da API de observabilidade em `tests/unit/test_ops_routes.py`.
 - Testes unitarios para checks centrais de qualidade em `tests/unit/test_quality_core_checks.py`.
-- Testes unitarios de modo de execucao do `dbt_build` em `tests/unit/test_dbt_build.py`.
-- Check operacional no `quality_suite` para validar execucao dos conectores MVP-3 por `reference_period`.
+- Testes unitários de modo de execução do `dbt_build` em `tests/unit/test_dbt_build.py`.
+- Check operacional no `quality_suite` para validar execução dos conectores MVP-3 por `reference_period`.
 - Teste unitario do check operacional em `tests/unit/test_quality_ops_pipeline_runs.py`.
 - Testes de integracao de fluxo para `run_mvp_wave_3` em `tests/unit/test_prefect_wave3_flow.py`.
 - Testes de integracao de fluxo para `run_mvp_all` em `tests/unit/test_prefect_wave3_flow.py`.
@@ -2043,7 +2043,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - arquivo legado SPEC_v1.3.md removido do repositorio.
 
 ### Verified
-- `python scripts/validate_mte_p0.py --reference-period 2025 --runs 3 --bootstrap-municipality --output-json`: `3/3 success` (primeira execucao com contingencia, execucoes seguintes via `bronze_cache`).
+- `python scripts/validate_mte_p0.py --reference-period 2025 --runs 3 --bootstrap-municipality --output-json`: `3/3 success` (primeira execução com contingência, execuções seguintes via `bronze_cache`).
 - `python scripts/validate_mte_p0.py --reference-period 2025 --runs 3 --bootstrap-municipality --output-json` (sem arquivo manual local): `3/3 success` via `bronze_cache`.
 - `pytest -q tests/unit/test_mte_labor.py -p no:cacheprovider`: `9 passed`.
 - `pytest -q tests/unit/test_ops_routes.py tests/unit/test_quality_ops_pipeline_runs.py -p no:cacheprovider`: `4 passed`.
