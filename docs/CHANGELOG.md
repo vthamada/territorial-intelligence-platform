@@ -2,6 +2,33 @@
 
 Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-22 - D8 BD-081 implementado (tuning de performance e custo da plataforma)
+
+### Added
+- nova migration `db/sql/017_d8_performance_tuning.sql` com indices para:
+  - filtros de `ops.pipeline_checks` (`status`, `check_name`, `created_at_utc`);
+  - filtros de `ops.connector_registry` por atualizacao (`updated_at_utc`, `wave`, `status`, `source`);
+  - consulta de `ops.frontend_events` por `name + event_timestamp_utc`;
+  - geocodificacao urbana com `pg_trgm` em nomes de:
+    - `map.urban_road_segment`
+    - `map.urban_poi`
+    - `map.urban_transport_stop`.
+- `scripts/benchmark_api.py` ampliado com suite `ops`:
+  - endpoints `/v1/ops/*` de leitura operacional;
+  - target default `p95 <= 1500ms`;
+  - suite `all` agora inclui `executive + urban + ops`.
+
+### Changed
+- `tests/contracts/test_sql_contracts.py` ampliado com cobertura contratual para `017_d8_performance_tuning.sql`.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `13 passed`.
+- `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 19 SQL scripts`.
+- `.\.venv\Scripts\python.exe scripts/benchmark_api.py --help` -> suite inclui `{executive,urban,ops,all}`.
+- GitHub:
+  - `gh issue close 26 --repo vthamada/territorial-intelligence-platform`
+  - `gh issue edit 27 --repo vthamada/territorial-intelligence-platform --add-label status:active --remove-label status:blocked`
+
 ## 2026-02-22 - D8 BD-080 implementado (carga incremental confiavel + reprocessamento seletivo)
 
 ### Added

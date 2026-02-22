@@ -11,7 +11,7 @@ Contrato tecnico principal: `CONTRATO.md`
    - `D5` concluido tecnicamente (`BD-050`, `BD-051`, `BD-052`).
    - `D6` concluido tecnicamente (`BD-060`, `BD-061`, `BD-062`).
    - `D7` concluido tecnicamente (`BD-070`, `BD-071`, `BD-072`).
-   - `D8` em andamento com `BD-080` concluido tecnicamente.
+   - `D8` em andamento com `BD-080` e `BD-081` concluidos tecnicamente.
    - `D4-mobilidade/frota` encerrada com entregas `BD-040`, `BD-041` e `BD-042`.
 2. Status da trilha anterior (D3-hardening, encerrada em 2026-02-21):
    - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
@@ -38,12 +38,35 @@ Contrato tecnico principal: `CONTRATO.md`
    - scorecard de cobertura sem regressao critica;
    - evidencias registradas no proprio `HANDOFF` e em `docs/CHANGELOG.md`.
 5. Proximo passo imediato:
-   - executar `D8/BD-081` (tuning de custo/performance em consultas e operacao), mantendo `WIP=1`.
+   - executar `D8/BD-082` (playbook de incidentes e continuidade operacional), mantendo `WIP=1`.
 6. Governanca de issue:
    - ao concluir item tecnico, encerrar issue correspondente no GitHub na mesma rodada.
 7. Regra de leitura:
    - apenas esta secao define "proximo passo executavel" no momento;
    - secoes de "proximos passos" antigas abaixo devem ser lidas como historico.
+
+## Atualizacao tecnica (2026-02-22) - D8 BD-081 implementado (tuning de performance e custo da plataforma)
+
+1. Tuning SQL aplicado para caminhos quentes de operacao e mapa:
+   - nova migration `db/sql/017_d8_performance_tuning.sql` com indices:
+     - `ops.pipeline_checks` por status/check_name/created_at;
+     - `ops.connector_registry` por `updated_at_utc + wave/status/source`;
+     - `ops.frontend_events` por `name + event_timestamp_utc`;
+     - trigram (`pg_trgm`) em nomes de `map.urban_road_segment`, `map.urban_poi` e `map.urban_transport_stop` para acelerar `geocode`.
+2. Benchmark operacional ampliado:
+   - `scripts/benchmark_api.py` passou a suportar `--suite ops`;
+   - endpoints ops incluidos na medicao (`summary`, `readiness`, `pipeline-runs`, `pipeline-checks`, `connector-registry`, `source-coverage`, `sla`, `timeseries`);
+   - alvo default da suite ops: `p95 <= 1500ms` (alinhado ao contrato dos endpoints `/v1/ops/*`).
+3. Cobertura de contrato para tuning SQL:
+   - `tests/contracts/test_sql_contracts.py` ganhou assert dedicado para `017_d8_performance_tuning.sql`.
+4. Validacao executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `13 passed`.
+   - `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 19 SQL scripts`.
+   - `.\.venv\Scripts\python.exe scripts/benchmark_api.py --help` -> `suite {executive,urban,ops,all}`.
+5. Governanca de issue na trilha unica:
+   - `#26` (`BD-081`) encerrada.
+   - `#27` (`BD-082`) promovida para `status:active`.
+   - proximo item da fila unica: `D8/BD-082`.
 
 ## Atualizacao tecnica (2026-02-22) - D8 BD-080 implementado (carga incremental confiavel + reprocessamento seletivo)
 

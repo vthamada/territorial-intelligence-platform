@@ -263,9 +263,14 @@ python scripts/homologation_check.py --json
 python scripts/benchmark_api.py
 # Com mais rounds:
 python scripts/benchmark_api.py --rounds 50 --json
+# Suite operacional (/v1/ops/*):
+python scripts/benchmark_api.py --suite ops --rounds 30 --json-output data/reports/benchmark_ops_api.json
 ```
 
-**Alvo:** p95 <= 800ms nos 12 endpoints executivos.
+**Alvos:**
+1. suite `executive`: p95 <= 800ms.
+2. suite `urban`: p95 <= 1000ms.
+3. suite `ops`: p95 <= 1500ms.
 
 ### 8.3 Backend readiness individual
 

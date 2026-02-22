@@ -5,6 +5,7 @@ Measures p95 latency for critical endpoints with suite-specific targets.
 Usage:
     python scripts/benchmark_api.py --suite executive [--base-url http://127.0.0.1:8000] [--rounds 30]
     python scripts/benchmark_api.py --suite urban [--base-url http://127.0.0.1:8000] [--rounds 30]
+    python scripts/benchmark_api.py --suite ops [--base-url http://127.0.0.1:8000] [--rounds 30]
     python scripts/benchmark_api.py --suite all [--base-url http://127.0.0.1:8000] [--rounds 30]
 """
 
@@ -82,15 +83,44 @@ URBAN_ENDPOINTS: list[dict] = [
     },
 ]
 
+OPS_ENDPOINTS: list[dict] = [
+    {"method": "GET", "path": "/v1/ops/summary", "label": "ops/summary"},
+    {"method": "GET", "path": "/v1/ops/readiness", "label": "ops/readiness"},
+    {
+        "method": "GET",
+        "path": "/v1/ops/pipeline-runs?page=1&page_size=50",
+        "label": "ops/pipeline-runs",
+    },
+    {
+        "method": "GET",
+        "path": "/v1/ops/pipeline-checks?page=1&page_size=50",
+        "label": "ops/pipeline-checks",
+    },
+    {
+        "method": "GET",
+        "path": "/v1/ops/connector-registry?page=1&page_size=50",
+        "label": "ops/connector-registry",
+    },
+    {"method": "GET", "path": "/v1/ops/source-coverage", "label": "ops/source-coverage"},
+    {"method": "GET", "path": "/v1/ops/sla", "label": "ops/sla"},
+    {
+        "method": "GET",
+        "path": "/v1/ops/timeseries?entity=runs&granularity=day",
+        "label": "ops/timeseries",
+    },
+]
+
 SUITE_ENDPOINTS: dict[str, list[dict]] = {
     "executive": EXECUTIVE_ENDPOINTS,
     "urban": URBAN_ENDPOINTS,
-    "all": EXECUTIVE_ENDPOINTS + URBAN_ENDPOINTS,
+    "ops": OPS_ENDPOINTS,
+    "all": EXECUTIVE_ENDPOINTS + URBAN_ENDPOINTS + OPS_ENDPOINTS,
 }
 
 DEFAULT_TARGET_P95_MS: dict[str, float] = {
     "executive": 800.0,
     "urban": 1000.0,
+    "ops": 1500.0,
     "all": 1000.0,
 }
 
@@ -213,7 +243,7 @@ def main() -> None:
     parser.add_argument("--rounds", type=int, default=30, help="Number of rounds per endpoint")
     parser.add_argument(
         "--suite",
-        choices=["executive", "urban", "all"],
+        choices=["executive", "urban", "ops", "all"],
         default="executive",
         help="Benchmark suite to execute",
     )

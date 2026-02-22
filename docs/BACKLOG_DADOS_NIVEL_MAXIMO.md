@@ -347,13 +347,17 @@ Aceite:
 Objetivo:
 1. fechar estabilidade de producao para nivel maximo.
 Status:
-- em andamento (2026-02-22), com `BD-080` concluido tecnicamente.
+- em andamento (2026-02-22), com `BD-080` e `BD-081` concluidos tecnicamente.
 Progresso atual:
 - `BD-080` implementado com orquestracao incremental em `scripts/run_incremental_backfill.py`:
   - decisao por historico de `ops.pipeline_runs` (`no_previous_run`, `latest_status!=success`, `stale_success`);
   - reprocessamento seletivo por `--reprocess-jobs` e `--reprocess-periods`;
   - pos-carga com `dbt_build` e `quality_suite` por periodo com sucesso;
   - relatorio operacional em `data/reports/incremental_backfill_report.json`.
+- `BD-081` implementado com tuning de custo/performance:
+  - migration `db/sql/017_d8_performance_tuning.sql` com indices para filtros de ops e geocodificacao urbana;
+  - `scripts/benchmark_api.py` ampliado com suite `ops` e alvo `p95 <= 1500ms`;
+  - validacao de contrato SQL + aplicacao de migrations atualizadas (`19` scripts).
 
 Issues:
 1. `BD-080`: carga incremental confiavel + reprocessamento seletivo.

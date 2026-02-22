@@ -140,3 +140,14 @@ def test_strategic_score_versions_sql_has_required_objects() -> None:
     assert "default_indicator_weight" in strategic_sql
     assert "domain_weights JSONB" in strategic_sql
     assert "indicator_weights JSONB" in strategic_sql
+
+
+def test_d8_performance_tuning_sql_has_required_objects() -> None:
+    tuning_sql = Path("db/sql/017_d8_performance_tuning.sql").read_text(encoding="utf-8")
+    assert "idx_pipeline_checks_status_created" in tuning_sql
+    assert "idx_pipeline_checks_name_created" in tuning_sql
+    assert "idx_connector_registry_updated_filters" in tuning_sql
+    assert "idx_frontend_events_name_timestamp" in tuning_sql
+    assert "idx_urban_road_segment_name_trgm" in tuning_sql
+    assert "idx_urban_poi_name_trgm" in tuning_sql
+    assert "idx_urban_transport_stop_name_trgm" in tuning_sql
