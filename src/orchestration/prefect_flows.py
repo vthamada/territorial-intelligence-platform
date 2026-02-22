@@ -44,6 +44,7 @@ from pipelines.cecad_social_protection import run as run_cecad_social_protection
 from pipelines.censo_suas import run as run_censo_suas
 from pipelines.urban_roads import run as run_urban_roads
 from pipelines.urban_pois import run as run_urban_pois
+from pipelines.urban_transport import run as run_urban_transport
 from pipelines.quality_suite import run as run_quality_suite
 from pipelines.sejusp_public_safety import run as run_sejusp_public_safety
 from pipelines.senatran_fleet import run as run_senatran_fleet
@@ -116,6 +117,7 @@ def run_mvp_all(
         "censo_suas_fetch": run_censo_suas(**common_kwargs),
         "urban_roads_fetch": run_urban_roads(**common_kwargs),
         "urban_pois_fetch": run_urban_pois(**common_kwargs),
+        "urban_transport_fetch": run_urban_transport(**common_kwargs),
         "dbt_build": run_dbt_build(**common_kwargs),
         "quality_suite": run_quality_suite(**common_kwargs),
     }
@@ -283,6 +285,7 @@ def run_mvp_wave_7(
     return {
         "urban_roads_fetch": run_urban_roads(**common_kwargs),
         "urban_pois_fetch": run_urban_pois(**common_kwargs),
+        "urban_transport_fetch": run_urban_transport(**common_kwargs),
         "quality_suite": run_quality_suite(**common_kwargs),
     }
 

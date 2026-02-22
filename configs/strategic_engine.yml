@@ -25,6 +25,30 @@ scoring:
   rank_formula: "percentile"  # percentile | z_score (future)
   max_score: 100.0
   min_score: 0.0
+  default_domain_weight: 1.0
+  default_indicator_weight: 1.0
+
+  # Domain and indicator weights are versioned and applied in mart_priority_drivers.
+  # Omitted keys fallback to default_* weights.
+  domain_weights:
+    saude: 1.0
+    educacao: 1.0
+    trabalho: 1.0
+    financas: 1.0
+    eleitorado: 1.0
+    socioeconomico: 1.0
+    mobilidade: 1.0
+    seguranca: 1.0
+    saneamento: 1.0
+    clima: 1.0
+    meio_ambiente: 1.0
+    recursos_hidricos: 1.0
+    conectividade: 1.0
+    energia: 1.0
+    assistencia_social: 1.0
+    geral: 1.0
+
+  indicator_weights: {}
 
 insights:
   # Minimum score to qualify as an insight highlight

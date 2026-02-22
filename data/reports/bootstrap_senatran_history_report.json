@@ -1,0 +1,32 @@
+{
+  "results": [
+    {
+      "year": "2021",
+      "status": "success",
+      "source_url": "https://www.gov.br/transportes/pt-br/assuntos/transito/arquivos-senatran/estatisticas/renavam/2021/dezembro/frota-munic-modelo-dezembro-2021.xls",
+      "output_file": "data/manual/senatran/senatran_diamantina_2021.csv",
+      "frota_total": 24431
+    },
+    {
+      "year": "2022",
+      "status": "success",
+      "source_url": "https://www.gov.br/transportes/pt-br/assuntos/transito/arquivos-senatran/estatisticas/renavam/2022/dezembro/frota_munic_modelo_dezembro_2022.xls",
+      "output_file": "data/manual/senatran/senatran_diamantina_2022.csv",
+      "frota_total": 25258
+    },
+    {
+      "year": "2023",
+      "status": "success",
+      "source_url": "https://www.gov.br/transportes/pt-br/assuntos/transito/arquivos-senatran/estatisticas/renavam/2023/Dezembro/frota_munic_modelo_dezembro_2023.xls",
+      "output_file": "data/manual/senatran/senatran_diamantina_2023.csv",
+      "frota_total": 26165
+    },
+    {
+      "year": "2024",
+      "status": "success",
+      "source_url": "https://www.gov.br/transportes/pt-br/assuntos/transito/conteudo-Senatran/FrotapormunicipioetipoDezembro2024.xlsx",
+      "output_file": "data/manual/senatran/senatran_diamantina_2024.csv",
+      "frota_total": 27286
+    }
+  ]
+}

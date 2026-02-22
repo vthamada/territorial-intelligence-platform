@@ -44,6 +44,9 @@ fact_indicator:
   max_source_probe_rows: 0
   min_distinct_periods: 3
   min_source_distinct_periods_default: 2
+  min_periods_inmet: 5
+  min_periods_inpe_queimadas: 5
+  min_periods_ana: 5
   min_periods_cecad: 0
   min_periods_censo_suas: 0
   min_rows_level_municipality: 1
@@ -80,7 +83,30 @@ fact_social_assistance_network:
 urban_domain:
   min_road_rows: 1
   min_poi_rows: 1
+  min_transport_rows: 0
   max_invalid_geometry_rows: 0
+
+environment_risk:
+  min_rows_district: 1
+  min_rows_census_sector: 1
+  min_distinct_periods: 1
+  max_null_risk_score_rows: 0
+  max_null_hazard_score_rows: 0
+  max_null_exposure_score_rows: 0
+  min_mart_rows_municipality: 1
+  min_mart_rows_district: 1
+  min_mart_rows_census_sector: 1
+  min_mart_distinct_periods: 1
+  max_mart_null_score_rows: 0
+
+schema_contracts:
+  min_active_coverage_pct: 100.0
+  max_missing_connectors: 0
+
+schema_drift:
+  max_missing_required_columns: 0
+  max_type_mismatch_columns: 0
+  max_connectors_with_drift: 0
 
 ops_pipeline_runs:
   min_successful_runs_per_job: 1

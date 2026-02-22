@@ -85,6 +85,16 @@ class TestLevelValidation:
 
         assert response.status_code == 422
 
+    def test_invalid_level_on_mobility_access(self, client: TestClient):
+        response = client.get("/v1/mobility/access?level=foo")
+
+        assert response.status_code == 422
+
+    def test_invalid_level_on_environment_risk(self, client: TestClient):
+        response = client.get("/v1/environment/risk?level=foo")
+
+        assert response.status_code == 422
+
     def test_invalid_level_on_electorate_summary(self, client: TestClient):
         response = client.get("/v1/electorate/summary?level=xyz")
 

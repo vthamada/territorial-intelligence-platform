@@ -20,9 +20,19 @@ def sort_scripts_with_dependencies(scripts: list[Path]) -> list[Path]:
     Default order remains lexical; overrides are only used when both scripts exist.
     """
     by_name = {script.name: script for script in scripts}
-    # db/sql/007_data_coverage_scorecard.sql references urban tables from 009.
+    # db/sql/007_data_coverage_scorecard.sql references urban/environment objects from 009/010/012.
     dependency_overrides: dict[str, list[str]] = {
-        "007_data_coverage_scorecard.sql": ["009_urban_domain.sql"],
+        "015_priority_drivers_mart.sql": [
+            "016_strategic_score_versions.sql",
+        ],
+        "007_data_coverage_scorecard.sql": [
+            "009_urban_domain.sql",
+            "010_urban_transport_domain.sql",
+            "012_environment_risk_aggregation.sql",
+            "013_environment_risk_mart.sql",
+            "014_source_schema_contracts.sql",
+            "015_priority_drivers_mart.sql",
+        ],
     }
 
     graph: dict[str, set[str]] = defaultdict(set)

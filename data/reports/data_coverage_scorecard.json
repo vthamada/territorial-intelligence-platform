@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-02-20T17:46:37.419558+00:00",
+  "generated_at_utc": "2026-02-22T17:52:10.951667+00:00",
   "municipality_ibge_code": "3121605",
   "window_days": 7,
   "scorecard": {
@@ -7,24 +7,96 @@
       {
         "metric_group": "connectors",
         "metric_name": "implemented_connectors_pct",
-        "observed_value": "92.31",
+        "observed_value": "92.59",
         "target_value": "100",
         "comparator": "gte",
         "unit": "pct",
         "status": "warn"
       },
       {
-        "metric_group": "operations",
-        "metric_name": "implemented_runs_success_pct_7d",
-        "observed_value": "100.00",
-        "target_value": "95",
+        "metric_group": "environment_risk",
+        "metric_name": "environment_risk_census_sector_rows",
+        "observed_value": "545",
+        "target_value": "1",
         "comparator": "gte",
-        "unit": "pct",
+        "unit": "count",
         "status": "pass"
       },
       {
-        "metric_group": "quality",
-        "metric_name": "fail_checks_last_7d",
+        "metric_group": "environment_risk",
+        "metric_name": "environment_risk_distinct_periods",
+        "observed_value": "5",
+        "target_value": "1",
+        "comparator": "gte",
+        "unit": "periods",
+        "status": "pass"
+      },
+      {
+        "metric_group": "environment_risk",
+        "metric_name": "environment_risk_district_rows",
+        "observed_value": "55",
+        "target_value": "1",
+        "comparator": "gte",
+        "unit": "count",
+        "status": "pass"
+      },
+      {
+        "metric_group": "environment_risk",
+        "metric_name": "environment_risk_mart_census_sector_rows",
+        "observed_value": "545",
+        "target_value": "1",
+        "comparator": "gte",
+        "unit": "count",
+        "status": "pass"
+      },
+      {
+        "metric_group": "environment_risk",
+        "metric_name": "environment_risk_mart_distinct_periods",
+        "observed_value": "5",
+        "target_value": "1",
+        "comparator": "gte",
+        "unit": "periods",
+        "status": "pass"
+      },
+      {
+        "metric_group": "environment_risk",
+        "metric_name": "environment_risk_mart_district_rows",
+        "observed_value": "55",
+        "target_value": "1",
+        "comparator": "gte",
+        "unit": "count",
+        "status": "pass"
+      },
+      {
+        "metric_group": "environment_risk",
+        "metric_name": "environment_risk_mart_municipality_rows",
+        "observed_value": "5",
+        "target_value": "1",
+        "comparator": "gte",
+        "unit": "count",
+        "status": "pass"
+      },
+      {
+        "metric_group": "operations",
+        "metric_name": "implemented_runs_success_pct_7d",
+        "observed_value": "94.74",
+        "target_value": "95",
+        "comparator": "gte",
+        "unit": "pct",
+        "status": "warn"
+      },
+      {
+        "metric_group": "priority_drivers",
+        "metric_name": "priority_drivers_distinct_periods",
+        "observed_value": "9",
+        "target_value": "1",
+        "comparator": "gte",
+        "unit": "periods",
+        "status": "pass"
+      },
+      {
+        "metric_group": "priority_drivers",
+        "metric_name": "priority_drivers_missing_score_version_rows",
         "observed_value": "0",
         "target_value": "0",
         "comparator": "lte",
@@ -32,67 +104,157 @@
         "status": "pass"
       },
       {
+        "metric_group": "priority_drivers",
+        "metric_name": "priority_drivers_rows",
+        "observed_value": "768",
+        "target_value": "1",
+        "comparator": "gte",
+        "unit": "count",
+        "status": "pass"
+      },
+      {
+        "metric_group": "quality",
+        "metric_name": "fail_checks_last_7d",
+        "observed_value": "27",
+        "target_value": "0",
+        "comparator": "lte",
+        "unit": "count",
+        "status": "warn"
+      },
+      {
+        "metric_group": "quality",
+        "metric_name": "schema_drift_fail_checks_last_7d",
+        "observed_value": "25",
+        "target_value": "0",
+        "comparator": "lte",
+        "unit": "count",
+        "status": "warn"
+      },
+      {
+        "metric_group": "schema_contracts",
+        "metric_name": "schema_contracts_active_coverage_pct",
+        "observed_value": "100.00",
+        "target_value": "100",
+        "comparator": "gte",
+        "unit": "pct",
+        "status": "pass"
+      },
+      {
+        "metric_group": "strategic_score",
+        "metric_name": "strategic_score_active_versions_max",
+        "observed_value": "1",
+        "target_value": "1",
+        "comparator": "lte",
+        "unit": "count",
+        "status": "pass"
+      },
+      {
+        "metric_group": "strategic_score",
+        "metric_name": "strategic_score_active_versions_min",
+        "observed_value": "1",
+        "target_value": "1",
+        "comparator": "gte",
+        "unit": "count",
+        "status": "pass"
+      },
+      {
+        "metric_group": "strategic_score",
+        "metric_name": "strategic_score_total_versions",
+        "observed_value": "1",
+        "target_value": "1",
+        "comparator": "gte",
+        "unit": "count",
+        "status": "pass"
+      },
+      {
+        "metric_group": "temporal_coverage",
+        "metric_name": "ana_distinct_periods",
+        "observed_value": "5",
+        "target_value": "5",
+        "comparator": "gte",
+        "unit": "periods",
+        "status": "pass"
+      },
+      {
         "metric_group": "temporal_coverage",
         "metric_name": "election_result_distinct_years",
-        "observed_value": "1",
+        "observed_value": "5",
         "target_value": "5",
         "comparator": "gte",
         "unit": "years",
-        "status": "warn"
+        "status": "pass"
       },
       {
         "metric_group": "temporal_coverage",
         "metric_name": "electorate_distinct_years",
-        "observed_value": "1",
+        "observed_value": "5",
         "target_value": "5",
         "comparator": "gte",
         "unit": "years",
-        "status": "warn"
+        "status": "pass"
       },
       {
         "metric_group": "temporal_coverage",
         "metric_name": "indicator_distinct_periods",
-        "observed_value": "4",
+        "observed_value": "9",
         "target_value": "5",
         "comparator": "gte",
         "unit": "periods",
-        "status": "warn"
+        "status": "pass"
+      },
+      {
+        "metric_group": "temporal_coverage",
+        "metric_name": "inmet_distinct_periods",
+        "observed_value": "5",
+        "target_value": "5",
+        "comparator": "gte",
+        "unit": "periods",
+        "status": "pass"
+      },
+      {
+        "metric_group": "temporal_coverage",
+        "metric_name": "inpe_queimadas_distinct_periods",
+        "observed_value": "5",
+        "target_value": "5",
+        "comparator": "gte",
+        "unit": "periods",
+        "status": "pass"
       },
       {
         "metric_group": "territorial_coverage",
         "metric_name": "election_result_zone_coverage_pct",
-        "observed_value": "0",
+        "observed_value": "100.00",
         "target_value": "100",
         "comparator": "gte",
         "unit": "pct",
-        "status": "warn"
+        "status": "pass"
       },
       {
         "metric_group": "territorial_coverage",
         "metric_name": "electorate_zone_coverage_pct",
-        "observed_value": "0",
+        "observed_value": "100.00",
         "target_value": "100",
         "comparator": "gte",
         "unit": "pct",
-        "status": "warn"
+        "status": "pass"
       },
       {
         "metric_group": "territorial_coverage",
         "metric_name": "indicator_census_sector_coverage_pct",
-        "observed_value": "0.00",
+        "observed_value": "100.00",
         "target_value": "60",
         "comparator": "gte",
         "unit": "pct",
-        "status": "warn"
+        "status": "pass"
       },
       {
         "metric_group": "territorial_coverage",
         "metric_name": "indicator_district_coverage_pct",
-        "observed_value": "0.00",
+        "observed_value": "100.00",
         "target_value": "80",
         "comparator": "gte",
         "unit": "pct",
-        "status": "warn"
+        "status": "pass"
       },
       {
         "metric_group": "territorial_coverage",
@@ -120,18 +282,67 @@
         "comparator": "gte",
         "unit": "count",
         "status": "pass"
+      },
+      {
+        "metric_group": "urban_coverage",
+        "metric_name": "urban_transport_stop_rows",
+        "observed_value": "22",
+        "target_value": "1",
+        "comparator": "gte",
+        "unit": "count",
+        "status": "pass"
       }
     ],
     "status_counts": {
-      "pass": 5,
-      "warn": 8
+      "pass": 28,
+      "warn": 4
     }
   },
   "indicator_source_period_coverage": [
     {
       "source": "ANA",
+      "reference_period": "2021",
+      "rows": 1
+    },
+    {
+      "source": "ANA",
+      "reference_period": "2022",
+      "rows": 1
+    },
+    {
+      "source": "ANA",
+      "reference_period": "2023",
+      "rows": 1
+    },
+    {
+      "source": "ANA",
+      "reference_period": "2024",
+      "rows": 1
+    },
+    {
+      "source": "ANA",
       "reference_period": "2025",
       "rows": 1
+    },
+    {
+      "source": "ANATEL",
+      "reference_period": "2021",
+      "rows": 3
+    },
+    {
+      "source": "ANATEL",
+      "reference_period": "2022",
+      "rows": 3
+    },
+    {
+      "source": "ANATEL",
+      "reference_period": "2023",
+      "rows": 3
+    },
+    {
+      "source": "ANATEL",
+      "reference_period": "2024",
+      "rows": 3
     },
     {
       "source": "ANATEL",
@@ -140,8 +351,48 @@
     },
     {
       "source": "ANEEL",
+      "reference_period": "2021",
+      "rows": 1
+    },
+    {
+      "source": "ANEEL",
+      "reference_period": "2022",
+      "rows": 1
+    },
+    {
+      "source": "ANEEL",
+      "reference_period": "2023",
+      "rows": 1
+    },
+    {
+      "source": "ANEEL",
+      "reference_period": "2024",
+      "rows": 1
+    },
+    {
+      "source": "ANEEL",
       "reference_period": "2025",
       "rows": 1
+    },
+    {
+      "source": "CENSO_SUAS",
+      "reference_period": "2014",
+      "rows": 5
+    },
+    {
+      "source": "CENSO_SUAS",
+      "reference_period": "2015",
+      "rows": 5
+    },
+    {
+      "source": "CENSO_SUAS",
+      "reference_period": "2016",
+      "rows": 5
+    },
+    {
+      "source": "CENSO_SUAS",
+      "reference_period": "2017",
+      "rows": 5
     },
     {
       "source": "DATASUS",
@@ -155,8 +406,13 @@
     },
     {
       "source": "IBGE",
-      "reference_period": "2025",
+      "reference_period": "2024",
       "rows": 1
+    },
+    {
+      "source": "IBGE",
+      "reference_period": "2025",
+      "rows": 122
     },
     {
       "source": "INEP",
@@ -165,8 +421,48 @@
     },
     {
       "source": "INMET",
+      "reference_period": "2021",
+      "rows": 3
+    },
+    {
+      "source": "INMET",
+      "reference_period": "2022",
+      "rows": 3
+    },
+    {
+      "source": "INMET",
+      "reference_period": "2023",
+      "rows": 3
+    },
+    {
+      "source": "INMET",
+      "reference_period": "2024",
+      "rows": 3
+    },
+    {
+      "source": "INMET",
       "reference_period": "2025",
       "rows": 3
+    },
+    {
+      "source": "INPE_QUEIMADAS",
+      "reference_period": "2021",
+      "rows": 1
+    },
+    {
+      "source": "INPE_QUEIMADAS",
+      "reference_period": "2022",
+      "rows": 1
+    },
+    {
+      "source": "INPE_QUEIMADAS",
+      "reference_period": "2023",
+      "rows": 1
+    },
+    {
+      "source": "INPE_QUEIMADAS",
+      "reference_period": "2024",
+      "rows": 1
     },
     {
       "source": "INPE_QUEIMADAS",
@@ -180,7 +476,47 @@
     },
     {
       "source": "SEJUSP_MG",
+      "reference_period": "2021",
+      "rows": 4
+    },
+    {
+      "source": "SEJUSP_MG",
+      "reference_period": "2022",
+      "rows": 4
+    },
+    {
+      "source": "SEJUSP_MG",
+      "reference_period": "2023",
+      "rows": 4
+    },
+    {
+      "source": "SEJUSP_MG",
+      "reference_period": "2024",
+      "rows": 4
+    },
+    {
+      "source": "SEJUSP_MG",
       "reference_period": "2025",
+      "rows": 4
+    },
+    {
+      "source": "SENATRAN",
+      "reference_period": "2021",
+      "rows": 4
+    },
+    {
+      "source": "SENATRAN",
+      "reference_period": "2022",
+      "rows": 4
+    },
+    {
+      "source": "SENATRAN",
+      "reference_period": "2023",
+      "rows": 4
+    },
+    {
+      "source": "SENATRAN",
+      "reference_period": "2024",
       "rows": 4
     },
     {
@@ -195,13 +531,48 @@
     },
     {
       "source": "SIDRA",
-      "reference_period": "2025",
+      "reference_period": "2021",
+      "rows": 2
+    },
+    {
+      "source": "SIDRA",
+      "reference_period": "2022",
       "rows": 1
     },
     {
       "source": "SIDRA",
-      "reference_period": "População residente estimada",
+      "reference_period": "2023",
       "rows": 1
+    },
+    {
+      "source": "SIDRA",
+      "reference_period": "2024",
+      "rows": 1
+    },
+    {
+      "source": "SIDRA",
+      "reference_period": "2025",
+      "rows": 1
+    },
+    {
+      "source": "SIOPS",
+      "reference_period": "2021",
+      "rows": 3
+    },
+    {
+      "source": "SIOPS",
+      "reference_period": "2022",
+      "rows": 3
+    },
+    {
+      "source": "SIOPS",
+      "reference_period": "2023",
+      "rows": 3
+    },
+    {
+      "source": "SIOPS",
+      "reference_period": "2024",
+      "rows": 3
     },
     {
       "source": "SIOPS",
@@ -210,16 +581,36 @@
     },
     {
       "source": "SNIS",
+      "reference_period": "2021",
+      "rows": 1
+    },
+    {
+      "source": "SNIS",
+      "reference_period": "2022",
+      "rows": 1
+    },
+    {
+      "source": "SNIS",
+      "reference_period": "2023",
+      "rows": 1
+    },
+    {
+      "source": "SNIS",
+      "reference_period": "2024",
+      "rows": 1
+    },
+    {
+      "source": "SNIS",
       "reference_period": "2025",
-      "rows": 4
+      "rows": 1
     }
   ],
   "readiness": {
-    "generated_at_utc": "2026-02-20T17:46:37.407812Z",
+    "generated_at_utc": "2026-02-22T17:52:10.938669Z",
     "window_days": 7,
     "postgis": {
       "installed": true,
-      "version": "3.5.2"
+      "version": "3.6.1"
     },
     "required_tables": {
       "required": [
@@ -256,9 +647,9 @@
       "missing": []
     },
     "connector_registry": {
-      "total": 26,
+      "total": 27,
       "by_status": {
-        "implemented": 24,
+        "implemented": 25,
         "partial": 2
       },
       "implemented_jobs": [
@@ -285,23 +676,138 @@
         "tse_electorate_fetch",
         "tse_results_fetch",
         "urban_pois_fetch",
-        "urban_roads_fetch"
+        "urban_roads_fetch",
+        "urban_transport_fetch"
       ]
     },
     "slo1": {
       "window_days": 7,
       "target_pct": 95.0,
       "include_blocked_as_success": false,
-      "total_runs": 3,
-      "successful_runs": 3,
-      "success_rate_pct": 100.0,
-      "meets_target": true,
-      "below_target_jobs": [],
+      "total_runs": 171,
+      "successful_runs": 162,
+      "success_rate_pct": 94.74,
+      "meets_target": false,
+      "below_target_jobs": [
+        "aneel_energy_fetch",
+        "inmet_climate_fetch",
+        "inpe_queimadas_fetch",
+        "quality_suite",
+        "sejusp_public_safety_fetch",
+        "senatran_fleet_fetch",
+        "siops_health_finance_fetch",
+        "snis_sanitation_fetch"
+      ],
       "items": [
         {
+          "job_name": "ana_hydrology_fetch",
+          "total_runs": 10,
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "anatel_connectivity_fetch",
+          "total_runs": 10,
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "aneel_energy_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "ibge_admin_fetch",
+          "total_runs": 2,
+          "successful_runs": 2,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "ibge_geometries_fetch",
+          "total_runs": 2,
+          "successful_runs": 2,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "inmet_climate_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "inpe_queimadas_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
           "job_name": "quality_suite",
-          "total_runs": 1,
-          "successful_runs": 1,
+          "total_runs": 26,
+          "successful_runs": 24,
+          "success_rate_pct": 92.31,
+          "meets_target": false
+        },
+        {
+          "job_name": "sejusp_public_safety_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "senatran_fleet_fetch",
+          "total_runs": 15,
+          "successful_runs": 14,
+          "success_rate_pct": 93.33,
+          "meets_target": false
+        },
+        {
+          "job_name": "sidra_indicators_fetch",
+          "total_runs": 10,
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "siops_health_finance_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "snis_sanitation_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "tse_catalog_discovery",
+          "total_runs": 11,
+          "successful_runs": 11,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "tse_electorate_fetch",
+          "total_runs": 11,
+          "successful_runs": 11,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "tse_results_fetch",
+          "total_runs": 11,
+          "successful_runs": 11,
           "success_rate_pct": 100.0,
           "meets_target": true
         },
@@ -318,6 +824,13 @@
           "successful_runs": 1,
           "success_rate_pct": 100.0,
           "meets_target": true
+        },
+        {
+          "job_name": "urban_transport_fetch",
+          "total_runs": 1,
+          "successful_runs": 1,
+          "success_rate_pct": 100.0,
+          "meets_target": true
         }
       ]
     },
@@ -325,18 +838,28 @@
       "window_days": 1,
       "target_pct": 95.0,
       "include_blocked_as_success": false,
-      "total_runs": 0,
-      "successful_runs": 0,
-      "success_rate_pct": 0.0,
+      "total_runs": 4,
+      "successful_runs": 2,
+      "success_rate_pct": 50.0,
       "meets_target": false,
-      "below_target_jobs": [],
-      "items": [],
+      "below_target_jobs": [
+        "quality_suite"
+      ],
+      "items": [
+        {
+          "job_name": "quality_suite",
+          "total_runs": 4,
+          "successful_runs": 2,
+          "success_rate_pct": 50.0,
+          "meets_target": false
+        }
+      ],
       "window_role": "current_health"
     },
     "slo3": {
       "window_days": 7,
-      "total_runs": 3,
-      "runs_with_checks": 3,
+      "total_runs": 171,
+      "runs_with_checks": 171,
       "runs_missing_checks": 0,
       "meets_target": true,
       "sample_missing_run_ids": []
@@ -346,6 +869,8 @@
       "by_source": {}
     },
     "hard_failures": [],
-    "warnings": []
+    "warnings": [
+      "SLO-1 below target: 94.74% < 95.0% (last 7d, current 50.0% in 1d)."
+    ]
   }
 }

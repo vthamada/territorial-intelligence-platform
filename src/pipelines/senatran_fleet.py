@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urljoin
 from uuid import uuid4
 
 import pandas as pd
@@ -30,6 +31,16 @@ FACT_DATASET_NAME = "senatran_fleet_municipal"
 WAVE = "MVP-4"
 SENATRAN_CATALOG_PATH = Path("configs/senatran_fleet_catalog.yml")
 MANUAL_SENATRAN_DIR = Path("data/manual/senatran")
+SENATRAN_PAGE_TEMPLATE = (
+    "https://www.gov.br/transportes/pt-br/assuntos/transito/"
+    "conteudo-Senatran/frota-de-veiculos-{reference_period}"
+)
+SENATRAN_REMOTE_CSV_TOKEN = "frotapormunicipioetipo"
+SENATRAN_FALLBACK_2025_CSV = (
+    "https://www.gov.br/transportes/pt-br/assuntos/transito/"
+    "conteudo-Senatran/FrotaporMunicipioetipoJulho2025.csv"
+)
+_YEAR_TOKEN_RE = re.compile(r"(?:19|20)\d{2}")
 
 _MUNICIPALITY_CODE_COLUMNS = (
     "municipio_ibge",
@@ -63,6 +74,19 @@ def _normalize_column_name(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", base).strip("_")
 
 
+def _extract_year_tokens(value: str) -> set[str]:
+    return {match.group(0) for match in _YEAR_TOKEN_RE.finditer(value)}
+
+
+def _manual_year_rank(path: Path, *, reference_period: str) -> int:
+    years = _extract_year_tokens(path.name)
+    if reference_period in years:
+        return 0
+    if not years:
+        return 1
+    return 2
+
+
 def _parse_reference_year(reference_period: str) -> str:
     token = str(reference_period).strip()
     if not token:
@@ -85,7 +109,9 @@ def _parse_numeric(value: Any) -> Decimal | None:
     if not token or token in {"-", "...", "nan", "None"}:
         return None
     normalized = token.replace(" ", "")
-    if "," in normalized and "." in normalized:
+    if normalized.count(",") > 1 and "." not in normalized:
+        normalized = normalized.replace(",", "")
+    elif "," in normalized and "." in normalized:
         normalized = normalized.replace(".", "").replace(",", ".")
     elif "," in normalized:
         normalized = normalized.replace(",", ".")
@@ -143,10 +169,41 @@ def _read_delimited_with_fallback(raw_bytes: bytes) -> pd.DataFrame:
     for encoding in ("utf-8", "latin1"):
         for sep in (";", ",", "\t", "|"):
             try:
-                return pd.read_csv(io.BytesIO(raw_bytes), encoding=encoding, sep=sep, low_memory=False)
+                dataframe = pd.read_csv(io.BytesIO(raw_bytes), encoding=encoding, sep=sep, low_memory=False)
+                if dataframe.shape[1] == 1:
+                    sample = str(dataframe.iloc[0, 0]) if not dataframe.empty else ""
+                    if any(token in sample for token in (";", ",", "\t", "|")):
+                        continue
+                return dataframe
             except Exception:
                 continue
     raise ValueError("Could not parse CSV/TXT with supported encodings/delimiters.")
+
+
+def _load_senatran_structured_csv(raw_bytes: bytes) -> pd.DataFrame:
+    for encoding in ("utf-8", "latin1"):
+        try:
+            payload = raw_bytes.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+        lines = payload.splitlines()
+        header_index = next(
+            (
+                index
+                for index, line in enumerate(lines)
+                if _normalize_text(line).startswith("uf,municipio,total")
+            ),
+            None,
+        )
+        if header_index is None:
+            continue
+
+        clean_csv = "\n".join(lines[header_index:])
+        dataframe = pd.read_csv(io.StringIO(clean_csv), sep=",", dtype=str, low_memory=False)
+        if "UF" not in dataframe.columns or "MUNICIPIO" not in dataframe.columns:
+            continue
+        return dataframe[dataframe["UF"].astype(str).str.upper() != "UF"].copy()
+    raise ValueError("Could not identify SENATRAN CSV header row.")
 
 
 def _load_dataframe_from_bytes(raw_bytes: bytes, *, suffix: str) -> pd.DataFrame:
@@ -155,17 +212,31 @@ def _load_dataframe_from_bytes(raw_bytes: bytes, *, suffix: str) -> pd.DataFrame
         inner_bytes, inner_suffix = _extract_tabular_bytes_from_zip(raw_bytes)
         return _load_dataframe_from_bytes(inner_bytes, suffix=inner_suffix)
     if normalized_suffix in {".csv", ".txt"}:
+        try:
+            return _load_senatran_structured_csv(raw_bytes)
+        except Exception:
+            pass
         return _read_delimited_with_fallback(raw_bytes)
     if normalized_suffix in {".xlsx", ".xls"}:
         return pd.read_excel(io.BytesIO(raw_bytes))
     raise ValueError(f"Unsupported dataset format '{suffix}'.")
 
 
-def _list_manual_candidates(path: Path = MANUAL_SENATRAN_DIR) -> list[Path]:
+def _list_manual_candidates(
+    *,
+    reference_period: str,
+    path: Path = MANUAL_SENATRAN_DIR,
+) -> list[Path]:
     if not path.exists():
         return []
     files = [p for p in path.iterdir() if p.is_file() and _is_tabular_candidate(p.name)]
-    return sorted(files, key=lambda p: p.stat().st_mtime, reverse=True)
+    return sorted(
+        files,
+        key=lambda candidate: (
+            _manual_year_rank(candidate, reference_period=reference_period),
+            -candidate.stat().st_mtime,
+        ),
+    )
 
 
 def _normalize_dataframe_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -299,7 +370,36 @@ def _build_indicator_rows(
 
 
 def _render_uri_template(template: str, *, reference_period: str) -> str:
-    return template.format(reference_period=reference_period)
+    return template.format(reference_period=reference_period, year=reference_period)
+
+
+def _discover_remote_resources(*, reference_period: str, client: HttpClient) -> list[dict[str, Any]]:
+    page_url = SENATRAN_PAGE_TEMPLATE.format(reference_period=reference_period)
+    payload, _content_type = client.download_bytes(page_url, min_bytes=128)
+
+    try:
+        page_html = payload.decode("utf-8")
+    except UnicodeDecodeError:
+        page_html = payload.decode("latin1", errors="ignore")
+
+    links = re.findall(r'href="([^"]+)"', page_html, flags=re.IGNORECASE)
+    discovered_uris: set[str] = set()
+    for raw_link in links:
+        absolute = urljoin(page_url, raw_link)
+        normalized_link = _normalize_text(unquote(absolute))
+        if SENATRAN_REMOTE_CSV_TOKEN not in normalized_link:
+            continue
+        if not absolute.casefold().endswith(".csv"):
+            continue
+        years = _extract_year_tokens(absolute)
+        if years and reference_period not in years:
+            continue
+        discovered_uris.add(absolute)
+
+    if reference_period == "2025":
+        discovered_uris.add(SENATRAN_FALLBACK_2025_CSV)
+
+    return [{"uri": uri, "extension": ".csv"} for uri in sorted(discovered_uris)]
 
 
 def _resolve_dataset(
@@ -310,12 +410,37 @@ def _resolve_dataset(
 ) -> tuple[pd.DataFrame, bytes, str, str, str, str, list[str]] | None:
     warnings: list[str] = []
     resources = _load_catalog()
+    try:
+        resources.extend(
+            _discover_remote_resources(
+                reference_period=reference_period,
+                client=client,
+            )
+        )
+    except Exception as exc:
+        warnings.append(f"SENATRAN remote discovery failed: {exc}")
 
+    deduped_resources: list[dict[str, Any]] = []
+    seen_uris: set[str] = set()
     for resource in resources:
+        uri = str(resource.get("uri", "")).strip()
+        if not uri or uri in seen_uris:
+            continue
+        seen_uris.add(uri)
+        deduped_resources.append(resource)
+
+    for resource in deduped_resources:
         uri_template = str(resource.get("uri", "")).strip()
         if not uri_template:
             continue
         uri = _render_uri_template(uri_template, reference_period=reference_period)
+        resource_years = _extract_year_tokens(uri)
+        if resource_years and reference_period not in resource_years:
+            warnings.append(
+                f"SENATRAN remote source skipped for year mismatch "
+                f"(reference_period={reference_period}, uri={uri})."
+            )
+            continue
         suffix = str(resource.get("extension", "")).strip().casefold() or Path(uri).suffix.casefold()
         try:
             raw_bytes, _content_type = client.download_bytes(uri, min_bytes=32)
@@ -324,8 +449,14 @@ def _resolve_dataset(
         except Exception as exc:
             warnings.append(f"SENATRAN remote source failed for '{uri}': {exc}")
 
-    for candidate in _list_manual_candidates():
+    for candidate in _list_manual_candidates(reference_period=reference_period):
         try:
+            if _manual_year_rank(candidate, reference_period=reference_period) == 2:
+                warnings.append(
+                    f"SENATRAN manual source skipped for year mismatch "
+                    f"(reference_period={reference_period}, file={candidate.name})."
+                )
+                continue
             raw_bytes = candidate.read_bytes()
             suffix = candidate.suffix.casefold()
             df = _load_dataframe_from_bytes(raw_bytes, suffix=suffix)

@@ -119,6 +119,11 @@ connectors:
     wave: MVP-7
     status: implemented
     notes: Urban POIs extraction via Overpass API with manual fallback and idempotent load into map.urban_poi.
+  - connector_name: urban_transport_fetch
+    source: OSM
+    wave: MVP-7
+    status: implemented
+    notes: Urban transport stops extraction via Overpass API with manual fallback and idempotent load into map.urban_transport_stop.
   - connector_name: dbt_build
     source: INTERNAL
     wave: MVP-1

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from pathlib import Path
 
 import pandas as pd
 
@@ -115,6 +116,127 @@ def test_senatran_build_indicator_rows_uses_total_column() -> None:
     by_code = {item["indicator_code"]: item for item in indicators}
     assert by_code["SENATRAN_FROTA_TOTAL"]["value"] == Decimal("100")
     assert by_code["SENATRAN_FROTA_MOTOCICLETAS"]["value"] == Decimal("25")
+
+
+def test_senatran_parse_numeric_handles_thousand_commas() -> None:
+    assert senatran_fleet._parse_numeric("126,775,108") == Decimal("126775108")
+
+
+def test_senatran_load_dataframe_from_bytes_handles_preface_rows() -> None:
+    raw_bytes = (
+        "Frota de veículos, por tipo e com placa, segundo os Municípios da Federação - JULHO/2025,,,,,\n"
+        ",,\"126,775,108\",,,\n"
+        "UF,MUNICIPIO,TOTAL,AUTOMOVEL,MOTOCICLETA,MOTONETA,ONIBUS,MICRO-ONIBUS\n"
+        "MG,DIAMANTINA,\"1,234\",500,400,200,70,30\n"
+    ).encode("utf-8")
+
+    dataframe = senatran_fleet._load_dataframe_from_bytes(raw_bytes, suffix=".csv")
+
+    assert len(dataframe) == 1
+    assert dataframe.iloc[0]["MUNICIPIO"] == "DIAMANTINA"
+    assert dataframe.iloc[0]["TOTAL"] == "1,234"
+
+
+def test_senatran_discover_remote_resources_reads_year_csv_links() -> None:
+    class _FakeHttpClient:
+        def download_bytes(self, _url: str, **kwargs):  # noqa: ARG002
+            payload = """
+                <html><body>
+                <a href="/transportes/pt-br/assuntos/transito/conteudo-Senatran/FrotaporMunicipioetipoAbril2024.csv">CSV 2024</a>
+                <a href="/transportes/pt-br/assuntos/transito/conteudo-Senatran/FrotaporMunicipioetipoAbril2025.csv">CSV 2025</a>
+                </body></html>
+            """.encode("utf-8")
+            return payload, "text/html"
+
+    resources = senatran_fleet._discover_remote_resources(
+        reference_period="2024",
+        client=_FakeHttpClient(),
+    )
+    uris = [str(resource.get("uri", "")) for resource in resources]
+    assert any(uri.endswith("Abril2024.csv") for uri in uris)
+    assert all("2025" not in uri for uri in uris)
+
+
+def test_senatran_manual_year_rank_prioritizes_reference_year() -> None:
+    assert (
+        senatran_fleet._manual_year_rank(
+            Path("senatran_diamantina_2024.csv"),
+            reference_period="2024",
+        )
+        == 0
+    )
+    assert (
+        senatran_fleet._manual_year_rank(
+            Path("senatran_diamantina.csv"),
+            reference_period="2024",
+        )
+        == 1
+    )
+    assert (
+        senatran_fleet._manual_year_rank(
+            Path("senatran_diamantina_2025.csv"),
+            reference_period="2024",
+        )
+        == 2
+    )
+
+
+def test_senatran_resolve_dataset_uses_discovered_remote_when_catalog_is_empty(monkeypatch) -> None:
+    remote_csv_url = "https://example.test/FrotaporMunicipioetipoAbril2024.csv"
+
+    class _FakeHttpClient:
+        def download_bytes(self, url: str, **kwargs):  # noqa: ARG002
+            if url != remote_csv_url:
+                raise RuntimeError(f"Unexpected URL: {url}")
+            payload = "codigo_municipio;frota_total\n3121605;222\n".encode("utf-8")
+            return payload, "text/csv"
+
+    monkeypatch.setattr(senatran_fleet, "_load_catalog", lambda: [])
+    monkeypatch.setattr(
+        senatran_fleet,
+        "_discover_remote_resources",
+        lambda **kwargs: [{"uri": remote_csv_url, "extension": ".csv"}],  # noqa: ARG005
+    )
+
+    dataset = senatran_fleet._resolve_dataset(
+        settings=_build_settings(),
+        reference_period="2024",
+        client=_FakeHttpClient(),
+    )
+
+    assert dataset is not None
+    dataframe, _raw_bytes, _suffix, source_type, source_uri, source_file_name, warnings = dataset
+    assert source_type == "remote"
+    assert source_uri == remote_csv_url
+    assert source_file_name == "FrotaporMunicipioetipoAbril2024.csv"
+    assert len(dataframe) == 1
+    assert warnings == []
+
+
+def test_senatran_resolve_dataset_skips_manual_year_mismatch(monkeypatch) -> None:
+    class _FakeHttpClient:
+        def download_bytes(self, _url: str, **kwargs):  # noqa: ARG002
+            raise RuntimeError("No remote source should be requested in this test.")
+
+    monkeypatch.setattr(senatran_fleet, "_load_catalog", lambda: [])
+    monkeypatch.setattr(
+        senatran_fleet,
+        "_discover_remote_resources",
+        lambda **kwargs: [],  # noqa: ARG005
+    )
+    monkeypatch.setattr(
+        senatran_fleet,
+        "_list_manual_candidates",
+        lambda **kwargs: [Path("senatran_diamantina_2025.csv")],  # noqa: ARG005
+    )
+
+    dataset = senatran_fleet._resolve_dataset(
+        settings=_build_settings(),
+        reference_period="2024",
+        client=_FakeHttpClient(),
+    )
+
+    assert dataset is None
 
 
 def test_senatran_dry_run_uses_resolved_dataset(monkeypatch) -> None:

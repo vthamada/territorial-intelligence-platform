@@ -39,7 +39,10 @@ python scripts/init_db.py
 # 4. Registrar conectores
 python scripts/sync_connector_registry.py
 
-# 5. Verificar saude
+# 5. Sincronizar contratos de schema por fonte
+python scripts/sync_schema_contracts.py
+
+# 6. Verificar saude
 python scripts/backend_readiness.py
 ```
 
@@ -119,6 +122,8 @@ python -m pipelines.quality_suite --reference-period 2025
 | `check_fact_election_result` | `fact_election_result` | Nao-negativo, referencia e territorio preenchidos |
 | `check_fact_indicator` | `fact_indicator` | Codigo/referencia/valor/territorio validos, probe rows |
 | `check_fact_indicator_source_rows` | `fact_indicator` | Min rows por fonte (15 fontes configuradas) |
+| `check_source_schema_contracts` | `ops.source_schema_contracts` | Cobertura ativa de contratos por conector implementado/partial |
+| `check_source_schema_drift` | `ops.source_schema_contracts` + catalogo PG | Drift de schema (tabela, colunas obrigatorias e tipos por conector) |
 | `check_ops_pipeline_runs` | `ops.pipeline_runs` | Presenca de runs para 14 jobs implementados |
 
 ### 4.2 Thresholds
@@ -128,6 +133,13 @@ Configurados em `configs/quality_thresholds.yml`. Fontes com min_rows:
 - MVP-3: DATASUS, INEP, SICONFI, MTE, TSE (min_rows=1)
 - MVP-4: SIDRA, SENATRAN, SEJUSP_MG, SIOPS, SNIS (min_rows=1)
 - MVP-5: INMET, INPE_QUEIMADAS, ANA, ANATEL, ANEEL (min_rows=1)
+- Schema contracts:
+  - `min_active_coverage_pct: 100.0`
+  - `max_missing_connectors: 0`
+- Schema drift:
+  - `max_missing_required_columns: 0`
+  - `max_type_mismatch_columns: 0`
+  - `max_connectors_with_drift: 0`
 
 ### 4.3 Interpretacao
 
@@ -275,6 +287,9 @@ python -m pytest -q -p no:cacheprovider
 
 # Apenas contratos
 python -m pytest tests/contracts/ -q
+
+# Cobertura de contrato por conector (D6/BD-061)
+python -m pytest tests/contracts/test_schema_contract_connector_coverage.py -q
 
 # Apenas quality checks
 python -m pytest tests/unit/test_quality_core_checks.py -q
@@ -426,6 +441,87 @@ Interpretacao rapida:
 
 1. TSE: discovery automatico via CKAN; fallback por Bronze cache quando necessario.
 2. Fontes MVP-5 (`INMET`, `INPE_QUEIMADAS`, `ANA`, `ANATEL`, `ANEEL`): monitorar `min_rows=1` e estabilidade dos runs apos deploy.
+
+### 11.4 Execucao dedicada BD-050 (historico ambiental multi-ano)
+
+Fluxo recomendado para D5:
+
+```powershell
+# Bootstrap + carga ambiental (INMET/INPE/ANA) para janela multi-ano
+.\.venv\Scripts\python.exe scripts/backfill_environment_history.py --periods 2021,2022,2023,2024,2025 --output-json data/reports/bd050_environment_history_report.json
+
+# Scorecard atualizado com metricas ambientais por fonte
+.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json
+```
+
+Leitura minima do relatorio `bd050_environment_history_report.json`:
+1. `summary.execution_status.success` deve cobrir os 3 jobs para todos os periodos.
+2. `coverage` deve mostrar `distinct_periods` crescente por `INMET`, `INPE_QUEIMADAS` e `ANA`.
+3. Qualquer `manual_required` ou `blocked` deve abrir triagem imediata no runbook.
+
+### 11.5 BD-051 - agregacao ambiental territorial
+
+Objetivo operacional:
+1. garantir disponibilidade da agregacao de risco ambiental por `district` e `census_sector`.
+
+Validacao rapida:
+
+```powershell
+# Reaplicar SQL para garantir view atualizada
+.\.venv\Scripts\python.exe scripts/init_db.py
+
+# Smoke do endpoint ambiental
+.\.venv\Scripts\python.exe -c "from fastapi.testclient import TestClient; from app.api.main import app; c=TestClient(app); r=c.get('/v1/map/environment/risk?level=district&limit=5'); print(r.status_code, r.json().get('period'), r.json().get('count'))"
+```
+
+Checks de qualidade esperados no ultimo `quality_suite`:
+1. `environment_risk_rows_district` = `pass`.
+2. `environment_risk_rows_census_sector` = `pass`.
+3. `environment_risk_distinct_periods` = `pass`.
+4. `environment_risk_null_score_rows`, `environment_risk_null_hazard_rows`, `environment_risk_null_exposure_rows` = `pass`.
+
+### 11.6 BD-052 - mart Gold de risco ambiental territorial
+
+Objetivo operacional:
+1. garantir disponibilidade do mart Gold ambiental para consumo executivo em `/v1/environment/risk`.
+
+Validacao rapida:
+
+```powershell
+# Reaplicar SQL para garantir mart atualizado
+.\.venv\Scripts\python.exe scripts/init_db.py
+
+# Smoke do endpoint executivo ambiental
+.\.venv\Scripts\python.exe -c "from fastapi.testclient import TestClient; from app.api.main import app; c=TestClient(app); r=c.get('/v1/environment/risk?level=district&limit=5'); print(r.status_code, r.json().get('period'), len(r.json().get('items', [])))"
+```
+
+Checks de qualidade esperados no ultimo `quality_suite`:
+1. `environment_risk_mart_rows_municipality` = `pass`.
+2. `environment_risk_mart_rows_district` = `pass`.
+3. `environment_risk_mart_rows_census_sector` = `pass`.
+4. `environment_risk_mart_distinct_periods` = `pass`.
+5. `environment_risk_mart_null_score_rows` = `pass`.
+
+### 11.7 BD-080 - carga incremental + reprocessamento seletivo
+
+Objetivo operacional:
+1. evitar reprocessamento desnecessario por `job + reference_period` sem perder capacidade de atualizar periodos stale.
+2. permitir reprocessamento pontual de conectores/periodos com controle explicito.
+
+Execucao recomendada:
+
+```powershell
+# Incremental padrao (stale >= 168h), com dbt/quality pos-carga
+.\.venv\Scripts\python.exe scripts/run_incremental_backfill.py --output-json data/reports/incremental_backfill_report.json
+
+# Reprocessamento seletivo por job e periodo
+.\.venv\Scripts\python.exe scripts/run_incremental_backfill.py --jobs sidra_indicators_fetch,senatran_fleet_fetch --reprocess-jobs sidra_indicators_fetch --reprocess-periods 2025 --output-json data/reports/incremental_backfill_report.json
+```
+
+Leitura minima do relatorio:
+1. `plan[*].execute` define o que foi executado vs skip por sucesso fresco.
+2. `summary.execution_status` deve ficar sem `failed` (ou sem status fora de `success`/`blocked` quando `--allow-blocked`).
+3. `summary.post_load_runs` confirma disparo de `dbt_build`/`quality_suite` por periodo com sucesso incremental.
 ## 12) Procedimento de deploy
 
 ### 12.1 Pre-deploy checklist

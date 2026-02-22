@@ -41,9 +41,45 @@ class _MappingsResult:
         return self._rows[0] if self._rows else None
 
 
+class _ScalarResult:
+    def __init__(self, value: Any) -> None:
+        self._value = value
+
+    def scalar_one(self) -> Any:
+        return self._value
+
+
 class _UrbanSession:
-    def execute(self, statement: Any, *_args: Any, **_kwargs: Any) -> _MappingsResult:
+    def execute(self, statement: Any, *_args: Any, **_kwargs: Any) -> _MappingsResult | _ScalarResult:
         sql = str(statement)
+        if "SELECT MAX(reference_period)::text" in sql and "map.v_environment_risk_aggregation" in sql:
+            return _ScalarResult("2025")
+        if "FROM map.v_environment_risk_aggregation v" in sql:
+            return _MappingsResult(
+                [
+                    {
+                        "reference_period": "2025",
+                        "territory_id": "00000000-0000-0000-0000-000000000001",
+                        "territory_name": "Distrito Sede",
+                        "territory_level": "district",
+                        "municipality_ibge_code": "3121605",
+                        "hazard_score": 62.4,
+                        "exposure_score": 58.2,
+                        "environment_risk_score": 60.9,
+                        "priority_status": "attention",
+                        "area_km2": 15.7,
+                        "road_km": 42.8,
+                        "pois_count": 18,
+                        "transport_stops_count": 6,
+                        "road_density_km_per_km2": 2.73,
+                        "pois_per_km2": 1.15,
+                        "transport_stops_per_km2": 0.38,
+                        "uses_proxy_allocation": False,
+                        "allocation_method": "spatial_exposure_proxy",
+                        "geometry_json": '{"type":"Polygon","coordinates":[[[-43.62,-18.26],[-43.59,-18.26],[-43.59,-18.23],[-43.62,-18.23],[-43.62,-18.26]]]}',
+                    }
+                ]
+            )
         if "FROM map.urban_road_segment" in sql and "COALESCE(ST_Length(ST_Transform(geom, 31983))" in sql:
             return _MappingsResult(
                 [
@@ -106,6 +142,20 @@ class _UrbanSession:
                         "category": "health",
                         "subcategory": "primary_care",
                         "geometry_json": '{"type":"Point","coordinates":[-43.6005,-18.2438]}',
+                    }
+                ]
+            )
+        if "FROM map.urban_transport_stop" in sql and "ORDER BY transport_id" in sql:
+            return _MappingsResult(
+                [
+                    {
+                        "transport_id": "20",
+                        "source": "OSM",
+                        "name": "Terminal Rodoviario",
+                        "mode": "bus",
+                        "operator": "Municipal",
+                        "is_accessible": True,
+                        "geometry_json": '{"type":"Point","coordinates":[-43.6020,-18.2429]}',
                     }
                 ]
             )
@@ -185,6 +235,7 @@ def test_map_layers_include_urban_contract_shape() -> None:
     layer_ids = {item["id"] for item in payload["items"]}
     assert "urban_roads" in layer_ids
     assert "urban_pois" in layer_ids
+    assert "urban_transport_stops" in layer_ids
     assert response.headers.get("x-request-id")
 
 
@@ -201,6 +252,7 @@ def test_map_layers_readiness_include_urban_contract_shape() -> None:
     layer_ids = {item["layer"]["id"] for item in payload["items"]}
     assert "urban_roads" in layer_ids
     assert "urban_pois" in layer_ids
+    assert "urban_transport_stops" in layer_ids
     assert response.headers.get("x-request-id")
     app.dependency_overrides.clear()
 
@@ -297,6 +349,26 @@ def test_map_urban_roads_contract_shape() -> None:
     app.dependency_overrides.clear()
 
 
+def test_map_environment_risk_contract_shape() -> None:
+    app.dependency_overrides[get_db] = _urban_db
+    client = TestClient(app)
+
+    response = client.get("/v1/map/environment/risk?level=district&limit=1")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["period"] == "2025"
+    assert payload["level"] == "district"
+    assert payload["count"] == 1
+    first = payload["items"][0]
+    assert first["territory_level"] == "district"
+    assert first["environment_risk_score"] == 60.9
+    assert first["priority_status"] == "attention"
+    assert first["allocation_method"] == "spatial_exposure_proxy"
+    assert first["geometry"]["type"] == "Polygon"
+    app.dependency_overrides.clear()
+
+
 def test_map_urban_pois_contract_shape() -> None:
     app.dependency_overrides[get_db] = _urban_db
     client = TestClient(app)
@@ -309,6 +381,23 @@ def test_map_urban_pois_contract_shape() -> None:
     first = payload["items"][0]
     assert first["poi_id"] == "10"
     assert first["category"] == "health"
+    assert first["geometry"]["type"] == "Point"
+    app.dependency_overrides.clear()
+
+
+def test_map_urban_transport_stops_contract_shape() -> None:
+    app.dependency_overrides[get_db] = _urban_db
+    client = TestClient(app)
+
+    response = client.get("/v1/map/urban/transport-stops?mode=bus&limit=1")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 1
+    first = payload["items"][0]
+    assert first["transport_id"] == "20"
+    assert first["mode"] == "bus"
+    assert first["is_accessible"] is True
     assert first["geometry"]["type"] == "Point"
     app.dependency_overrides.clear()
 

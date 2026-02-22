@@ -1,0 +1,135 @@
+{
+  "generated_at_utc": "2026-02-21T11:52:07.392836+00:00",
+  "periods": [
+    "2025"
+  ],
+  "dry_run": true,
+  "bootstrap": [],
+  "executions": [
+    {
+      "job": "inmet_climate_fetch",
+      "reference_period": "2025",
+      "status": "success",
+      "rows_loaded": 0,
+      "result": {
+        "job": "inmet_climate_fetch",
+        "status": "success",
+        "run_id": "f6faa97f-62b7-4392-b6bc-bfbccc1e3498",
+        "duration_seconds": 12.12,
+        "rows_extracted": 1,
+        "rows_written": 0,
+        "warnings": [
+          "INMET remote source failed for 'https://portal.inmet.gov.br/uploads/dadoshistoricos/2025.zip': Request failed after retries for URL: https://portal.inmet.gov.br/uploads/dadoshistoricos/2025.zip"
+        ],
+        "errors": [],
+        "preview": {
+          "source_type": "manual",
+          "source_uri": "file:///C:/Users/vtham/OneDrive/%C3%81rea%20de%20Trabalho/territorial-intelligence-platform/data/manual/inmet/inmet_diamantina_2025.csv",
+          "source_file_name": "inmet_diamantina_2025.csv",
+          "municipality_matches": 1,
+          "indicators": [
+            {
+              "indicator_code": "INMET_PRECIPITACAO_TOTAL_MM",
+              "value": "838.6"
+            },
+            {
+              "indicator_code": "INMET_TEMPERATURA_MEDIA_C",
+              "value": "18.258575890068705"
+            },
+            {
+              "indicator_code": "INMET_UMIDADE_RELATIVA_MEDIA_PERCENT",
+              "value": "74.57226733291692"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "job": "inpe_queimadas_fetch",
+      "reference_period": "2025",
+      "status": "success",
+      "rows_loaded": 0,
+      "result": {
+        "job": "inpe_queimadas_fetch",
+        "status": "success",
+        "run_id": "7f7d3b7b-5913-4fa0-9ff3-68642a260693",
+        "duration_seconds": 17.13,
+        "rows_extracted": 1,
+        "rows_written": 0,
+        "warnings": [
+          "INPE_QUEIMADAS remote payload produced no indicator rows; using manual fallback '_pytest_inpe_queimadas_diamantina_2025.csv'."
+        ],
+        "errors": [],
+        "preview": {
+          "source_type": "manual",
+          "source_uri": "file:///C:/Users/vtham/OneDrive/%C3%81rea%20de%20Trabalho/territorial-intelligence-platform/data/manual/inpe_queimadas/_pytest_inpe_queimadas_diamantina_2025.csv",
+          "source_file_name": "_pytest_inpe_queimadas_diamantina_2025.csv",
+          "municipality_matches": 1,
+          "indicators": [
+            {
+              "indicator_code": "INPE_FOCOS_QUEIMADAS_TOTAL",
+              "value": "91"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "job": "ana_hydrology_fetch",
+      "reference_period": "2025",
+      "status": "blocked",
+      "rows_loaded": 0,
+      "result": {
+        "job": "ana_hydrology_fetch",
+        "status": "blocked",
+        "run_id": "5ce0ab59-d9be-44c9-a554-cca9a2456a80",
+        "duration_seconds": 6.26,
+        "rows_extracted": 5570,
+        "rows_written": 0,
+        "warnings": [
+          "ANA row not found for municipality code/name (3121605/Diamantina)."
+        ],
+        "errors": [],
+        "preview": {
+          "source_type": "remote",
+          "source_uri": "https://hub.arcgis.com/api/download/v1/items/cd6baae8f24846778c6ddd5503b0ebbd/csv?layers=18",
+          "source_file_name": "csv?layers=18",
+          "municipality_matches": 0,
+          "indicators": []
+        }
+      }
+    }
+  ],
+  "quality_runs": [],
+  "coverage": [
+    {
+      "source": "INMET",
+      "rows": 15,
+      "distinct_periods": 5,
+      "min_period": "2021",
+      "max_period": "2025"
+    },
+    {
+      "source": "INPE_QUEIMADAS",
+      "rows": 5,
+      "distinct_periods": 5,
+      "min_period": "2021",
+      "max_period": "2025"
+    },
+    {
+      "source": "ANA",
+      "rows": 5,
+      "distinct_periods": 5,
+      "min_period": "2021",
+      "max_period": "2025"
+    }
+  ],
+  "summary": {
+    "bootstrap_status": {},
+    "execution_status": {
+      "success": 2,
+      "blocked": 1
+    },
+    "quality_status": {}
+  }
+}

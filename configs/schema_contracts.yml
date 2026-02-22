@@ -1,0 +1,34 @@
+defaults:
+  schema_version: v1
+  effective_from: 2026-02-21
+  status: active
+  notes: "Baseline schema contract generated from connector metadata."
+
+overrides:
+  ibge_admin_fetch:
+    schema_version: v1
+    notes: "dim_territory contract for municipal and district hierarchy."
+  ibge_geometries_fetch:
+    schema_version: v1
+    notes: "dim_territory geometry contract (municipality/district/census_sector)."
+  tse_electorate_fetch:
+    schema_version: v1
+    notes: "Electorate contract with demographic breakdown columns."
+  tse_results_fetch:
+    schema_version: v1
+    notes: "Election result contract by metric and office."
+  cecad_social_protection_fetch:
+    schema_version: v1
+    notes: "Social protection aggregated contract."
+  censo_suas_fetch:
+    schema_version: v1
+    notes: "Social assistance network aggregated contract."
+  urban_roads_fetch:
+    schema_version: v1
+    notes: "Urban roads spatial contract."
+  urban_pois_fetch:
+    schema_version: v1
+    notes: "Urban POIs spatial contract."
+  urban_transport_fetch:
+    schema_version: v1
+    notes: "Urban transport spatial contract."

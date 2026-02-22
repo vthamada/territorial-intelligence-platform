@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.settings import Settings
-from pipelines import urban_pois, urban_roads
+from pipelines import urban_pois, urban_roads, urban_transport
 
 
 def _build_settings() -> Settings:
@@ -150,3 +150,71 @@ def test_urban_pois_dry_run_uses_resolved_dataset(monkeypatch) -> None:
     assert result["rows_extracted"] == 1
     assert result["preview"]["source_type"] == "manual"
     assert result["preview"]["first_row"]["name"] == "UBS Centro"
+
+
+def test_parse_overpass_transport_rows_extracts_mode_metadata() -> None:
+    payload = {
+        "elements": [
+            {
+                "type": "node",
+                "id": 456,
+                "lat": -18.2429,
+                "lon": -43.6020,
+                "tags": {"name": "Terminal Rodoviario", "highway": "bus_stop", "wheelchair": "yes"},
+            }
+        ]
+    }
+
+    rows = urban_transport._parse_overpass_rows(payload, reference_period="2026")
+
+    assert len(rows) == 1
+    first = rows[0]
+    assert first["external_id"] == "node/456"
+    assert first["mode"] == "bus"
+    assert first["is_accessible"] is True
+    assert "Point" in first["geometry_json"]
+
+
+def test_urban_transport_dry_run_uses_resolved_dataset(monkeypatch) -> None:
+    monkeypatch.setattr(
+        urban_transport,
+        "_resolve_municipality_context",
+        lambda _settings: ("00000000-0000-0000-0000-000000000000", "Diamantina", (-43.7, -18.3, -43.5, -18.1)),
+    )
+    monkeypatch.setattr(
+        urban_transport,
+        "_resolve_dataset",
+        lambda **kwargs: (  # noqa: ARG005
+            [
+                {
+                    "source": "MANUAL_URBAN",
+                    "external_id": "t-1",
+                    "name": "Terminal Rodoviario",
+                    "mode": "bus",
+                    "operator": "Municipal",
+                    "is_accessible": True,
+                    "metadata_json": {},
+                    "geometry_json": '{"type":"Point","coordinates":[-43.6020,-18.2429]}',
+                    "geometry_wkt": None,
+                }
+            ],
+            b"raw",
+            ".json",
+            "manual",
+            "file:///tmp/transport.geojson",
+            "transport.geojson",
+            [],
+        ),
+    )
+    monkeypatch.setattr(
+        urban_transport.HttpClient,
+        "from_settings",
+        lambda *args, **kwargs: _FakeHttpClient(),
+    )
+
+    result = urban_transport.run(reference_period="2026", dry_run=True, settings=_build_settings())
+
+    assert result["status"] == "success"
+    assert result["rows_extracted"] == 1
+    assert result["preview"]["source_type"] == "manual"
+    assert result["preview"]["first_row"]["mode"] == "bus"

@@ -77,10 +77,14 @@ Silver:
 - `silver.fact_electorate`
 - `silver.fact_election_result`
 
+Gold (executivo minimo):
+- `gold.mart_priority_drivers`
+
 Ops:
 - `ops.pipeline_runs`
 - `ops.pipeline_checks`
 - `ops.connector_registry`
+- `ops.source_schema_contracts`
 
 Status de conector permitidos:
 - `implemented`, `partial`, `blocked`, `planned`
@@ -116,9 +120,11 @@ Endpoints mínimos de domínio:
 
 Endpoints executivos (QG estratégico):
 - `GET /v1/kpis/overview` — KPIs agregados por domínio com metadata e source_classification
-- `GET /v1/priority/list` — lista de prioridades com score, severidade, evidência e justificativa
+- `GET /v1/priority/list` — lista de prioridades com score, severidade, evidência, justificativa e trilha de explicabilidade
 - `GET /v1/priority/summary` — resumo por status e domínio
-- `GET /v1/insights/highlights` — destaques analíticos com robustez e explicação
+- `GET /v1/insights/highlights` — destaques analíticos com robustez, explicação e trilha de explicabilidade
+- `GET /v1/mobility/access` — leitura territorial de acesso a mobilidade com score de déficit e método de alocação
+- `GET /v1/environment/risk` — leitura territorial de risco ambiental (mart Gold) com ranking e prioridade por nível
 - `POST /v1/scenarios/simulate` — simulação antes/depois com delta de score e ranking
 - `POST /v1/briefs` — geração de brief executivo estruturado
 - `GET /v1/territory/{territory_id}/profile` — perfil 360 do território
@@ -293,7 +299,7 @@ O sistema é considerado finalizado quando:
 | Homologação consolidada | `scripts/homologation_check.py` | 5 dimensões: backend readiness, quality suite, frontend build, test suites, API smoke |
 | Benchmark de performance | `scripts/benchmark_api.py` | p50/p95/p99 em 12 endpoints executivos, alvo p95 ≤ 800ms |
 | Backend readiness | `scripts/backend_readiness.py` | Schema, SLO-1, ops tracking, PostGIS |
-| Quality suite | `src/pipelines/quality_suite.py` | 6 checks: dim_territory, fact_electorate, fact_election_result, fact_indicator, source_rows (15 fontes), ops_pipeline_runs (14 jobs) |
+| Quality suite | `src/pipelines/quality_suite.py` | Suite de checks de qualidade por dominio (territorial, eleitoral, indicadores por fonte, urbano, ambiental, contratos de schema e operacao) |
 
 ## 13) Governança documental
 

@@ -258,6 +258,24 @@ Aceite:
 ### Sprint D5 - Dominio ambiental e risco territorial
 Objetivo:
 1. consolidar leitura de risco ambiental e hidrologico por territorio.
+Status:
+- concluido (BD-050, BD-051 e BD-052 concluidos tecnicamente em 2026-02-21).
+Progresso atual:
+- `BD-050` implementado com:
+  - script dedicado `scripts/backfill_environment_history.py` para bootstrap + carga multi-ano (`INMET`, `INPE_QUEIMADAS`, `ANA`);
+  - hardening de integridade temporal em `tabular_indicator_connector` (bloqueio de carga quando ano nao casa com `reference_period`);
+  - thresholds explicitos `min_periods_inmet/inpe_queimadas/ana = 5`;
+  - scorecard SQL ampliado com metricas de periodos distintos por fonte ambiental.
+- `BD-051` implementado com:
+  - agregacao ambiental por `district` e `census_sector` em `map.v_environment_risk_aggregation`;
+  - endpoint operacional `GET /v1/map/environment/risk`;
+  - checks de qualidade dedicados para cobertura e nulos da agregacao ambiental;
+  - scorecard ampliado com metricas `environment_risk_*`.
+- `BD-052` implementado com:
+  - mart Gold `gold.mart_environment_risk` com cobertura `municipality|district|census_sector`;
+  - endpoint executivo `GET /v1/environment/risk` para consumo no QG;
+  - checks de qualidade dedicados para cobertura e nulos do mart Gold;
+  - scorecard ampliado com metricas `environment_risk_mart_*`.
 
 Issues:
 1. `BD-050`: expandir INMET/INPE/ANA para series historicas multi-ano.
@@ -271,6 +289,22 @@ Aceite:
 ### Sprint D6 - Qualidade avancada e confiabilidade
 Objetivo:
 1. reduzir risco de regressao e inconsistencias de fonte.
+Status:
+- concluido em 2026-02-22 (`BD-060`, `BD-061`, `BD-062`).
+Progresso atual:
+- `BD-060` implementado com:
+  - tabela/view de contratos versionados em `ops.source_schema_contracts` e `ops.v_source_schema_contracts_active`;
+  - sincronizacao automatica via `scripts/sync_schema_contracts.py` e `configs/schema_contracts.yml`;
+  - check dedicado `check_source_schema_contracts` no `quality_suite`;
+  - scorecard ampliado com `schema_contracts_active_coverage_pct`.
+- `BD-061` implementado com:
+  - suite de contratos por conector em `tests/contracts/test_schema_contract_connector_coverage.py`;
+  - cobertura minima validada (`>= 90%`) para conectores elegiveis;
+  - testes parametrizados por conector com falha explicita para ausencia/quebra de contrato.
+- `BD-062` implementado com:
+  - check de drift por conector (`check_source_schema_drift`) no `quality_suite`;
+  - alerta operacional por `fail` em `ops.pipeline_checks` para drift detectado;
+  - scorecard ampliado com `schema_drift_fail_checks_last_7d`.
 
 Issues:
 1. `BD-060`: contratos de schema por fonte (versionados).
@@ -284,6 +318,21 @@ Aceite:
 ### Sprint D7 - Marts de decisao e explicabilidade
 Objetivo:
 1. transformar base robusta em decisao robusta.
+Status:
+- concluido (2026-02-22).
+Progresso atual:
+- `BD-070` implementado com:
+  - view `gold.mart_priority_drivers` em `db/sql/015_priority_drivers_mart.sql`;
+  - consumo em `GET /v1/priority/list`, `GET /v1/priority/summary` e `GET /v1/insights/highlights`;
+  - scorecard ampliado com `priority_drivers_rows` e `priority_drivers_distinct_periods`.
+- `BD-071` implementado com:
+  - governanca de versao em `ops.strategic_score_versions` + `ops.v_strategic_score_version_active` (`db/sql/016_strategic_score_versions.sql`);
+  - pesos por dominio/indicador aplicados no `gold.mart_priority_drivers` com colunas auditaveis de versao e pesos;
+  - scorecard ampliado com metricas de versao ativa e rastreabilidade de score.
+- `BD-072` implementado com:
+  - trilha de explicabilidade estruturada em `GET /v1/priority/list` e `GET /v1/insights/highlights`;
+  - payload de explainability com `trail_id`, cobertura territorial, ranking, thresholds e metodo/versao de score;
+  - evidencia com `updated_at` e `deep_link` de insights para triagem contextual.
 
 Issues:
 1. `BD-070`: `gold.mart_priority_drivers` por dominio.
@@ -297,6 +346,14 @@ Aceite:
 ### Sprint D8 - Hardening final e operacao assistida
 Objetivo:
 1. fechar estabilidade de producao para nivel maximo.
+Status:
+- em andamento (2026-02-22), com `BD-080` concluido tecnicamente.
+Progresso atual:
+- `BD-080` implementado com orquestracao incremental em `scripts/run_incremental_backfill.py`:
+  - decisao por historico de `ops.pipeline_runs` (`no_previous_run`, `latest_status!=success`, `stale_success`);
+  - reprocessamento seletivo por `--reprocess-jobs` e `--reprocess-periods`;
+  - pos-carga com `dbt_build` e `quality_suite` por periodo com sucesso;
+  - relatorio operacional em `data/reports/incremental_backfill_report.json`.
 
 Issues:
 1. `BD-080`: carga incremental confiavel + reprocessamento seletivo.

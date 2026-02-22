@@ -13,7 +13,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
+from app.api.territory_levels import normalize_level
 from app.schemas.map import (
+    EnvironmentRiskCollectionResponse,
+    EnvironmentRiskItem,
     MapLayerCoverageItem,
     MapLayerReadinessItem,
     MapLayerItem,
@@ -31,6 +34,8 @@ from app.schemas.map import (
     UrbanNearbyPoisResponse,
     UrbanPoiCollectionResponse,
     UrbanPoiFeatureItem,
+    UrbanTransportStopCollectionResponse,
+    UrbanTransportStopFeatureItem,
     UrbanRoadCollectionResponse,
     UrbanRoadFeatureItem,
 )
@@ -161,6 +166,19 @@ _URBAN_LAYER_ITEMS: list[MapLayerItem] = [
         zoom_min=12,
         zoom_max=None,
         notes="POIs operacionais para leitura territorial de servicos e equipamentos.",
+    ),
+    MapLayerItem(
+        id="urban_transport_stops",
+        label="Paradas e estacoes de transporte",
+        territory_level="urban",
+        is_official=False,
+        official_status="hybrid",
+        layer_kind="point",
+        source="map.urban_transport_stop",
+        default_visibility=False,
+        zoom_min=12,
+        zoom_max=None,
+        notes="Camada de paradas e estacoes para leitura de acesso e mobilidade urbana.",
     ),
 ]
 _ALL_LAYER_ITEMS: list[MapLayerItem] = [*_BASE_LAYER_ITEMS, *_URBAN_LAYER_ITEMS]
@@ -296,6 +314,42 @@ def get_map_layers_coverage(
                 notes = "Sem POIs urbanos carregados."
             elif territories_with_geometry == 0:
                 notes = "POIs urbanos sem geometria valida."
+            items.append(
+                MapLayerCoverageItem(
+                    layer_id=layer.id,
+                    territory_level=layer.territory_level,
+                    territories_total=territories_total,
+                    territories_with_geometry=territories_with_geometry,
+                    territories_with_indicator=territories_with_indicator,
+                    is_ready=is_ready,
+                    notes=notes,
+                )
+            )
+            continue
+
+        if layer.id == "urban_transport_stops":
+            try:
+                coverage_row = db.execute(
+                    text(
+                        """
+                        SELECT
+                            COUNT(*)::int AS territories_total,
+                            COUNT(*) FILTER (WHERE geom IS NOT NULL)::int AS territories_with_geometry
+                        FROM map.urban_transport_stop
+                        """
+                    )
+                ).mappings().first()
+            except SQLAlchemyError:
+                coverage_row = None
+            territories_total = int(coverage_row["territories_total"]) if coverage_row else 0
+            territories_with_geometry = int(coverage_row["territories_with_geometry"]) if coverage_row else 0
+            territories_with_indicator = territories_with_geometry
+            is_ready = territories_with_geometry > 0
+            notes = None
+            if territories_total == 0:
+                notes = "Sem pontos de transporte urbano carregados."
+            elif territories_with_geometry == 0:
+                notes = "Pontos de transporte urbano sem geometria valida."
             items.append(
                 MapLayerCoverageItem(
                     layer_id=layer.id,
@@ -497,6 +551,10 @@ def get_map_layer_metadata(layer_id: str) -> MapLayerMetadataResponse:
         "territory_polling_place": "Local de votacao detectado no payload eleitoral e associado a geometria de secao.",
         "urban_roads": "Camada vetorial urbana de segmentos viarios consolidada em map.urban_road_segment.",
         "urban_pois": "Camada vetorial urbana de pontos de interesse consolidada em map.urban_poi.",
+        "urban_transport_stops": (
+            "Camada vetorial urbana de paradas e estacoes de transporte consolidada "
+            "em map.urban_transport_stop."
+        ),
     }
     limitations_by_layer = {
         "territory_municipality": [
@@ -530,6 +588,10 @@ def get_map_layer_metadata(layer_id: str) -> MapLayerMetadataResponse:
         ],
         "urban_pois": [
             "Dependente da atualizacao do conector urbano e da qualidade semantica de categorias.",
+        ],
+        "urban_transport_stops": [
+            "Dependente da atualizacao do conector urbano e da cobertura de tags de transporte na fonte.",
+            "Pode incluir geometrias de centroide quando origem e way/relation.",
         ],
     }
     return MapLayerMetadataResponse(
@@ -598,6 +660,135 @@ def get_map_style_metadata() -> MapStyleMetadataResponse:
             ),
         ],
         notes="style_metadata_v1_static",
+    )
+
+
+@router.get("/environment/risk", response_model=EnvironmentRiskCollectionResponse)
+def get_environment_risk(
+    level: str = Query(default="district"),
+    period: str | None = Query(default=None),
+    include_geometry: bool = Query(default=True),
+    limit: int = Query(default=1000, ge=1, le=5000),
+    db: Session = Depends(get_db),
+) -> EnvironmentRiskCollectionResponse:
+    level_en = normalize_level(level) or "district"
+    if level_en not in {"district", "census_sector"}:
+        raise HTTPException(
+            status_code=422,
+            detail="Environment risk endpoint supports only district or census_sector level.",
+        )
+
+    try:
+        effective_period = period
+        if effective_period is None:
+            effective_period = db.execute(
+                text(
+                    """
+                    SELECT MAX(reference_period)::text
+                    FROM map.v_environment_risk_aggregation
+                    WHERE territory_level = :level
+                    """
+                ),
+                {"level": level_en},
+            ).scalar_one()
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Environment risk aggregation is unavailable. Ensure SQL objects are applied "
+                "with scripts/init_db.py."
+            ),
+        ) from exc
+
+    if effective_period is None:
+        return EnvironmentRiskCollectionResponse(
+            generated_at_utc=datetime.now(tz=UTC),
+            level=level_en,
+            period=None,
+            count=0,
+            items=[],
+        )
+
+    geometry_select = "ST_AsGeoJSON(v.geometry)::text AS geometry_json" if include_geometry else "NULL::text AS geometry_json"
+    sql = f"""
+        SELECT
+            v.reference_period,
+            v.territory_id::text AS territory_id,
+            v.territory_name,
+            v.territory_level,
+            v.municipality_ibge_code,
+            v.hazard_score::double precision AS hazard_score,
+            v.exposure_score::double precision AS exposure_score,
+            v.environment_risk_score::double precision AS environment_risk_score,
+            v.priority_status,
+            v.area_km2::double precision AS area_km2,
+            v.road_km::double precision AS road_km,
+            v.pois_count::int AS pois_count,
+            v.transport_stops_count::int AS transport_stops_count,
+            v.road_density_km_per_km2::double precision AS road_density_km_per_km2,
+            v.pois_per_km2::double precision AS pois_per_km2,
+            v.transport_stops_per_km2::double precision AS transport_stops_per_km2,
+            v.uses_proxy_allocation,
+            v.allocation_method,
+            {geometry_select}
+        FROM map.v_environment_risk_aggregation v
+        WHERE v.territory_level = :level
+          AND v.reference_period = :period
+        ORDER BY v.environment_risk_score DESC, v.territory_name ASC
+        LIMIT :limit
+    """
+    try:
+        rows = db.execute(
+            text(sql),
+            {"level": level_en, "period": effective_period, "limit": limit},
+        ).mappings().all()
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Environment risk query is unavailable. Ensure SQL objects are applied "
+                "with scripts/init_db.py."
+            ),
+        ) from exc
+
+    items = [
+        EnvironmentRiskItem(
+            reference_period=str(row["reference_period"]),
+            territory_id=str(row["territory_id"]),
+            territory_name=str(row["territory_name"]),
+            territory_level=str(row["territory_level"]),
+            municipality_ibge_code=row.get("municipality_ibge_code"),
+            hazard_score=float(row["hazard_score"]),
+            exposure_score=float(row["exposure_score"]),
+            environment_risk_score=float(row["environment_risk_score"]),
+            priority_status=str(row["priority_status"]),
+            area_km2=float(row["area_km2"]) if row.get("area_km2") is not None else None,
+            road_km=float(row["road_km"]) if row.get("road_km") is not None else None,
+            pois_count=int(row.get("pois_count") or 0),
+            transport_stops_count=int(row.get("transport_stops_count") or 0),
+            road_density_km_per_km2=(
+                float(row["road_density_km_per_km2"])
+                if row.get("road_density_km_per_km2") is not None
+                else None
+            ),
+            pois_per_km2=float(row["pois_per_km2"]) if row.get("pois_per_km2") is not None else None,
+            transport_stops_per_km2=(
+                float(row["transport_stops_per_km2"])
+                if row.get("transport_stops_per_km2") is not None
+                else None
+            ),
+            uses_proxy_allocation=bool(row.get("uses_proxy_allocation")),
+            allocation_method=str(row["allocation_method"]),
+            geometry=_parse_geojson(row.get("geometry_json")) if include_geometry else None,
+        )
+        for row in rows
+    ]
+    return EnvironmentRiskCollectionResponse(
+        generated_at_utc=datetime.now(tz=UTC),
+        level=level_en,
+        period=str(effective_period),
+        count=len(items),
+        items=items,
     )
 
 
@@ -761,6 +952,88 @@ def get_urban_pois(
     )
 
 
+@router.get("/urban/transport-stops", response_model=UrbanTransportStopCollectionResponse)
+def get_urban_transport_stops(
+    bbox: str | None = Query(default=None, description="minx,miny,maxx,maxy in EPSG:4326."),
+    mode: str | None = Query(default=None),
+    limit: int = Query(default=1000, ge=1, le=5000),
+    db: Session = Depends(get_db),
+) -> UrbanTransportStopCollectionResponse:
+    parsed_bbox = _parse_bbox(bbox)
+    minx = miny = maxx = maxy = None
+    if parsed_bbox is not None:
+        minx, miny, maxx, maxy = parsed_bbox
+
+    sql = """
+        SELECT
+            transport_id::text AS transport_id,
+            source,
+            name,
+            mode,
+            operator,
+            is_accessible,
+            ST_AsGeoJSON(geom)::text AS geometry_json
+        FROM map.urban_transport_stop
+        WHERE (
+                CAST(:mode AS TEXT) IS NULL
+                OR lower(COALESCE(mode, '')) = lower(CAST(:mode AS TEXT))
+            )
+          AND (
+                CAST(:minx AS double precision) IS NULL
+                OR ST_Intersects(
+                    geom,
+                    ST_MakeEnvelope(
+                        CAST(:minx AS double precision),
+                        CAST(:miny AS double precision),
+                        CAST(:maxx AS double precision),
+                        CAST(:maxy AS double precision),
+                        4326
+                    )
+                )
+            )
+        ORDER BY transport_id
+        LIMIT :limit
+    """
+    try:
+        rows = db.execute(
+            text(sql),
+            {
+                "mode": mode,
+                "minx": minx,
+                "miny": miny,
+                "maxx": maxx,
+                "maxy": maxy,
+                "limit": limit,
+            },
+        ).mappings().all()
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Urban transport layer is unavailable. Ensure urban SQL objects are applied "
+                "with scripts/init_db.py."
+            ),
+        ) from exc
+
+    items = [
+        UrbanTransportStopFeatureItem(
+            transport_id=str(row["transport_id"]),
+            source=str(row["source"]),
+            name=row.get("name"),
+            mode=row.get("mode"),
+            operator=row.get("operator"),
+            is_accessible=row.get("is_accessible"),
+            geometry=_parse_geojson(row.get("geometry_json")),
+        )
+        for row in rows
+    ]
+    return UrbanTransportStopCollectionResponse(
+        generated_at_utc=datetime.now(tz=UTC),
+        count=len(items),
+        items=items,
+    )
+
+
 @router.get("/urban/nearby-pois", response_model=UrbanNearbyPoisResponse)
 def get_urban_nearby_pois(
     lon: float = Query(..., ge=-180.0, le=180.0),
@@ -842,7 +1115,7 @@ def get_urban_nearby_pois(
 @router.get("/urban/geocode", response_model=UrbanGeocodeResponse)
 def geocode_urban(
     q: str = Query(..., min_length=2, max_length=120),
-    kind: str = Query(default="all", pattern="^(all|road|poi)$"),
+    kind: str = Query(default="all", pattern="^(all|road|poi|transport)$"),
     limit: int = Query(default=20, ge=1, le=200),
     db: Session = Depends(get_db),
 ) -> UrbanGeocodeResponse:
@@ -887,6 +1160,24 @@ def geocode_urban(
                 ST_AsGeoJSON(p.geom)::text AS geometry_json
             FROM map.urban_poi p
             WHERE lower(COALESCE(p.name, '')) LIKE lower(CAST(:q_like AS TEXT))
+
+            UNION ALL
+
+            SELECT
+                'transport'::text AS feature_type,
+                t.transport_id::text AS feature_id,
+                t.source,
+                t.name,
+                t.mode::text AS category,
+                t.operator::text AS subcategory,
+                CASE
+                    WHEN lower(COALESCE(t.name, '')) = lower(CAST(:q AS TEXT)) THEN 3
+                    WHEN lower(COALESCE(t.name, '')) LIKE lower(CAST(:q_prefix AS TEXT)) THEN 2
+                    ELSE 1
+                END AS score,
+                ST_AsGeoJSON(t.geom)::text AS geometry_json
+            FROM map.urban_transport_stop t
+            WHERE lower(COALESCE(t.name, '')) LIKE lower(CAST(:q_like AS TEXT))
         )
         SELECT
             feature_type,
@@ -974,6 +1265,22 @@ _URBAN_TILE_LAYERS: dict[str, dict[str, str]] = {
             "                    COALESCE(NULLIF(p.source, ''), 'unknown')::text AS source,"
         ),
         "feature_extra_sql": "base.category, base.subcategory, base.source,",
+    },
+    "urban_transport_stops": {
+        "table": "map.urban_transport_stop",
+        "alias": "t",
+        "id_expr": "t.transport_id::text",
+        "name_expr": "COALESCE(NULLIF(t.name, ''), 'Transporte ' || t.transport_id::text)",
+        "value_expr": "1::double precision",
+        "metric_expr": "'urban_transport_stops'::text",
+        "geom_expr": "t.geom",
+        "base_extra_sql": (
+            "COALESCE(NULLIF(t.mode, ''), 'unknown')::text AS mode,\n"
+            "                    COALESCE(NULLIF(t.operator, ''), 'unknown')::text AS operator,\n"
+            "                    COALESCE(t.is_accessible::text, 'unknown') AS is_accessible,\n"
+            "                    COALESCE(NULLIF(t.source, ''), 'unknown')::text AS source,"
+        ),
+        "feature_extra_sql": "base.mode, base.operator, base.is_accessible, base.source,",
     },
 }
 # Simplification tolerance in meters on EPSG:3857.

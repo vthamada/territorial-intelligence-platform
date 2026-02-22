@@ -1,0 +1,31 @@
+resources:
+  - uri: https://overpass-api.de/api/interpreter
+    method: POST
+    extension: .json
+    body_template: |
+      [out:json][timeout:120];
+      (
+        node["highway"="bus_stop"]({miny},{minx},{maxy},{maxx});
+        node["public_transport"]({miny},{minx},{maxy},{maxx});
+        way["public_transport"]({miny},{minx},{maxy},{maxx});
+        relation["public_transport"]({miny},{minx},{maxy},{maxx});
+        node["railway"~"station|halt|tram_stop"]({miny},{minx},{maxy},{maxx});
+        node["amenity"~"bus_station|ferry_terminal|taxi"]({miny},{minx},{maxy},{maxx});
+        way["amenity"~"bus_station|ferry_terminal"]({miny},{minx},{maxy},{maxx});
+      );
+      out center tags;
+  - uri: https://overpass.kumi.systems/api/interpreter
+    method: POST
+    extension: .json
+    body_template: |
+      [out:json][timeout:120];
+      (
+        node["highway"="bus_stop"]({miny},{minx},{maxy},{maxx});
+        node["public_transport"]({miny},{minx},{maxy},{maxx});
+        way["public_transport"]({miny},{minx},{maxy},{maxx});
+        relation["public_transport"]({miny},{minx},{maxy},{maxx});
+        node["railway"~"station|halt|tram_stop"]({miny},{minx},{maxy},{maxx});
+        node["amenity"~"bus_station|ferry_terminal|taxi"]({miny},{minx},{maxy},{maxx});
+        way["amenity"~"bus_station|ferry_terminal"]({miny},{minx},{maxy},{maxx});
+      );
+      out center tags;

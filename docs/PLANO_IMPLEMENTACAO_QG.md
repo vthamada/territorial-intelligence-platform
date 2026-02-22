@@ -1,14 +1,14 @@
 # Plano Integrado de Implementacao (Backend + Frontend QG)
 
 Data de referencia: 2026-02-21  
-Status: execucao ativa (trilha unica D4-mobilidade/frota com gate formal de saida)  
+Status: execucao ativa (trilha unica com D7 concluido, BD-080 entregue e sequencia para D8/BD-081)  
 Escopo: plano executavel para consolidar QG estrategico em producao com dados reais.
 
 ## 0) Regra de foco operacional (WIP=1)
 
 1. Fila ativa unica de implementacao:
-   - trilha ativa oficial (2026-02-21): `D4-mobilidade/frota`.
-   - escopo da trilha ativa: `BD-040`, `BD-041`, `BD-042` (execucao sequencial com WIP=1, iniciando por `BD-040`).
+   - trilha oficial encerrada em 2026-02-21: `D4-mobilidade/frota`.
+   - escopo concluido da trilha: `BD-040`, `BD-041`, `BD-042`.
 2. Gate de saida obrigatorio (DoD da trilha ativa D4):
    - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_onda_a_connectors.py tests/unit/test_quality_coverage_checks.py -q` em `pass`;
    - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` em `pass`;
@@ -16,17 +16,34 @@ Escopo: plano executavel para consolidar QG estrategico em producao com dados re
    - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` com `status=READY` e `hard_failures=0`;
    - `npm --prefix frontend run test -- --run` e `npm --prefix frontend run build` somente se houver mudanca no frontend.
    - trilha anterior `D3-hardening` encerrada com `PASS` em 2026-02-21 (ver `docs/HANDOFF.md`).
-3. Enquanto a trilha ativa nao fechar gate de saida, nao iniciar:
-   - sprints `D5`, `D6`, `D7`, `D8`;
-   - novas frentes de fonte/conector fora de mobilidade/infra da trilha D4;
-   - refinamentos nao criticos sem impacto direto no gate atual.
+3. Regra de continuidade apos fechamento dos gates D4/D5:
+   - manter `WIP=1` ao iniciar `D6` (nao abrir D7+ em paralelo);
+   - executar itens de `D6` em sequencia (`BD-060` -> `BD-061` -> `BD-062`);
+   - registrar evidencias de cada item em `HANDOFF` e `CHANGELOG` antes de avancar.
 4. Proximo passo imediato:
-   - executar `BD-040` (issue `#13`) e atualizar status operacional no GitHub (`status:active` para a issue em execucao).
+   - executar `D8/BD-081` para tuning de custo/performance (indices, materialized views e consultas criticas), mantendo `WIP=1`.
 5. Fonte unica de sequencia de execucao:
    - este arquivo (secoes `0`, `5` e `9`).
    - `docs/HANDOFF.md` registra apenas estado corrente e proximo passo imediato da mesma trilha.
 6. Demais documentos (`BACKLOG_DADOS_NIVEL_MAXIMO.md`) sao norte macro/catalogo e nao devem abrir fila paralela no ciclo diario.
 7. Classificacao oficial de documentos ativos/descontinuados fica em `docs/GOVERNANCA_DOCUMENTAL.md`.
+
+## 0.2) Modo foco (demo defensavel)
+
+1. Objetivo unico da trilha atual:
+   - entregar um fluxo demonstravel e defensavel no mapa executivo (valor visivel para decisao), sem abrir frentes paralelas.
+2. Escopo congelado ate o marco de demo:
+   - permitido: itens que melhorem diretamente leitura executiva, explicabilidade e confiabilidade do fluxo principal.
+   - proibido: abrir novas fontes/dominios sem impacto direto no fluxo de demo.
+3. Criterio de "palpavel e defensavel":
+   - mapa com leitura clara de prioridade por territorio;
+   - evidencia explicavel da prioridade (drivers + metadados de fonte/periodo);
+   - comportamento estavel em `loading/error/empty/data`;
+   - validacao tecnica registrada em `CHANGELOG` e `HANDOFF`.
+4. Trilha unica vigente:
+   - `#22` (`BD-070`) -> `#23` (`BD-071`) -> `#24` (`BD-072`).
+   - fase atual: `D8` (`BD-081`), apos fechamento tecnico de `BD-080`.
+   - nenhuma issue fora dessa sequencia pode ficar `status:active` durante este ciclo.
 
 ## 0.1) Mapa de governanca documental (fonte unica)
 

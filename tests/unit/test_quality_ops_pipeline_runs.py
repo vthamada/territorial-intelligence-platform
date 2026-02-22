@@ -42,6 +42,7 @@ def test_check_ops_pipeline_runs_marks_warn_when_job_has_no_successful_run() -> 
             "aneel_energy_fetch": 1,
             "urban_roads_fetch": 1,
             "urban_pois_fetch": 1,
+            "urban_transport_fetch": 1,
         }
     )
     thresholds = QualityThresholds(
@@ -71,3 +72,4 @@ def test_check_ops_pipeline_runs_marks_warn_when_job_has_no_successful_run() -> 
     assert by_name["mvp5_pipeline_run_aneel_energy_fetch"].status == "pass"
     assert by_name["mvp7_pipeline_run_urban_roads_fetch"].status == "pass"
     assert by_name["mvp7_pipeline_run_urban_pois_fetch"].status == "pass"
+    assert by_name["mvp7_pipeline_run_urban_transport_fetch"].status == "pass"

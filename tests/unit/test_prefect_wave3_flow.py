@@ -130,6 +130,7 @@ def test_run_mvp_all_propagates_common_kwargs_to_all_jobs(monkeypatch) -> None:
     monkeypatch.setattr(prefect_flows, "run_censo_suas", _stub("censo_suas_fetch"))
     monkeypatch.setattr(prefect_flows, "run_urban_roads", _stub("urban_roads_fetch"))
     monkeypatch.setattr(prefect_flows, "run_urban_pois", _stub("urban_pois_fetch"))
+    monkeypatch.setattr(prefect_flows, "run_urban_transport", _stub("urban_transport_fetch"))
     monkeypatch.setattr(prefect_flows, "run_dbt_build", _stub("dbt_build"))
     monkeypatch.setattr(prefect_flows, "run_quality_suite", _stub("quality_suite"))
 
@@ -166,6 +167,7 @@ def test_run_mvp_all_propagates_common_kwargs_to_all_jobs(monkeypatch) -> None:
         "censo_suas_fetch",
         "urban_roads_fetch",
         "urban_pois_fetch",
+        "urban_transport_fetch",
         "dbt_build",
         "quality_suite",
     }
@@ -270,6 +272,9 @@ def test_run_mvp_all_returns_each_job_result_payload(monkeypatch) -> None:
     def _run_urban_pois(**_kwargs: Any) -> dict[str, Any]:
         return {"job": "urban_pois_fetch", "status": "success", "rows_written": 23}
 
+    def _run_urban_transport(**_kwargs: Any) -> dict[str, Any]:
+        return {"job": "urban_transport_fetch", "status": "success", "rows_written": 24}
+
     monkeypatch.setattr(prefect_flows, "run_sidra_indicators", _run_sidra)
     monkeypatch.setattr(prefect_flows, "run_senatran_fleet", _run_senatran)
     monkeypatch.setattr(prefect_flows, "run_sejusp_public_safety", _run_sejusp)
@@ -284,6 +289,7 @@ def test_run_mvp_all_returns_each_job_result_payload(monkeypatch) -> None:
     monkeypatch.setattr(prefect_flows, "run_censo_suas", _run_censo_suas)
     monkeypatch.setattr(prefect_flows, "run_urban_roads", _run_urban_roads)
     monkeypatch.setattr(prefect_flows, "run_urban_pois", _run_urban_pois)
+    monkeypatch.setattr(prefect_flows, "run_urban_transport", _run_urban_transport)
     monkeypatch.setattr(prefect_flows, "run_dbt_build", _run_dbt)
     monkeypatch.setattr(prefect_flows, "run_quality_suite", _run_quality)
 
@@ -313,6 +319,7 @@ def test_run_mvp_all_returns_each_job_result_payload(monkeypatch) -> None:
     assert result["censo_suas_fetch"]["rows_written"] == 21
     assert result["urban_roads_fetch"]["rows_written"] == 22
     assert result["urban_pois_fetch"]["rows_written"] == 23
+    assert result["urban_transport_fetch"]["rows_written"] == 24
     assert result["dbt_build"]["models_built"] == 3
     assert result["quality_suite"]["job"] == "quality_suite"
 
@@ -467,6 +474,7 @@ def test_run_mvp_wave_7_propagates_common_kwargs_to_all_jobs(monkeypatch) -> Non
 
     monkeypatch.setattr(prefect_flows, "run_urban_roads", _stub("urban_roads_fetch"))
     monkeypatch.setattr(prefect_flows, "run_urban_pois", _stub("urban_pois_fetch"))
+    monkeypatch.setattr(prefect_flows, "run_urban_transport", _stub("urban_transport_fetch"))
     monkeypatch.setattr(prefect_flows, "run_quality_suite", _stub("quality_suite"))
 
     result = prefect_flows.run_mvp_wave_7.fn(
@@ -480,6 +488,7 @@ def test_run_mvp_wave_7_propagates_common_kwargs_to_all_jobs(monkeypatch) -> Non
     assert set(result.keys()) == {
         "urban_roads_fetch",
         "urban_pois_fetch",
+        "urban_transport_fetch",
         "quality_suite",
     }
     expected_kwargs = {

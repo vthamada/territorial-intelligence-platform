@@ -440,14 +440,24 @@ def _filter_rows_by_reference_year(
         return rows
     normalized_columns = tuple(_normalize_column_name(str(column)) for column in year_columns)
     filtered: list[dict[str, Any]] = []
+    has_year_signal = False
     for row in rows:
         for column in normalized_columns:
             if column not in row:
                 continue
+            row_value = row.get(column)
+            if str(row_value or "").strip():
+                has_year_signal = True
             if _value_matches_reference_year(row.get(column), year):
                 filtered.append(row)
                 break
-    return filtered if filtered else rows
+    if filtered:
+        return filtered
+    # If there is no usable year signal in the payload, keep backward-compatible fallback.
+    if not has_year_signal:
+        return rows
+    # If year columns are present but no row matches the requested period, block the load.
+    return []
 
 
 def _build_indicator_rows(

@@ -86,6 +86,19 @@ class _QgSession:
                         "source": "DATASUS",
                         "dataset": "datasus_health",
                         "updated_at": datetime(2026, 2, 11, 13, 0, tzinfo=UTC),
+                        "score_version": "v1.0.0",
+                        "config_version": "1.0.0",
+                        "scoring_method": "rank_abs_value_v1",
+                        "critical_threshold": 80.0,
+                        "attention_threshold": 50.0,
+                        "domain_weight": 1.0,
+                        "indicator_weight": 1.0,
+                        "weighted_magnitude": 45.0,
+                        "driver_rank": 1,
+                        "driver_total": 3,
+                        "coverage_covered_territories": 1,
+                        "coverage_total_territories": 1,
+                        "coverage_pct": 100.0,
                         "score": 90.0,
                         "status": "critical",
                     },
@@ -102,6 +115,19 @@ class _QgSession:
                         "source": "INEP",
                         "dataset": "inep_education",
                         "updated_at": datetime(2026, 2, 11, 12, 30, tzinfo=UTC),
+                        "score_version": "v1.0.0",
+                        "config_version": "1.0.0",
+                        "scoring_method": "rank_abs_value_v1",
+                        "critical_threshold": 80.0,
+                        "attention_threshold": 50.0,
+                        "domain_weight": 1.0,
+                        "indicator_weight": 1.0,
+                        "weighted_magnitude": 8.2,
+                        "driver_rank": 2,
+                        "driver_total": 3,
+                        "coverage_covered_territories": 1,
+                        "coverage_total_territories": 1,
+                        "coverage_pct": 100.0,
                         "score": 63.0,
                         "status": "attention",
                     },
@@ -118,6 +144,19 @@ class _QgSession:
                         "source": "MTE",
                         "dataset": "mte_novo_caged",
                         "updated_at": datetime(2026, 2, 11, 11, 0, tzinfo=UTC),
+                        "score_version": "v1.0.0",
+                        "config_version": "1.0.0",
+                        "scoring_method": "rank_abs_value_v1",
+                        "critical_threshold": 80.0,
+                        "attention_threshold": 50.0,
+                        "domain_weight": 1.0,
+                        "indicator_weight": 1.0,
+                        "weighted_magnitude": 120.0,
+                        "driver_rank": 3,
+                        "driver_total": 3,
+                        "coverage_covered_territories": 1,
+                        "coverage_total_territories": 1,
+                        "coverage_pct": 100.0,
                         "score": 35.0,
                         "status": "stable",
                     },
@@ -540,6 +579,154 @@ class _ElectorateOutlierFallbackSession:
         raise AssertionError(f"Unexpected SQL in electorate outlier fallback test: {sql}")
 
 
+class _MobilityAccessSession:
+    def execute(self, *_args: Any, **_kwargs: Any) -> _RowsResult:
+        sql = str(_args[0]).lower() if _args else ""
+
+        if "select max(reference_period) as reference_period" in sql and "from gold.mart_mobility_access" in sql:
+            return _RowsResult([{"reference_period": "2025"}])
+
+        if "from gold.mart_mobility_access" in sql and "mobility_access_deficit_score" in sql:
+            return _RowsResult(
+                [
+                    {
+                        "reference_period": "2025",
+                        "territory_id": "d-01",
+                        "territory_name": "Sede",
+                        "territory_level": "district",
+                        "municipality_ibge_code": "3121605",
+                        "road_segments_count": 12,
+                        "road_length_km": 8.4,
+                        "transport_stops_count": 5,
+                        "mobility_pois_count": 2,
+                        "fleet_total_effective": 610.0,
+                        "population_effective": 7800.0,
+                        "vehicles_per_1k_pop": 78.2,
+                        "transport_stops_per_10k_pop": 6.41,
+                        "road_km_per_10k_pop": 10.76,
+                        "mobility_pois_per_10k_pop": 2.56,
+                        "mobility_access_score": 22.0,
+                        "mobility_access_deficit_score": 78.0,
+                        "priority_status": "critical",
+                        "uses_proxy_allocation": True,
+                        "allocation_method": "district_allocation_by_road_length_share",
+                        "refreshed_at_utc": datetime(2026, 2, 21, 12, 0, tzinfo=UTC),
+                    },
+                    {
+                        "reference_period": "2025",
+                        "territory_id": "d-02",
+                        "territory_name": "Guinda",
+                        "territory_level": "district",
+                        "municipality_ibge_code": "3121605",
+                        "road_segments_count": 8,
+                        "road_length_km": 4.2,
+                        "transport_stops_count": 3,
+                        "mobility_pois_count": 1,
+                        "fleet_total_effective": 320.0,
+                        "population_effective": 4100.0,
+                        "vehicles_per_1k_pop": 78.0,
+                        "transport_stops_per_10k_pop": 7.31,
+                        "road_km_per_10k_pop": 10.24,
+                        "mobility_pois_per_10k_pop": 2.43,
+                        "mobility_access_score": 40.0,
+                        "mobility_access_deficit_score": 60.0,
+                        "priority_status": "attention",
+                        "uses_proxy_allocation": True,
+                        "allocation_method": "district_allocation_by_road_length_share",
+                        "refreshed_at_utc": datetime(2026, 2, 21, 12, 0, tzinfo=UTC),
+                    },
+                ]
+            )
+
+        raise AssertionError(f"Unexpected SQL in mobility access test: {sql}")
+
+
+class _MobilityAccessEmptySession:
+    def execute(self, *_args: Any, **_kwargs: Any) -> _RowsResult:
+        sql = str(_args[0]).lower() if _args else ""
+        if "select max(reference_period) as reference_period" in sql and "from gold.mart_mobility_access" in sql:
+            return _RowsResult([{"reference_period": None}])
+        if "from gold.mart_mobility_access" in sql and "mobility_access_deficit_score" in sql:
+            return _RowsResult([])
+        raise AssertionError(f"Unexpected SQL in mobility access empty test: {sql}")
+
+
+class _EnvironmentRiskSession:
+    def execute(self, *_args: Any, **_kwargs: Any) -> _RowsResult:
+        sql = str(_args[0]).lower() if _args else ""
+
+        if "select max(reference_period) as reference_period" in sql and "from gold.mart_environment_risk" in sql:
+            return _RowsResult([{"reference_period": "2025"}])
+
+        if "from gold.mart_environment_risk" in sql and "environment_risk_score" in sql:
+            return _RowsResult(
+                [
+                    {
+                        "reference_period": "2025",
+                        "territory_id": "m-01",
+                        "territory_name": "Diamantina",
+                        "territory_level": "municipality",
+                        "municipality_ibge_code": "3121605",
+                        "hazard_score": 78.5,
+                        "exposure_score": 66.2,
+                        "environment_risk_score": 74.2,
+                        "risk_percentile": 100.0,
+                        "risk_priority_rank": 1,
+                        "priority_status": "critical",
+                        "area_km2": 892.0,
+                        "road_km": 84.2,
+                        "pois_count": 312,
+                        "transport_stops_count": 42,
+                        "road_density_km_per_km2": 0.09,
+                        "pois_per_km2": 0.35,
+                        "transport_stops_per_km2": 0.05,
+                        "population_effective": 49493.0,
+                        "exposed_population_per_km2": 55.49,
+                        "uses_proxy_allocation": True,
+                        "allocation_method": "municipality_rollup_from_districts",
+                        "refreshed_at_utc": datetime(2026, 2, 21, 13, 0, tzinfo=UTC),
+                    },
+                    {
+                        "reference_period": "2025",
+                        "territory_id": "d-01",
+                        "territory_name": "Sede",
+                        "territory_level": "district",
+                        "municipality_ibge_code": "3121605",
+                        "hazard_score": 78.5,
+                        "exposure_score": 58.0,
+                        "environment_risk_score": 71.3,
+                        "risk_percentile": 87.5,
+                        "risk_priority_rank": 2,
+                        "priority_status": "attention",
+                        "area_km2": 32.1,
+                        "road_km": 8.4,
+                        "pois_count": 48,
+                        "transport_stops_count": 5,
+                        "road_density_km_per_km2": 0.26,
+                        "pois_per_km2": 1.49,
+                        "transport_stops_per_km2": 0.16,
+                        "population_effective": 7800.0,
+                        "exposed_population_per_km2": 242.99,
+                        "uses_proxy_allocation": True,
+                        "allocation_method": "spatial_exposure_proxy",
+                        "refreshed_at_utc": datetime(2026, 2, 21, 13, 0, tzinfo=UTC),
+                    },
+                ]
+            )
+
+        raise AssertionError(f"Unexpected SQL in environment risk test: {sql}")
+
+
+class _EnvironmentRiskEmptySession:
+    def execute(self, *_args: Any, **_kwargs: Any) -> _RowsResult:
+        sql = str(_args[0]).lower() if _args else ""
+        if "select max(reference_period) as reference_period" in sql and "from gold.mart_environment_risk" in sql:
+            return _RowsResult([{"reference_period": None}])
+        if "from gold.mart_environment_risk" in sql and "environment_risk_score" in sql:
+            return _RowsResult([])
+        raise AssertionError(f"Unexpected SQL in environment risk empty test: {sql}")
+
+
 def _qg_db() -> Generator[_QgSession, None, None]:
     yield _QgSession()
 
@@ -557,6 +744,84 @@ def test_kpis_overview_returns_items_and_metadata() -> None:
     assert len(payload["items"]) == 2
     assert payload["items"][0]["territory_level"] == "municipio"
     assert payload["items"][0]["domain"] == "saude"
+    app.dependency_overrides.clear()
+
+
+def test_mobility_access_returns_ranked_items_and_metadata() -> None:
+    def _db() -> Generator[_MobilityAccessSession, None, None]:
+        yield _MobilityAccessSession()
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/mobility/access?level=distrito&limit=2")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["period"] == "2025"
+    assert payload["level"] == "distrito"
+    assert payload["metadata"]["source_name"] == "gold.mart_mobility_access"
+    assert payload["metadata"]["notes"] == "mobility_access_mart_v1"
+    assert len(payload["items"]) == 2
+    assert payload["items"][0]["priority_status"] == "critical"
+    assert payload["items"][0]["territory_level"] == "distrito"
+    assert payload["items"][0]["uses_proxy_allocation"] is True
+    app.dependency_overrides.clear()
+
+
+def test_mobility_access_returns_empty_shape_when_period_not_found() -> None:
+    def _db() -> Generator[_MobilityAccessEmptySession, None, None]:
+        yield _MobilityAccessEmptySession()
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/mobility/access?period=2021")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["period"] == "2021"
+    assert payload["metadata"]["notes"] == "no_data_for_selected_filters"
+    assert payload["items"] == []
+    app.dependency_overrides.clear()
+
+
+def test_environment_risk_returns_ranked_items_and_metadata() -> None:
+    def _db() -> Generator[_EnvironmentRiskSession, None, None]:
+        yield _EnvironmentRiskSession()
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/environment/risk?level=municipio&limit=2")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["period"] == "2025"
+    assert payload["level"] == "municipio"
+    assert payload["metadata"]["source_name"] == "gold.mart_environment_risk"
+    assert payload["metadata"]["notes"] == "environment_risk_mart_v1"
+    assert len(payload["items"]) == 2
+    assert payload["items"][0]["priority_status"] == "critical"
+    assert payload["items"][0]["territory_level"] == "municipio"
+    assert payload["items"][0]["risk_priority_rank"] == 1
+    app.dependency_overrides.clear()
+
+
+def test_environment_risk_returns_empty_shape_when_period_not_found() -> None:
+    def _db() -> Generator[_EnvironmentRiskEmptySession, None, None]:
+        yield _EnvironmentRiskEmptySession()
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/environment/risk?period=2021")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["period"] == "2021"
+    assert payload["metadata"]["notes"] == "no_data_for_selected_filters"
+    assert payload["items"] == []
     app.dependency_overrides.clear()
 
 
@@ -578,7 +843,10 @@ def test_priority_list_accepts_level_alias_and_builds_rationale() -> None:
     assert payload["level"] == "municipio"
     assert payload["items"][0]["status"] == "critical"
     assert payload["items"][0]["territory_level"] == "municipio"
-    assert len(payload["items"][0]["rationale"]) >= 3
+    assert len(payload["items"][0]["rationale"]) >= 4
+    assert payload["items"][0]["evidence"]["updated_at"] is not None
+    assert payload["items"][0]["explainability"]["trail_id"]
+    assert payload["items"][0]["explainability"]["coverage"]["coverage_pct"] == 100.0
     app.dependency_overrides.clear()
 
 
@@ -611,6 +879,9 @@ def test_insights_highlights_filters_by_severity() -> None:
     assert len(payload["items"]) == 1
     assert payload["items"][0]["severity"] == "critical"
     assert payload["items"][0]["robustness"] == "high"
+    assert payload["items"][0]["evidence"]["updated_at"] is not None
+    assert payload["items"][0]["explainability"]["trail_id"]
+    assert payload["items"][0]["deep_link"].startswith("/insights?")
     app.dependency_overrides.clear()
 
 

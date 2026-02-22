@@ -1,1 +1,3 @@
+# Optional static resources for SENATRAN.
+# When empty, the connector auto-discovers yearly CSV links from the official page.
 resources: []

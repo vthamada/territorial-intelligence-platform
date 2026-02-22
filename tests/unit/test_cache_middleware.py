@@ -23,6 +23,18 @@ def test_match_cache_rule_prefers_operational_layers_paths() -> None:
     assert _match_cache_rule("/v1/map/layers") == 3600
 
 
+def test_match_cache_rule_includes_mobility_access() -> None:
+    assert _match_cache_rule("/v1/mobility/access") == 300
+
+
+def test_match_cache_rule_includes_environment_risk_mart() -> None:
+    assert _match_cache_rule("/v1/environment/risk") == 300
+
+
+def test_match_cache_rule_includes_environment_risk() -> None:
+    assert _match_cache_rule("/v1/map/environment/risk") == 300
+
+
 def test_map_style_metadata_has_cache_control_header() -> None:
     client = TestClient(app)
     response = client.get("/v1/map/style-metadata")

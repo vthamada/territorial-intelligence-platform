@@ -108,6 +108,36 @@ class MapStyleMetadataResponse(BaseModel):
     notes: str
 
 
+class EnvironmentRiskItem(BaseModel):
+    reference_period: str
+    territory_id: str
+    territory_name: str
+    territory_level: str
+    municipality_ibge_code: str | None = None
+    hazard_score: float
+    exposure_score: float
+    environment_risk_score: float
+    priority_status: str
+    area_km2: float | None = None
+    road_km: float | None = None
+    pois_count: int
+    transport_stops_count: int
+    road_density_km_per_km2: float | None = None
+    pois_per_km2: float | None = None
+    transport_stops_per_km2: float | None = None
+    uses_proxy_allocation: bool
+    allocation_method: str
+    geometry: dict | None = None
+
+
+class EnvironmentRiskCollectionResponse(BaseModel):
+    generated_at_utc: datetime
+    level: str
+    period: str | None
+    count: int
+    items: list[EnvironmentRiskItem]
+
+
 class UrbanRoadFeatureItem(BaseModel):
     road_id: str
     source: str
@@ -136,6 +166,22 @@ class UrbanPoiCollectionResponse(BaseModel):
     generated_at_utc: datetime
     count: int
     items: list[UrbanPoiFeatureItem]
+
+
+class UrbanTransportStopFeatureItem(BaseModel):
+    transport_id: str
+    source: str
+    name: str | None
+    mode: str | None
+    operator: str | None
+    is_accessible: bool | None
+    geometry: dict
+
+
+class UrbanTransportStopCollectionResponse(BaseModel):
+    generated_at_utc: datetime
+    count: int
+    items: list[UrbanTransportStopFeatureItem]
 
 
 class UrbanNearbyPoiItem(BaseModel):

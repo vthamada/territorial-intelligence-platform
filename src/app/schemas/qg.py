@@ -15,6 +15,24 @@ class QgMetadata(BaseModel):
     config_version: str | None = None
 
 
+class ExplainabilityCoverage(BaseModel):
+    covered_territories: int
+    total_territories: int
+    coverage_pct: float
+
+
+class ExplainabilityTrail(BaseModel):
+    trail_id: str
+    score_version: str | None = None
+    scoring_method: str | None = None
+    driver_rank: int | None = None
+    driver_total: int | None = None
+    weighted_magnitude: float | None = None
+    critical_threshold: float | None = None
+    attention_threshold: float | None = None
+    coverage: ExplainabilityCoverage | None = None
+
+
 class KpiOverviewItem(BaseModel):
     domain: str
     source: str | None = None
@@ -39,6 +57,11 @@ class PriorityEvidence(BaseModel):
     reference_period: str
     source: str
     dataset: str
+    updated_at: datetime | None = None
+    score_version: str | None = None
+    scoring_method: str | None = None
+    domain_weight: float | None = None
+    indicator_weight: float | None = None
 
 
 class PriorityItem(BaseModel):
@@ -55,6 +78,7 @@ class PriorityItem(BaseModel):
     status: str
     rationale: list[str]
     evidence: PriorityEvidence
+    explainability: ExplainabilityTrail
 
 
 class PriorityListResponse(BaseModel):
@@ -74,6 +98,68 @@ class PrioritySummaryResponse(BaseModel):
     top_territories: list[str]
 
 
+class MobilityAccessItem(BaseModel):
+    reference_period: str
+    territory_id: str
+    territory_name: str
+    territory_level: str
+    municipality_ibge_code: str | None = None
+    road_segments_count: int
+    road_length_km: float
+    transport_stops_count: int
+    mobility_pois_count: int
+    fleet_total_effective: float | None = None
+    population_effective: float | None = None
+    vehicles_per_1k_pop: float | None = None
+    transport_stops_per_10k_pop: float | None = None
+    road_km_per_10k_pop: float | None = None
+    mobility_pois_per_10k_pop: float | None = None
+    mobility_access_score: float
+    mobility_access_deficit_score: float
+    priority_status: str
+    uses_proxy_allocation: bool
+    allocation_method: str
+
+
+class MobilityAccessResponse(BaseModel):
+    period: str | None
+    level: str | None
+    metadata: QgMetadata
+    items: list[MobilityAccessItem]
+
+
+class EnvironmentRiskItem(BaseModel):
+    reference_period: str
+    territory_id: str
+    territory_name: str
+    territory_level: str
+    municipality_ibge_code: str | None = None
+    hazard_score: float
+    exposure_score: float
+    environment_risk_score: float
+    risk_percentile: float
+    risk_priority_rank: int
+    priority_status: str
+    area_km2: float | None = None
+    road_km: float | None = None
+    pois_count: int
+    transport_stops_count: int
+    road_density_km_per_km2: float | None = None
+    pois_per_km2: float | None = None
+    transport_stops_per_km2: float | None = None
+    population_effective: float | None = None
+    exposed_population_per_km2: float | None = None
+    uses_proxy_allocation: bool
+    allocation_method: str
+
+
+class EnvironmentRiskResponse(BaseModel):
+    period: str | None
+    level: str | None
+    metadata: QgMetadata
+    items: list[EnvironmentRiskItem]
+
+
 class InsightHighlightItem(BaseModel):
     title: str
     severity: str
@@ -82,7 +168,9 @@ class InsightHighlightItem(BaseModel):
     territory_name: str
     explanation: list[str]
     evidence: PriorityEvidence
+    explainability: ExplainabilityTrail
     robustness: str
+    deep_link: str | None = None
 
 
 class InsightHighlightsResponse(BaseModel):
@@ -260,6 +348,11 @@ class BriefEvidenceItem(BaseModel):
     source: str
     dataset: str
     reference_period: str
+    updated_at: datetime | None = None
+    score_version: str | None = None
+    scoring_method: str | None = None
+    domain_weight: float | None = None
+    indicator_weight: float | None = None
 
 
 class BriefGenerateResponse(BaseModel):

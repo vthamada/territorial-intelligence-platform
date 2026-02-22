@@ -50,6 +50,49 @@ def _missing_ratio(session: Session, table_name: str, condition_sql: str) -> flo
     return as_float(missing) / as_float(total)
 
 
+def _normalize_type_name(value: str) -> str:
+    normalized = " ".join(value.strip().lower().split())
+    normalized = normalized.replace("pg_catalog.", "")
+    normalized = normalized.replace("public.", "")
+    return normalized
+
+
+def _is_type_compatible(expected_type: str, actual_type: str) -> bool:
+    expected = _normalize_type_name(expected_type)
+    actual = _normalize_type_name(actual_type)
+
+    if expected == actual:
+        return True
+    if expected == "text" and actual in {"character varying", "varchar", "text"}:
+        return True
+    if expected == "numeric" and actual in {
+        "numeric",
+        "double precision",
+        "real",
+        "integer",
+        "bigint",
+        "smallint",
+    }:
+        return True
+    if expected == "integer" and actual in {"integer", "smallint", "bigint"}:
+        return True
+    if expected.startswith("geometry("):
+        if not actual.startswith("geometry("):
+            return False
+        expected_tokens = expected.removeprefix("geometry(").removesuffix(")").split(",")
+        actual_tokens = actual.removeprefix("geometry(").removesuffix(")").split(",")
+        expected_subtype = expected_tokens[0].strip() if expected_tokens else ""
+        actual_subtype = actual_tokens[0].strip() if actual_tokens else ""
+        expected_srid = expected_tokens[1].strip() if len(expected_tokens) > 1 else ""
+        actual_srid = actual_tokens[1].strip() if len(actual_tokens) > 1 else ""
+        if expected_subtype and actual_subtype and expected_subtype != actual_subtype:
+            return False
+        if expected_srid and actual_srid and expected_srid != actual_srid:
+            return False
+        return True
+    return False
+
+
 def check_dim_territory(
     session: Session,
     municipality_code: str,
@@ -735,6 +778,7 @@ def check_urban_domain(
     results: list[CheckResult] = []
     min_road_rows = int(thresholds.get("urban_domain", "min_road_rows", fallback=0))
     min_poi_rows = int(thresholds.get("urban_domain", "min_poi_rows", fallback=0))
+    min_transport_rows = int(thresholds.get("urban_domain", "min_transport_rows", fallback=0))
     max_invalid_geometries = int(
         thresholds.get("urban_domain", "max_invalid_geometry_rows", fallback=0)
     )
@@ -760,6 +804,20 @@ def check_urban_domain(
             """
             SELECT COUNT(*)
             FROM map.urban_poi
+            WHERE geom IS NULL
+               OR ST_IsEmpty(geom)
+               OR NOT ST_IsValid(geom)
+            """,
+        )
+        or 0
+    )
+    transport_rows = int(_scalar(session, "SELECT COUNT(*) FROM map.urban_transport_stop") or 0)
+    transport_invalid = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM map.urban_transport_stop
             WHERE geom IS NULL
                OR ST_IsEmpty(geom)
                OR NOT ST_IsValid(geom)
@@ -802,6 +860,544 @@ def check_urban_domain(
             details="Urban POIs geometries must be valid.",
             observed_value=poi_invalid,
             threshold_value=max_invalid_geometries,
+        )
+    )
+    results.append(
+        CheckResult(
+            name="urban_transport_stops_rows_after_filter",
+            status="pass" if transport_rows >= min_transport_rows else "warn",
+            details="Urban transport layer should have rows loaded in map.urban_transport_stop.",
+            observed_value=transport_rows,
+            threshold_value=min_transport_rows,
+        )
+    )
+    results.append(
+        CheckResult(
+            name="urban_transport_stops_invalid_geometry_rows",
+            status="pass" if transport_invalid <= max_invalid_geometries else "fail",
+            details="Urban transport geometries must be valid.",
+            observed_value=transport_invalid,
+            threshold_value=max_invalid_geometries,
+        )
+    )
+    return results
+
+
+def check_environment_risk_aggregation(
+    session: Session,
+    thresholds: QualityThresholds,
+) -> list[CheckResult]:
+    results: list[CheckResult] = []
+    min_rows_district = int(thresholds.get("environment_risk", "min_rows_district", fallback=1))
+    min_rows_census_sector = int(
+        thresholds.get("environment_risk", "min_rows_census_sector", fallback=1)
+    )
+    min_distinct_periods = int(
+        thresholds.get("environment_risk", "min_distinct_periods", fallback=1)
+    )
+    max_null_risk_rows = int(
+        thresholds.get("environment_risk", "max_null_risk_score_rows", fallback=0)
+    )
+    max_null_hazard_rows = int(
+        thresholds.get("environment_risk", "max_null_hazard_score_rows", fallback=0)
+    )
+    max_null_exposure_rows = int(
+        thresholds.get("environment_risk", "max_null_exposure_score_rows", fallback=0)
+    )
+
+    district_rows = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM map.v_environment_risk_aggregation
+            WHERE territory_level = 'district'
+            """,
+        )
+        or 0
+    )
+    census_sector_rows = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM map.v_environment_risk_aggregation
+            WHERE territory_level = 'census_sector'
+            """,
+        )
+        or 0
+    )
+    distinct_periods = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(DISTINCT reference_period)
+            FROM map.v_environment_risk_aggregation
+            """,
+        )
+        or 0
+    )
+    null_risk_rows = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM map.v_environment_risk_aggregation
+            WHERE environment_risk_score IS NULL
+            """,
+        )
+        or 0
+    )
+    null_hazard_rows = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM map.v_environment_risk_aggregation
+            WHERE hazard_score IS NULL
+            """,
+        )
+        or 0
+    )
+    null_exposure_rows = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM map.v_environment_risk_aggregation
+            WHERE exposure_score IS NULL
+            """,
+        )
+        or 0
+    )
+
+    results.append(
+        CheckResult(
+            name="environment_risk_rows_district",
+            status="pass" if district_rows >= min_rows_district else "warn",
+            details="Environment risk aggregation should cover district level.",
+            observed_value=district_rows,
+            threshold_value=min_rows_district,
+        )
+    )
+    results.append(
+        CheckResult(
+            name="environment_risk_rows_census_sector",
+            status="pass" if census_sector_rows >= min_rows_census_sector else "warn",
+            details="Environment risk aggregation should cover census sector level.",
+            observed_value=census_sector_rows,
+            threshold_value=min_rows_census_sector,
+        )
+    )
+    results.append(
+        CheckResult(
+            name="environment_risk_distinct_periods",
+            status="pass" if distinct_periods >= min_distinct_periods else "warn",
+            details="Environment risk aggregation should preserve temporal coverage.",
+            observed_value=distinct_periods,
+            threshold_value=min_distinct_periods,
+        )
+    )
+    results.append(
+        CheckResult(
+            name="environment_risk_null_score_rows",
+            status="pass" if null_risk_rows <= max_null_risk_rows else "fail",
+            details="Environment risk score must be populated.",
+            observed_value=null_risk_rows,
+            threshold_value=max_null_risk_rows,
+        )
+    )
+    results.append(
+        CheckResult(
+            name="environment_risk_null_hazard_rows",
+            status="pass" if null_hazard_rows <= max_null_hazard_rows else "fail",
+            details="Environment hazard score must be populated.",
+            observed_value=null_hazard_rows,
+            threshold_value=max_null_hazard_rows,
+        )
+    )
+    results.append(
+        CheckResult(
+            name="environment_risk_null_exposure_rows",
+            status="pass" if null_exposure_rows <= max_null_exposure_rows else "fail",
+            details="Environment exposure score must be populated.",
+            observed_value=null_exposure_rows,
+            threshold_value=max_null_exposure_rows,
+        )
+    )
+
+    return results
+
+
+def check_environment_risk_mart(
+    session: Session,
+    thresholds: QualityThresholds,
+) -> list[CheckResult]:
+    results: list[CheckResult] = []
+    min_rows_municipality = int(
+        thresholds.get("environment_risk", "min_mart_rows_municipality", fallback=1)
+    )
+    min_rows_district = int(
+        thresholds.get("environment_risk", "min_mart_rows_district", fallback=1)
+    )
+    min_rows_census_sector = int(
+        thresholds.get("environment_risk", "min_mart_rows_census_sector", fallback=1)
+    )
+    min_distinct_periods = int(
+        thresholds.get("environment_risk", "min_mart_distinct_periods", fallback=1)
+    )
+    max_null_score_rows = int(
+        thresholds.get("environment_risk", "max_mart_null_score_rows", fallback=0)
+    )
+
+    municipality_rows = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM gold.mart_environment_risk
+            WHERE territory_level = 'municipality'
+            """,
+        )
+        or 0
+    )
+    district_rows = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM gold.mart_environment_risk
+            WHERE territory_level = 'district'
+            """,
+        )
+        or 0
+    )
+    census_sector_rows = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM gold.mart_environment_risk
+            WHERE territory_level = 'census_sector'
+            """,
+        )
+        or 0
+    )
+    distinct_periods = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(DISTINCT reference_period)
+            FROM gold.mart_environment_risk
+            """,
+        )
+        or 0
+    )
+    null_score_rows = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM gold.mart_environment_risk
+            WHERE environment_risk_score IS NULL
+            """,
+        )
+        or 0
+    )
+
+    results.append(
+        CheckResult(
+            name="environment_risk_mart_rows_municipality",
+            status="pass" if municipality_rows >= min_rows_municipality else "warn",
+            details="Environment risk mart should cover municipality level.",
+            observed_value=municipality_rows,
+            threshold_value=min_rows_municipality,
+        )
+    )
+    results.append(
+        CheckResult(
+            name="environment_risk_mart_rows_district",
+            status="pass" if district_rows >= min_rows_district else "warn",
+            details="Environment risk mart should cover district level.",
+            observed_value=district_rows,
+            threshold_value=min_rows_district,
+        )
+    )
+    results.append(
+        CheckResult(
+            name="environment_risk_mart_rows_census_sector",
+            status="pass" if census_sector_rows >= min_rows_census_sector else "warn",
+            details="Environment risk mart should cover census sector level.",
+            observed_value=census_sector_rows,
+            threshold_value=min_rows_census_sector,
+        )
+    )
+    results.append(
+        CheckResult(
+            name="environment_risk_mart_distinct_periods",
+            status="pass" if distinct_periods >= min_distinct_periods else "warn",
+            details="Environment risk mart should preserve temporal coverage.",
+            observed_value=distinct_periods,
+            threshold_value=min_distinct_periods,
+        )
+    )
+    results.append(
+        CheckResult(
+            name="environment_risk_mart_null_score_rows",
+            status="pass" if null_score_rows <= max_null_score_rows else "fail",
+            details="Environment risk mart score must be populated.",
+            observed_value=null_score_rows,
+            threshold_value=max_null_score_rows,
+        )
+    )
+
+    return results
+
+
+def check_source_schema_contracts(
+    session: Session,
+    thresholds: QualityThresholds,
+) -> list[CheckResult]:
+    results: list[CheckResult] = []
+    min_active_coverage_pct = float(
+        thresholds.get("schema_contracts", "min_active_coverage_pct", fallback=100.0)
+    )
+    max_missing_connectors = int(
+        thresholds.get("schema_contracts", "max_missing_connectors", fallback=0)
+    )
+
+    expected_connectors = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(*)
+            FROM ops.connector_registry
+            WHERE status::text IN ('implemented', 'partial')
+              AND source <> 'INTERNAL'
+              AND connector_name NOT IN ('quality_suite', 'dbt_build', 'tse_catalog_discovery')
+            """,
+        )
+        or 0
+    )
+    covered_connectors = int(
+        _scalar(
+            session,
+            """
+            SELECT COUNT(DISTINCT cr.connector_name)
+            FROM ops.connector_registry cr
+            JOIN ops.v_source_schema_contracts_active ssc
+              ON ssc.connector_name = cr.connector_name
+            WHERE cr.status::text IN ('implemented', 'partial')
+              AND cr.source <> 'INTERNAL'
+              AND cr.connector_name NOT IN ('quality_suite', 'dbt_build', 'tse_catalog_discovery')
+            """,
+        )
+        or 0
+    )
+
+    missing_connectors = max(expected_connectors - covered_connectors, 0)
+    if expected_connectors == 0:
+        coverage_pct = 0.0
+    else:
+        coverage_pct = round((covered_connectors / expected_connectors) * 100.0, 2)
+
+    results.append(
+        CheckResult(
+            name="schema_contracts_active_coverage_pct",
+            status="pass" if coverage_pct >= min_active_coverage_pct else "fail",
+            details="Active schema contracts should cover all implemented/partial non-internal connectors.",
+            observed_value=coverage_pct,
+            threshold_value=min_active_coverage_pct,
+        )
+    )
+    results.append(
+        CheckResult(
+            name="schema_contracts_missing_connectors",
+            status="pass" if missing_connectors <= max_missing_connectors else "fail",
+            details="Missing active schema contracts for connectors should be zero.",
+            observed_value=missing_connectors,
+            threshold_value=max_missing_connectors,
+        )
+    )
+    return results
+
+
+def check_source_schema_drift(
+    session: Session,
+    thresholds: QualityThresholds,
+) -> list[CheckResult]:
+    results: list[CheckResult] = []
+    max_missing_required_columns = int(
+        thresholds.get("schema_drift", "max_missing_required_columns", fallback=0)
+    )
+    max_type_mismatch_columns = int(
+        thresholds.get("schema_drift", "max_type_mismatch_columns", fallback=0)
+    )
+    max_connectors_with_drift = int(
+        thresholds.get("schema_drift", "max_connectors_with_drift", fallback=0)
+    )
+
+    contracts = session.execute(
+        text(
+            """
+            SELECT
+                connector_name,
+                target_table,
+                required_columns,
+                column_types
+            FROM ops.v_source_schema_contracts_active
+            ORDER BY connector_name
+            """
+        )
+    ).mappings().all()
+
+    connectors_with_drift = 0
+    for contract in contracts:
+        connector_name = str(contract["connector_name"])
+        target_table = str(contract["target_table"])
+        required_columns_raw = contract.get("required_columns")
+        column_types_raw = contract.get("column_types")
+        required_columns = (
+            [str(item) for item in required_columns_raw]
+            if isinstance(required_columns_raw, list)
+            else []
+        )
+        column_types = (
+            {str(key): str(value) for key, value in column_types_raw.items()}
+            if isinstance(column_types_raw, dict)
+            else {}
+        )
+
+        table_exists = bool(
+            _scalar(
+                session,
+                "SELECT to_regclass(:target_table) IS NOT NULL",
+                {"target_table": target_table},
+            )
+        )
+        table_check_name = f"schema_drift_table_exists_{connector_name}"
+        if not table_exists:
+            connectors_with_drift += 1
+            results.append(
+                CheckResult(
+                    name=table_check_name,
+                    status="fail",
+                    details=f"Target table '{target_table}' is missing for connector {connector_name}.",
+                    observed_value=0,
+                    threshold_value=1,
+                )
+            )
+            results.append(
+                CheckResult(
+                    name=f"schema_drift_missing_required_columns_{connector_name}",
+                    status="fail",
+                    details=(
+                        "Could not validate required columns because target table does not exist."
+                    ),
+                    observed_value=len(required_columns),
+                    threshold_value=max_missing_required_columns,
+                )
+            )
+            results.append(
+                CheckResult(
+                    name=f"schema_drift_type_mismatch_columns_{connector_name}",
+                    status="fail",
+                    details="Could not validate column types because target table does not exist.",
+                    observed_value=len(column_types),
+                    threshold_value=max_type_mismatch_columns,
+                )
+            )
+            continue
+
+        results.append(
+            CheckResult(
+                name=table_check_name,
+                status="pass",
+                details=f"Target table '{target_table}' exists.",
+                observed_value=1,
+                threshold_value=1,
+            )
+        )
+
+        schema_name, table_name = target_table.split(".", 1)
+        columns_rows = session.execute(
+            text(
+                """
+                SELECT
+                    a.attname AS column_name,
+                    pg_catalog.format_type(a.atttypid, a.atttypmod) AS normalized_type
+                FROM pg_catalog.pg_attribute a
+                JOIN pg_catalog.pg_class c ON c.oid = a.attrelid
+                JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                WHERE n.nspname = :schema_name
+                  AND c.relname = :table_name
+                  AND a.attnum > 0
+                  AND NOT a.attisdropped
+                """
+            ),
+            {"schema_name": schema_name, "table_name": table_name},
+        ).mappings().all()
+        actual_columns = {str(row["column_name"]) for row in columns_rows}
+        actual_types = {
+            str(row["column_name"]): str(row["normalized_type"]) for row in columns_rows
+        }
+
+        missing_required = sorted(set(required_columns) - actual_columns)
+        missing_required_count = len(missing_required)
+        missing_required_status = (
+            "pass" if missing_required_count <= max_missing_required_columns else "fail"
+        )
+        if missing_required_status == "fail":
+            connectors_with_drift += 1
+        results.append(
+            CheckResult(
+                name=f"schema_drift_missing_required_columns_{connector_name}",
+                status=missing_required_status,
+                details=(
+                    "Missing required column(s): "
+                    + ", ".join(missing_required)
+                    if missing_required
+                    else "All required columns are present."
+                ),
+                observed_value=missing_required_count,
+                threshold_value=max_missing_required_columns,
+            )
+        )
+
+        type_mismatches: list[str] = []
+        for column_name, expected_type in column_types.items():
+            actual_type = actual_types.get(column_name)
+            if not actual_type:
+                continue
+            if not _is_type_compatible(expected_type, actual_type):
+                type_mismatches.append(f"{column_name}: expected={expected_type} actual={actual_type}")
+        mismatch_count = len(type_mismatches)
+        mismatch_status = "pass" if mismatch_count <= max_type_mismatch_columns else "fail"
+        if mismatch_status == "fail" and missing_required_status != "fail":
+            connectors_with_drift += 1
+        results.append(
+            CheckResult(
+                name=f"schema_drift_type_mismatch_columns_{connector_name}",
+                status=mismatch_status,
+                details=(
+                    "Type mismatch column(s): " + "; ".join(type_mismatches)
+                    if type_mismatches
+                    else "Column types are compatible with contract."
+                ),
+                observed_value=mismatch_count,
+                threshold_value=max_type_mismatch_columns,
+            )
+        )
+
+    results.append(
+        CheckResult(
+            name="schema_drift_connectors_with_issues",
+            status="pass" if connectors_with_drift <= max_connectors_with_drift else "fail",
+            details=(
+                "Connectors with schema drift should stay within configured threshold."
+            ),
+            observed_value=connectors_with_drift,
+            threshold_value=max_connectors_with_drift,
         )
     )
     return results
@@ -1113,6 +1709,7 @@ def check_ops_pipeline_runs(
         ("aneel_energy_fetch", "MVP-5"),
         ("urban_roads_fetch", "MVP-7"),
         ("urban_pois_fetch", "MVP-7"),
+        ("urban_transport_fetch", "MVP-7"),
     )
 
     for job_name, wave in jobs:

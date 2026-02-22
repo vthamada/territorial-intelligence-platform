@@ -12,6 +12,8 @@ from pipelines.common.quality import (
     CheckResult,
     check_dim_territory,
     check_dim_territory_electoral_zone_integrity,
+    check_source_schema_drift,
+    check_source_schema_contracts,
     check_map_layers,
     check_fact_election_result_temporal_coverage,
     check_fact_election_result,
@@ -23,6 +25,8 @@ from pipelines.common.quality import (
     check_fact_social_assistance_network,
     check_fact_social_protection,
     check_fact_indicator_source_rows,
+    check_environment_risk_aggregation,
+    check_environment_risk_mart,
     check_urban_domain,
     check_ops_pipeline_runs,
 )
@@ -90,6 +94,10 @@ def run(
         results.extend(check_fact_social_protection(session, thresholds))
         results.extend(check_fact_social_assistance_network(session, thresholds))
         results.extend(check_urban_domain(session, thresholds))
+        results.extend(check_environment_risk_aggregation(session, thresholds))
+        results.extend(check_environment_risk_mart(session, thresholds))
+        results.extend(check_source_schema_contracts(session, thresholds))
+        results.extend(check_source_schema_drift(session, thresholds))
         results.extend(check_ops_pipeline_runs(session, reference_period, thresholds))
 
     has_fail = any(result.status == "fail" for result in results)

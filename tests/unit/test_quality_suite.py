@@ -57,6 +57,10 @@ def test_quality_suite_includes_map_layer_checks(monkeypatch: Any) -> None:
     monkeypatch.setattr(quality_suite, "check_fact_social_protection", _empty_checks)
     monkeypatch.setattr(quality_suite, "check_fact_social_assistance_network", _empty_checks)
     monkeypatch.setattr(quality_suite, "check_urban_domain", _empty_checks)
+    monkeypatch.setattr(quality_suite, "check_environment_risk_aggregation", _empty_checks)
+    monkeypatch.setattr(quality_suite, "check_environment_risk_mart", _empty_checks)
+    monkeypatch.setattr(quality_suite, "check_source_schema_contracts", _empty_checks)
+    monkeypatch.setattr(quality_suite, "check_source_schema_drift", _empty_checks)
     monkeypatch.setattr(quality_suite, "check_ops_pipeline_runs", _empty_checks)
 
     result = quality_suite.run(reference_period="2025")

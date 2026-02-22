@@ -3,10 +3,13 @@ from __future__ import annotations
 from typing import Any
 
 from pipelines.common.quality import (
+    check_environment_risk_aggregation,
+    check_environment_risk_mart,
     check_fact_election_result,
     check_fact_indicator,
     check_fact_indicator_source_rows,
     check_map_layers,
+    check_source_schema_contracts,
     check_urban_domain,
 )
 from pipelines.common.quality_thresholds import QualityThresholds
@@ -75,6 +78,23 @@ def _default_thresholds() -> QualityThresholds:
                 "min_road_rows": 1,
                 "min_poi_rows": 1,
                 "max_invalid_geometry_rows": 0,
+            },
+            "environment_risk": {
+                "min_rows_district": 1,
+                "min_rows_census_sector": 1,
+                "min_distinct_periods": 1,
+                "max_null_risk_score_rows": 0,
+                "max_null_hazard_score_rows": 0,
+                "max_null_exposure_score_rows": 0,
+                "min_mart_rows_municipality": 1,
+                "min_mart_rows_district": 1,
+                "min_mart_rows_census_sector": 1,
+                "min_mart_distinct_periods": 1,
+                "max_mart_null_score_rows": 0,
+            },
+            "schema_contracts": {
+                "min_active_coverage_pct": 100.0,
+                "max_missing_connectors": 0,
             },
         },
     )
@@ -253,8 +273,8 @@ def test_check_map_layers_fails_required_and_warns_optional_layers() -> None:
 
 
 def test_check_urban_domain_applies_row_and_geometry_thresholds() -> None:
-    # calls: roads_rows, roads_invalid, pois_rows, pois_invalid
-    session = _SequenceSession([10, 0, 5, 0])
+    # calls: roads_rows, roads_invalid, pois_rows, pois_invalid, transport_rows, transport_invalid
+    session = _SequenceSession([10, 0, 5, 0, 2, 0])
 
     results = check_urban_domain(session, _default_thresholds())
 
@@ -263,11 +283,13 @@ def test_check_urban_domain_applies_row_and_geometry_thresholds() -> None:
     assert by_name["urban_roads_invalid_geometry_rows"].status == "pass"
     assert by_name["urban_pois_rows_after_filter"].status == "pass"
     assert by_name["urban_pois_invalid_geometry_rows"].status == "pass"
+    assert by_name["urban_transport_stops_rows_after_filter"].status == "pass"
+    assert by_name["urban_transport_stops_invalid_geometry_rows"].status == "pass"
 
 
 def test_check_urban_domain_warns_and_fails_when_thresholds_are_violated() -> None:
-    # calls: roads_rows, roads_invalid, pois_rows, pois_invalid
-    session = _SequenceSession([0, 2, 0, 1])
+    # calls: roads_rows, roads_invalid, pois_rows, pois_invalid, transport_rows, transport_invalid
+    session = _SequenceSession([0, 2, 0, 1, 0, 1])
 
     results = check_urban_domain(session, _default_thresholds())
 
@@ -276,3 +298,89 @@ def test_check_urban_domain_warns_and_fails_when_thresholds_are_violated() -> No
     assert by_name["urban_roads_invalid_geometry_rows"].status == "fail"
     assert by_name["urban_pois_rows_after_filter"].status == "warn"
     assert by_name["urban_pois_invalid_geometry_rows"].status == "fail"
+    assert by_name["urban_transport_stops_rows_after_filter"].status == "pass"
+    assert by_name["urban_transport_stops_invalid_geometry_rows"].status == "fail"
+
+
+def test_check_environment_risk_aggregation_passes_when_thresholds_met() -> None:
+    # calls: district_rows, census_sector_rows, distinct_periods, null_risk, null_hazard, null_exposure
+    session = _SequenceSession([12, 53, 5, 0, 0, 0])
+
+    results = check_environment_risk_aggregation(session, _default_thresholds())
+
+    by_name = {result.name: result for result in results}
+    assert by_name["environment_risk_rows_district"].status == "pass"
+    assert by_name["environment_risk_rows_census_sector"].status == "pass"
+    assert by_name["environment_risk_distinct_periods"].status == "pass"
+    assert by_name["environment_risk_null_score_rows"].status == "pass"
+    assert by_name["environment_risk_null_hazard_rows"].status == "pass"
+    assert by_name["environment_risk_null_exposure_rows"].status == "pass"
+
+
+def test_check_environment_risk_aggregation_warns_and_fails_when_invalid() -> None:
+    # calls: district_rows, census_sector_rows, distinct_periods, null_risk, null_hazard, null_exposure
+    session = _SequenceSession([0, 0, 0, 2, 1, 3])
+
+    results = check_environment_risk_aggregation(session, _default_thresholds())
+
+    by_name = {result.name: result for result in results}
+    assert by_name["environment_risk_rows_district"].status == "warn"
+    assert by_name["environment_risk_rows_census_sector"].status == "warn"
+    assert by_name["environment_risk_distinct_periods"].status == "warn"
+    assert by_name["environment_risk_null_score_rows"].status == "fail"
+    assert by_name["environment_risk_null_hazard_rows"].status == "fail"
+    assert by_name["environment_risk_null_exposure_rows"].status == "fail"
+
+
+def test_check_environment_risk_mart_passes_when_thresholds_met() -> None:
+    # calls: municipality_rows, district_rows, census_sector_rows, distinct_periods, null_score_rows
+    session = _SequenceSession([1, 12, 53, 5, 0])
+
+    results = check_environment_risk_mart(session, _default_thresholds())
+
+    by_name = {result.name: result for result in results}
+    assert by_name["environment_risk_mart_rows_municipality"].status == "pass"
+    assert by_name["environment_risk_mart_rows_district"].status == "pass"
+    assert by_name["environment_risk_mart_rows_census_sector"].status == "pass"
+    assert by_name["environment_risk_mart_distinct_periods"].status == "pass"
+    assert by_name["environment_risk_mart_null_score_rows"].status == "pass"
+
+
+def test_check_environment_risk_mart_warns_and_fails_when_invalid() -> None:
+    # calls: municipality_rows, district_rows, census_sector_rows, distinct_periods, null_score_rows
+    session = _SequenceSession([0, 0, 0, 0, 2])
+
+    results = check_environment_risk_mart(session, _default_thresholds())
+
+    by_name = {result.name: result for result in results}
+    assert by_name["environment_risk_mart_rows_municipality"].status == "warn"
+    assert by_name["environment_risk_mart_rows_district"].status == "warn"
+    assert by_name["environment_risk_mart_rows_census_sector"].status == "warn"
+    assert by_name["environment_risk_mart_distinct_periods"].status == "warn"
+    assert by_name["environment_risk_mart_null_score_rows"].status == "fail"
+
+
+def test_check_source_schema_contracts_passes_with_full_coverage() -> None:
+    # calls: expected_connectors, covered_connectors
+    session = _SequenceSession([12, 12])
+
+    results = check_source_schema_contracts(session, _default_thresholds())
+
+    by_name = {result.name: result for result in results}
+    assert by_name["schema_contracts_active_coverage_pct"].status == "pass"
+    assert by_name["schema_contracts_active_coverage_pct"].observed_value == 100.0
+    assert by_name["schema_contracts_missing_connectors"].status == "pass"
+    assert by_name["schema_contracts_missing_connectors"].observed_value == 0
+
+
+def test_check_source_schema_contracts_fails_with_missing_connectors() -> None:
+    # calls: expected_connectors, covered_connectors
+    session = _SequenceSession([10, 7])
+
+    results = check_source_schema_contracts(session, _default_thresholds())
+
+    by_name = {result.name: result for result in results}
+    assert by_name["schema_contracts_active_coverage_pct"].status == "fail"
+    assert by_name["schema_contracts_active_coverage_pct"].observed_value == 70.0
+    assert by_name["schema_contracts_missing_connectors"].status == "fail"
+    assert by_name["schema_contracts_missing_connectors"].observed_value == 3

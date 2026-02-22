@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC
 from datetime import datetime
+import hashlib
 from uuid import uuid4
 from typing import Any
 
@@ -24,10 +25,16 @@ from app.schemas.qg import (
     ElectorateMapItem,
     ElectorateMapResponse,
     ElectorateSummaryResponse,
+    ExplainabilityCoverage,
+    ExplainabilityTrail,
+    EnvironmentRiskItem,
+    EnvironmentRiskResponse,
     InsightHighlightItem,
     InsightHighlightsResponse,
     KpiOverviewItem,
     KpiOverviewResponse,
+    MobilityAccessItem,
+    MobilityAccessResponse,
     PriorityEvidence,
     PriorityItem,
     PriorityListResponse,
@@ -161,16 +168,97 @@ def _build_insight_explanation(row: dict[str, Any]) -> list[str]:
     return [line1, line2, line3]
 
 
-def _qg_metadata(updated_at: datetime | None, notes: str | None = None, unit: str | None = None, source_classification: str | None = None) -> QgMetadata:
+def _qg_metadata(
+    updated_at: datetime | None,
+    notes: str | None = None,
+    unit: str | None = None,
+    source_classification: str | None = None,
+    source_name: str = "silver.fact_indicator",
+    config_version: str | None = None,
+) -> QgMetadata:
     cfg = load_strategic_engine_config()
     return QgMetadata(
-        source_name="silver.fact_indicator",
+        source_name=source_name,
         updated_at=updated_at,
         coverage_note="territorial_aggregated",
         unit=unit,
         notes=notes,
         source_classification=source_classification or "misto",
-        config_version=cfg.version,
+        config_version=config_version or cfg.version,
+    )
+
+
+def _build_explainability_trail(row: dict[str, Any]) -> ExplainabilityTrail:
+    trail_key = "|".join(
+        [
+            str(row.get("reference_period") or ""),
+            str(row.get("territory_id") or ""),
+            str(row.get("indicator_code") or ""),
+            str(row.get("score_version") or ""),
+            str(row.get("scoring_method") or ""),
+        ]
+    )
+    trail_id = hashlib.sha1(trail_key.encode("utf-8")).hexdigest()[:16]
+
+    coverage = None
+    covered = row.get("coverage_covered_territories")
+    total = row.get("coverage_total_territories")
+    pct = row.get("coverage_pct")
+    if covered is not None and total is not None and pct is not None:
+        coverage = ExplainabilityCoverage(
+            covered_territories=int(covered),
+            total_territories=int(total),
+            coverage_pct=float(pct),
+        )
+
+    return ExplainabilityTrail(
+        trail_id=trail_id,
+        score_version=str(row["score_version"]) if row.get("score_version") is not None else None,
+        scoring_method=str(row["scoring_method"]) if row.get("scoring_method") is not None else None,
+        driver_rank=int(row["driver_rank"]) if row.get("driver_rank") is not None else None,
+        driver_total=int(row["driver_total"]) if row.get("driver_total") is not None else None,
+        weighted_magnitude=float(row["weighted_magnitude"]) if row.get("weighted_magnitude") is not None else None,
+        critical_threshold=float(row["critical_threshold"]) if row.get("critical_threshold") is not None else None,
+        attention_threshold=float(row["attention_threshold"]) if row.get("attention_threshold") is not None else None,
+        coverage=coverage,
+    )
+
+
+def _build_priority_rationale(row: dict[str, Any], trail: ExplainabilityTrail) -> list[str]:
+    rationale = [
+        f"Indicador {row['indicator_name']} com valor {row['value']:.2f}.",
+        f"Dominio {row['domain']} em {row['territory_name']}.",
+    ]
+    if row["status"] == "critical":
+        rationale.append("Criticidade alta dentro do recorte atual.")
+    elif row["status"] == "attention":
+        rationale.append("Indicador em faixa de atencao no recorte atual.")
+    else:
+        rationale.append("Indicador em faixa estavel no recorte atual.")
+
+    if trail.driver_rank is not None and trail.driver_total is not None:
+        rationale.append(
+            f"Ranking explicavel no recorte: {trail.driver_rank}/{trail.driver_total}."
+        )
+    if trail.coverage is not None:
+        rationale.append(
+            "Cobertura territorial do dominio: "
+            f"{trail.coverage.coverage_pct:.2f}% "
+            f"({trail.coverage.covered_territories}/{trail.coverage.total_territories})."
+        )
+    return rationale
+
+
+def _build_insight_deep_link(row: dict[str, Any], item_severity: str) -> str:
+    period = str(row.get("reference_period") or "")
+    level = str(row.get("territory_level") or "")
+    domain = str(row.get("domain") or "")
+    territory_id = str(row.get("territory_id") or "")
+    indicator_code = str(row.get("indicator_code") or "")
+    return (
+        "/insights?"
+        f"period={period}&level={level}&domain={domain}&severity={item_severity}"
+        f"&territory_id={territory_id}&indicator_code={indicator_code}"
     )
 
 
@@ -181,72 +269,99 @@ def _fetch_priority_rows(
     domain: str | None,
     limit: int,
 ) -> list[dict[str, Any]]:
-    cfg = load_strategic_engine_config()
-    crit = cfg.scoring.critical_threshold
-    att = cfg.scoring.attention_threshold
     query = text(
-        f"""
+        """
         WITH base AS (
             SELECT
-                dt.territory_id::text AS territory_id,
-                dt.name AS territory_name,
+                mpd.territory_id::text AS territory_id,
+                mpd.territory_name,
+                mpd.territory_level::text AS territory_level,
+                mpd.domain,
+                mpd.indicator_code,
+                mpd.indicator_name,
+                mpd.value::double precision AS value,
+                mpd.unit,
+                mpd.reference_period,
+                mpd.source,
+                mpd.dataset,
+                mpd.updated_at,
+                mpd.score_version,
+                mpd.config_version,
+                mpd.scoring_method,
+                mpd.critical_threshold::double precision AS critical_threshold,
+                mpd.attention_threshold::double precision AS attention_threshold,
+                mpd.domain_weight::double precision AS domain_weight,
+                mpd.indicator_weight::double precision AS indicator_weight,
+                mpd.weighted_magnitude::double precision AS weighted_magnitude,
+                mpd.driver_rank::int AS driver_rank,
+                mpd.driver_total::int AS driver_total,
+                mpd.priority_score::double precision AS score,
+                mpd.priority_status::text AS status
+            FROM gold.mart_priority_drivers mpd
+            WHERE (CAST(:period AS TEXT) IS NULL OR mpd.reference_period = CAST(:period AS TEXT))
+              AND (CAST(:level AS TEXT) IS NULL OR mpd.territory_level::text = CAST(:level AS TEXT))
+              AND (CAST(:domain AS TEXT) IS NULL OR mpd.domain = CAST(:domain AS TEXT))
+        ),
+        territory_totals AS (
+            SELECT
                 dt.level::text AS territory_level,
-                {_DOMAIN_CASE_SQL} AS domain,
-                fi.indicator_code,
-                fi.indicator_name,
-                fi.value::double precision AS value,
-                fi.unit,
-                fi.reference_period,
-                fi.source,
-                fi.dataset,
-                fi.updated_at
-            FROM silver.fact_indicator fi
-            JOIN silver.dim_territory dt ON dt.territory_id = fi.territory_id
-            WHERE (CAST(:period AS TEXT) IS NULL OR fi.reference_period = CAST(:period AS TEXT))
-              AND (CAST(:level AS TEXT) IS NULL OR dt.level::text = CAST(:level AS TEXT))
+                COUNT(*)::int AS total_territories
+            FROM silver.dim_territory dt
+            GROUP BY dt.level::text
         ),
-        filtered AS (
-            SELECT *
-            FROM base
-            WHERE (CAST(:domain AS TEXT) IS NULL OR domain = CAST(:domain AS TEXT))
-        ),
-        ranked AS (
+        domain_coverage AS (
             SELECT
-                *,
-                ROW_NUMBER() OVER (ORDER BY ABS(value) DESC, territory_name ASC, indicator_code ASC) AS row_num,
-                COUNT(*) OVER () AS total_rows
-            FROM filtered
-        ),
-        scored AS (
-            SELECT
-                *,
+                b.reference_period,
+                b.territory_level,
+                b.domain,
+                COUNT(DISTINCT b.territory_id)::int AS covered_territories,
+                COALESCE(tt.total_territories, 0)::int AS total_territories,
                 CASE
-                    WHEN total_rows <= 1 THEN 50.0
-                    ELSE ROUND((1 - ((row_num - 1)::numeric / (total_rows - 1))) * 100, 2)::double precision
-                END AS score
-            FROM ranked
+                    WHEN COALESCE(tt.total_territories, 0) = 0 THEN 0.0
+                    ELSE ROUND(
+                        (COUNT(DISTINCT b.territory_id)::numeric / tt.total_territories::numeric) * 100,
+                        2
+                    )::double precision
+                END AS coverage_pct
+            FROM base b
+            LEFT JOIN territory_totals tt
+                ON tt.territory_level = b.territory_level
+            GROUP BY b.reference_period, b.territory_level, b.domain, tt.total_territories
         )
         SELECT
-            territory_id,
-            territory_name,
-            territory_level,
-            domain,
-            indicator_code,
-            indicator_name,
-            value,
-            unit,
-            reference_period,
-            source,
-            dataset,
-            updated_at,
-            score,
-            CASE
-                WHEN score >= {crit} THEN 'critical'
-                WHEN score >= {att} THEN 'attention'
-                ELSE 'stable'
-            END AS status
-        FROM scored
-        ORDER BY row_num
+            b.territory_id,
+            b.territory_name,
+            b.territory_level,
+            b.domain,
+            b.indicator_code,
+            b.indicator_name,
+            b.value,
+            b.unit,
+            b.reference_period,
+            b.source,
+            b.dataset,
+            b.updated_at,
+            b.score_version,
+            b.config_version,
+            b.scoring_method,
+            b.critical_threshold,
+            b.attention_threshold,
+            b.domain_weight,
+            b.indicator_weight,
+            b.weighted_magnitude,
+            b.driver_rank,
+            b.driver_total,
+            b.score,
+            b.status,
+            dc.covered_territories AS coverage_covered_territories,
+            dc.total_territories AS coverage_total_territories,
+            dc.coverage_pct
+        FROM base b
+        LEFT JOIN domain_coverage dc
+            ON dc.reference_period = b.reference_period
+           AND dc.territory_level = b.territory_level
+           AND dc.domain = b.domain
+        ORDER BY b.driver_rank ASC, b.territory_name ASC, b.indicator_code ASC
         LIMIT :limit
         """
     )
@@ -679,6 +794,306 @@ def _fetch_election_metrics(
     return {str(row["metric"]): float(row["total_value"]) for row in rows}
 
 
+def _resolve_effective_mobility_period(db: Session, requested_period: str | None) -> str | None:
+    if requested_period:
+        return requested_period
+    row = db.execute(
+        text(
+            """
+            SELECT MAX(reference_period) AS reference_period
+            FROM gold.mart_mobility_access
+            """
+        )
+    ).mappings().first()
+    if not row or row.get("reference_period") is None:
+        return None
+    return str(row["reference_period"])
+
+
+def _resolve_effective_environment_period(db: Session, requested_period: str | None) -> str | None:
+    if requested_period:
+        return requested_period
+    row = db.execute(
+        text(
+            """
+            SELECT MAX(reference_period) AS reference_period
+            FROM gold.mart_environment_risk
+            """
+        )
+    ).mappings().first()
+    if not row or row.get("reference_period") is None:
+        return None
+    return str(row["reference_period"])
+
+
+@router.get("/mobility/access", response_model=MobilityAccessResponse)
+def get_mobility_access(
+    period: str | None = Query(default=None),
+    level: str | None = Query(default=None),
+    limit: int = Query(default=200, ge=1, le=1000),
+    db: Session = Depends(get_db),  # noqa: B008
+) -> MobilityAccessResponse:
+    level_en: str | None = None
+    if level is not None:
+        level_en = normalize_level(level)
+        if level_en is None:
+            raise HTTPException(status_code=422, detail=f"Invalid level '{level}'.")
+
+    effective_period = _resolve_effective_mobility_period(db, period)
+    if effective_period is None:
+        return MobilityAccessResponse(
+            period=period,
+            level=to_external_level(level_en) if level_en else None,
+            metadata=QgMetadata(
+                source_name="gold.mart_mobility_access",
+                updated_at=None,
+                coverage_note="territorial_mobility",
+                unit="score",
+                notes="no_data_for_selected_filters",
+                source_classification="misto",
+                config_version=load_strategic_engine_config().version,
+            ),
+            items=[],
+        )
+
+    rows = db.execute(
+        text(
+            """
+            SELECT
+                reference_period,
+                territory_id::text AS territory_id,
+                territory_name,
+                territory_level,
+                municipality_ibge_code,
+                road_segments_count,
+                road_length_km,
+                transport_stops_count,
+                mobility_pois_count,
+                fleet_total_effective,
+                population_effective,
+                vehicles_per_1k_pop,
+                transport_stops_per_10k_pop,
+                road_km_per_10k_pop,
+                mobility_pois_per_10k_pop,
+                mobility_access_score,
+                mobility_access_deficit_score,
+                priority_status,
+                uses_proxy_allocation,
+                allocation_method,
+                refreshed_at_utc
+            FROM gold.mart_mobility_access
+            WHERE reference_period = CAST(:period AS TEXT)
+              AND (CAST(:level AS TEXT) IS NULL OR territory_level = CAST(:level AS TEXT))
+            ORDER BY mobility_access_deficit_score DESC, territory_name ASC
+            LIMIT :limit
+            """
+        ),
+        {"period": effective_period, "level": level_en, "limit": limit},
+    ).mappings().all()
+
+    if not rows:
+        return MobilityAccessResponse(
+            period=effective_period,
+            level=to_external_level(level_en) if level_en else None,
+            metadata=QgMetadata(
+                source_name="gold.mart_mobility_access",
+                updated_at=None,
+                coverage_note="territorial_mobility",
+                unit="score",
+                notes="no_data_for_selected_filters",
+                source_classification="misto",
+                config_version=load_strategic_engine_config().version,
+            ),
+            items=[],
+        )
+
+    items = [
+        MobilityAccessItem(
+            reference_period=str(row["reference_period"]),
+            territory_id=str(row["territory_id"]),
+            territory_name=str(row["territory_name"]),
+            territory_level=to_external_level(str(row["territory_level"])),
+            municipality_ibge_code=row.get("municipality_ibge_code"),
+            road_segments_count=int(row["road_segments_count"] or 0),
+            road_length_km=float(row["road_length_km"] or 0.0),
+            transport_stops_count=int(row["transport_stops_count"] or 0),
+            mobility_pois_count=int(row["mobility_pois_count"] or 0),
+            fleet_total_effective=float(row["fleet_total_effective"]) if row["fleet_total_effective"] is not None else None,
+            population_effective=float(row["population_effective"]) if row["population_effective"] is not None else None,
+            vehicles_per_1k_pop=float(row["vehicles_per_1k_pop"]) if row["vehicles_per_1k_pop"] is not None else None,
+            transport_stops_per_10k_pop=float(row["transport_stops_per_10k_pop"])
+            if row["transport_stops_per_10k_pop"] is not None
+            else None,
+            road_km_per_10k_pop=float(row["road_km_per_10k_pop"]) if row["road_km_per_10k_pop"] is not None else None,
+            mobility_pois_per_10k_pop=float(row["mobility_pois_per_10k_pop"])
+            if row["mobility_pois_per_10k_pop"] is not None
+            else None,
+            mobility_access_score=float(row["mobility_access_score"]),
+            mobility_access_deficit_score=float(row["mobility_access_deficit_score"]),
+            priority_status=str(row["priority_status"]),
+            uses_proxy_allocation=bool(row["uses_proxy_allocation"]),
+            allocation_method=str(row["allocation_method"]),
+        )
+        for row in rows
+    ]
+
+    updated_at = max((row.get("refreshed_at_utc") for row in rows), default=None)
+    return MobilityAccessResponse(
+        period=effective_period,
+        level=to_external_level(level_en) if level_en else None,
+        metadata=QgMetadata(
+            source_name="gold.mart_mobility_access",
+            updated_at=updated_at,
+            coverage_note="territorial_mobility",
+            unit="score",
+            notes="mobility_access_mart_v1",
+            source_classification="misto",
+            config_version=load_strategic_engine_config().version,
+        ),
+        items=items,
+    )
+
+
+@router.get("/environment/risk", response_model=EnvironmentRiskResponse)
+def get_environment_risk(
+    period: str | None = Query(default=None),
+    level: str | None = Query(default=None),
+    limit: int = Query(default=200, ge=1, le=1000),
+    db: Session = Depends(get_db),  # noqa: B008
+) -> EnvironmentRiskResponse:
+    level_en: str | None = None
+    allowed_levels = {"municipality", "district", "census_sector"}
+    if level is not None:
+        level_en = normalize_level(level)
+        if level_en is None or level_en not in allowed_levels:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid level '{level}'. Allowed values: municipality, district, census_sector.",
+            )
+
+    effective_period = _resolve_effective_environment_period(db, period)
+    if effective_period is None:
+        return EnvironmentRiskResponse(
+            period=period,
+            level=to_external_level(level_en) if level_en else None,
+            metadata=QgMetadata(
+                source_name="gold.mart_environment_risk",
+                updated_at=None,
+                coverage_note="territorial_environment_risk",
+                unit="score",
+                notes="no_data_for_selected_filters",
+                source_classification="misto",
+                config_version=load_strategic_engine_config().version,
+            ),
+            items=[],
+        )
+
+    rows = db.execute(
+        text(
+            """
+            SELECT
+                reference_period,
+                territory_id::text AS territory_id,
+                territory_name,
+                territory_level,
+                municipality_ibge_code,
+                hazard_score,
+                exposure_score,
+                environment_risk_score,
+                risk_percentile,
+                risk_priority_rank,
+                priority_status,
+                area_km2,
+                road_km,
+                pois_count,
+                transport_stops_count,
+                road_density_km_per_km2,
+                pois_per_km2,
+                transport_stops_per_km2,
+                population_effective,
+                exposed_population_per_km2,
+                uses_proxy_allocation,
+                allocation_method,
+                refreshed_at_utc
+            FROM gold.mart_environment_risk
+            WHERE reference_period = CAST(:period AS TEXT)
+              AND (CAST(:level AS TEXT) IS NULL OR territory_level = CAST(:level AS TEXT))
+            ORDER BY environment_risk_score DESC, territory_name ASC
+            LIMIT :limit
+            """
+        ),
+        {"period": effective_period, "level": level_en, "limit": limit},
+    ).mappings().all()
+
+    if not rows:
+        return EnvironmentRiskResponse(
+            period=effective_period,
+            level=to_external_level(level_en) if level_en else None,
+            metadata=QgMetadata(
+                source_name="gold.mart_environment_risk",
+                updated_at=None,
+                coverage_note="territorial_environment_risk",
+                unit="score",
+                notes="no_data_for_selected_filters",
+                source_classification="misto",
+                config_version=load_strategic_engine_config().version,
+            ),
+            items=[],
+        )
+
+    items = [
+        EnvironmentRiskItem(
+            reference_period=str(row["reference_period"]),
+            territory_id=str(row["territory_id"]),
+            territory_name=str(row["territory_name"]),
+            territory_level=to_external_level(str(row["territory_level"])),
+            municipality_ibge_code=row.get("municipality_ibge_code"),
+            hazard_score=float(row["hazard_score"]),
+            exposure_score=float(row["exposure_score"]),
+            environment_risk_score=float(row["environment_risk_score"]),
+            risk_percentile=float(row["risk_percentile"]),
+            risk_priority_rank=int(row["risk_priority_rank"]),
+            priority_status=str(row["priority_status"]),
+            area_km2=float(row["area_km2"]) if row["area_km2"] is not None else None,
+            road_km=float(row["road_km"]) if row["road_km"] is not None else None,
+            pois_count=int(row["pois_count"] or 0),
+            transport_stops_count=int(row["transport_stops_count"] or 0),
+            road_density_km_per_km2=float(row["road_density_km_per_km2"])
+            if row["road_density_km_per_km2"] is not None
+            else None,
+            pois_per_km2=float(row["pois_per_km2"]) if row["pois_per_km2"] is not None else None,
+            transport_stops_per_km2=float(row["transport_stops_per_km2"])
+            if row["transport_stops_per_km2"] is not None
+            else None,
+            population_effective=float(row["population_effective"])
+            if row["population_effective"] is not None
+            else None,
+            exposed_population_per_km2=float(row["exposed_population_per_km2"])
+            if row["exposed_population_per_km2"] is not None
+            else None,
+            uses_proxy_allocation=bool(row["uses_proxy_allocation"]),
+            allocation_method=str(row["allocation_method"]),
+        )
+        for row in rows
+    ]
+
+    updated_at = max((row.get("refreshed_at_utc") for row in rows), default=None)
+    return EnvironmentRiskResponse(
+        period=effective_period,
+        level=to_external_level(level_en) if level_en else None,
+        metadata=QgMetadata(
+            source_name="gold.mart_environment_risk",
+            updated_at=updated_at,
+            coverage_note="territorial_environment_risk",
+            unit="score",
+            notes="environment_risk_mart_v1",
+            source_classification="misto",
+            config_version=load_strategic_engine_config().version,
+        ),
+        items=items,
+    )
+
+
 @router.get("/kpis/overview", response_model=KpiOverviewResponse)
 def get_kpis_overview(
     period: str | None = Query(default=None),
@@ -760,16 +1175,8 @@ def get_priority_list(
 
     items = []
     for row in rows:
-        rationale = [
-            f"Indicador {row['indicator_name']} com valor {row['value']:.2f}.",
-            f"Dominio {row['domain']} em {row['territory_name']}.",
-        ]
-        if row["status"] == "critical":
-            rationale.append("Criticidade alta dentro do recorte atual.")
-        elif row["status"] == "attention":
-            rationale.append("Indicador em faixa de atencao no recorte atual.")
-        else:
-            rationale.append("Indicador em faixa estavel no recorte atual.")
+        trail = _build_explainability_trail(row)
+        rationale = _build_priority_rationale(row, trail)
 
         prev_val = previous_values.get((row["territory_id"], row["indicator_code"]))
         trend = _compute_trend(float(row["value"]), prev_val)
@@ -793,16 +1200,31 @@ def get_priority_list(
                     reference_period=row["reference_period"],
                     source=row["source"],
                     dataset=row["dataset"],
+                    updated_at=row.get("updated_at"),
+                    score_version=str(row["score_version"]) if row.get("score_version") is not None else None,
+                    scoring_method=str(row["scoring_method"]) if row.get("scoring_method") is not None else None,
+                    domain_weight=float(row["domain_weight"]) if row.get("domain_weight") is not None else None,
+                    indicator_weight=float(row["indicator_weight"]) if row.get("indicator_weight") is not None else None,
                 ),
+                explainability=trail,
             )
         )
 
     updated_at = max((row["updated_at"] for row in rows), default=None)
+    score_version = next(
+        (str(row["score_version"]) for row in rows if row.get("score_version") is not None),
+        None,
+    )
     return PriorityListResponse(
         period=period,
         level=to_external_level(level_en) if level_en else None,
         domain=domain,
-        metadata=_qg_metadata(updated_at, notes="ranking_derived_from_fact_indicator"),
+        metadata=_qg_metadata(
+            updated_at,
+            notes="priority_drivers_mart_v1",
+            source_name="gold.mart_priority_drivers",
+            config_version=score_version,
+        ),
         items=items,
     )
 
@@ -835,9 +1257,18 @@ def get_priority_summary(
             seen_territories.add(territory_name)
 
     updated_at = max((row["updated_at"] for row in rows), default=None)
+    score_version = next(
+        (str(row["score_version"]) for row in rows if row.get("score_version") is not None),
+        None,
+    )
     return PrioritySummaryResponse(
         period=period,
-        metadata=_qg_metadata(updated_at, notes="summary_derived_from_priority_list"),
+        metadata=_qg_metadata(
+            updated_at,
+            notes="summary_derived_from_priority_drivers_mart",
+            source_name="gold.mart_priority_drivers",
+            config_version=score_version,
+        ),
         total_items=len(rows),
         by_status=by_status,
         by_domain=by_domain,
@@ -869,6 +1300,7 @@ def get_insight_highlights(
         item_severity = _to_severity(row["status"])
         if severity and item_severity != severity:
             continue
+        trail = _build_explainability_trail(row)
         insights.append(
             InsightHighlightItem(
                 title=f"{row['domain'].title()}: {row['territory_name']}",
@@ -882,19 +1314,35 @@ def get_insight_highlights(
                     reference_period=row["reference_period"],
                     source=row["source"],
                     dataset=row["dataset"],
+                    updated_at=row.get("updated_at"),
+                    score_version=str(row["score_version"]) if row.get("score_version") is not None else None,
+                    scoring_method=str(row["scoring_method"]) if row.get("scoring_method") is not None else None,
+                    domain_weight=float(row["domain_weight"]) if row.get("domain_weight") is not None else None,
+                    indicator_weight=float(row["indicator_weight"]) if row.get("indicator_weight") is not None else None,
                 ),
+                explainability=trail,
                 robustness="high" if item_severity == "critical" else "medium",
+                deep_link=_build_insight_deep_link(row, item_severity),
             )
         )
         if len(insights) >= limit:
             break
 
     updated_at = max((row["updated_at"] for row in priority_rows), default=None)
+    score_version = next(
+        (str(row["score_version"]) for row in priority_rows if row.get("score_version") is not None),
+        None,
+    )
     return InsightHighlightsResponse(
         period=period,
         domain=domain,
         severity=severity,
-        metadata=_qg_metadata(updated_at, notes="insights_v1_rule_based"),
+        metadata=_qg_metadata(
+            updated_at,
+            notes="insights_v1_priority_drivers_mart",
+            source_name="gold.mart_priority_drivers",
+            config_version=score_version,
+        ),
         items=insights,
     )
 
@@ -1108,11 +1556,20 @@ def generate_brief(
             source=str(row["source"]),
             dataset=str(row["dataset"]),
             reference_period=str(row["reference_period"]),
+            updated_at=row.get("updated_at"),
+            score_version=str(row["score_version"]) if row.get("score_version") is not None else None,
+            scoring_method=str(row["scoring_method"]) if row.get("scoring_method") is not None else None,
+            domain_weight=float(row["domain_weight"]) if row.get("domain_weight") is not None else None,
+            indicator_weight=float(row["indicator_weight"]) if row.get("indicator_weight") is not None else None,
         )
         for row in rows
     ]
 
     updated_at = max((row["updated_at"] for row in rows), default=None)
+    score_version = next(
+        (str(row["score_version"]) for row in rows if row.get("score_version") is not None),
+        None,
+    )
     return BriefGenerateResponse(
         brief_id=f"brief-{uuid4().hex[:12]}",
         title=f"Brief Executivo - {title_scope}",
@@ -1124,7 +1581,7 @@ def generate_brief(
         summary_lines=summary_lines,
         recommended_actions=recommended_actions,
         evidences=evidences,
-        metadata=_qg_metadata(updated_at, notes="brief_v1_rule_based"),
+        metadata=_qg_metadata(updated_at, notes="brief_v1_rule_based", config_version=score_version),
     )
 
 

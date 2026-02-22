@@ -8,8 +8,11 @@ Contrato tecnico principal: `CONTRATO.md`
 ## Trilha ativa unica (executavel no ciclo atual)
 
 1. Trilha ativa oficial (WIP=1):
-   - `D4-mobilidade/frota`.
-   - escopo: `BD-040`, `BD-041`, `BD-042` com execucao sequencial (iniciando por `BD-040`).
+   - `D5` concluido tecnicamente (`BD-050`, `BD-051`, `BD-052`).
+   - `D6` concluido tecnicamente (`BD-060`, `BD-061`, `BD-062`).
+   - `D7` concluido tecnicamente (`BD-070`, `BD-071`, `BD-072`).
+   - `D8` em andamento com `BD-080` concluido tecnicamente.
+   - `D4-mobilidade/frota` encerrada com entregas `BD-040`, `BD-041` e `BD-042`.
 2. Status da trilha anterior (D3-hardening, encerrada em 2026-02-21):
    - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
    - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
@@ -18,27 +21,500 @@ Contrato tecnico principal: `CONTRATO.md`
    - `npm run build` (em `frontend/`) -> `OK`.
    - `.\.venv\Scripts\python.exe scripts/benchmark_api.py --suite urban --rounds 30 --json-output data/reports/benchmark_urban_map.json` -> `ALL PASS`.
    - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
-3. Verificacao de issues no GitHub (2026-02-21):
-   - issues abertas:
-     - `#13` (`BD-040`) em `open` com label `status:active`.
-     - `#14` (`BD-041`) e `#15` (`BD-042`) em `open` com label `status:blocked`.
-   - observacao:
-     - todas as issues de `D5..D8` seguem `status:blocked` (coerente com sequenciamento).
-     - `#7` (`BD-020`) segue `status:external` + `status:blocked`.
-     - `#28` (`BD-033`, encerrada) sem `status:active` para evitar ambiguidade de trilha.
+3. Validacao de fechamento tecnico de D4 (2026-02-21):
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_onda_a_connectors.py tests/unit/test_quality_coverage_checks.py -q -p no:cacheprovider` -> `27 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q -p no:cacheprovider` -> `47 passed`.
+   - `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 13 SQL scripts`.
+   - `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=13`, `warn=1`.
+   - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
+   - smoke API: `GET /v1/mobility/access?level=district&limit=5` -> `200`, `period=2025`, `items=5`.
+   - GitHub issues encerradas no mesmo ciclo:
+     - `#13` (`BD-040`) -> `closed`.
+     - `#14` (`BD-041`) -> `closed`.
+     - `#15` (`BD-042`) -> `closed`.
 4. Criterio de saida (DoD do ciclo D4):
    - suite backend/frontend em `pass`;
    - readiness com `status=READY` e `hard_failures=0`;
    - scorecard de cobertura sem regressao critica;
    - evidencias registradas no proprio `HANDOFF` e em `docs/CHANGELOG.md`.
 5. Proximo passo imediato:
-   - iniciar execucao tecnica de `BD-040` (serie historica SENATRAN) com entrega vertical e gate D4.
-6. Observacao operacional desta rodada:
-   - primeira tentativa de `npm --prefix frontend run test -- --run` falhou por dependencia ausente em `node_modules` (`zustand` nao resolvido em `src/shared/stores/filterStore.ts`).
-   - acao corretiva aplicada: `npm install` em `frontend/`.
+   - executar `D8/BD-081` (tuning de custo/performance em consultas e operacao), mantendo `WIP=1`.
+6. Governanca de issue:
+   - ao concluir item tecnico, encerrar issue correspondente no GitHub na mesma rodada.
 7. Regra de leitura:
    - apenas esta secao define "proximo passo executavel" no momento;
    - secoes de "proximos passos" antigas abaixo devem ser lidas como historico.
+
+## Atualizacao tecnica (2026-02-22) - D8 BD-080 implementado (carga incremental confiavel + reprocessamento seletivo)
+
+1. Orquestracao incremental operacional publicada:
+   - novo script `scripts/run_incremental_backfill.py` com selecao automatica de jobs baseada em historico de `ops.pipeline_runs`.
+   - regra de decisao por par `job + reference_period`:
+     - executa quando nao ha run previo;
+     - executa quando ultimo status nao e `success`;
+     - executa quando sucesso ficou "stale" (padrao `--stale-after-hours=168`);
+     - permite reprocessamento seletivo com `--reprocess-jobs` e `--reprocess-periods`.
+2. Hardening de operacao:
+   - filtros de escopo por `--jobs` e `--exclude-jobs`;
+   - suporte a fonte `partial` via `--include-partial`;
+   - pos-carga condicional por periodo com `dbt_build` e `quality_suite` (toggle por `--skip-dbt` e `--skip-quality`);
+   - relatorio padrao em `data/reports/incremental_backfill_report.json`.
+3. Cobertura de teste da logica incremental:
+   - nova suite `tests/unit/test_run_incremental_backfill.py` cobrindo:
+     - parse de filtros CSV;
+     - decisao `no_previous_run`;
+     - decisao `fresh_success` (skip);
+     - decisao `stale_success` (execute);
+     - decisao por `latest_status != success`;
+     - override de reprocessamento seletivo.
+4. Validacao executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_run_incremental_backfill.py tests/unit/test_backfill_environment_history.py tests/unit/test_quality_ops_pipeline_runs.py -q -p no:cacheprovider` -> `9 passed`.
+   - `.\.venv\Scripts\python.exe scripts/run_incremental_backfill.py --help` -> `OK`.
+5. Governanca de issue na trilha unica:
+   - `#25` (`BD-080`) encerrada.
+   - `#26` (`BD-081`) promovida para `status:active`.
+   - proximo item da fila unica: `D8/BD-081`.
+
+## Acordo de foco (2026-02-22)
+
+1. Trilha unica obrigatoria:
+   - `#22` (`BD-070`) -> `#23` (`BD-071`) -> `#24` (`BD-072`).
+2. Escopo congelado ate demo defensavel:
+   - sem novas frentes de fonte/dominio que nao impactem diretamente o mapa executivo.
+3. Entrega esperada para demonstracao:
+   - valor visivel no mapa com prioridade explicavel por territorio;
+   - fluxo estavel em estados `loading/error/empty/data`;
+   - evidencias tecnicas registradas em `CHANGELOG` e neste `HANDOFF`.
+
+## Atualizacao tecnica (2026-02-22) - D7 BD-072 implementado (trilhas de explicabilidade para prioridade/insight)
+
+1. Explainability estruturada em prioridade e insights:
+   - `src/app/schemas/qg.py` ganhou contratos:
+     - `ExplainabilityCoverage`
+     - `ExplainabilityTrail`.
+   - `PriorityItem` e `InsightHighlightItem` agora retornam `explainability`.
+2. Evidencia expandida para auditoria:
+   - `PriorityEvidence` e `BriefEvidenceItem` passam a incluir `updated_at`.
+   - trilha retorna metadados de score: versao/metodo/thresholds/ranking/pesos.
+3. Cobertura territorial explicita por dominio:
+   - `src/app/api/routes_qg.py` calcula cobertura por `reference_period + level + domain`:
+     - `covered_territories`
+     - `total_territories`
+     - `coverage_pct`.
+4. Navegacao de insight para triagem:
+   - `GET /v1/insights/highlights` passa a retornar `deep_link` por item.
+5. Rationale orientada a trilha:
+   - `GET /v1/priority/list` adiciona contexto de ranking e cobertura na justificativa.
+6. Validacao executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_qg_edge_cases.py -q -p no:cacheprovider` -> `68 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_api_contract.py -q -p no:cacheprovider` -> `19 passed`.
+7. Governanca de issue na trilha unica:
+   - `BD-072` concluido tecnicamente.
+   - proximo item da fila unica: `D8/BD-080`.
+
+## Atualizacao tecnica (2026-02-22) - D7 BD-071 implementado (versionamento de score territorial e pesos)
+
+1. Governanca de versao de score publicada:
+   - migration nova `db/sql/016_strategic_score_versions.sql` com:
+     - tabela `ops.strategic_score_versions`;
+     - indice de unicidade para versao ativa (`uq_strategic_score_versions_active`);
+     - view ativa `ops.v_strategic_score_version_active`;
+     - seed idempotente da versao `v1.0.0`.
+2. Mart Gold de prioridade evoluido para score versionado:
+   - `db/sql/015_priority_drivers_mart.sql` agora aplica pesos por dominio/indicador e expande colunas:
+     - `score_version`, `config_version`, `critical_threshold`, `attention_threshold`,
+     - `domain_weight`, `indicator_weight`, `weighted_magnitude`.
+   - compatibilidade de migracao preservada mantendo a ordem historica das colunas-base da view.
+3. Config e automacao operacional:
+   - `configs/strategic_engine.yml` com pesos default e mapas `domain_weights`/`indicator_weights`;
+   - novo script `scripts/sync_strategic_score_versions.py` para sincronizacao idempotente no banco;
+   - `scripts/backfill_robust_database.py` passa a sincronizar `strategic_score_versions` e reportar cobertura.
+4. API executiva e contratos:
+   - `src/app/api/routes_qg.py` passa a expor metadados/evidencias com `score_version`, `scoring_method` e pesos;
+   - `src/app/schemas/qg.py` atualizado com campos opcionais de versao/pesos em prioridade, insights e briefs;
+   - `src/app/api/strategic_engine_config.py` atualizado para carregar pesos versionados.
+5. Scorecard e testes:
+   - `db/sql/007_data_coverage_scorecard.sql` ampliado com metricas:
+     - `priority_drivers_missing_score_version_rows`
+     - `strategic_score_total_versions`
+     - `strategic_score_active_versions_min`
+     - `strategic_score_active_versions_max`.
+   - `tests/contracts/test_sql_contracts.py` ampliado para `015`/`016` e novas metricas.
+   - `tests/unit/test_strategic_engine_config.py` ampliado para validar parsing de pesos.
+6. Validacao executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_strategic_engine_config.py -q -p no:cacheprovider -p no:tmpdir` -> `27 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_qg_edge_cases.py -q -p no:cacheprovider` -> `68 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `12 passed`.
+   - `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 18 SQL scripts`.
+   - `.\.venv\Scripts\python.exe scripts/sync_strategic_score_versions.py` -> `score_version=v1.0.0`, `upserted=1`.
+   - `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=28`, `warn=4`.
+7. Governanca de issue na trilha unica:
+   - `BD-071` concluido tecnicamente.
+   - sequencia da fila unica avancou para `BD-072` (concluido na atualizacao superior deste documento).
+
+## Atualizacao tecnica (2026-02-22) - D7 BD-070 implementado (mart Gold de drivers de prioridade)
+
+1. Camada Gold de prioridade publicada:
+   - migration nova `db/sql/015_priority_drivers_mart.sql` com view:
+     - `gold.mart_priority_drivers`.
+   - score deterministico por `reference_period + territory_level + domain` com:
+     - `driver_rank`, `driver_total`, `driver_magnitude`;
+     - `priority_score`, `priority_status`, `driver_percentile`;
+     - `scoring_method='rank_abs_value_v1'`.
+2. Endpoints executivos de prioridade migrados para o mart Gold:
+   - `GET /v1/priority/list`
+   - `GET /v1/priority/summary`
+   - `GET /v1/insights/highlights`
+   - metadados de resposta agora indicam `source_name=gold.mart_priority_drivers`.
+3. Governanca operacional ampliada:
+   - scorecard SQL (`db/sql/007_data_coverage_scorecard.sql`) com metricas:
+     - `priority_drivers_rows`
+     - `priority_drivers_distinct_periods`.
+   - `scripts/init_db.py` com dependencia explicita de `007_data_coverage_scorecard.sql` para `015_priority_drivers_mart.sql`.
+   - `scripts/backfill_robust_database.py` com bloco `coverage.priority_drivers_mart`.
+4. Cobertura de contrato SQL adicionada:
+   - `tests/contracts/test_sql_contracts.py` com assert dos objetos de `015_priority_drivers_mart.sql` e metricas de scorecard do mart.
+5. Validacao executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_qg_edge_cases.py tests/unit/test_cache_middleware.py -q -p no:cacheprovider` -> `78 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `11 passed`.
+   - `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 17 SQL scripts`.
+   - `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=24`, `warn=4`.
+   - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=1`.
+6. Governanca de issue na trilha unica:
+   - `BD-070` concluido tecnicamente.
+   - tentativa de sincronizacao no GitHub bloqueada por restricao de rede/proxy do ambiente local.
+   - proximo item da fila unica: `BD-071`.
+
+## Atualizacao tecnica (2026-02-22) - D6 BD-062 implementado (detectar drift de schema com alerta operacional)
+
+1. Deteccao de drift integrada ao `quality_suite`:
+   - novo check `check_source_schema_drift` em `src/pipelines/common/quality.py`;
+   - validacoes por conector:
+     - existencia da tabela alvo;
+     - colunas obrigatorias ausentes;
+     - incompatibilidade de tipo por coluna;
+     - agregado `schema_drift_connectors_with_issues`.
+2. Alerta operacional automatico habilitado:
+   - drifts geram `fail` em `ops.pipeline_checks` via `quality_suite`;
+   - scorecard SQL ampliado com metrica `schema_drift_fail_checks_last_7d` em `db/sql/007_data_coverage_scorecard.sql`.
+3. Governanca de thresholds:
+   - `configs/quality_thresholds.yml` com secao `schema_drift`:
+     - `max_missing_required_columns`
+     - `max_type_mismatch_columns`
+     - `max_connectors_with_drift`.
+4. Cobertura de teste adicionada:
+   - `tests/unit/test_schema_drift_checks.py` (pass/fail para drift de colunas e tipos);
+   - `tests/unit/test_quality_suite.py` atualizado para o novo check;
+   - `tests/contracts/test_sql_contracts.py` atualizado com metrica de drift no scorecard.
+5. Validacao executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_schema_drift_checks.py tests/unit/test_quality_suite.py tests/unit/test_quality_core_checks.py tests/contracts/test_sql_contracts.py tests/contracts/test_schema_contract_connector_coverage.py -q -p no:cacheprovider` -> `78 passed`.
+   - `.\.venv\Scripts\python.exe -c "from pipelines.quality_suite import run; import json; print(json.dumps(run(reference_period='2025', dry_run=False), ensure_ascii=False, default=str))"` -> `status=success`, `failed_checks=0`, `total_checks=188`.
+   - `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=22`, `warn=4`.
+   - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=1` (SLO-1 abaixo da meta na janela).
+6. Regra operacional da trilha:
+   - issue implementada encerrada na mesma rodada:
+     - `#21` (`BD-062`) -> `closed`.
+     - `#22` (`BD-070`) promovida para `status:active`.
+   - proximo item da fila unica: `BD-070`.
+
+## Atualizacao tecnica (2026-02-22) - D6 BD-061 implementado (cobertura de testes de contrato por conector)
+
+1. Cobertura de contratos por conector automatizada:
+   - nova suite `tests/contracts/test_schema_contract_connector_coverage.py`;
+   - validacao de cobertura minima `>= 90%` para conectores elegiveis (`implemented|partial`, nao internos, sem discovery interno).
+2. Granularidade por conector adicionada:
+   - testes parametrizados para garantir contrato por conector elegivel;
+   - falha explicita com nome do conector ausente/quebrado.
+3. Estrutura minima de contrato validada por conector:
+   - `required_columns` nao vazio;
+   - `column_types` nao vazio;
+   - `schema_version` com padrao versionado (`v*`).
+4. Validacao executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/contracts/test_schema_contract_connector_coverage.py tests/unit/test_schema_contracts.py tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `61 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_quality_suite.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_coverage_checks.py tests/unit/test_quality_ops_pipeline_runs.py -q -p no:cacheprovider` -> `23 passed`.
+5. Regra operacional da trilha D6:
+   - issue implementada encerrada na mesma rodada:
+     - `#20` (`BD-061`) -> `closed`.
+     - `#21` (`BD-062`) promovida para `status:active`.
+   - proximo item da fila unica: `BD-062`.
+
+## Atualizacao tecnica (2026-02-22) - D6 BD-060 implementado (contratos de schema versionados por fonte)
+
+1. Governanca de contratos de schema publicada:
+   - migration nova `db/sql/014_source_schema_contracts.sql` com:
+     - tabela `ops.source_schema_contracts`;
+     - view ativa `ops.v_source_schema_contracts_active`;
+     - suporte a versionamento por `connector_name + target_table + schema_version`.
+2. Automacao de sincronizacao implementada:
+   - novo modulo `src/pipelines/common/schema_contracts.py` para inferencia/normalizacao de contratos;
+   - novo arquivo `configs/schema_contracts.yml` com defaults e overrides por conector;
+   - novo script `scripts/sync_schema_contracts.py` para upsert/deprecacao de versoes.
+3. Operacao e qualidade integradas:
+   - `scripts/backfill_robust_database.py` passa a sincronizar contratos e reportar cobertura de `schema_contracts`;
+   - `src/pipelines/common/quality.py` com check `check_source_schema_contracts`;
+   - `src/pipelines/quality_suite.py` passa a executar checks de cobertura de contratos ativos;
+   - `configs/quality_thresholds.yml` com secao `schema_contracts`;
+   - `db/sql/007_data_coverage_scorecard.sql` com metrica `schema_contracts_active_coverage_pct`;
+   - filtros de cobertura ajustados para excluir conectores de discovery/internos (`quality_suite`, `dbt_build`, `tse_catalog_discovery`).
+4. Validacao executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_quality_core_checks.py tests/unit/test_quality_suite.py tests/unit/test_schema_contracts.py tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `29 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_quality_suite.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_coverage_checks.py tests/unit/test_quality_ops_pipeline_runs.py -q -p no:cacheprovider` -> `23 passed`.
+   - `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 16 SQL scripts`.
+   - `.\.venv\Scripts\python.exe scripts/sync_schema_contracts.py` -> `prepared=24`, `upserted=24`, `deprecated=0`.
+   - `.\.venv\Scripts\python.exe -c "from pipelines.quality_suite import run; import json; print(json.dumps(run(reference_period='2025', dry_run=False), ensure_ascii=False, default=str))"` -> `status=success`, `failed_checks=0`.
+   - `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=23`, `warn=2`.
+   - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
+5. Regra operacional da trilha D6:
+   - issue implementada encerrada na mesma rodada:
+     - `#19` (`BD-060`) -> `closed`.
+     - `#20` (`BD-061`) promovida para `status:active`.
+   - proximo item da fila unica: `BD-061`.
+
+## Atualizacao tecnica (2026-02-21) - D5 BD-052 implementado (mart Gold de risco ambiental territorial)
+
+1. Camada Gold ambiental publicada no banco:
+   - migration nova `db/sql/013_environment_risk_mart.sql` com view:
+     - `gold.mart_environment_risk`.
+   - cobertura por `territory_level`:
+     - `municipality`
+     - `district`
+     - `census_sector`.
+   - metrica executiva no mart:
+     - `environment_risk_score`
+     - `risk_percentile`
+     - `risk_priority_rank`
+     - `priority_status`.
+2. API executiva de risco ambiental adicionada:
+   - endpoint novo `GET /v1/environment/risk` em `src/app/api/routes_qg.py`;
+   - filtros: `period`, `level` (`municipality|district|census_sector`), `limit`;
+   - fallback de periodo para ultimo `reference_period` disponivel;
+   - contrato em `src/app/schemas/qg.py`:
+     - `EnvironmentRiskItem`
+     - `EnvironmentRiskResponse`.
+3. Governanca operacional e qualidade reforcadas:
+   - `src/pipelines/common/quality.py` com check novo:
+     - `check_environment_risk_mart`.
+   - `src/pipelines/quality_suite.py` passa a incluir checks do mart Gold ambiental.
+   - `configs/quality_thresholds.yml` ampliado com thresholds `environment_risk_mart_*`.
+   - `db/sql/007_data_coverage_scorecard.sql` ampliado com metricas:
+     - `environment_risk_mart_municipality_rows`
+     - `environment_risk_mart_district_rows`
+     - `environment_risk_mart_census_sector_rows`
+     - `environment_risk_mart_distinct_periods`.
+   - `scripts/init_db.py` atualizado para ordenar dependencia `007 -> 013`.
+   - `scripts/backfill_robust_database.py` ampliado com `coverage.environment_risk_mart`.
+   - `src/app/api/cache_middleware.py` com cache para `GET /v1/environment/risk`.
+4. Validacao executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_qg_edge_cases.py tests/unit/test_cache_middleware.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_suite.py tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `102 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_onda_a_connectors.py tests/unit/test_quality_coverage_checks.py -q -p no:cacheprovider` -> `27 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q -p no:cacheprovider` -> `51 passed`.
+   - `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 15 SQL scripts`.
+   - smoke API real:
+     - `GET /v1/environment/risk?level=district&limit=5` -> `200`, `period=2025`, `items=5`.
+   - scorecard/readiness:
+     - `scripts/export_data_coverage_scorecard.py` -> `pass=23`, `warn=1`.
+     - `scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
+   - quality checks do mart no ultimo run:
+     - `environment_risk_mart_rows_municipality=pass` (`5`)
+     - `environment_risk_mart_rows_district=pass` (`55`)
+     - `environment_risk_mart_rows_census_sector=pass` (`545`)
+     - `environment_risk_mart_distinct_periods=pass` (`5`)
+     - `environment_risk_mart_null_score_rows=pass` (`0`).
+5. Regra operacional da trilha D5:
+   - issue implementada encerrada na mesma rodada:
+     - `#18` (`BD-052`) -> `closed`.
+     - `#19` (`BD-060`) promovida para `status:active`.
+   - proximo item da fila unica: `BD-060`.
+
+## Atualizacao tecnica (2026-02-21) - D5 BD-051 implementado (agregacoes ambientais distrito/setor)
+
+1. Agregacao ambiental territorial publicada no banco:
+   - migration nova `db/sql/012_environment_risk_aggregation.sql` com view:
+     - `map.v_environment_risk_aggregation`.
+   - cobertura por `territory_level`:
+     - `district`
+     - `census_sector`.
+   - metrica sintetica por territorio:
+     - `hazard_score`
+     - `exposure_score`
+     - `environment_risk_score`
+     - `priority_status`.
+2. API de mapa para risco ambiental adicionada:
+   - endpoint novo `GET /v1/map/environment/risk` em `src/app/api/routes_map.py`;
+   - filtros: `level` (`district|census_sector`), `period`, `include_geometry`, `limit`;
+   - fallback de periodo para ultimo `reference_period` disponivel;
+   - contrato em `src/app/schemas/map.py`:
+     - `EnvironmentRiskItem`
+     - `EnvironmentRiskCollectionResponse`.
+3. Governanca operacional e qualidade reforcadas:
+   - `scripts/init_db.py` atualizado para ordenar dependencia `007 -> 012` (scorecard depende da view ambiental).
+   - `src/pipelines/common/quality.py` com check novo:
+     - `check_environment_risk_aggregation`.
+   - `src/pipelines/quality_suite.py` passa a incluir checks ambientais agregados.
+   - `configs/quality_thresholds.yml` com secao `environment_risk`.
+   - `db/sql/007_data_coverage_scorecard.sql` ampliado com metricas:
+     - `environment_risk_district_rows`
+     - `environment_risk_census_sector_rows`
+     - `environment_risk_distinct_periods`.
+   - `scripts/backfill_robust_database.py` ampliado com bloco `coverage.environment_risk_aggregation`.
+   - `src/app/api/cache_middleware.py` com cache para `GET /v1/map/environment/risk`.
+4. Validacao executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_api_contract.py tests/unit/test_cache_middleware.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_suite.py tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `49 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_quality_coverage_checks.py tests/unit/test_quality_ops_pipeline_runs.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_mvt_tiles.py -q -p no:cacheprovider` -> `33 passed`.
+   - `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 14 SQL scripts`.
+   - smoke API real:
+     - `GET /v1/map/environment/risk?level=district&limit=5` -> `200`, `period=2025`, `count=5`.
+   - scorecard/readiness:
+     - `scripts/export_data_coverage_scorecard.py` -> `pass=19`, `warn=1`.
+     - `scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
+   - quality checks ambientais no ultimo run:
+     - `environment_risk_rows_district=pass` (`55`)
+     - `environment_risk_rows_census_sector=pass` (`545`)
+     - `environment_risk_distinct_periods=pass` (`5`)
+     - checks de nulos (`risk/hazard/exposure`) em `pass`.
+5. Regra operacional da trilha D5:
+   - issue implementada encerrada na mesma rodada:
+     - `#17` (`BD-051`) -> `closed`.
+     - `#18` (`BD-052`) promovida para `status:active`.
+   - proximo item da fila unica: `BD-052`.
+
+## Atualizacao tecnica (2026-02-21) - D5 BD-050 implementado (historico ambiental multi-ano)
+
+1. Orquestracao dedicada para BD-050 publicada:
+   - novo script `scripts/backfill_environment_history.py` com fluxo unico de:
+     - bootstrap manual multi-ano (`INMET`, `INPE_QUEIMADAS`, `ANA`);
+     - execucao dos conectores ambientais por periodo;
+     - execucao opcional de `quality_suite` por periodo;
+     - consolidacao de cobertura por fonte no relatorio final.
+2. Hardening de integridade temporal no conector tabular:
+   - `src/pipelines/common/tabular_indicator_connector.py` agora bloqueia carga quando houver coluna de ano com sinal valido e nenhum match com `reference_period`.
+   - fallback anterior foi preservado apenas para payloads sem qualquer sinal temporal.
+3. Governanca de cobertura ambiental reforcada:
+   - `configs/quality_thresholds.yml` com metas explicitas:
+     - `min_periods_inmet: 5`
+     - `min_periods_inpe_queimadas: 5`
+     - `min_periods_ana: 5`
+   - `db/sql/007_data_coverage_scorecard.sql` ampliado com metricas:
+     - `inmet_distinct_periods`
+     - `inpe_queimadas_distinct_periods`
+     - `ana_distinct_periods`
+   - `scripts/backfill_robust_database.py` agora exporta `coverage.environmental_sources` com `rows`, `distinct_periods`, `min_period`, `max_period`.
+4. Validacao executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_backfill_environment_history.py tests/unit/test_onda_b_connectors.py tests/unit/test_quality_coverage_checks.py tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `26 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_quality_core_checks.py tests/unit/test_quality_ops_pipeline_runs.py tests/unit/test_quality_suite.py -q -p no:cacheprovider` -> `12 passed`.
+   - `.\.venv\Scripts\python.exe scripts/backfill_environment_history.py --help` -> `OK`.
+   - smoke BD-050:
+     - `.\.venv\Scripts\python.exe scripts/backfill_environment_history.py --periods 2025 --dry-run --skip-bootstrap --skip-quality --allow-blocked --output-json data/reports/bd050_environment_history_report.json` -> `success=2`, `blocked=1` (`INMET` com `403`), report gerado.
+5. Regra operacional da trilha D5:
+   - issue implementada encerrada na mesma rodada:
+     - `#16` (`BD-050`) -> `closed`.
+     - `#17` (`BD-051`) promovida para `status:active`.
+   - proximo item da fila unica: `BD-051`.
+
+## Atualizacao tecnica (2026-02-21) - D4 BD-042 implementacao de mart de mobilidade
+
+1. Camada Gold de mobilidade entregue:
+   - `db/sql/011_mobility_access_mart.sql` com `gold.mart_mobility_access`.
+   - score de acesso e deficit por territorio (`municipality` e `district`) com:
+     - densidade de pontos de transporte;
+     - densidade viaria;
+     - POIs de mobilidade;
+     - metodo de alocacao explicito (`direct_measurement` vs `district_allocation_by_road_length_share`).
+2. Hardening tecnico aplicado no SQL:
+   - agregacoes separadas por dominio espacial (vias, transporte, POIs) para evitar sobrecontagem por join multiplo;
+   - amarracao de populacao por periodo do SENATRAN com fallback para ultima populacao disponivel;
+   - casts explicitos de `ROUND(..., 2)` para compatibilidade com Postgres.
+3. API executiva entregue:
+   - endpoint novo `GET /v1/mobility/access` em `src/app/api/routes_qg.py`;
+   - filtros: `period`, `level`, `limit`;
+   - metadata padronizada (`source_name=gold.mart_mobility_access`) e retorno vazio contratual quando nao houver dados.
+4. Contratos e cache:
+   - schemas novos em `src/app/schemas/qg.py` (`MobilityAccessItem`, `MobilityAccessResponse`);
+   - `src/app/api/cache_middleware.py` atualizado para cachear `GET /v1/mobility/access`.
+5. Validacao executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_qg_edge_cases.py tests/unit/test_cache_middleware.py tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `79 passed`.
+   - `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 13 SQL scripts`.
+   - smoke local via `TestClient`: `GET /v1/mobility/access?level=district&limit=5` -> `200`.
+
+## Atualizacao tecnica (2026-02-21) - D4 BD-041 implementacao de transporte urbano
+
+1. Conector novo de mobilidade municipal:
+   - `src/pipelines/urban_transport.py` (`urban_transport_fetch`) com:
+     - discovery remoto via Overpass para pontos de transporte (`bus_stop`, `public_transport`, `railway`, `ferry_terminal`);
+     - fallback manual em `data/manual/urban/transport`;
+     - Bronze snapshot + checks + carga idempotente em `map.urban_transport_stop`.
+2. Dominio de mapa ampliado:
+   - migration nova `db/sql/010_urban_transport_domain.sql`:
+     - tabela `map.urban_transport_stop`;
+     - indice GIST;
+     - camada `urban_transport_stops` no catalogo;
+     - view `map.v_urban_data_coverage` atualizada.
+   - endpoint novo:
+     - `GET /v1/map/urban/transport-stops`.
+   - geocode urbano ampliado para `kind=transport` em `GET /v1/map/urban/geocode`.
+   - tiles MVT ampliados para camada `urban_transport_stops`.
+3. Orquestracao e qualidade:
+   - `src/orchestration/prefect_flows.py` com `urban_transport_fetch` em `run_mvp_all` e `run_mvp_wave_7`.
+   - `scripts/backfill_robust_database.py` com `urban_transport_fetch` no `wave7` e cobertura no report.
+   - `src/pipelines/common/quality.py` com checks:
+     - `urban_transport_stops_rows_after_filter`
+     - `urban_transport_stops_invalid_geometry_rows`
+   - `configs/quality_thresholds.yml` com `min_transport_rows`.
+4. Validacao executada:
+   - `.\.venv\Scripts\python.exe -c "import json; from pipelines.urban_transport import run; print(json.dumps(run(reference_period='2026', dry_run=False), ensure_ascii=False, default=str))"` -> `status=success`, `rows_written=22`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_urban_connectors.py tests/unit/test_api_contract.py tests/unit/test_mvt_tiles.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_ops_pipeline_runs.py tests/unit/test_prefect_wave3_flow.py tests/contracts/test_sql_contracts.py -q` -> `68 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_onda_a_connectors.py tests/unit/test_quality_coverage_checks.py -q -p no:cacheprovider` -> `27 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q -p no:cacheprovider` -> `44 passed`.
+   - `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=13`, `warn=1`.
+   - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
+5. Estado de encerramento de `BD-041`:
+   - carga real validada em `map.urban_transport_stop`;
+   - proxima execucao oficial da trilha D4: `BD-042`.
+
+## Atualizacao operacional (2026-02-21) - BD-040 executado com backfill real
+
+1. Bootstrap historico SENATRAN concluido:
+   - script novo: `scripts/bootstrap_senatran_history.py`.
+   - fontes oficiais coletadas para `2021..2024` e materializadas em:
+     - `data/manual/senatran/senatran_diamantina_2021.csv`
+     - `data/manual/senatran/senatran_diamantina_2022.csv`
+     - `data/manual/senatran/senatran_diamantina_2023.csv`
+     - `data/manual/senatran/senatran_diamantina_2024.csv`
+   - evidencias em `data/reports/bootstrap_senatran_history_report.json`.
+2. Backfill real do conector `senatran_fleet_fetch` executado para `2021..2025`:
+   - `5/5` runs com `status=success`;
+   - `rows_written=4` por ano em `silver.fact_indicator`.
+3. Cobertura de `SENATRAN` validada no banco:
+   - `reference_period` disponivel em `2021,2022,2023,2024,2025`.
+4. Validacao operacional:
+   - `scripts/export_data_coverage_scorecard.py` -> `pass=10`, `warn=1`.
+   - `scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
+5. Dependencias de parsing Excel formalizadas no projeto:
+   - `openpyxl` e `xlrd` adicionados em `requirements.txt` e `pyproject.toml`.
+
+## Atualizacao tecnica (2026-02-21) - D4 BD-040 hardening SENATRAN
+
+1. Conector SENATRAN endurecido para serie historica:
+   - descoberta automatica de CSV remoto por ano na pagina oficial;
+   - filtro de ano em URI remota para evitar carga com periodo divergente;
+   - priorizacao de arquivo manual por `reference_period` no nome;
+   - bloqueio de fallback manual com ano divergente (integridade temporal);
+   - parser dedicado para CSV oficial com preambulo + parse numerico por milhares.
+2. Cobertura de testes ampliada para SENATRAN:
+   - discovery remoto por ano;
+   - selecao/bloqueio de fallback manual por ano;
+   - parse de CSV oficial com preambulo;
+   - resolucao remota quando catalogo estatico esta vazio.
+3. Infra de banco corrigida para execucao real:
+   - `src/app/db.py` passou a cachear por `database_url` (string), eliminando erro `unhashable type: 'Settings'`.
+4. Validacao executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_db_cache.py tests/unit/test_onda_a_connectors.py tests/unit/test_quality_coverage_checks.py -q -p no:cacheprovider` -> `29 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q -p no:cacheprovider` -> `44 passed`.
+5. Dry-run multi-ano do conector:
+   - `2021..2024`: `blocked` (sem fonte anual valida descoberta).
+   - `2025`: `success` com fonte remota oficial.
+6. Proximo passo operacional da trilha D4:
+   - coletar/publicar arquivos SENATRAN anuais `2021..2024` em `data/manual/senatran/` (ou catalogo estatico versionado) e executar backfill real `2021..2025`.
 
 ## Atualizacao operacional (2026-02-20) - Filtro rigoroso de documentos
 

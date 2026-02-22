@@ -18,8 +18,13 @@ class ScoringConfig:
     critical_threshold: float = 80.0
     attention_threshold: float = 50.0
     severity_weights: dict[str, int] = field(default_factory=lambda: {"stable": 0, "attention": 1, "critical": 2})
+    rank_formula: str = "percentile"
     max_score: float = 100.0
     min_score: float = 0.0
+    default_domain_weight: float = 1.0
+    default_indicator_weight: float = 1.0
+    domain_weights: dict[str, float] = field(default_factory=dict)
+    indicator_weights: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -48,8 +53,17 @@ def load_strategic_engine_config(
             k: int(v)
             for k, v in scoring_raw.get("severity_weights", {"stable": 0, "attention": 1, "critical": 2}).items()
         },
+        rank_formula=str(scoring_raw.get("rank_formula", "percentile")),
         max_score=float(scoring_raw.get("max_score", 100)),
         min_score=float(scoring_raw.get("min_score", 0)),
+        default_domain_weight=float(scoring_raw.get("default_domain_weight", 1.0)),
+        default_indicator_weight=float(scoring_raw.get("default_indicator_weight", 1.0)),
+        domain_weights={
+            str(k): float(v) for k, v in (scoring_raw.get("domain_weights", {}) or {}).items()
+        },
+        indicator_weights={
+            str(k): float(v) for k, v in (scoring_raw.get("indicator_weights", {}) or {}).items()
+        },
     )
 
     return StrategicEngineConfig(version=version, scoring=scoring)

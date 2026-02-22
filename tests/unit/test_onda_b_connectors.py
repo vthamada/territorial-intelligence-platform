@@ -176,6 +176,36 @@ def test_resolve_municipality_rows_uses_source_filename_hint_when_columns_are_mi
     assert len(rows) == 2
 
 
+def test_filter_rows_by_reference_year_returns_empty_when_dataset_year_mismatches() -> None:
+    rows = [
+        {"codigo_municipio": "3121605", "ano": "2023", "valor": "1"},
+        {"codigo_municipio": "3121605", "ano": "2023", "valor": "2"},
+    ]
+
+    filtered = tabular_indicator_connector._filter_rows_by_reference_year(
+        rows,
+        year="2025",
+        year_columns=("ano",),
+    )
+
+    assert filtered == []
+
+
+def test_filter_rows_by_reference_year_keeps_rows_when_no_year_signal_exists() -> None:
+    rows = [
+        {"codigo_municipio": "3121605", "valor": "1"},
+        {"codigo_municipio": "3121605", "valor": "2"},
+    ]
+
+    filtered = tabular_indicator_connector._filter_rows_by_reference_year(
+        rows,
+        year="2025",
+        year_columns=("ano",),
+    )
+
+    assert filtered == rows
+
+
 def test_build_indicator_rows_applies_row_filters() -> None:
     municipality_rows = [
         {"servico": "Banda Larga Fixa", "acessos": "100"},
@@ -279,4 +309,8 @@ def test_run_tabular_connector_uses_manual_fallback_when_remote_has_no_indicator
         assert result["preview"]["source_type"] == "manual"
         assert any("manual fallback" in warning for warning in result["warnings"])
     finally:
-        manual_file.unlink(missing_ok=True)
+        try:
+            manual_file.unlink(missing_ok=True)
+        except PermissionError:
+            # Windows may keep a transient file handle; test intent is independent of cleanup race.
+            pass

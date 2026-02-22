@@ -16,10 +16,13 @@ from starlette.responses import Response as StarletteResponse
 # Paths eligible for caching with their max-age in seconds.
 _CACHE_RULES: list[tuple[str, int]] = [
     ("/v1/kpis/overview", 300),          # 5 min
+    ("/v1/mobility/access", 300),        # 5 min
+    ("/v1/environment/risk", 300),       # 5 min
     ("/v1/priority/list", 300),          # 5 min
     ("/v1/priority/summary", 300),       # 5 min
     ("/v1/insights/highlights", 300),    # 5 min
     ("/v1/geo/choropleth", 600),         # 10 min
+    ("/v1/map/environment/risk", 300),   # 5 min
     ("/v1/map/layers/readiness", 60),    # 1 min (operational readiness)
     ("/v1/map/layers/coverage", 60),     # 1 min (operational coverage)
     ("/v1/map/layers", 3600),            # 1 hour (catalog/metadata)

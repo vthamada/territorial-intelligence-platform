@@ -2,6 +2,476 @@
 
 Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-22 - D8 BD-080 implementado (carga incremental confiavel + reprocessamento seletivo)
+
+### Added
+- novo script operacional `scripts/run_incremental_backfill.py` com:
+  - selecao incremental por `job + reference_period` usando historico de `ops.pipeline_runs`;
+  - execucao por necessidade (`no_previous_run`, `latest_status!=success`, `stale_success`);
+  - reprocessamento seletivo por `--reprocess-jobs` e `--reprocess-periods`;
+  - filtros de escopo (`--jobs`, `--exclude-jobs`, `--include-partial`);
+  - pos-carga condicional (`dbt_build`, `quality_suite`) por periodo com sucesso;
+  - relatorio padrao em `data/reports/incremental_backfill_report.json`.
+- nova suite `tests/unit/test_run_incremental_backfill.py` cobrindo a logica de decisao incremental e override de reprocessamento.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_run_incremental_backfill.py tests/unit/test_backfill_environment_history.py tests/unit/test_quality_ops_pipeline_runs.py -q -p no:cacheprovider` -> `9 passed`.
+- `.\.venv\Scripts\python.exe scripts/run_incremental_backfill.py --help` -> `OK`.
+- GitHub:
+  - `gh issue close 25 --repo vthamada/territorial-intelligence-platform`
+  - `gh issue edit 26 --repo vthamada/territorial-intelligence-platform --add-label status:active --remove-label status:blocked`
+
+## 2026-02-22 - D7 BD-072 implementado (trilhas de explicabilidade para prioridade/insight)
+
+### Added
+- contratos de explainability em `src/app/schemas/qg.py`:
+  - `ExplainabilityCoverage`
+  - `ExplainabilityTrail`.
+
+### Changed
+- `src/app/api/routes_qg.py`:
+  - `GET /v1/priority/list` e `GET /v1/insights/highlights` passam a retornar trilha estruturada de explicabilidade por item;
+  - rationale de prioridade agora inclui contexto de ranking e cobertura;
+  - `deep_link` adicionado em insights para navegação contextual.
+- evidências de auditoria ampliadas:
+  - `PriorityEvidence.updated_at`
+  - `BriefEvidenceItem.updated_at`.
+- `_fetch_priority_rows` ampliado para calcular cobertura territorial por domínio (`covered_territories`, `total_territories`, `coverage_pct`).
+- `tests/unit/test_qg_routes.py` atualizado para validar payloads de explainability e `deep_link`.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_qg_edge_cases.py -q -p no:cacheprovider` -> `68 passed`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_api_contract.py -q -p no:cacheprovider` -> `19 passed`.
+
+## 2026-02-22 - D7 BD-071 implementado (versionamento de score territorial e pesos)
+
+### Added
+- migration nova `db/sql/016_strategic_score_versions.sql` com:
+  - tabela `ops.strategic_score_versions`;
+  - view ativa `ops.v_strategic_score_version_active`;
+  - unicidade de versao ativa (`uq_strategic_score_versions_active`).
+- script novo `scripts/sync_strategic_score_versions.py` para sincronizacao idempotente da versao/pesos de score.
+
+### Changed
+- `db/sql/015_priority_drivers_mart.sql` evoluido para score versionado/pesado com novas colunas:
+  - `score_version`, `config_version`, `critical_threshold`, `attention_threshold`,
+  - `domain_weight`, `indicator_weight`, `weighted_magnitude`.
+- `configs/strategic_engine.yml` ampliado com:
+  - `default_domain_weight`, `default_indicator_weight`,
+  - `domain_weights` e `indicator_weights`.
+- `src/app/api/strategic_engine_config.py` ampliado para parsing de pesos e metadados de score.
+- `src/app/api/routes_qg.py` e `src/app/schemas/qg.py` atualizados para expor versao/metodo/pesos em prioridades, insights e briefs.
+- `db/sql/007_data_coverage_scorecard.sql` ampliado com metricas:
+  - `priority_drivers_missing_score_version_rows`
+  - `strategic_score_total_versions`
+  - `strategic_score_active_versions_min`
+  - `strategic_score_active_versions_max`.
+- `scripts/init_db.py` atualizado com dependencia explicita `015_priority_drivers_mart.sql -> 016_strategic_score_versions.sql`.
+- `scripts/backfill_robust_database.py` ampliado para sincronizar e reportar `strategic_score_versions`.
+- `tests/contracts/test_sql_contracts.py` ampliado para validar objetos de `016` e metricas novas do scorecard.
+- `tests/unit/test_strategic_engine_config.py` ampliado para validar parsing de pesos; adaptado para ambiente Windows/OneDrive sem plugin `tmpdir`.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_strategic_engine_config.py -q -p no:cacheprovider -p no:tmpdir` -> `27 passed`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_qg_edge_cases.py -q -p no:cacheprovider` -> `68 passed`.
+- `.\.venv\Scripts\python.exe -m pytest tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `12 passed`.
+- `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 18 SQL scripts`.
+- `.\.venv\Scripts\python.exe scripts/sync_strategic_score_versions.py` -> `score_version=v1.0.0`, `upserted=1`.
+- `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=28`, `warn=4`.
+
+## 2026-02-22 - D7 BD-070 implementado (mart Gold de drivers de prioridade)
+
+### Added
+- migration nova `db/sql/015_priority_drivers_mart.sql` com view:
+  - `gold.mart_priority_drivers`.
+- cobertura de contrato SQL para o mart:
+  - `tests/contracts/test_sql_contracts.py` (`test_priority_drivers_mart_sql_has_required_objects`).
+
+### Changed
+- `src/app/api/routes_qg.py`:
+  - `GET /v1/priority/list`, `GET /v1/priority/summary` e `GET /v1/insights/highlights` agora consomem `gold.mart_priority_drivers`.
+  - metadados das respostas de prioridade/insights atualizados para `source_name=gold.mart_priority_drivers`.
+- `db/sql/007_data_coverage_scorecard.sql` ampliado com metricas:
+  - `priority_drivers_rows`
+  - `priority_drivers_distinct_periods`.
+- `scripts/init_db.py` atualizado para garantir dependencia de `007_data_coverage_scorecard.sql` com `015_priority_drivers_mart.sql`.
+- `scripts/backfill_robust_database.py` ampliado com `coverage.priority_drivers_mart`.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_qg_edge_cases.py tests/unit/test_cache_middleware.py -q -p no:cacheprovider` -> `78 passed`.
+- `.\.venv\Scripts\python.exe -m pytest tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `11 passed`.
+- `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 17 SQL scripts`.
+- `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=24`, `warn=4`.
+- `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=1`.
+- GitHub:
+  - tentativa de sincronizacao de issue (`#22`) bloqueada por proxy/rede no ambiente local.
+
+## 2026-02-22 - Governanca de foco reforcada (trilha unica para demo defensavel)
+
+### Changed
+- `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado com secao "Modo foco (demo defensavel)":
+  - escopo congelado;
+  - criterio de entrega palpavel/defensavel;
+  - sequencia unica `#22 -> #23 -> #24`.
+- `docs/HANDOFF.md` atualizado com acordo operacional de foco:
+  - proibicao de frentes paralelas fora da trilha ativa;
+  - compromisso explicito com entrega demonstravel no mapa executivo.
+
+## 2026-02-22 - D6 BD-062 implementado (detectar drift de schema com alerta operacional)
+
+### Added
+- novo check `check_source_schema_drift` em `src/pipelines/common/quality.py` com validacoes por conector:
+  - existencia de tabela alvo;
+  - colunas obrigatorias ausentes;
+  - incompatibilidade de tipos;
+  - agregado `schema_drift_connectors_with_issues`.
+- nova suite unit `tests/unit/test_schema_drift_checks.py`.
+
+### Changed
+- `src/pipelines/quality_suite.py` passa a incluir `check_source_schema_drift`.
+- `configs/quality_thresholds.yml` ampliado com secao `schema_drift`.
+- `db/sql/007_data_coverage_scorecard.sql` ampliado com metrica:
+  - `schema_drift_fail_checks_last_7d`.
+- `tests/unit/test_quality_suite.py` atualizado para monkeypatch do check de drift.
+- `tests/contracts/test_sql_contracts.py` ampliado com assertion da metrica de drift.
+- compatibilidade de tipos no check de drift endurecida:
+  - normalizacao de tipos SQL (`pg_catalog.*`, `public.*`);
+  - comparacao de subtipo/SRID para `geometry(...)`.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_schema_drift_checks.py tests/unit/test_quality_suite.py tests/unit/test_quality_core_checks.py tests/contracts/test_sql_contracts.py tests/contracts/test_schema_contract_connector_coverage.py -q -p no:cacheprovider` -> `78 passed`.
+- `.\.venv\Scripts\python.exe -c "from pipelines.quality_suite import run; import json; print(json.dumps(run(reference_period='2025', dry_run=False), ensure_ascii=False, default=str))"` -> `status=success`, `failed_checks=0`, `total_checks=188`.
+- `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=22`, `warn=4`.
+- `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=1`.
+- GitHub:
+  - `gh issue close 21 --repo vthamada/territorial-intelligence-platform`
+  - `gh issue edit 22 --repo vthamada/territorial-intelligence-platform --add-label status:active --remove-label status:blocked`
+
+## 2026-02-22 - D6 BD-061 implementado (cobertura de testes de contrato por conector)
+
+### Added
+- nova suite de contratos `tests/contracts/test_schema_contract_connector_coverage.py` com:
+  - cobertura minima de contratos por conector (`>= 90%`);
+  - testes parametrizados por conector elegivel;
+  - validacao de estrutura minima de contrato (`required_columns`, `column_types`, `schema_version`).
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/contracts/test_schema_contract_connector_coverage.py tests/unit/test_schema_contracts.py tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `61 passed`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_quality_suite.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_coverage_checks.py tests/unit/test_quality_ops_pipeline_runs.py -q -p no:cacheprovider` -> `23 passed`.
+- GitHub:
+  - `gh issue close 20 --repo vthamada/territorial-intelligence-platform`
+  - `gh issue edit 21 --repo vthamada/territorial-intelligence-platform --add-label status:active --remove-label status:blocked`
+
+## 2026-02-22 - D6 BD-060 implementado (contratos de schema por fonte)
+
+### Added
+- migration nova `db/sql/014_source_schema_contracts.sql` com:
+  - tabela `ops.source_schema_contracts`;
+  - view ativa `ops.v_source_schema_contracts_active`;
+  - indice de unicidade para contrato ativo por `connector_name + target_table`.
+- novo arquivo `configs/schema_contracts.yml` com defaults e overrides de contratos.
+- novo modulo `src/pipelines/common/schema_contracts.py` para:
+  - inferencia de `target_table`/`dataset`;
+  - normalizacao de colunas obrigatorias/opcionais/tipos/constraints;
+  - geracao de registros de contrato versionado.
+- novo script `scripts/sync_schema_contracts.py` para sincronizacao idempotente de contratos no banco.
+- nova suite unit `tests/unit/test_schema_contracts.py`.
+
+### Changed
+- `src/pipelines/common/quality.py` com check novo:
+  - `check_source_schema_contracts`.
+- `src/pipelines/quality_suite.py` passa a incluir checks de `schema_contracts`.
+- `configs/quality_thresholds.yml` ampliado com secao `schema_contracts`.
+- `db/sql/007_data_coverage_scorecard.sql` ampliado com metrica:
+  - `schema_contracts_active_coverage_pct`.
+- `scripts/backfill_robust_database.py` ampliado para:
+  - sincronizar contratos de schema antes dos backfills;
+  - reportar cobertura de `schema_contracts`.
+- filtros de cobertura de contratos alinhados para excluir conectores de discovery/internos:
+  - `quality_suite`
+  - `dbt_build`
+  - `tse_catalog_discovery`.
+- `tests/contracts/test_sql_contracts.py` ampliado para validar:
+  - metrica de cobertura no scorecard;
+  - objetos SQL de `014_source_schema_contracts.sql`.
+- `tests/unit/test_quality_core_checks.py` ampliado com cenarios pass/fail para `check_source_schema_contracts`.
+- `tests/unit/test_quality_suite.py` atualizado para monkeypatch de `check_source_schema_contracts`.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_quality_core_checks.py tests/unit/test_quality_suite.py tests/unit/test_schema_contracts.py tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `29 passed`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_quality_suite.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_coverage_checks.py tests/unit/test_quality_ops_pipeline_runs.py -q -p no:cacheprovider` -> `23 passed`.
+- `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 16 SQL scripts`.
+- `.\.venv\Scripts\python.exe scripts/sync_schema_contracts.py` -> `prepared=24`, `upserted=24`, `deprecated=0`.
+- `.\.venv\Scripts\python.exe -c "from pipelines.quality_suite import run; import json; print(json.dumps(run(reference_period='2025', dry_run=False), ensure_ascii=False, default=str))"` -> `status=success`, `failed_checks=0`.
+- `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=23`, `warn=2`.
+- `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
+- GitHub:
+  - `gh issue close 19 --repo vthamada/territorial-intelligence-platform`
+  - `gh issue edit 20 --repo vthamada/territorial-intelligence-platform --add-label status:active --remove-label status:blocked`
+
+## 2026-02-21 - D5 BD-052 implementado (mart Gold de risco ambiental territorial)
+
+### Added
+- migration nova `db/sql/013_environment_risk_mart.sql` com view:
+  - `gold.mart_environment_risk`.
+- endpoint executivo novo `GET /v1/environment/risk` em `src/app/api/routes_qg.py`.
+- contratos novos em `src/app/schemas/qg.py`:
+  - `EnvironmentRiskItem`
+  - `EnvironmentRiskResponse`.
+- checks de qualidade do mart ambiental em `src/pipelines/common/quality.py`:
+  - `environment_risk_mart_rows_municipality`
+  - `environment_risk_mart_rows_district`
+  - `environment_risk_mart_rows_census_sector`
+  - `environment_risk_mart_distinct_periods`
+  - `environment_risk_mart_null_score_rows`.
+
+### Changed
+- `db/sql/007_data_coverage_scorecard.sql` ampliado com metricas de cobertura do mart Gold ambiental:
+  - `environment_risk_mart_municipality_rows`
+  - `environment_risk_mart_district_rows`
+  - `environment_risk_mart_census_sector_rows`
+  - `environment_risk_mart_distinct_periods`.
+- `scripts/init_db.py` atualizado para garantir ordem de dependencia da migration `007_data_coverage_scorecard.sql` com `013_environment_risk_mart.sql`.
+- `scripts/backfill_robust_database.py` ampliado com `coverage.environment_risk_mart`.
+- `src/pipelines/quality_suite.py` passa a incluir `check_environment_risk_mart`.
+- `configs/quality_thresholds.yml` ampliado com thresholds `environment_risk_mart_*`.
+- `src/app/api/cache_middleware.py` passa a cachear `GET /v1/environment/risk` (`max-age=300`).
+- suites de teste atualizadas:
+  - `tests/unit/test_qg_routes.py`
+  - `tests/unit/test_qg_edge_cases.py`
+  - `tests/unit/test_cache_middleware.py`
+  - `tests/unit/test_quality_core_checks.py`
+  - `tests/unit/test_quality_suite.py`
+  - `tests/contracts/test_sql_contracts.py`.
+- `docs/CONTRATO.md` atualizado com o novo endpoint executivo de risco ambiental.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_qg_edge_cases.py tests/unit/test_cache_middleware.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_suite.py tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `102 passed`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_onda_a_connectors.py tests/unit/test_quality_coverage_checks.py -q -p no:cacheprovider` -> `27 passed`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q -p no:cacheprovider` -> `51 passed`.
+- `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 15 SQL scripts`.
+- smoke endpoint ambiental executivo:
+  - `GET /v1/environment/risk?level=district&limit=5` -> `200`, `period=2025`, `items=5`.
+- `.\.venv\Scripts\python.exe -c "from pipelines.quality_suite import run; import json; print(json.dumps(run(reference_period='2025', dry_run=False), ensure_ascii=False, default=str))"` -> `status=success`.
+- `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=23`, `warn=1`.
+- `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
+- GitHub:
+  - `gh issue close 18 --repo vthamada/territorial-intelligence-platform`
+  - `gh issue edit 19 --repo vthamada/territorial-intelligence-platform --add-label status:active --remove-label status:blocked`
+
+## 2026-02-21 - D5 BD-051 implementado (agregacoes ambientais por distrito/setor)
+
+### Added
+- migration nova `db/sql/012_environment_risk_aggregation.sql` com view:
+  - `map.v_environment_risk_aggregation`.
+- endpoint novo `GET /v1/map/environment/risk` em `src/app/api/routes_map.py`.
+- contratos novos em `src/app/schemas/map.py`:
+  - `EnvironmentRiskItem`
+  - `EnvironmentRiskCollectionResponse`.
+- checks de qualidade para agregacao ambiental em `src/pipelines/common/quality.py`:
+  - `environment_risk_rows_district`
+  - `environment_risk_rows_census_sector`
+  - `environment_risk_distinct_periods`
+  - `environment_risk_null_score_rows`
+  - `environment_risk_null_hazard_rows`
+  - `environment_risk_null_exposure_rows`.
+
+### Changed
+- `scripts/init_db.py` atualizado para garantir ordem de dependencia da migration `007_data_coverage_scorecard.sql` com `012_environment_risk_aggregation.sql`.
+- `db/sql/007_data_coverage_scorecard.sql` ampliado com metricas de cobertura ambiental agregada:
+  - `environment_risk_district_rows`
+  - `environment_risk_census_sector_rows`
+  - `environment_risk_distinct_periods`.
+- `configs/quality_thresholds.yml` ampliado com secao `environment_risk`.
+- `src/pipelines/quality_suite.py` passa a incluir `check_environment_risk_aggregation`.
+- `scripts/backfill_robust_database.py` ampliado com `coverage.environment_risk_aggregation`.
+- `src/app/api/cache_middleware.py` passa a cachear `GET /v1/map/environment/risk` (`max-age=300`).
+- suites de teste atualizadas:
+  - `tests/unit/test_api_contract.py`
+  - `tests/unit/test_cache_middleware.py`
+  - `tests/unit/test_quality_core_checks.py`
+  - `tests/unit/test_quality_suite.py`
+  - `tests/contracts/test_sql_contracts.py`.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_api_contract.py tests/unit/test_cache_middleware.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_suite.py tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `49 passed`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_quality_coverage_checks.py tests/unit/test_quality_ops_pipeline_runs.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_mvt_tiles.py -q -p no:cacheprovider` -> `33 passed`.
+- `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 14 SQL scripts`.
+- smoke endpoint ambiental:
+  - `GET /v1/map/environment/risk?level=district&limit=5` -> `200`, `period=2025`, `count=5`.
+- `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=19`, `warn=1`.
+- `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
+- GitHub:
+  - `gh issue close 17 --repo vthamada/territorial-intelligence-platform`
+  - `gh issue edit 18 --repo vthamada/territorial-intelligence-platform --add-label status:active --remove-label status:blocked`
+
+## 2026-02-21 - D5 BD-050 implementado (historico INMET/INPE/ANA multi-ano)
+
+### Added
+- novo script operacional `scripts/backfill_environment_history.py` para executar `BD-050` em fluxo unico:
+  - bootstrap manual multi-ano para `INMET`, `INPE_QUEIMADAS` e `ANA`;
+  - execucao dos conectores ambientais por periodo;
+  - execucao opcional do `quality_suite` por periodo;
+  - relatorio consolidado em `data/reports/bd050_environment_history_report.json`.
+- nova suite de testes para o script:
+  - `tests/unit/test_backfill_environment_history.py`.
+
+### Changed
+- integridade temporal endurecida em `src/pipelines/common/tabular_indicator_connector.py`:
+  - quando existem colunas de ano com sinal valido e nenhum match com `reference_period`, a carga passa a bloquear (`[]`) em vez de reutilizar linhas de outro ano.
+  - fallback permissivo mantido apenas para payload sem sinal temporal.
+- thresholds de cobertura temporal por fonte ambiental atualizados em `configs/quality_thresholds.yml`:
+  - `min_periods_inmet: 5`
+  - `min_periods_inpe_queimadas: 5`
+  - `min_periods_ana: 5`
+- scorecard SQL ampliado em `db/sql/007_data_coverage_scorecard.sql` com metricas:
+  - `inmet_distinct_periods`
+  - `inpe_queimadas_distinct_periods`
+  - `ana_distinct_periods`
+- relatorio de cobertura do backfill geral ampliado em `scripts/backfill_robust_database.py` com `coverage.environmental_sources`.
+- contratos de teste atualizados:
+  - `tests/contracts/test_sql_contracts.py`
+  - `tests/unit/test_onda_b_connectors.py`
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_backfill_environment_history.py tests/unit/test_onda_b_connectors.py tests/unit/test_quality_coverage_checks.py tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `26 passed`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_quality_core_checks.py tests/unit/test_quality_ops_pipeline_runs.py tests/unit/test_quality_suite.py -q -p no:cacheprovider` -> `12 passed`.
+- `.\.venv\Scripts\python.exe scripts/backfill_environment_history.py --help` -> `OK`.
+- `.\.venv\Scripts\python.exe scripts/backfill_environment_history.py --periods 2025 --dry-run --skip-bootstrap --skip-quality --allow-blocked --output-json data/reports/bd050_environment_history_report.json` -> `success=2`, `blocked=1` (`INMET` com `403`), report gerado.
+- GitHub:
+  - `gh issue close 16 --repo vthamada/territorial-intelligence-platform`
+  - `gh issue edit 17 --repo vthamada/territorial-intelligence-platform --add-label status:active --remove-label status:blocked`
+
+## 2026-02-21 - D4 BD-042 implementado (gold.mart_mobility_access + API executiva)
+
+### Added
+- endpoint executivo `GET /v1/mobility/access` em `src/app/api/routes_qg.py` com:
+  - filtro por `period`, `level` e `limit`;
+  - fallback de periodo para ultimo `reference_period` disponivel;
+  - resposta tipada com metadata + itens de deficit de mobilidade por territorio.
+- novos contratos de schema em `src/app/schemas/qg.py`:
+  - `MobilityAccessItem`
+  - `MobilityAccessResponse`
+- cobertura de testes unitarios para o endpoint:
+  - `tests/unit/test_qg_routes.py` (cenario com dados e sem dados)
+  - `tests/unit/test_qg_edge_cases.py` (validacao de `level` invalido)
+- cobertura de contrato SQL para o mart:
+  - `tests/contracts/test_sql_contracts.py` (`test_mobility_access_mart_sql_has_required_objects`).
+
+### Changed
+- `db/sql/011_mobility_access_mart.sql` endurecido para robustez de calculo:
+  - eliminacao de sobrecontagem por join multiplo (agregacoes separadas por dominio: vias, pontos de transporte e POIs);
+  - vinculo de populacao por periodo do SENATRAN com fallback controlado para ultima populacao disponivel;
+  - casts explicitos para `ROUND(..., 2)` compativeis com Postgres;
+  - score de acesso e deficit com tipagem consistente (`double precision`).
+- `src/app/api/cache_middleware.py` atualizado para cachear `GET /v1/mobility/access` (`max-age=300`).
+- `docs/CONTRATO.md` atualizado com o novo endpoint executivo de mobilidade.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_qg_edge_cases.py tests/unit/test_cache_middleware.py tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `79 passed`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_onda_a_connectors.py tests/unit/test_quality_coverage_checks.py -q -p no:cacheprovider` -> `27 passed`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q -p no:cacheprovider` -> `47 passed`.
+- `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 13 SQL scripts`.
+- `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=13`, `warn=1`.
+- `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
+- smoke do endpoint: `GET /v1/mobility/access?level=district&limit=5` -> `200`, `period=2025`, `items=5`.
+- GitHub:
+  - `gh issue close 13 --repo vthamada/territorial-intelligence-platform`
+  - `gh issue close 14 --repo vthamada/territorial-intelligence-platform`
+  - `gh issue close 15 --repo vthamada/territorial-intelligence-platform`
+
+## 2026-02-21 - D4 BD-041 implementado (transporte/viario municipal)
+
+### Added
+- `db/sql/010_urban_transport_domain.sql` com:
+  - tabela `map.urban_transport_stop`;
+  - indices (`source/external_id`, `mode`, `geom GIST`);
+  - cadastro da camada `urban_transport_stops` em `map.layer_catalog`;
+  - extensao da view `map.v_urban_data_coverage`.
+- `configs/urban_transport_catalog.yml` para discovery remoto Overpass de infraestrutura de transporte urbano.
+- `src/pipelines/urban_transport.py` (`urban_transport_fetch`) com Bronze snapshot + upsert idempotente em `map.urban_transport_stop`.
+
+### Changed
+- `src/app/api/routes_map.py`:
+  - camada `urban_transport_stops` adicionada em `GET /v1/map/layers?include_urban=true`;
+  - cobertura/readiness/metadata suportando `urban_transport_stops`;
+  - endpoint novo `GET /v1/map/urban/transport-stops`;
+  - `GET /v1/map/urban/geocode` com `kind=transport`;
+  - tiles MVT para `urban_transport_stops`.
+- `src/app/schemas/map.py` com contratos de resposta para transporte urbano.
+- `src/orchestration/prefect_flows.py` com `urban_transport_fetch` em `run_mvp_all` e `run_mvp_wave_7`.
+- `scripts/backfill_robust_database.py` com `urban_transport_fetch` no `wave7` e cobertura no report.
+- `src/pipelines/common/quality.py` e `configs/quality_thresholds.yml` com checks de transporte urbano:
+  - `urban_transport_stops_rows_after_filter`;
+  - `urban_transport_stops_invalid_geometry_rows`.
+- `db/sql/007_data_coverage_scorecard.sql` com metrica `urban_transport_stop_rows`.
+- `scripts/init_db.py` com dependencia explicita `007 -> 010`.
+- `configs/connectors.yml` com `urban_transport_fetch`.
+
+### Verified
+- `.\.venv\Scripts\python.exe -c "import json; from pipelines.urban_transport import run; print(json.dumps(run(reference_period='2026', dry_run=False), ensure_ascii=False, default=str))"` -> `status=success`, `rows_written=22`, Bronze materializado em `data/bronze/osm/urban_transport_catalog/2026/...`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_urban_connectors.py tests/unit/test_api_contract.py tests/unit/test_mvt_tiles.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_ops_pipeline_runs.py tests/unit/test_prefect_wave3_flow.py tests/contracts/test_sql_contracts.py -q` -> `68 passed`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_onda_a_connectors.py tests/unit/test_quality_coverage_checks.py -q -p no:cacheprovider` -> `27 passed`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q -p no:cacheprovider` -> `44 passed`.
+- `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 12 SQL scripts`.
+- `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=13`, `warn=1`.
+- `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
+- `.\.venv\Scripts\python.exe scripts/sync_connector_registry.py` -> `Synchronized 27 connectors into ops.connector_registry`.
+
+## 2026-02-21 - D4 BD-040 concluido (SENATRAN 2021..2025)
+
+### Added
+- `scripts/bootstrap_senatran_history.py` para bootstrap historico oficial de SENATRAN (2021..2024) com extracao municipal de Diamantina.
+- arquivos manuais anuais:
+  - `data/manual/senatran/senatran_diamantina_2021.csv`
+  - `data/manual/senatran/senatran_diamantina_2022.csv`
+  - `data/manual/senatran/senatran_diamantina_2023.csv`
+  - `data/manual/senatran/senatran_diamantina_2024.csv`
+- evidencia de bootstrap:
+  - `data/reports/bootstrap_senatran_history_report.json`.
+
+### Changed
+- `requirements.txt` e `pyproject.toml` atualizados com dependencias de Excel (`openpyxl`, `xlrd`).
+- `.gitignore` atualizado para versionar `data/manual/senatran/`.
+
+### Verified
+- Backfill real via `pipelines.senatran_fleet.run(..., dry_run=False)` em `2021..2025`:
+  - `5/5` execucoes com `status=success`;
+  - `rows_written=4` por ano.
+- Cobertura no banco:
+  - `silver.fact_indicator` (`source='SENATRAN'`, `dataset='senatran_fleet_municipal'`) com periodos `2021..2025`.
+- Operacional:
+  - `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=10`, `warn=1`.
+  - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
+
+## 2026-02-21 - D4 BD-040 (SENATRAN historico) hardening inicial
+
+### Changed (backend)
+- `src/app/db.py` ajustado para cache por `database_url` (string hashavel), removendo falha estrutural `unhashable type: 'Settings'` em execucoes reais dos conectores.
+- `src/pipelines/senatran_fleet.py` evoluido para suporte historico mais robusto:
+  - descoberta automatica de CSVs SENATRAN por ano na pagina oficial (`frota-de-veiculos-{ano}`);
+  - render de URI com placeholders `{reference_period}` e `{year}`;
+  - filtro de seguranca para evitar uso de URI remota com ano divergente do `reference_period`;
+  - priorizacao de fallback manual por ano no nome do arquivo;
+  - bloqueio de fallback manual com ano divergente (evita carregar 2025 para executar 2024);
+  - parser dedicado para CSV oficial SENATRAN com preambulo (`UF,MUNICIPIO,TOTAL...`) e parse numerico com milhares por virgula.
+- `configs/senatran_fleet_catalog.yml` passa a operar como complemento opcional da descoberta automatica.
+
+### Changed (testes)
+- `tests/unit/test_db_cache.py` adicionado para validar cache de engine/session factory sem depender de objeto `Settings` hashavel.
+- `tests/unit/test_onda_a_connectors.py` ampliado com cobertura SENATRAN:
+  - descoberta de links CSV por ano;
+  - priorizacao e bloqueio de fallback manual por ano;
+  - parse de CSV com preambulo e milhares por virgula;
+  - resolucao de dataset remoto via descoberta com catalogo vazio.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_db_cache.py tests/unit/test_onda_a_connectors.py tests/unit/test_quality_coverage_checks.py -q -p no:cacheprovider` -> `29 passed`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q -p no:cacheprovider` -> `44 passed`.
+- `.\.venv\Scripts\python.exe -c "from pipelines.senatran_fleet import run; ..."` (dry-run multi-ano):
+  - `2021..2024` -> `blocked` (sem fonte anual valida);
+  - `2025` -> `success` com fonte remota oficial (`FrotaporMunicipioetipoJulho2025.csv`).
+
 ## 2026-02-21 - Trilha unica ativa com gate formal (WIP=1)
 
 ### Changed (planejamento)
