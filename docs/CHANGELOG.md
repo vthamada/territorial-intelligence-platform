@@ -1,22 +1,39 @@
 ﻿# Changelog
 
-Todas as mudancas relevantes do projeto devem ser registradas aqui.
+Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
-## 2026-02-22 - Consolidacao operacional 30d estabilizada em READY (pos-D8)
+## 2026-02-22 - Warning residual tratado (severidade 30d normalizada)
 
 ### Changed
-- `src/app/ops_robustness_window.py` evoluido para gate operacional mais preciso:
+- `src/app/ops_robustness_window.py`:
+  - separação de warnings em `actionable` vs `informational` via `warnings_summary`;
+  - warning histórico de SLO (com janela de saúde estável) passou a ser informativo;
+  - severidade do consolidado agora considera apenas warnings acionáveis, falhas não resolvidas e hard failures.
+
+### Added
+- `warnings_summary` no payload de robustez:
+  - `total`, `actionable`, `informational`;
+  - `actionable_items`, `informational_items`.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_robustness_window.py tests/unit/test_ops_routes.py -q -p no:cacheprovider` -> `32 passed`.
+- `.\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `status=READY`, `severity=normal`, `all_pass=True`.
+
+## 2026-02-22 - Consolidação operacional 30d estabilizada em READY (pos-D8)
+
+### Changed
+- `src/app/ops_robustness_window.py` evoluído para gate operacional mais preciso:
   - `slo_1_health_window_target` como gate principal de SLO;
-  - `slo_1_window_target` mantido para historico e exigido apenas em `strict=true`;
+  - `slo_1_window_target` mantido para histórico e exigido apenas em `strict=true`;
   - `quality_no_unresolved_failed_checks_window` substitui gate bruto de `failed_checks`;
-  - nova leitura de `unresolved_failed_runs_window` para severidade/acoes.
+  - nova leitura de `unresolved_failed_runs_window` para severidade/ações.
 - `src/app/api/routes_ops.py`:
   - `GET /v1/ops/robustness-window` com default `include_blocked_as_success=true` para leitura operacional.
 - `scripts/export_ops_robustness_window.py`:
   - flag `--include-blocked-as-success/--no-include-blocked-as-success` (default `true`).
 
 ### Added
-- relatorio de janela ampliado com:
+- relatório de janela ampliado com:
   - `unresolved_failed_checks_window`
   - `unresolved_failed_runs_window`.
 
@@ -25,10 +42,10 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - `.\.venv\Scripts\python.exe -c "from pipelines.dbt_build import run; run(reference_period='2025', dry_run=False)"` -> `status=success` (`sql_direct` fallback).
 - `.\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `status=READY`, `severity=high`, `all_pass=True`.
 
-## 2026-02-22 - Consolidacao operacional 30d publicada (pos-D8)
+## 2026-02-22 - Consolidação operacional 30d publicada (pos-D8)
 
 ### Added
-- novo modulo `src/app/ops_robustness_window.py` com consolidacao unica da janela operacional:
+- novo módulo `src/app/ops_robustness_window.py` com consolidação única da janela operacional:
   - readiness por janela;
   - scorecard de cobertura por status;
   - incidente agregado (`failed_runs`, `blocked_runs`, `failed_checks`);
@@ -40,8 +57,8 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 ### Changed
 - `tests/unit/test_ops_routes.py` ampliado com cenarios do endpoint `/v1/ops/robustness-window`.
 - `docs/CONTRATO.md` atualizado com o endpoint operacional de consolidacao por janela.
-- `docs/OPERATIONS_RUNBOOK.md` ampliado com secao `11.9` para rotina de fechamento operacional de 30 dias.
-- `docs/PLANO_IMPLEMENTACAO_QG.md` e `docs/HANDOFF.md` atualizados para refletir operacao recorrente da janela 30d como proximo passo imediato.
+- `docs/OPERATIONS_RUNBOOK.md` ampliado com seção `11.9` para rotina de fechamento operacional de 30 dias.
+- `docs/PLANO_IMPLEMENTACAO_QG.md` e `docs/HANDOFF.md` atualizados para refletir operação recorrente da janela 30d como próximo passo imediato.
 
 ### Verified
 - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_robustness_window.py tests/unit/test_ops_routes.py -q -p no:cacheprovider` -> `29 passed`.
@@ -59,9 +76,9 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - nova suite `tests/unit/test_generate_incident_snapshot.py`.
 
 ### Changed
-- `docs/OPERATIONS_RUNBOOK.md` ampliado com secao `11.8` (rotina executavel de incidente).
-- `docs/HANDOFF.md` e `docs/PLANO_IMPLEMENTACAO_QG.md` atualizados para refletir fechamento tecnico da trilha D8.
-- `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` atualizado com status de D8 concluido tecnicamente.
+- `docs/OPERATIONS_RUNBOOK.md` ampliado com seção `11.8` (rotina executável de incidente).
+- `docs/HANDOFF.md` e `docs/PLANO_IMPLEMENTACAO_QG.md` atualizados para refletir fechamento técnico da trilha D8.
+- `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` atualizado com status de D8 concluído tecnicamente.
 
 ### Verified
 - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_generate_incident_snapshot.py tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `16 passed`.
@@ -74,9 +91,9 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 ### Added
 - nova migration `db/sql/017_d8_performance_tuning.sql` com indices para:
   - filtros de `ops.pipeline_checks` (`status`, `check_name`, `created_at_utc`);
-  - filtros de `ops.connector_registry` por atualizacao (`updated_at_utc`, `wave`, `status`, `source`);
+  - filtros de `ops.connector_registry` por atualização (`updated_at_utc`, `wave`, `status`, `source`);
   - consulta de `ops.frontend_events` por `name + event_timestamp_utc`;
-  - geocodificacao urbana com `pg_trgm` em nomes de:
+  - geocodificação urbana com `pg_trgm` em nomes de:
     - `map.urban_road_segment`
     - `map.urban_poi`
     - `map.urban_transport_stop`.
@@ -100,13 +117,13 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
 ### Added
 - novo script operacional `scripts/run_incremental_backfill.py` com:
-  - selecao incremental por `job + reference_period` usando historico de `ops.pipeline_runs`;
-  - execucao por necessidade (`no_previous_run`, `latest_status!=success`, `stale_success`);
+  - seleção incremental por `job + reference_period` usando histórico de `ops.pipeline_runs`;
+  - execução por necessidade (`no_previous_run`, `latest_status!=success`, `stale_success`);
   - reprocessamento seletivo por `--reprocess-jobs` e `--reprocess-periods`;
   - filtros de escopo (`--jobs`, `--exclude-jobs`, `--include-partial`);
-  - pos-carga condicional (`dbt_build`, `quality_suite`) por periodo com sucesso;
-  - relatorio padrao em `data/reports/incremental_backfill_report.json`.
-- nova suite `tests/unit/test_run_incremental_backfill.py` cobrindo a logica de decisao incremental e override de reprocessamento.
+  - pós-carga condicional (`dbt_build`, `quality_suite`) por período com sucesso;
+  - relatório padrão em `data/reports/incremental_backfill_report.json`.
+- nova suite `tests/unit/test_run_incremental_backfill.py` cobrindo a lógica de decisão incremental e override de reprocessamento.
 
 ### Verified
 - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_run_incremental_backfill.py tests/unit/test_backfill_environment_history.py tests/unit/test_quality_ops_pipeline_runs.py -q -p no:cacheprovider` -> `9 passed`.
@@ -143,18 +160,18 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - migration nova `db/sql/016_strategic_score_versions.sql` com:
   - tabela `ops.strategic_score_versions`;
   - view ativa `ops.v_strategic_score_version_active`;
-  - unicidade de versao ativa (`uq_strategic_score_versions_active`).
-- script novo `scripts/sync_strategic_score_versions.py` para sincronizacao idempotente da versao/pesos de score.
+  - unicidade de versão ativa (`uq_strategic_score_versions_active`).
+- script novo `scripts/sync_strategic_score_versions.py` para sincronização idempotente da versão/pesos de score.
 
 ### Changed
-- `db/sql/015_priority_drivers_mart.sql` evoluido para score versionado/pesado com novas colunas:
+- `db/sql/015_priority_drivers_mart.sql` evoluído para score versionado/pesado com novas colunas:
   - `score_version`, `config_version`, `critical_threshold`, `attention_threshold`,
   - `domain_weight`, `indicator_weight`, `weighted_magnitude`.
 - `configs/strategic_engine.yml` ampliado com:
   - `default_domain_weight`, `default_indicator_weight`,
   - `domain_weights` e `indicator_weights`.
 - `src/app/api/strategic_engine_config.py` ampliado para parsing de pesos e metadados de score.
-- `src/app/api/routes_qg.py` e `src/app/schemas/qg.py` atualizados para expor versao/metodo/pesos em prioridades, insights e briefs.
+-- `src/app/api/routes_qg.py` e `src/app/schemas/qg.py` atualizados para expor versão/método/pesos em prioridades, insights e briefs.
 - `db/sql/007_data_coverage_scorecard.sql` ampliado com metricas:
   - `priority_drivers_missing_score_version_rows`
   - `strategic_score_total_versions`
@@ -198,14 +215,14 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=24`, `warn=4`.
 - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=1`.
 - GitHub:
-  - tentativa de sincronizacao de issue (`#22`) bloqueada por proxy/rede no ambiente local.
+  - tentativa de sincronização de issue (`#22`) bloqueada por proxy/rede no ambiente local.
 
-## 2026-02-22 - Governanca de foco reforcada (trilha unica para demo defensavel)
+## 2026-02-22 - Governança de foco reforçada (trilha única para demo defensável)
 
 ### Changed
-- `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado com secao "Modo foco (demo defensavel)":
+- `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado com seção "Modo foco (demo defensável)":
   - escopo congelado;
-  - criterio de entrega palpavel/defensavel;
+  - critério de entrega palpável/defensável;
   - sequencia unica `#22 -> #23 -> #24`.
 - `docs/HANDOFF.md` atualizado com acordo operacional de foco:
   - proibicao de frentes paralelas fora da trilha ativa;
@@ -223,7 +240,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
 ### Changed
 - `src/pipelines/quality_suite.py` passa a incluir `check_source_schema_drift`.
-- `configs/quality_thresholds.yml` ampliado com secao `schema_drift`.
+- `configs/quality_thresholds.yml` ampliado com seção `schema_drift`.
 - `db/sql/007_data_coverage_scorecard.sql` ampliado com metrica:
   - `schema_drift_fail_checks_last_7d`.
 - `tests/unit/test_quality_suite.py` atualizado para monkeypatch do check de drift.
@@ -275,7 +292,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - `src/pipelines/common/quality.py` com check novo:
   - `check_source_schema_contracts`.
 - `src/pipelines/quality_suite.py` passa a incluir checks de `schema_contracts`.
-- `configs/quality_thresholds.yml` ampliado com secao `schema_contracts`.
+- `configs/quality_thresholds.yml` ampliado com seção `schema_contracts`.
 - `db/sql/007_data_coverage_scorecard.sql` ampliado com metrica:
   - `schema_contracts_active_coverage_pct`.
 - `scripts/backfill_robust_database.py` ampliado para:
@@ -376,7 +393,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - `environment_risk_district_rows`
   - `environment_risk_census_sector_rows`
   - `environment_risk_distinct_periods`.
-- `configs/quality_thresholds.yml` ampliado com secao `environment_risk`.
+-- `configs/quality_thresholds.yml` ampliado com seção `environment_risk`.
 - `src/pipelines/quality_suite.py` passa a incluir `check_environment_risk_aggregation`.
 - `scripts/backfill_robust_database.py` ampliado com `coverage.environment_risk_aggregation`.
 - `src/app/api/cache_middleware.py` passa a cachear `GET /v1/map/environment/risk` (`max-age=300`).
@@ -404,9 +421,9 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 ### Added
 - novo script operacional `scripts/backfill_environment_history.py` para executar `BD-050` em fluxo unico:
   - bootstrap manual multi-ano para `INMET`, `INPE_QUEIMADAS` e `ANA`;
-  - execucao dos conectores ambientais por periodo;
-  - execucao opcional do `quality_suite` por periodo;
-  - relatorio consolidado em `data/reports/bd050_environment_history_report.json`.
+  - execução dos conectores ambientais por período;
+  - execução opcional do `quality_suite` por período;
+  - relatório consolidado em `data/reports/bd050_environment_history_report.json`.
 - nova suite de testes para o script:
   - `tests/unit/test_backfill_environment_history.py`.
 
@@ -422,7 +439,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - `inmet_distinct_periods`
   - `inpe_queimadas_distinct_periods`
   - `ana_distinct_periods`
-- relatorio de cobertura do backfill geral ampliado em `scripts/backfill_robust_database.py` com `coverage.environmental_sources`.
+-- relatório de cobertura do backfill geral ampliado em `scripts/backfill_robust_database.py` com `coverage.environmental_sources`.
 - contratos de teste atualizados:
   - `tests/contracts/test_sql_contracts.py`
   - `tests/unit/test_onda_b_connectors.py`
@@ -512,10 +529,10 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
 - `.\.venv\Scripts\python.exe scripts/sync_connector_registry.py` -> `Synchronized 27 connectors into ops.connector_registry`.
 
-## 2026-02-21 - D4 BD-040 concluido (SENATRAN 2021..2025)
+## 2026-02-21 - D4 BD-040 concluído (SENATRAN 2021..2025)
 
 ### Added
-- `scripts/bootstrap_senatran_history.py` para bootstrap historico oficial de SENATRAN (2021..2024) com extracao municipal de Diamantina.
+-- `scripts/bootstrap_senatran_history.py` para bootstrap histórico oficial de SENATRAN (2021..2024) com extração municipal de Diamantina.
 - arquivos manuais anuais:
   - `data/manual/senatran/senatran_diamantina_2021.csv`
   - `data/manual/senatran/senatran_diamantina_2022.csv`
@@ -529,11 +546,11 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - `.gitignore` atualizado para versionar `data/manual/senatran/`.
 
 ### Verified
-- Backfill real via `pipelines.senatran_fleet.run(..., dry_run=False)` em `2021..2025`:
-  - `5/5` execucoes com `status=success`;
+-- Backfill real via `pipelines.senatran_fleet.run(..., dry_run=False)` em `2021..2025`:
+  - `5/5` execuções com `status=success`;
   - `rows_written=4` por ano.
-- Cobertura no banco:
-  - `silver.fact_indicator` (`source='SENATRAN'`, `dataset='senatran_fleet_municipal'`) com periodos `2021..2025`.
+-- Cobertura no banco:
+  - `silver.fact_indicator` (`source='SENATRAN'`, `dataset='senatran_fleet_municipal'`) com períodos `2021..2025`.
 - Operacional:
   - `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=10`, `warn=1`.
   - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
@@ -541,14 +558,14 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 ## 2026-02-21 - D4 BD-040 (SENATRAN historico) hardening inicial
 
 ### Changed (backend)
-- `src/app/db.py` ajustado para cache por `database_url` (string hashavel), removendo falha estrutural `unhashable type: 'Settings'` em execucoes reais dos conectores.
-- `src/pipelines/senatran_fleet.py` evoluido para suporte historico mais robusto:
+-- `src/app/db.py` ajustado para cache por `database_url` (string hashável), removendo falha estrutural `unhashable type: 'Settings'` em execuções reais dos conectores.
+-- `src/pipelines/senatran_fleet.py` evoluído para suporte histórico mais robusto:
   - descoberta automatica de CSVs SENATRAN por ano na pagina oficial (`frota-de-veiculos-{ano}`);
   - render de URI com placeholders `{reference_period}` e `{year}`;
   - filtro de seguranca para evitar uso de URI remota com ano divergente do `reference_period`;
   - priorizacao de fallback manual por ano no nome do arquivo;
   - bloqueio de fallback manual com ano divergente (evita carregar 2025 para executar 2024);
-  - parser dedicado para CSV oficial SENATRAN com preambulo (`UF,MUNICIPIO,TOTAL...`) e parse numerico com milhares por virgula.
+  - parser dedicado para CSV oficial SENATRAN com preâmbulo (`UF,MUNICIPIO,TOTAL...`) e parse numérico com milhares por vírgula.
 - `configs/senatran_fleet_catalog.yml` passa a operar como complemento opcional da descoberta automatica.
 
 ### Changed (testes)
@@ -618,13 +635,13 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - `#7` (`BD-020`) permanece `open` com `status:external` + `status:blocked`.
   - `#28` (`BD-033`, `closed`) sem label `status:active`.
 
-## 2026-02-20 - Consolidacao final de documentos por dominio
+## 2026-02-20 - Consolidação final de documentos por domínio
 
 ### Changed (governanca)
 - `docs/GOVERNANCA_DOCUMENTAL.md` refinado com corte rigoroso:
   - ativos por dominio reduzidos para 5 documentos (`MAP`, `TERRITORIAL`, `STRATEGIC`, `BACKLOG_DADOS`, `OPERATIONS_RUNBOOK`);
   - `PLANO_FONTES`, `RUNBOOK_ROBUSTEZ`, `MTE_RUNBOOK`, `BRONZE_POLICY` e `BACKLOG_UX` reclassificados como descontinuados para decisao.
-- `docs/PLANO.md` removido do repositorio por baixa relevancia operacional; governanca e fila unica permanecem em `docs/PLANO_IMPLEMENTACAO_QG.md`.
+- `docs/PLANO.md` removido do repositório por baixa relevância operacional; governança e fila única permanecem em `docs/PLANO_IMPLEMENTACAO_QG.md`.
 - `AGENTS.md` alinhado com a nova classificacao de dominio (sem ambiguidade operacional).
 - `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado para remover dependencia operacional de documentos descontinuados.
 
@@ -632,9 +649,9 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - `docs/OPERATIONS_RUNBOOK.md` passou a incorporar:
   - rotina semanal de robustez de dados (antes em `docs/RUNBOOK_ROBUSTEZ_DADOS_SEMANAL.md`);
   - operacao completa do conector MTE (antes em `docs/MTE_RUNBOOK.md`).
-- `docs/CONTRATO.md` consolidou politica Bronze:
-  - secao `4.1 Politica Bronze`;
-  - mecanismo oficial de medicao atualizado para runbook unico (`docs/OPERATIONS_RUNBOOK.md`).
+-- `docs/CONTRATO.md` consolidou política Bronze:
+  - seção `4.1 Política Bronze`;
+  - mecanismo oficial de medição atualizado para runbook único (`docs/OPERATIONS_RUNBOOK.md`).
 - `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` consolidou papel de catalogo oficial de fontes (substituindo `docs/PLANO_FONTES_DADOS_DIAMANTINA.md` para decisao).
 
 ### Changed (descontinuacao orientada)
@@ -646,10 +663,10 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
   - `docs/BACKLOG_UX_EXECUTIVO_QG.md`
 - `docs/HANDOFF.md` atualizado para explicitar a lista descontinuada completa.
 
-## 2026-02-20 - Higienizacao documental (foco unico)
+## 2026-02-20 - Higienização documental (foco único)
 
 ### Changed (governanca)
-- Governanca documental consolidada em `docs/GOVERNANCA_DOCUMENTAL.md` com classificacao oficial: nucleo ativo, dominio ativo, complementar e descontinuados.
+- Governança documental consolidada em `docs/GOVERNANCA_DOCUMENTAL.md` com classificação oficial: núcleo ativo, domínio ativo, complementar e descontinuados.
 - `AGENTS.md` atualizado para leitura obrigatoria com `docs/VISION.md` e nova matriz documental sem ambiguidade de fontes.
 - `docs/CONTRATO.md` atualizado para apontar execucao oficial em `docs/PLANO_IMPLEMENTACAO_QG.md` e classificacao em `docs/GOVERNANCA_DOCUMENTAL.md`.
 - `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado para substituir referencias de visao/rastreabilidade legadas por `docs/VISION.md` + `docs/HANDOFF.md` + `docs/CHANGELOG.md`.
@@ -658,7 +675,7 @@ Todas as mudancas relevantes do projeto devem ser registradas aqui.
 - `README.md` atualizado para refletir contrato + plano executavel + north star.
 
 ### Notes
-- Documentos descontinuados foram removidos fisicamente do repositorio em 2026-02-20; a lista oficial e mantida em `docs/GOVERNANCA_DOCUMENTAL.md` (secao 6).
+- Documentos descontinuados foram removidos fisicamente do repositório em 2026-02-20; a lista oficial é mantida em `docs/GOVERNANCA_DOCUMENTAL.md` (seção 6).
 
 
 ## 2026-02-20 â€” Fase UX-P0 (auditoria visual completa)

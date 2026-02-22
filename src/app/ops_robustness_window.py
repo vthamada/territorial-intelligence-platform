@@ -190,6 +190,27 @@ def _classify_severity(*, hard_failures: int, warnings: int, failed_runs: int, f
     return "normal"
 
 
+def _split_warnings(
+    *,
+    warnings: list[str],
+    health_window_meets_target: bool,
+) -> dict[str, list[str]]:
+    informational: list[str] = []
+    actionable: list[str] = []
+    for warning in warnings:
+        if (
+            health_window_meets_target
+            and warning.startswith("SLO-1 below target in historical window:")
+        ):
+            informational.append(warning)
+            continue
+        actionable.append(warning)
+    return {
+        "actionable": actionable,
+        "informational": informational,
+    }
+
+
 def _recommended_actions(
     *,
     strict: bool,
@@ -237,9 +258,16 @@ def build_ops_robustness_window_report(
     unresolved_failed_runs = _unresolved_failed_runs_summary(executor, window_days=window_days)
 
     hard_failures = int(len(readiness.get("hard_failures", [])))
-    warnings = int(len(readiness.get("warnings", [])))
+    raw_warnings = [str(item) for item in readiness.get("warnings", [])]
     scorecard_fail_metrics = int(scorecard_status_counts.get("fail", 0))
     slo1_current = readiness.get("slo1_current", {})
+    warnings_split = _split_warnings(
+        warnings=raw_warnings,
+        health_window_meets_target=bool(slo1_current.get("meets_target")),
+    )
+    actionable_warnings = warnings_split["actionable"]
+    informational_warnings = warnings_split["informational"]
+    warnings = int(len(actionable_warnings))
 
     gates = {
         "slo_1_window_target": {
@@ -311,6 +339,13 @@ def build_ops_robustness_window_report(
         "incident_window": incident_window,
         "unresolved_failed_runs_window": unresolved_failed_runs,
         "unresolved_failed_checks_window": unresolved_failed_checks,
+        "warnings_summary": {
+            "total": int(len(raw_warnings)),
+            "actionable": int(len(actionable_warnings)),
+            "informational": int(len(informational_warnings)),
+            "actionable_items": actionable_warnings,
+            "informational_items": informational_warnings,
+        },
         "recommended_actions": _recommended_actions(
             strict=strict,
             hard_failures=hard_failures,

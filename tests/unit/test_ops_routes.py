@@ -405,6 +405,7 @@ class _OpsRobustnessWindowSession:
         failed_checks_last_window: int = 0,
         unresolved_failed_checks: int = 0,
         unresolved_failed_runs: int = 0,
+        source_probe_rows: int = 0,
     ) -> None:
         self.last_params: dict[str, Any] | None = None
         self.params_history: list[dict[str, Any]] = []
@@ -412,6 +413,7 @@ class _OpsRobustnessWindowSession:
         self.failed_checks_last_window = failed_checks_last_window
         self.unresolved_failed_checks = unresolved_failed_checks
         self.unresolved_failed_runs = unresolved_failed_runs
+        self.source_probe_rows = source_probe_rows
 
     def execute(self, *_args: Any, **_kwargs: Any) -> _CountResult | _RowsResult:
         params = _kwargs.get("params")
@@ -457,7 +459,9 @@ class _OpsRobustnessWindowSession:
         if "left join ops.pipeline_checks pc on pc.run_id = pr.run_id" in sql:
             return _RowsResult([])
         if "from silver.fact_indicator" in sql and "source_probe" in sql:
-            return _RowsResult([])
+            if self.source_probe_rows <= 0:
+                return _RowsResult([])
+            return _RowsResult([("MTE", self.source_probe_rows)])
         if "from ops.v_data_coverage_scorecard" in sql:
             return _RowsResult([("pass", 28), ("warn", 3)])
         if "from ops.pipeline_runs" in sql and "group by status::text" in sql:
@@ -1035,7 +1039,11 @@ def test_ops_robustness_window_endpoint_returns_consolidated_snapshot() -> None:
 
 
 def test_ops_robustness_window_endpoint_strict_mode_rejects_warnings() -> None:
-    session = _OpsRobustnessWindowSession(historical_success_runs=8, failed_checks_last_window=0)
+    session = _OpsRobustnessWindowSession(
+        historical_success_runs=8,
+        failed_checks_last_window=0,
+        source_probe_rows=1,
+    )
 
     def _db() -> Generator[_OpsRobustnessWindowSession, None, None]:
         yield session

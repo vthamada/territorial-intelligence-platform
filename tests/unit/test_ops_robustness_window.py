@@ -32,11 +32,13 @@ class _Executor:
         failed_checks_last_window: int,
         unresolved_failed_checks: int,
         unresolved_failed_runs: int = 0,
+        source_probe_rows: int = 0,
     ) -> None:
         self.historical_success_runs = historical_success_runs
         self.failed_checks_last_window = failed_checks_last_window
         self.unresolved_failed_checks = unresolved_failed_checks
         self.unresolved_failed_runs = unresolved_failed_runs
+        self.source_probe_rows = source_probe_rows
 
     def execute(self, *_args: Any, **_kwargs: Any) -> _ScalarResult | _RowsResult:
         sql = str(_args[0]).lower() if _args else ""
@@ -78,7 +80,9 @@ class _Executor:
         if "left join ops.pipeline_checks pc on pc.run_id = pr.run_id" in sql:
             return _RowsResult([])
         if "from silver.fact_indicator" in sql and "source_probe" in sql:
-            return _RowsResult([])
+            if self.source_probe_rows <= 0:
+                return _RowsResult([])
+            return _RowsResult([("MTE", self.source_probe_rows)])
         if "from ops.v_data_coverage_scorecard" in sql:
             return _RowsResult([("pass", 28), ("warn", 3)])
         if "from ops.pipeline_runs" in sql and "group by status::text" in sql:
@@ -135,6 +139,7 @@ def test_build_ops_robustness_window_report_returns_not_ready_in_strict_mode_wit
             historical_success_runs=8,
             failed_checks_last_window=0,
             unresolved_failed_checks=0,
+            source_probe_rows=1,
         ),
         window_days=30,
         health_window_days=7,
@@ -166,3 +171,24 @@ def test_build_ops_robustness_window_report_flags_unresolved_failed_checks() -> 
     assert report["status"] == "NOT_READY"
     assert report["gates"]["quality_no_unresolved_failed_checks_window"]["pass"] is False
     assert report["unresolved_failed_checks_window"]["total"] == 3
+
+
+def test_build_ops_robustness_window_report_treats_historical_slo_warning_as_informational() -> None:
+    report = build_ops_robustness_window_report(
+        _Executor(
+            historical_success_runs=8,
+            failed_checks_last_window=0,
+            unresolved_failed_checks=0,
+        ),
+        window_days=30,
+        health_window_days=7,
+        slo1_target_pct=95.0,
+        include_blocked_as_success=True,
+        strict=False,
+    )
+
+    assert report["status"] == "READY"
+    assert report["severity"] == "normal"
+    assert report["warnings_summary"]["total"] == 1
+    assert report["warnings_summary"]["actionable"] == 0
+    assert report["warnings_summary"]["informational"] == 1

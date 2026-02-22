@@ -21,7 +21,7 @@ Escopo: plano executavel para consolidar QG estrategico em producao com dados re
    - executar itens de `D6` em sequencia (`BD-060` -> `BD-061` -> `BD-062`);
    - registrar evidencias de cada item em `HANDOFF` e `CHANGELOG` antes de avancar.
 4. Proximo passo imediato:
-   - manter consolidacao operacional da janela de 30 dias em `READY` e atacar warning residual para reduzir severidade de `high` para `normal`.
+   - manter consolidacao operacional da janela de 30 dias em `READY` e `severity=normal`, monitorando regressao de SLO/readiness/quality.
 5. Fonte unica de sequencia de execucao:
    - este arquivo (secoes `0`, `5` e `9`).
    - `docs/HANDOFF.md` registra apenas estado corrente e proximo passo imediato da mesma trilha.

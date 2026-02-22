@@ -38,7 +38,7 @@ Contrato tecnico principal: `CONTRATO.md`
    - scorecard de cobertura sem regressao critica;
    - evidencias registradas no proprio `HANDOFF` e em `docs/CHANGELOG.md`.
 5. Proximo passo imediato:
-   - manter rotina recorrente da janela de 30 dias com `scripts/export_ops_robustness_window.py` e reduzir severidade de `high` para `normal` (zerar warnings residuais).
+   - manter rotina recorrente da janela de 30 dias com `scripts/export_ops_robustness_window.py` e acompanhar drift para manter `status=READY`, `severity=normal` e `gates.all_pass=true`.
 6. Governanca de issue:
    - ao concluir item tecnico, encerrar issue correspondente no GitHub na mesma rodada.
 7. Regra de leitura:
@@ -54,11 +54,11 @@ Contrato tecnico principal: `CONTRATO.md`
 2. Convergencia operacional executada:
    - `dbt_build` reexecutado com sucesso (fallback `sql_direct`) para resolver pendencias abertas de `dbt_build_execution`.
 3. Validacao executada:
-   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_robustness_window.py tests/unit/test_ops_routes.py -q -p no:cacheprovider` -> `31 passed`.
-   - `.\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `status=READY`, `severity=high`, `all_pass=true`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_robustness_window.py tests/unit/test_ops_routes.py -q -p no:cacheprovider` -> `32 passed`.
+   - `.\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `status=READY`, `severity=normal`, `all_pass=true`.
 4. Estado atual da consolidacao:
    - janela operacional 30d: `READY`;
-   - pendencia residual: `warnings=1` (impacta severidade, nao o gate obrigatorio em modo nao estrito).
+   - warning historico de SLO (30d) classificado como `informational` no consolidado, sem impacto de severidade.
 
 ## Atualizacao tecnica (2026-02-22) - Consolidacao operacional 30d publicada (pos-D8)
 

@@ -1,12 +1,12 @@
 {
-  "generated_at_utc": "2026-02-22T20:32:07.610813+00:00",
+  "generated_at_utc": "2026-02-22T20:39:29.804497+00:00",
   "status": "READY",
   "strict": false,
   "window_days": 30,
   "health_window_days": 7,
   "slo1_target_pct": 95.0,
   "include_blocked_as_success": true,
-  "severity": "high",
+  "severity": "normal",
   "gates": {
     "slo_1_window_target": {
       "pass": false,
@@ -35,8 +35,8 @@
       "target": 0
     },
     "warnings_absent": {
-      "pass": false,
-      "value": 1,
+      "pass": true,
+      "value": 0,
       "target": 0
     },
     "all_pass": true,
@@ -73,11 +73,20 @@
     "total": 0,
     "items": []
   },
+  "warnings_summary": {
+    "total": 1,
+    "actionable": 0,
+    "informational": 1,
+    "actionable_items": [],
+    "informational_items": [
+      "SLO-1 below target in historical window: 94.94% < 95.0% (last 30d), but current health window is stable (98.84% in last 7d)."
+    ]
+  },
   "recommended_actions": [
     "Manter monitoramento padrao e registrar consolidacao semanal."
   ],
   "readiness": {
-    "generated_at_utc": "2026-02-22T20:32:04.053869Z",
+    "generated_at_utc": "2026-02-22T20:39:28.366911Z",
     "window_days": 30,
     "postgis": {
       "installed": true,

@@ -564,6 +564,7 @@ Leitura minima do relatorio `ops_robustness_window_30d.json`:
 3. `quality_no_unresolved_failed_checks_window` deve estar `pass`.
 4. `readiness.hard_failures` deve estar zerado.
 5. `incident_window.failed_checks` e `incident_window.failed_runs` sao contexto historico; triagem operacional usa `unresolved_failed_checks_window` e `unresolved_failed_runs_window`.
+6. `warnings_summary.actionable` deve estar `0`; warnings historicos de SLO com janela de saude estavel ficam em `warnings_summary.informational`.
 
 ## 12) Procedimento de deploy
 
