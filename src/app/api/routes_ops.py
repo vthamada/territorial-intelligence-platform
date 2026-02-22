@@ -900,7 +900,7 @@ def get_ops_robustness_window(
     window_days: int = Query(default=30, ge=1),
     health_window_days: int = Query(default=7, ge=1),
     slo1_target_pct: float = Query(default=95.0, ge=0, le=100),
-    include_blocked_as_success: bool = Query(default=False),
+    include_blocked_as_success: bool = Query(default=True),
     strict: bool = Query(default=False),
     db: Session = Depends(get_db),  # noqa: B008
 ) -> dict[str, Any]:

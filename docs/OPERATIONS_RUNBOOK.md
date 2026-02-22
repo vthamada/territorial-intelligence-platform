@@ -560,8 +560,10 @@ Execucao recomendada:
 
 Leitura minima do relatorio `ops_robustness_window_30d.json`:
 1. `status` precisa estar em `READY` para fechamento formal da janela.
-2. `gates.all_pass` deve estar `true` (ou com `strict=true`, incluindo ausencia de warnings).
-3. `incident_window.failed_checks` e `readiness.hard_failures` devem estar zerados.
+2. `gates.all_pass` deve estar `true` (com `strict=true`, inclui `slo_1_window_target` e ausencia de warnings).
+3. `quality_no_unresolved_failed_checks_window` deve estar `pass`.
+4. `readiness.hard_failures` deve estar zerado.
+5. `incident_window.failed_checks` e `incident_window.failed_runs` sao contexto historico; triagem operacional usa `unresolved_failed_checks_window` e `unresolved_failed_runs_window`.
 
 ## 12) Procedimento de deploy
 

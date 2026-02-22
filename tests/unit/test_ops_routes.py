@@ -398,11 +398,20 @@ class _OpsReadinessSession:
 
 
 class _OpsRobustnessWindowSession:
-    def __init__(self, *, historical_success_runs: int = 10, failed_checks_last_window: int = 0) -> None:
+    def __init__(
+        self,
+        *,
+        historical_success_runs: int = 10,
+        failed_checks_last_window: int = 0,
+        unresolved_failed_checks: int = 0,
+        unresolved_failed_runs: int = 0,
+    ) -> None:
         self.last_params: dict[str, Any] | None = None
         self.params_history: list[dict[str, Any]] = []
         self.historical_success_runs = historical_success_runs
         self.failed_checks_last_window = failed_checks_last_window
+        self.unresolved_failed_checks = unresolved_failed_checks
+        self.unresolved_failed_runs = unresolved_failed_runs
 
     def execute(self, *_args: Any, **_kwargs: Any) -> _CountResult | _RowsResult:
         params = _kwargs.get("params")
@@ -455,6 +464,22 @@ class _OpsRobustnessWindowSession:
             return _RowsResult([("success", 10), ("blocked", 1)])
         if "from ops.pipeline_checks" in sql and "and status = 'fail'" in sql:
             return _CountResult(self.failed_checks_last_window)
+        if "with checks as (" in sql and "from unresolved" in sql:
+            if self.unresolved_failed_checks <= 0:
+                return _RowsResult([])
+            return _RowsResult(
+                [
+                    (
+                        "dbt_build",
+                        "dbt_build_execution",
+                        self.unresolved_failed_checks,
+                    )
+                ]
+            )
+        if "with runs as (" in sql and "where f.status = 'failed'" in sql and "from unresolved" in sql:
+            if self.unresolved_failed_runs <= 0:
+                return _RowsResult([])
+            return _RowsResult([("dbt_build", self.unresolved_failed_runs)])
 
         raise AssertionError(f"Unexpected SQL in robustness-window test: {sql}")
 
@@ -1003,6 +1028,8 @@ def test_ops_robustness_window_endpoint_returns_consolidated_snapshot() -> None:
     assert payload["health_window_days"] == 7
     assert payload["gates"]["all_pass"] is True
     assert payload["incident_window"]["failed_checks"] == 0
+    assert payload["unresolved_failed_runs_window"]["total"] == 0
+    assert payload["unresolved_failed_checks_window"]["total"] == 0
     assert payload["scorecard_status_counts"]["pass"] == 28
     app.dependency_overrides.clear()
 
@@ -1023,6 +1050,29 @@ def test_ops_robustness_window_endpoint_strict_mode_rejects_warnings() -> None:
     assert payload["status"] == "NOT_READY"
     assert payload["gates"]["warnings_absent"]["pass"] is False
     assert "warnings_absent" in payload["gates"]["required_for_status"]
+    app.dependency_overrides.clear()
+
+
+def test_ops_robustness_window_endpoint_marks_not_ready_with_unresolved_failed_checks() -> None:
+    session = _OpsRobustnessWindowSession(
+        historical_success_runs=10,
+        failed_checks_last_window=3,
+        unresolved_failed_checks=3,
+    )
+
+    def _db() -> Generator[_OpsRobustnessWindowSession, None, None]:
+        yield session
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/ops/robustness-window")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "NOT_READY"
+    assert payload["gates"]["quality_no_unresolved_failed_checks_window"]["pass"] is False
+    assert payload["unresolved_failed_checks_window"]["total"] == 3
     app.dependency_overrides.clear()
 
 

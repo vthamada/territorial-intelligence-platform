@@ -25,9 +25,18 @@ class _RowsResult:
 
 
 class _Executor:
-    def __init__(self, *, historical_success_runs: int, failed_checks_last_window: int) -> None:
+    def __init__(
+        self,
+        *,
+        historical_success_runs: int,
+        failed_checks_last_window: int,
+        unresolved_failed_checks: int,
+        unresolved_failed_runs: int = 0,
+    ) -> None:
         self.historical_success_runs = historical_success_runs
         self.failed_checks_last_window = failed_checks_last_window
+        self.unresolved_failed_checks = unresolved_failed_checks
+        self.unresolved_failed_runs = unresolved_failed_runs
 
     def execute(self, *_args: Any, **_kwargs: Any) -> _ScalarResult | _RowsResult:
         sql = str(_args[0]).lower() if _args else ""
@@ -76,35 +85,61 @@ class _Executor:
             return _RowsResult([("success", 10), ("blocked", 1)])
         if "from ops.pipeline_checks" in sql and "and status = 'fail'" in sql:
             return _ScalarResult(self.failed_checks_last_window)
+        if "with checks as (" in sql and "from unresolved" in sql:
+            if self.unresolved_failed_checks <= 0:
+                return _RowsResult([])
+            return _RowsResult(
+                [
+                    (
+                        "dbt_build",
+                        "dbt_build_execution",
+                        self.unresolved_failed_checks,
+                    )
+                ]
+            )
+        if "with runs as (" in sql and "where f.status = 'failed'" in sql and "from unresolved" in sql:
+            if self.unresolved_failed_runs <= 0:
+                return _RowsResult([])
+            return _RowsResult([("dbt_build", self.unresolved_failed_runs)])
 
         raise AssertionError(f"Unexpected SQL in robustness-window test: {sql}")
 
 
 def test_build_ops_robustness_window_report_returns_ready_when_gates_pass() -> None:
     report = build_ops_robustness_window_report(
-        _Executor(historical_success_runs=10, failed_checks_last_window=0),
+        _Executor(
+            historical_success_runs=10,
+            failed_checks_last_window=0,
+            unresolved_failed_checks=0,
+        ),
         window_days=30,
         health_window_days=7,
         slo1_target_pct=95.0,
-        include_blocked_as_success=False,
+        include_blocked_as_success=True,
         strict=False,
     )
 
     assert report["status"] == "READY"
     assert report["gates"]["all_pass"] is True
-    assert report["gates"]["slo_1_window_target"]["pass"] is True
-    assert report["gates"]["quality_no_failed_checks_window"]["pass"] is True
+    assert report["gates"]["slo_1_health_window_target"]["pass"] is True
+    assert report["gates"]["quality_no_unresolved_failed_checks_window"]["pass"] is True
     assert report["incident_window"]["failed_checks"] == 0
+    assert report["unresolved_failed_runs_window"]["total"] == 0
+    assert report["unresolved_failed_checks_window"]["total"] == 0
     assert report["scorecard_status_counts"]["pass"] == 28
 
 
 def test_build_ops_robustness_window_report_returns_not_ready_in_strict_mode_with_warnings() -> None:
     report = build_ops_robustness_window_report(
-        _Executor(historical_success_runs=8, failed_checks_last_window=0),
+        _Executor(
+            historical_success_runs=8,
+            failed_checks_last_window=0,
+            unresolved_failed_checks=0,
+        ),
         window_days=30,
         health_window_days=7,
         slo1_target_pct=95.0,
-        include_blocked_as_success=False,
+        include_blocked_as_success=True,
         strict=True,
     )
 
@@ -112,3 +147,22 @@ def test_build_ops_robustness_window_report_returns_not_ready_in_strict_mode_wit
     assert report["gates"]["all_pass"] is False
     assert report["gates"]["warnings_absent"]["pass"] is False
     assert "warnings_absent" in report["gates"]["required_for_status"]
+
+
+def test_build_ops_robustness_window_report_flags_unresolved_failed_checks() -> None:
+    report = build_ops_robustness_window_report(
+        _Executor(
+            historical_success_runs=10,
+            failed_checks_last_window=3,
+            unresolved_failed_checks=3,
+        ),
+        window_days=30,
+        health_window_days=7,
+        slo1_target_pct=95.0,
+        include_blocked_as_success=True,
+        strict=False,
+    )
+
+    assert report["status"] == "NOT_READY"
+    assert report["gates"]["quality_no_unresolved_failed_checks_window"]["pass"] is False
+    assert report["unresolved_failed_checks_window"]["total"] == 3

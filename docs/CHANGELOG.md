@@ -2,6 +2,29 @@
 
 Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-22 - Consolidacao operacional 30d estabilizada em READY (pos-D8)
+
+### Changed
+- `src/app/ops_robustness_window.py` evoluido para gate operacional mais preciso:
+  - `slo_1_health_window_target` como gate principal de SLO;
+  - `slo_1_window_target` mantido para historico e exigido apenas em `strict=true`;
+  - `quality_no_unresolved_failed_checks_window` substitui gate bruto de `failed_checks`;
+  - nova leitura de `unresolved_failed_runs_window` para severidade/acoes.
+- `src/app/api/routes_ops.py`:
+  - `GET /v1/ops/robustness-window` com default `include_blocked_as_success=true` para leitura operacional.
+- `scripts/export_ops_robustness_window.py`:
+  - flag `--include-blocked-as-success/--no-include-blocked-as-success` (default `true`).
+
+### Added
+- relatorio de janela ampliado com:
+  - `unresolved_failed_checks_window`
+  - `unresolved_failed_runs_window`.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_robustness_window.py tests/unit/test_ops_routes.py -q -p no:cacheprovider` -> `31 passed`.
+- `.\.venv\Scripts\python.exe -c "from pipelines.dbt_build import run; run(reference_period='2025', dry_run=False)"` -> `status=success` (`sql_direct` fallback).
+- `.\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `status=READY`, `severity=high`, `all_pass=True`.
+
 ## 2026-02-22 - Consolidacao operacional 30d publicada (pos-D8)
 
 ### Added

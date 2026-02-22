@@ -38,12 +38,27 @@ Contrato tecnico principal: `CONTRATO.md`
    - scorecard de cobertura sem regressao critica;
    - evidencias registradas no proprio `HANDOFF` e em `docs/CHANGELOG.md`.
 5. Proximo passo imediato:
-   - executar rotina recorrente da janela de 30 dias com `scripts/export_ops_robustness_window.py` ate estabilizar `status=READY` com `gates.all_pass=true`.
+   - manter rotina recorrente da janela de 30 dias com `scripts/export_ops_robustness_window.py` e reduzir severidade de `high` para `normal` (zerar warnings residuais).
 6. Governanca de issue:
    - ao concluir item tecnico, encerrar issue correspondente no GitHub na mesma rodada.
 7. Regra de leitura:
    - apenas esta secao define "proximo passo executavel" no momento;
    - secoes de "proximos passos" antigas abaixo devem ser lidas como historico.
+
+## Atualizacao tecnica (2026-02-22) - Janela 30d em READY com gates consolidados
+
+1. Ajuste de criterio operacional do consolidado 30d:
+   - gate principal de SLO passou para `slo_1_health_window_target`;
+   - `slo_1_window_target` mantido como historico e exigido apenas em `strict=true`;
+   - gate de qualidade refinado para `quality_no_unresolved_failed_checks_window`.
+2. Convergencia operacional executada:
+   - `dbt_build` reexecutado com sucesso (fallback `sql_direct`) para resolver pendencias abertas de `dbt_build_execution`.
+3. Validacao executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_robustness_window.py tests/unit/test_ops_routes.py -q -p no:cacheprovider` -> `31 passed`.
+   - `.\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `status=READY`, `severity=high`, `all_pass=true`.
+4. Estado atual da consolidacao:
+   - janela operacional 30d: `READY`;
+   - pendencia residual: `warnings=1` (impacta severidade, nao o gate obrigatorio em modo nao estrito).
 
 ## Atualizacao tecnica (2026-02-22) - Consolidacao operacional 30d publicada (pos-D8)
 

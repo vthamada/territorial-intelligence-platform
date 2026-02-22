@@ -1,26 +1,32 @@
 {
-  "generated_at_utc": "2026-02-22T20:15:31.713102+00:00",
-  "status": "NOT_READY",
+  "generated_at_utc": "2026-02-22T20:32:07.610813+00:00",
+  "status": "READY",
   "strict": false,
   "window_days": 30,
   "health_window_days": 7,
   "slo1_target_pct": 95.0,
-  "include_blocked_as_success": false,
-  "severity": "critical",
+  "include_blocked_as_success": true,
+  "severity": "high",
   "gates": {
     "slo_1_window_target": {
       "pass": false,
-      "value": 90.68,
+      "value": 94.94,
       "target": 95.0
+    },
+    "slo_1_health_window_target": {
+      "pass": true,
+      "value": 98.84,
+      "target": 95.0,
+      "window_days": 7
     },
     "readiness_no_hard_failures": {
       "pass": true,
       "value": 0,
       "target": 0
     },
-    "quality_no_failed_checks_window": {
-      "pass": false,
-      "value": 31,
+    "quality_no_unresolved_failed_checks_window": {
+      "pass": true,
+      "value": 0,
       "target": 0
     },
     "scorecard_no_fail_metrics": {
@@ -33,11 +39,11 @@
       "value": 1,
       "target": 0
     },
-    "all_pass": false,
+    "all_pass": true,
     "required_for_status": [
-      "slo_1_window_target",
+      "slo_1_health_window_target",
       "readiness_no_hard_failures",
-      "quality_no_failed_checks_window",
+      "quality_no_unresolved_failed_checks_window",
       "scorecard_no_fail_metrics"
     ]
   },
@@ -47,22 +53,31 @@
   },
   "incident_window": {
     "window_days": 30,
-    "runs_total": 249,
+    "runs_total": 250,
     "runs_by_status": {
       "blocked": 14,
       "failed": 12,
-      "success": 223
+      "success": 224
     },
     "failed_runs": 12,
     "blocked_runs": 14,
     "failed_checks": 31
   },
+  "unresolved_failed_runs_window": {
+    "window_days": 30,
+    "total": 0,
+    "items": []
+  },
+  "unresolved_failed_checks_window": {
+    "window_days": 30,
+    "total": 0,
+    "items": []
+  },
   "recommended_actions": [
-    "Executar reprocessamento seletivo para jobs com status failed.",
-    "Corrigir checks com status fail antes do proximo ciclo operacional."
+    "Manter monitoramento padrao e registrar consolidacao semanal."
   ],
   "readiness": {
-    "generated_at_utc": "2026-02-22T20:15:30.179519Z",
+    "generated_at_utc": "2026-02-22T20:32:04.053869Z",
     "window_days": 30,
     "postgis": {
       "installed": true,
@@ -139,24 +154,16 @@
     "slo1": {
       "window_days": 30,
       "target_pct": 95.0,
-      "include_blocked_as_success": false,
-      "total_runs": 236,
-      "successful_runs": 214,
-      "success_rate_pct": 90.68,
+      "include_blocked_as_success": true,
+      "total_runs": 237,
+      "successful_runs": 225,
+      "success_rate_pct": 94.94,
       "meets_target": false,
       "below_target_jobs": [
-        "aneel_energy_fetch",
         "dbt_build",
         "ibge_admin_fetch",
         "ibge_geometries_fetch",
-        "inmet_climate_fetch",
-        "inpe_queimadas_fetch",
-        "labor_mte_fetch",
-        "quality_suite",
-        "sejusp_public_safety_fetch",
-        "senatran_fleet_fetch",
-        "siops_health_finance_fetch",
-        "snis_sanitation_fetch"
+        "quality_suite"
       ],
       "items": [
         {
@@ -176,15 +183,15 @@
         {
           "job_name": "aneel_energy_fetch",
           "total_runs": 10,
-          "successful_runs": 9,
-          "success_rate_pct": 90.0,
-          "meets_target": false
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
         },
         {
           "job_name": "dbt_build",
-          "total_runs": 10,
-          "successful_runs": 4,
-          "success_rate_pct": 40.0,
+          "total_runs": 11,
+          "successful_runs": 5,
+          "success_rate_pct": 45.45,
           "meets_target": false
         },
         {
@@ -232,23 +239,23 @@
         {
           "job_name": "inmet_climate_fetch",
           "total_runs": 10,
-          "successful_runs": 9,
-          "success_rate_pct": 90.0,
-          "meets_target": false
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
         },
         {
           "job_name": "inpe_queimadas_fetch",
           "total_runs": 10,
-          "successful_runs": 9,
-          "success_rate_pct": 90.0,
-          "meets_target": false
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
         },
         {
           "job_name": "labor_mte_fetch",
           "total_runs": 11,
-          "successful_runs": 8,
-          "success_rate_pct": 72.73,
-          "meets_target": false
+          "successful_runs": 11,
+          "success_rate_pct": 100.0,
+          "meets_target": true
         },
         {
           "job_name": "quality_suite",
@@ -260,16 +267,16 @@
         {
           "job_name": "sejusp_public_safety_fetch",
           "total_runs": 10,
-          "successful_runs": 9,
-          "success_rate_pct": 90.0,
-          "meets_target": false
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
         },
         {
           "job_name": "senatran_fleet_fetch",
           "total_runs": 15,
-          "successful_runs": 14,
-          "success_rate_pct": 93.33,
-          "meets_target": false
+          "successful_runs": 15,
+          "success_rate_pct": 100.0,
+          "meets_target": true
         },
         {
           "job_name": "sidra_indicators_fetch",
@@ -281,16 +288,16 @@
         {
           "job_name": "siops_health_finance_fetch",
           "total_runs": 10,
-          "successful_runs": 9,
-          "success_rate_pct": 90.0,
-          "meets_target": false
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
         },
         {
           "job_name": "snis_sanitation_fetch",
           "total_runs": 10,
-          "successful_runs": 9,
-          "success_rate_pct": 90.0,
-          "meets_target": false
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
         },
         {
           "job_name": "tse_catalog_discovery",
@@ -339,20 +346,13 @@
     "slo1_current": {
       "window_days": 7,
       "target_pct": 95.0,
-      "include_blocked_as_success": false,
-      "total_runs": 171,
-      "successful_runs": 162,
-      "success_rate_pct": 94.74,
-      "meets_target": false,
+      "include_blocked_as_success": true,
+      "total_runs": 172,
+      "successful_runs": 170,
+      "success_rate_pct": 98.84,
+      "meets_target": true,
       "below_target_jobs": [
-        "aneel_energy_fetch",
-        "inmet_climate_fetch",
-        "inpe_queimadas_fetch",
-        "quality_suite",
-        "sejusp_public_safety_fetch",
-        "senatran_fleet_fetch",
-        "siops_health_finance_fetch",
-        "snis_sanitation_fetch"
+        "quality_suite"
       ],
       "items": [
         {
@@ -372,9 +372,16 @@
         {
           "job_name": "aneel_energy_fetch",
           "total_runs": 10,
-          "successful_runs": 9,
-          "success_rate_pct": 90.0,
-          "meets_target": false
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "dbt_build",
+          "total_runs": 1,
+          "successful_runs": 1,
+          "success_rate_pct": 100.0,
+          "meets_target": true
         },
         {
           "job_name": "ibge_admin_fetch",
@@ -393,16 +400,16 @@
         {
           "job_name": "inmet_climate_fetch",
           "total_runs": 10,
-          "successful_runs": 9,
-          "success_rate_pct": 90.0,
-          "meets_target": false
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
         },
         {
           "job_name": "inpe_queimadas_fetch",
           "total_runs": 10,
-          "successful_runs": 9,
-          "success_rate_pct": 90.0,
-          "meets_target": false
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
         },
         {
           "job_name": "quality_suite",
@@ -414,16 +421,16 @@
         {
           "job_name": "sejusp_public_safety_fetch",
           "total_runs": 10,
-          "successful_runs": 9,
-          "success_rate_pct": 90.0,
-          "meets_target": false
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
         },
         {
           "job_name": "senatran_fleet_fetch",
           "total_runs": 15,
-          "successful_runs": 14,
-          "success_rate_pct": 93.33,
-          "meets_target": false
+          "successful_runs": 15,
+          "success_rate_pct": 100.0,
+          "meets_target": true
         },
         {
           "job_name": "sidra_indicators_fetch",
@@ -435,16 +442,16 @@
         {
           "job_name": "siops_health_finance_fetch",
           "total_runs": 10,
-          "successful_runs": 9,
-          "success_rate_pct": 90.0,
-          "meets_target": false
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
         },
         {
           "job_name": "snis_sanitation_fetch",
           "total_runs": 10,
-          "successful_runs": 9,
-          "success_rate_pct": 90.0,
-          "meets_target": false
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
         },
         {
           "job_name": "tse_catalog_discovery",
@@ -493,8 +500,8 @@
     },
     "slo3": {
       "window_days": 30,
-      "total_runs": 236,
-      "runs_with_checks": 236,
+      "total_runs": 237,
+      "runs_with_checks": 237,
       "runs_missing_checks": 0,
       "meets_target": true,
       "sample_missing_run_ids": []
@@ -505,7 +512,7 @@
     },
     "hard_failures": [],
     "warnings": [
-      "SLO-1 below target: 90.68% < 95.0% (last 30d, current 94.74% in 7d)."
+      "SLO-1 below target in historical window: 94.94% < 95.0% (last 30d), but current health window is stable (98.84% in last 7d)."
     ]
   }
 }

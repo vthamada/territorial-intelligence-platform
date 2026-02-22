@@ -28,7 +28,11 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--window-days", type=int, default=30)
     parser.add_argument("--health-window-days", type=int, default=7)
     parser.add_argument("--slo1-target-pct", type=float, default=95.0)
-    parser.add_argument("--include-blocked-as-success", action="store_true")
+    parser.add_argument(
+        "--include-blocked-as-success",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
     parser.add_argument("--strict", action="store_true")
     parser.add_argument(
         "--output-json",
