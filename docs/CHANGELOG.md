@@ -2,6 +2,27 @@
 
 Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-22 - D8 BD-082 implementado (playbook de incidentes e operacao assistida)
+
+### Added
+- novo script `scripts/generate_incident_snapshot.py` para triagem operacional consolidada:
+  - readiness + hard_failures/warnings;
+  - runs recentes `failed|blocked`;
+  - checks recentes com `status=fail`;
+  - classificacao de severidade e acoes recomendadas.
+- nova suite `tests/unit/test_generate_incident_snapshot.py`.
+
+### Changed
+- `docs/OPERATIONS_RUNBOOK.md` ampliado com secao `11.8` (rotina executavel de incidente).
+- `docs/HANDOFF.md` e `docs/PLANO_IMPLEMENTACAO_QG.md` atualizados para refletir fechamento tecnico da trilha D8.
+- `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` atualizado com status de D8 concluido tecnicamente.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_generate_incident_snapshot.py tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `16 passed`.
+- `.\.venv\Scripts\python.exe scripts/generate_incident_snapshot.py --help` -> `OK`.
+- GitHub:
+  - `gh issue close 27 --repo vthamada/territorial-intelligence-platform`
+
 ## 2026-02-22 - D8 BD-081 implementado (tuning de performance e custo da plataforma)
 
 ### Added

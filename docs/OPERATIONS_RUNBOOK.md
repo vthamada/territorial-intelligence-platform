@@ -527,6 +527,24 @@ Leitura minima do relatorio:
 1. `plan[*].execute` define o que foi executado vs skip por sucesso fresco.
 2. `summary.execution_status` deve ficar sem `failed` (ou sem status fora de `success`/`blocked` quando `--allow-blocked`).
 3. `summary.post_load_runs` confirma disparo de `dbt_build`/`quality_suite` por periodo com sucesso incremental.
+
+### 11.8 BD-082 - playbook de incidentes e operacao assistida
+
+Objetivo operacional:
+1. consolidar triagem unica de incidente com severidade e acoes recomendadas.
+2. reduzir tempo de resposta em falhas de pipeline/qualidade/readiness.
+
+Execucao recomendada:
+
+```powershell
+# Snapshot unico para triagem operacional
+.\.venv\Scripts\python.exe scripts/generate_incident_snapshot.py --output-json data/reports/incident_snapshot.json
+```
+
+Leitura minima do relatorio `incident_snapshot.json`:
+1. `severity` deve orientar o modo de resposta (`critical`, `high`, `normal`).
+2. `summary` concentra volume de `hard_failures`, `warnings`, `failed_runs`, `failed_checks`.
+3. `recommended_actions` define o plano minimo de mitigacao antes do proximo ciclo de carga.
 ## 12) Procedimento de deploy
 
 ### 12.1 Pre-deploy checklist

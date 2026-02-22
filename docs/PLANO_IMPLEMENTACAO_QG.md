@@ -1,7 +1,7 @@
 # Plano Integrado de Implementacao (Backend + Frontend QG)
 
 Data de referencia: 2026-02-21  
-Status: execucao ativa (trilha unica com D7 concluido, BD-080/BD-081 entregues e sequencia para D8/BD-082)  
+Status: execucao ativa (trilha unica com D8 concluido tecnicamente e foco em consolidacao operacional)  
 Escopo: plano executavel para consolidar QG estrategico em producao com dados reais.
 
 ## 0) Regra de foco operacional (WIP=1)
@@ -21,7 +21,7 @@ Escopo: plano executavel para consolidar QG estrategico em producao com dados re
    - executar itens de `D6` em sequencia (`BD-060` -> `BD-061` -> `BD-062`);
    - registrar evidencias de cada item em `HANDOFF` e `CHANGELOG` antes de avancar.
 4. Proximo passo imediato:
-   - executar `D8/BD-082` para playbook de incidentes e continuidade operacional, mantendo `WIP=1`.
+   - consolidar janela operacional de 30 dias (SLOs + readiness + incident snapshot) para fechamento formal do nivel maximo.
 5. Fonte unica de sequencia de execucao:
    - este arquivo (secoes `0`, `5` e `9`).
    - `docs/HANDOFF.md` registra apenas estado corrente e proximo passo imediato da mesma trilha.
@@ -42,7 +42,7 @@ Escopo: plano executavel para consolidar QG estrategico em producao com dados re
    - validacao tecnica registrada em `CHANGELOG` e `HANDOFF`.
 4. Trilha unica vigente:
    - `#22` (`BD-070`) -> `#23` (`BD-071`) -> `#24` (`BD-072`).
-   - fase atual: `D8` (`BD-082`), apos fechamento tecnico de `BD-080` e `BD-081`.
+   - fase atual: consolidacao pos-D8 (apos fechamento tecnico de `BD-080`, `BD-081` e `BD-082`).
    - nenhuma issue fora dessa sequencia pode ficar `status:active` durante este ciclo.
 
 ## 0.1) Mapa de governanca documental (fonte unica)

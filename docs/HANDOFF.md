@@ -11,7 +11,7 @@ Contrato tecnico principal: `CONTRATO.md`
    - `D5` concluido tecnicamente (`BD-050`, `BD-051`, `BD-052`).
    - `D6` concluido tecnicamente (`BD-060`, `BD-061`, `BD-062`).
    - `D7` concluido tecnicamente (`BD-070`, `BD-071`, `BD-072`).
-   - `D8` em andamento com `BD-080` e `BD-081` concluidos tecnicamente.
+   - `D8` concluido tecnicamente (`BD-080`, `BD-081`, `BD-082`).
    - `D4-mobilidade/frota` encerrada com entregas `BD-040`, `BD-041` e `BD-042`.
 2. Status da trilha anterior (D3-hardening, encerrada em 2026-02-21):
    - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
@@ -38,12 +38,32 @@ Contrato tecnico principal: `CONTRATO.md`
    - scorecard de cobertura sem regressao critica;
    - evidencias registradas no proprio `HANDOFF` e em `docs/CHANGELOG.md`.
 5. Proximo passo imediato:
-   - executar `D8/BD-082` (playbook de incidentes e continuidade operacional), mantendo `WIP=1`.
+   - consolidar janela de 30 dias com SLO/readiness/incident snapshot para fechamento formal do nivel maximo.
 6. Governanca de issue:
    - ao concluir item tecnico, encerrar issue correspondente no GitHub na mesma rodada.
 7. Regra de leitura:
    - apenas esta secao define "proximo passo executavel" no momento;
    - secoes de "proximos passos" antigas abaixo devem ser lidas como historico.
+
+## Atualizacao tecnica (2026-02-22) - D8 BD-082 implementado (playbook de incidentes e operacao assistida)
+
+1. Snapshot operacional unico para triagem de incidente:
+   - novo script `scripts/generate_incident_snapshot.py`;
+   - consolida:
+     - readiness backend;
+     - runs recentes `failed|blocked`;
+     - checks recentes com `status=fail`;
+     - classificacao de severidade (`critical|high|normal`) e acoes recomendadas.
+2. Runbook operacional consolidado:
+   - `docs/OPERATIONS_RUNBOOK.md` recebeu secao `11.8` com fluxo executavel de triagem.
+3. Cobertura de teste:
+   - nova suite `tests/unit/test_generate_incident_snapshot.py` para classificacao e acoes.
+4. Validacao executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_generate_incident_snapshot.py tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `16 passed`.
+   - `.\.venv\Scripts\python.exe scripts/generate_incident_snapshot.py --help` -> `OK`.
+5. Governanca de issue na trilha unica:
+   - `BD-082` concluido tecnicamente.
+   - trilha D8 encerrada tecnicamente; proximo passo e consolidacao operacional (janela de 30 dias).
 
 ## Atualizacao tecnica (2026-02-22) - D8 BD-081 implementado (tuning de performance e custo da plataforma)
 
@@ -65,8 +85,8 @@ Contrato tecnico principal: `CONTRATO.md`
    - `.\.venv\Scripts\python.exe scripts/benchmark_api.py --help` -> `suite {executive,urban,ops,all}`.
 5. Governanca de issue na trilha unica:
    - `#26` (`BD-081`) encerrada.
-   - `#27` (`BD-082`) promovida para `status:active`.
-   - proximo item da fila unica: `D8/BD-082`.
+   - `#27` (`BD-082`) encerrada.
+   - proximo passo operacional: consolidacao pos-D8 na janela de 30 dias.
 
 ## Atualizacao tecnica (2026-02-22) - D8 BD-080 implementado (carga incremental confiavel + reprocessamento seletivo)
 
