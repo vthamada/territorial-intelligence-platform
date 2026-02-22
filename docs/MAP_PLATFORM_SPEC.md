@@ -1,12 +1,12 @@
 ﻿# MAP_PLATFORM_SPEC
-Versao: 1.0.0
+Versão: 1.0.0
 Data: 2026-02-13
 Escopo: plataforma de mapa do QG para navegacao multi-zoom, camadas territoriais e performance operacional.
 
 ## 1) Objetivo
 
-Entregar uma plataforma de mapa dominante para decisao executiva, com:
-1. render estavel e fluido para municipio/distrito/setor.
+Entregar uma plataforma de mapa dominante para decisão executiva, com:
+1. render estavel e fluido para município/distrito/setor.
 2. troca automatica de camadas por zoom.
 3. suporte a camadas tematicas (choropleth, pontos, heatmap, hotspots).
 4. contrato de API e cache previsiveis.
@@ -23,7 +23,7 @@ Entregar uma plataforma de mapa dominante para decisao executiva, com:
 ### Implementado (MP-1 concluido)
 
 1. `GET /v1/map/layers` — manifesto de 3 camadas (municipality, district, census_sector) com `is_official`, zoom ranges, `fallback_endpoint`. Implementado em `src/app/api/routes_map.py`.
-2. `GET /v1/map/style-metadata` — paleta de severidade (critical/attention/stable), paleta por dominio (saude/educacao/trabalho/financas/eleitorado), 4 ranges de legenda, modo padrao choropleth.
+2. `GET /v1/map/style-metadata` — paleta de severidade (critical/attention/stable), paleta por domínio (saude/educação/trabalho/financas/eleitorado), 4 ranges de legenda, modo padrão choropleth.
 3. `GET /v1/geo/choropleth` — render choropleth GeoJSON ativo como fallback primario.
 4. Exportacoes CSV/SVG/PNG implementadas no frontend.
 5. Cache HTTP ativo para ambos endpoints de manifesto (TTL 1h) via `CacheMiddleware`.
@@ -41,7 +41,7 @@ Entregar uma plataforma de mapa dominante para decisao executiva, com:
 ## 4.1 Camadas de dados
 
 1. `silver.dim_territory` como base de geometria e hierarquia.
-2. views/materializacoes por nivel:
+2. views/materializacoes por nível:
    - `map.territory_municipality`
    - `map.territory_district`
    - `map.territory_census_sector`
@@ -58,7 +58,7 @@ Entregar uma plataforma de mapa dominante para decisao executiva, com:
 
 ## 4.3 Frontend
 
-1. migrar pagina `QgMapPage` para engine vetorial progressiva.
+1. migrar página `QgMapPage` para engine vetorial progressiva.
 2. aplicar estrategia de fallback:
    - preferencial: MVT
    - fallback: choropleth atual
@@ -67,13 +67,13 @@ Entregar uma plataforma de mapa dominante para decisao executiva, com:
 
 | Faixa de zoom | Camada principal | Camadas auxiliares |
 |---|---|---|
-| z 0-8 | municipio | hotspots agregados |
+| z 0-8 | município | hotspots agregados |
 | z 9-11 | distrito | pontos de servico agregados |
 | z >=12 | setor censitario | pontos de servico detalhados e eleitorais |
 
 Regra:
 1. troca de camada deve ser automatica e sem flicker visivel.
-2. filtros ativos (indicador, periodo, dominio) devem permanecer ao trocar zoom.
+2. filtros ativos (indicador, período, domínio) devem permanecer ao trocar zoom.
 
 ## 6) Modos de visualizacao
 
@@ -81,8 +81,8 @@ Regra:
 2. Pontos proporcionais (obrigatorio v1).
 3. Heatmap (obrigatorio v1).
 4. Hotspots (obrigatorio v1).
-5. Split view comparativo (pos-v1).
-6. Time slider (pos-v1).
+5. Split view comparativo (pós-v1).
+6. Time slider (pós-v1).
 
 ## 7) Contratos de API (v1)
 
@@ -106,13 +106,13 @@ Regras:
 ## 7.3 GET /v1/map/style-metadata
 
 Resposta:
-1. paletas por severidade e dominio.
+1. paletas por severidade e domínio.
 2. ranges de legenda.
 3. metadados de atualizacao e cobertura.
 
 ## 8) Performance e SLO
 
-Metas de homologacao:
+Metas de homologação:
 1. p95 da API de tiles <= 400ms para camada municipal/distrital.
 2. p95 da API de tiles <= 700ms para setor censitario.
 3. render inicial da Home com mapa <= 3s.
@@ -125,12 +125,12 @@ Metas de homologacao:
    - `map_zoom_changed`
    - `map_mode_changed`
    - `map_tile_error`
-2. metricas backend:
+2. métricas backend:
    - latencia por endpoint de tile
    - taxa de erro por camada
    - hit ratio de cache
 
-## 10) Plano de implementacao
+## 10) Plano de implementação
 
 ## Fase MP-1 (CONCLUIDO)
 1. ✅ criar manifesto de camadas (`/v1/map/layers`) — `routes_map.py`.
@@ -140,16 +140,16 @@ Metas de homologacao:
 5. ✅ testes E2E e de contrato.
 
 ## Fase MP-2 (CONCLUIDO)
-1. ✅ endpoint MVT por camada/nivel implementado.
+1. ✅ endpoint MVT por camada/nível implementado.
 2. ✅ cache HTTP e ETag para tiles habilitados.
-3. ✅ metricas de latencia e erro por tile publicadas.
+3. ✅ métricas de latencia e erro por tile publicadas.
 
 ## Fase MP-3 (CONCLUIDO v1)
 1. ✅ `QgMapPage` migrado para engine vetorial.
 2. ✅ modos coropletico + pontos + heatmap + hotspots habilitados.
-3. ✅ validacao de performance em homologacao com benchmark operacional.
+3. ✅ validação de performance em homologação com benchmark operacional.
 
-## 11) Criterios de aceite
+## 11) Critérios de aceite
 
 ### v1.0 (MP-1) — ATENDIDOS
 1. ✅ `GET /v1/map/layers` ativo com manifesto de 3 camadas e zoom ranges.
@@ -162,9 +162,9 @@ Metas de homologacao:
 1. ✅ `GET /v1/map/tiles/...` ativo com testes de contrato.
 2. ✅ troca automatica de camada por zoom funcionando no frontend.
 3. ✅ modos choropleth/pontos/heatmap/hotspots operacionais.
-4. ✅ baseline de latencia monitorada em homologacao.
+4. ✅ baseline de latencia monitorada em homologação.
 
-### Backlog MP pos-v2
+### Backlog MP pós-v2
 1. split view comparativo.
 2. time slider.
 3. melhoria de UX para experiencia "google maps-like" (controles, painel lateral e exploracao fluida).

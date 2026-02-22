@@ -19,7 +19,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_robustness_window.py tests/unit/test_ops_routes.py -q -p no:cacheprovider` -> `32 passed`.
 - `.\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `status=READY`, `severity=normal`, `all_pass=True`.
 
-## 2026-02-22 - Consolidação operacional 30d estabilizada em READY (pos-D8)
+## 2026-02-22 - Consolidação operacional 30d estabilizada em READY (pós-D8)
 
 ### Changed
 - `src/app/ops_robustness_window.py` evoluído para gate operacional mais preciso:
@@ -42,7 +42,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `.\.venv\Scripts\python.exe -c "from pipelines.dbt_build import run; run(reference_period='2025', dry_run=False)"` -> `status=success` (`sql_direct` fallback).
 - `.\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `status=READY`, `severity=high`, `all_pass=True`.
 
-## 2026-02-22 - Consolidação operacional 30d publicada (pos-D8)
+## 2026-02-22 - Consolidação operacional 30d publicada (pós-D8)
 
 ### Added
 - novo módulo `src/app/ops_robustness_window.py` com consolidação única da janela operacional:
@@ -56,7 +56,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
 ### Changed
 - `tests/unit/test_ops_routes.py` ampliado com cenarios do endpoint `/v1/ops/robustness-window`.
-- `docs/CONTRATO.md` atualizado com o endpoint operacional de consolidacao por janela.
+- `docs/CONTRATO.md` atualizado com o endpoint operacional de consolidação por janela.
 - `docs/OPERATIONS_RUNBOOK.md` ampliado com seção `11.9` para rotina de fechamento operacional de 30 dias.
 - `docs/PLANO_IMPLEMENTACAO_QG.md` e `docs/HANDOFF.md` atualizados para refletir operação recorrente da janela 30d como próximo passo imediato.
 
@@ -65,14 +65,14 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `.\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --help` -> `OK`.
 - `.\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --output-json data/reports/ops_robustness_window_30d.json` -> `status=NOT_READY`, `severity=critical`, `all_pass=False`.
 
-## 2026-02-22 - D8 BD-082 implementado (playbook de incidentes e operacao assistida)
+## 2026-02-22 - D8 BD-082 implementado (playbook de incidentes e operação assistida)
 
 ### Added
 - novo script `scripts/generate_incident_snapshot.py` para triagem operacional consolidada:
   - readiness + hard_failures/warnings;
   - runs recentes `failed|blocked`;
   - checks recentes com `status=fail`;
-  - classificacao de severidade e acoes recomendadas.
+  - classificação de severidade e ações recomendadas.
 - nova suite `tests/unit/test_generate_incident_snapshot.py`.
 
 ### Changed
@@ -172,14 +172,14 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `domain_weights` e `indicator_weights`.
 - `src/app/api/strategic_engine_config.py` ampliado para parsing de pesos e metadados de score.
 -- `src/app/api/routes_qg.py` e `src/app/schemas/qg.py` atualizados para expor versão/método/pesos em prioridades, insights e briefs.
-- `db/sql/007_data_coverage_scorecard.sql` ampliado com metricas:
+- `db/sql/007_data_coverage_scorecard.sql` ampliado com métricas:
   - `priority_drivers_missing_score_version_rows`
   - `strategic_score_total_versions`
   - `strategic_score_active_versions_min`
   - `strategic_score_active_versions_max`.
 - `scripts/init_db.py` atualizado com dependencia explicita `015_priority_drivers_mart.sql -> 016_strategic_score_versions.sql`.
 - `scripts/backfill_robust_database.py` ampliado para sincronizar e reportar `strategic_score_versions`.
-- `tests/contracts/test_sql_contracts.py` ampliado para validar objetos de `016` e metricas novas do scorecard.
+- `tests/contracts/test_sql_contracts.py` ampliado para validar objetos de `016` e métricas novas do scorecard.
 - `tests/unit/test_strategic_engine_config.py` ampliado para validar parsing de pesos; adaptado para ambiente Windows/OneDrive sem plugin `tmpdir`.
 
 ### Verified
@@ -202,7 +202,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `src/app/api/routes_qg.py`:
   - `GET /v1/priority/list`, `GET /v1/priority/summary` e `GET /v1/insights/highlights` agora consomem `gold.mart_priority_drivers`.
   - metadados das respostas de prioridade/insights atualizados para `source_name=gold.mart_priority_drivers`.
-- `db/sql/007_data_coverage_scorecard.sql` ampliado com metricas:
+- `db/sql/007_data_coverage_scorecard.sql` ampliado com métricas:
   - `priority_drivers_rows`
   - `priority_drivers_distinct_periods`.
 - `scripts/init_db.py` atualizado para garantir dependencia de `007_data_coverage_scorecard.sql` com `015_priority_drivers_mart.sql`.
@@ -231,7 +231,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ## 2026-02-22 - D6 BD-062 implementado (detectar drift de schema com alerta operacional)
 
 ### Added
-- novo check `check_source_schema_drift` em `src/pipelines/common/quality.py` com validacoes por conector:
+- novo check `check_source_schema_drift` em `src/pipelines/common/quality.py` com validações por conector:
   - existencia de tabela alvo;
   - colunas obrigatorias ausentes;
   - incompatibilidade de tipos;
@@ -241,10 +241,10 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ### Changed
 - `src/pipelines/quality_suite.py` passa a incluir `check_source_schema_drift`.
 - `configs/quality_thresholds.yml` ampliado com seção `schema_drift`.
-- `db/sql/007_data_coverage_scorecard.sql` ampliado com metrica:
+- `db/sql/007_data_coverage_scorecard.sql` ampliado com métrica:
   - `schema_drift_fail_checks_last_7d`.
 - `tests/unit/test_quality_suite.py` atualizado para monkeypatch do check de drift.
-- `tests/contracts/test_sql_contracts.py` ampliado com assertion da metrica de drift.
+- `tests/contracts/test_sql_contracts.py` ampliado com assertion da métrica de drift.
 - compatibilidade de tipos no check de drift endurecida:
   - normalizacao de tipos SQL (`pg_catalog.*`, `public.*`);
   - comparacao de subtipo/SRID para `geometry(...)`.
@@ -264,7 +264,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - nova suite de contratos `tests/contracts/test_schema_contract_connector_coverage.py` com:
   - cobertura minima de contratos por conector (`>= 90%`);
   - testes parametrizados por conector elegivel;
-  - validacao de estrutura minima de contrato (`required_columns`, `column_types`, `schema_version`).
+  - validação de estrutura minima de contrato (`required_columns`, `column_types`, `schema_version`).
 
 ### Verified
 - `.\.venv\Scripts\python.exe -m pytest tests/contracts/test_schema_contract_connector_coverage.py tests/unit/test_schema_contracts.py tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `61 passed`.
@@ -281,7 +281,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - view ativa `ops.v_source_schema_contracts_active`;
   - indice de unicidade para contrato ativo por `connector_name + target_table`.
 - novo arquivo `configs/schema_contracts.yml` com defaults e overrides de contratos.
-- novo modulo `src/pipelines/common/schema_contracts.py` para:
+- novo módulo `src/pipelines/common/schema_contracts.py` para:
   - inferencia de `target_table`/`dataset`;
   - normalizacao de colunas obrigatorias/opcionais/tipos/constraints;
   - geracao de registros de contrato versionado.
@@ -293,7 +293,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `check_source_schema_contracts`.
 - `src/pipelines/quality_suite.py` passa a incluir checks de `schema_contracts`.
 - `configs/quality_thresholds.yml` ampliado com seção `schema_contracts`.
-- `db/sql/007_data_coverage_scorecard.sql` ampliado com metrica:
+- `db/sql/007_data_coverage_scorecard.sql` ampliado com métrica:
   - `schema_contracts_active_coverage_pct`.
 - `scripts/backfill_robust_database.py` ampliado para:
   - sincronizar contratos de schema antes dos backfills;
@@ -303,7 +303,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `dbt_build`
   - `tse_catalog_discovery`.
 - `tests/contracts/test_sql_contracts.py` ampliado para validar:
-  - metrica de cobertura no scorecard;
+  - métrica de cobertura no scorecard;
   - objetos SQL de `014_source_schema_contracts.sql`.
 - `tests/unit/test_quality_core_checks.py` ampliado com cenarios pass/fail para `check_source_schema_contracts`.
 - `tests/unit/test_quality_suite.py` atualizado para monkeypatch de `check_source_schema_contracts`.
@@ -337,7 +337,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `environment_risk_mart_null_score_rows`.
 
 ### Changed
-- `db/sql/007_data_coverage_scorecard.sql` ampliado com metricas de cobertura do mart Gold ambiental:
+- `db/sql/007_data_coverage_scorecard.sql` ampliado com métricas de cobertura do mart Gold ambiental:
   - `environment_risk_mart_municipality_rows`
   - `environment_risk_mart_district_rows`
   - `environment_risk_mart_census_sector_rows`
@@ -370,7 +370,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `gh issue close 18 --repo vthamada/territorial-intelligence-platform`
   - `gh issue edit 19 --repo vthamada/territorial-intelligence-platform --add-label status:active --remove-label status:blocked`
 
-## 2026-02-21 - D5 BD-051 implementado (agregacoes ambientais por distrito/setor)
+## 2026-02-21 - D5 BD-051 implementado (agregações ambientais por distrito/setor)
 
 ### Added
 - migration nova `db/sql/012_environment_risk_aggregation.sql` com view:
@@ -379,7 +379,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - contratos novos em `src/app/schemas/map.py`:
   - `EnvironmentRiskItem`
   - `EnvironmentRiskCollectionResponse`.
-- checks de qualidade para agregacao ambiental em `src/pipelines/common/quality.py`:
+- checks de qualidade para agregação ambiental em `src/pipelines/common/quality.py`:
   - `environment_risk_rows_district`
   - `environment_risk_rows_census_sector`
   - `environment_risk_distinct_periods`
@@ -389,7 +389,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
 ### Changed
 - `scripts/init_db.py` atualizado para garantir ordem de dependencia da migration `007_data_coverage_scorecard.sql` com `012_environment_risk_aggregation.sql`.
-- `db/sql/007_data_coverage_scorecard.sql` ampliado com metricas de cobertura ambiental agregada:
+- `db/sql/007_data_coverage_scorecard.sql` ampliado com métricas de cobertura ambiental agregada:
   - `environment_risk_district_rows`
   - `environment_risk_census_sector_rows`
   - `environment_risk_distinct_periods`.
@@ -435,7 +435,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `min_periods_inmet: 5`
   - `min_periods_inpe_queimadas: 5`
   - `min_periods_ana: 5`
-- scorecard SQL ampliado em `db/sql/007_data_coverage_scorecard.sql` com metricas:
+- scorecard SQL ampliado em `db/sql/007_data_coverage_scorecard.sql` com métricas:
   - `inmet_distinct_periods`
   - `inpe_queimadas_distinct_periods`
   - `ana_distinct_periods`
@@ -459,19 +459,19 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - endpoint executivo `GET /v1/mobility/access` em `src/app/api/routes_qg.py` com:
   - filtro por `period`, `level` e `limit`;
   - fallback de período para último `reference_period` disponível;
-  - resposta tipada com metadata + itens de deficit de mobilidade por territorio.
+  - resposta tipada com metadata + itens de deficit de mobilidade por território.
 - novos contratos de schema em `src/app/schemas/qg.py`:
   - `MobilityAccessItem`
   - `MobilityAccessResponse`
 - cobertura de testes unitarios para o endpoint:
   - `tests/unit/test_qg_routes.py` (cenario com dados e sem dados)
-  - `tests/unit/test_qg_edge_cases.py` (validacao de `level` invalido)
+  - `tests/unit/test_qg_edge_cases.py` (validação de `level` invalido)
 - cobertura de contrato SQL para o mart:
   - `tests/contracts/test_sql_contracts.py` (`test_mobility_access_mart_sql_has_required_objects`).
 
 ### Changed
 - `db/sql/011_mobility_access_mart.sql` endurecido para robustez de calculo:
-  - eliminacao de sobrecontagem por join multiplo (agregacoes separadas por dominio: vias, pontos de transporte e POIs);
+  - eliminacao de sobrecontagem por join multiplo (agregações separadas por domínio: vias, pontos de transporte e POIs);
   - vínculo de população por período do SENATRAN com fallback controlado para última população disponível;
   - casts explicitos para `ROUND(..., 2)` compativeis com Postgres;
   - score de acesso e deficit com tipagem consistente (`double precision`).
@@ -515,7 +515,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `src/pipelines/common/quality.py` e `configs/quality_thresholds.yml` com checks de transporte urbano:
   - `urban_transport_stops_rows_after_filter`;
   - `urban_transport_stops_invalid_geometry_rows`.
-- `db/sql/007_data_coverage_scorecard.sql` com metrica `urban_transport_stop_rows`.
+- `db/sql/007_data_coverage_scorecard.sql` com métrica `urban_transport_stop_rows`.
 - `scripts/init_db.py` com dependencia explicita `007 -> 010`.
 - `configs/connectors.yml` com `urban_transport_fetch`.
 
@@ -555,7 +555,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=10`, `warn=1`.
   - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
 
-## 2026-02-21 - D4 BD-040 (SENATRAN historico) hardening inicial
+## 2026-02-21 - D4 BD-040 (SENATRAN histórico) hardening inicial
 
 ### Changed (backend)
 -- `src/app/db.py` ajustado para cache por `database_url` (string hashável), removendo falha estrutural `unhashable type: 'Settings'` em execuções reais dos conectores.
@@ -563,7 +563,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - descoberta automática de CSVs SENATRAN por ano na página oficial (`frota-de-veiculos-{ano}`);
   - render de URI com placeholders `{reference_period}` e `{year}`;
   - filtro de seguranca para evitar uso de URI remota com ano divergente do `reference_period`;
-  - priorizacao de fallback manual por ano no nome do arquivo;
+  - priorização de fallback manual por ano no nome do arquivo;
   - bloqueio de fallback manual com ano divergente (evita carregar 2025 para executar 2024);
   - parser dedicado para CSV oficial SENATRAN com preâmbulo (`UF,MUNICIPIO,TOTAL...`) e parse numérico com milhares por vírgula.
 - `configs/senatran_fleet_catalog.yml` passa a operar como complemento opcional da descoberta automatica.
@@ -572,9 +572,9 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `tests/unit/test_db_cache.py` adicionado para validar cache de engine/session factory sem depender de objeto `Settings` hashável.
 - `tests/unit/test_onda_a_connectors.py` ampliado com cobertura SENATRAN:
   - descoberta de links CSV por ano;
-  - priorizacao e bloqueio de fallback manual por ano;
+  - priorização e bloqueio de fallback manual por ano;
   - parse de CSV com preâmbulo e milhares por vírgula;
-  - resolucao de dataset remoto via descoberta com catalogo vazio.
+  - resolução de dataset remoto via descoberta com catálogo vazio.
 
 ### Verified
 - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_db_cache.py tests/unit/test_onda_a_connectors.py tests/unit/test_quality_coverage_checks.py -q -p no:cacheprovider` -> `29 passed`.
@@ -589,10 +589,10 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado para fixar trilha ativa unica:
   - trilha oficial definida como `D3-hardening`;
   - escopo fechado em `BD-030`, `BD-031`, `BD-032` + pendencias de `BD-033`;
-  - gate/DoD formal com comandos de validacao backend, frontend, benchmark urbano e readiness.
+  - gate/DoD formal com comandos de validação backend, frontend, benchmark urbano e readiness.
 
 ### Changed (estado operacional)
-- `docs/HANDOFF.md` atualizado para espelhar exatamente a mesma trilha e remover ambiguidade de proxima fase:
+- `docs/HANDOFF.md` atualizado para espelhar exatamente a mesma trilha e remover ambiguidade de próxima fase:
   - próximo passo imediato consolidado em ação única (execução do pacote de gate);
   - critério de saída e bloqueio explícito de `D4..D8` até fechamento do gate.
 
@@ -610,16 +610,16 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Operacional:
   - `.\.venv\Scripts\python.exe scripts/benchmark_api.py --suite urban --rounds 30 --json-output data/reports/benchmark_urban_map.json` -> `ALL PASS`.
   - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
-- Correcao de ambiente aplicada durante o gate:
+- Correção de ambiente aplicada durante o gate:
   - falha inicial de frontend por `Failed to resolve import "zustand"` em `src/shared/stores/filterStore.ts`;
-  - acao corretiva: `npm install` executado em `frontend/`.
+  - ação corretiva: `npm install` executado em `frontend/`.
 
 ## 2026-02-21 - Ativacao de D4 e verificacao de issues GitHub
 
 ### Changed (planejamento)
 - `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado para ativar trilha unica `D4-mobilidade/frota`:
   - escopo oficial em `BD-040`, `BD-041`, `BD-042`;
-  - proximo passo imediato definido em `BD-040` (`issue #13`);
+  - próximo passo imediato definido em `BD-040` (`issue #13`);
   - gate de saida D4 explicitado com foco em conector de mobilidade, qualidade, scorecard e readiness.
 
 ### Changed (estado operacional)
@@ -628,7 +628,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - registrar verificacao das issues abertas no GitHub em `2026-02-21`.
 
 ### Verified (issues GitHub)
-- Consulta de issues abertas no repositorio `vthamada/territorial-intelligence-platform`:
+- Consulta de issues abertas no repositório `vthamada/territorial-intelligence-platform`:
   - `#13` (`BD-040`) esta `open` com `status:active`;
   - `#14` (`BD-041`) e `#15` (`BD-042`) estao `open` com `status:blocked`;
   - itens `D5..D8` permanecem `open` com `status:blocked`;
@@ -637,25 +637,25 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
 ## 2026-02-20 - Consolidação final de documentos por domínio
 
-### Changed (governanca)
+### Changed (governança)
 - `docs/GOVERNANCA_DOCUMENTAL.md` refinado com corte rigoroso:
-  - ativos por dominio reduzidos para 5 documentos (`MAP`, `TERRITORIAL`, `STRATEGIC`, `BACKLOG_DADOS`, `OPERATIONS_RUNBOOK`);
-  - `PLANO_FONTES`, `RUNBOOK_ROBUSTEZ`, `MTE_RUNBOOK`, `BRONZE_POLICY` e `BACKLOG_UX` reclassificados como descontinuados para decisao.
+  - ativos por domínio reduzidos para 5 documentos (`MAP`, `TERRITORIAL`, `STRATEGIC`, `BACKLOG_DADOS`, `OPERATIONS_RUNBOOK`);
+  - `PLANO_FONTES`, `RUNBOOK_ROBUSTEZ`, `MTE_RUNBOOK`, `BRONZE_POLICY` e `BACKLOG_UX` reclassificados como descontinuados para decisão.
 - `docs/PLANO.md` removido do repositório por baixa relevância operacional; governança e fila única permanecem em `docs/PLANO_IMPLEMENTACAO_QG.md`.
-- `AGENTS.md` alinhado com a nova classificacao de dominio (sem ambiguidade operacional).
+- `AGENTS.md` alinhado com a nova classificação de domínio (sem ambiguidade operacional).
 - `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado para remover dependencia operacional de documentos descontinuados.
 
-### Changed (consolidacao de conteudo)
+### Changed (consolidação de conteudo)
 - `docs/OPERATIONS_RUNBOOK.md` passou a incorporar:
   - rotina semanal de robustez de dados (antes em `docs/RUNBOOK_ROBUSTEZ_DADOS_SEMANAL.md`);
-  - operacao completa do conector MTE (antes em `docs/MTE_RUNBOOK.md`).
+  - operação completa do conector MTE (antes em `docs/MTE_RUNBOOK.md`).
 -- `docs/CONTRATO.md` consolidou política Bronze:
   - seção `4.1 Política Bronze`;
   - mecanismo oficial de medição atualizado para runbook único (`docs/OPERATIONS_RUNBOOK.md`).
-- `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` consolidou papel de catalogo oficial de fontes (substituindo `docs/PLANO_FONTES_DADOS_DIAMANTINA.md` para decisao).
+- `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` consolidou papel de catálogo oficial de fontes (substituindo `docs/PLANO_FONTES_DADOS_DIAMANTINA.md` para decisão).
 
 ### Changed (descontinuacao orientada)
-- Arquivos descontinuados foram mantidos apenas como ponte historica com redirecionamento explicito para os documentos oficiais:
+- Arquivos descontinuados foram mantidos apenas como ponte histórica com redirecionamento explicito para os documentos oficiais:
   - `docs/BRONZE_POLICY.md`
   - `docs/RUNBOOK_ROBUSTEZ_DADOS_SEMANAL.md`
   - `docs/MTE_RUNBOOK.md`
@@ -665,7 +665,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
 ## 2026-02-20 - Higienização documental (foco único)
 
-### Changed (governanca)
+### Changed (governança)
 - Governança documental consolidada em `docs/GOVERNANCA_DOCUMENTAL.md` com classificação oficial: núcleo ativo, domínio ativo, complementar e descontinuados.
 -- `AGENTS.md` atualizado para leitura obrigatória com `docs/VISION.md` e nova matriz documental sem ambiguidade de fontes.
 -- `docs/CONTRATO.md` atualizado para apontar execução oficial em `docs/PLANO_IMPLEMENTACAO_QG.md` e classificação em `docs/GOVERNANCA_DOCUMENTAL.md`.
@@ -678,79 +678,79 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Documentos descontinuados foram removidos fisicamente do repositório em 2026-02-20; a lista oficial é mantida em `docs/GOVERNANCA_DOCUMENTAL.md` (seção 6).
 
 
-## 2026-02-20 â€” Fase UX-P0 (auditoria visual completa)
+## 2026-02-20 — Fase UX-P0 (auditoria visual completa)
 
-### Fixed (frontend â€” presentation.ts)
-- UX-P0-01: `formatValueWithUnit()` agora mapeia unidades corretamente: `count` â†’ sem unidade, `percent` â†’ `%`, `ratio` â†’ sem unidade, `C` â†’ `Â°C`, `m3/s` â†’ `mÂ³/s`, `mm`/`ha`/`km`/`kwh` com simbolos corretos.
-- UX-P0-02: Novos helpers `humanizeSourceName()`, `humanizeCoverageNote()`, `humanizeDatasetSource()` â€” convertem nomes tecnicos de tabelas/datasets em labels legiveis.
+### Fixed (frontend — presentation.ts)
+- UX-P0-01: `formatValueWithUnit()` agora mapeia unidades corretamente: `count` → sem unidade, `percent` → `%`, `ratio` → sem unidade, `C` → `Â°C`, `m3/s` → `mÂ³/s`, `mm`/`ha`/`km`/`kwh` com símbolos corretos.
+- UX-P0-02: Novos helpers `humanizeSourceName()`, `humanizeCoverageNote()`, `humanizeDatasetSource()` — convertem nomes técnicos de tabelas/datasets em labels legiveis.
 
-### Fixed (frontend â€” SourceFreshnessBadge.tsx)
-- UX-P0-03: `source_name` humanizado â€” "silver.fact_indicator" â†’ "Indicadores consolidados", "silver.fact_electorate" â†’ "Eleitorado consolidado".
-- UX-P0-04: `coverage_note` humanizado â€” "territorial_aggregated" â†’ "Agregado territorial".
+### Fixed (frontend — SourceFreshnessBadge.tsx)
+- UX-P0-03: `source_name` humanizado — "silver.fact_indicator" → "Indicadores consolidados", "silver.fact_electorate" → "Eleitorado consolidado".
+- UX-P0-04: `coverage_note` humanizado — "territorial_aggregated" → "Agregado territorial".
 
-### Fixed (frontend â€” QgOverviewPage.tsx)
+### Fixed (frontend — QgOverviewPage.tsx)
 - UX-P0-05: "SVG fallback" renomeado para "Modo simplificado" (consistente com QgMapPage).
-- UX-P0-06: Coluna "Codigo" removida da tabela KPIs executivos â€” mostra apenas Dominio/Indicador/Valor/Nivel.
-- UX-P0-07: Coluna "Fonte" e "Codigo" removidas da tabela KPIs; coluna "Metrica de mapa" removida de Dominios Onda B/C.
+- UX-P0-06: Coluna "Codigo" removida da tabela KPIs executivos — mostra apenas Domínio/Indicador/Valor/Nível.
+- UX-P0-07: Coluna "Fonte" e "Codigo" removidas da tabela KPIs; coluna "Métrica de mapa" removida de Domínios Onda B/C.
 
-### Fixed (frontend â€” QgInsightsPage.tsx)
-- UX-P0-08: Severidade traduzida no badge do insight â€” `{item.severity}` â†’ `{formatStatusLabel(item.severity)}`.
-- UX-P0-09: Fonte/dataset humanizados â€” `{source}/{dataset}` â†’ `humanizeDatasetSource()`.
+### Fixed (frontend — QgInsightsPage.tsx)
+- UX-P0-08: Severidade traduzida no badge do insight — `{item.severity}` → `{formatStatusLabel(item.severity)}`.
+- UX-P0-09: Fonte/dataset humanizados — `{source}/{dataset}` → `humanizeDatasetSource()`.
 
-### Fixed (frontend â€” QgBriefsPage.tsx)
-- UX-P0-10: Brief ID removido do subtitulo e do export HTML â€” substituido por "Gerado em {data}".
+### Fixed (frontend — QgBriefsPage.tsx)
+- UX-P0-10: Brief ID removido do subtitulo e do export HTML — substituido por "Gerado em {data}".
 - UX-P0-11: "Linha N" substituido por "Ponto N" no resumo executivo.
 - UX-P0-12: Coluna Fonte na tabela de evidencias e no export HTML agora usa `humanizeDatasetSource()`.
 
-### Fixed (frontend â€” QgScenariosPage.tsx)
+### Fixed (frontend — QgScenariosPage.tsx)
 - UX-P0-13: Subtitulo usa `indicator_name` em vez de `indicator_code`.
 - UX-P0-14: "Leitura N" substituido por "Analise N" nas explicacoes.
 - UX-P0-15: Label do campo de indicador alterado de "Codigo do indicador" para "Indicador".
 
-### Fixed (frontend â€” TerritoryProfilePage.tsx)
--- UX-P0-16: Coluna "Codigo" removida da tabela de indicadores â€” mostra apenas Domínio/Indicador/Período/Valor.
+### Fixed (frontend — TerritoryProfilePage.tsx)
+-- UX-P0-16: Coluna "Codigo" removida da tabela de indicadores — mostra apenas Domínio/Indicador/Período/Valor.
 
-### Fixed (frontend â€” ElectorateExecutivePage.tsx)
+### Fixed (frontend — ElectorateExecutivePage.tsx)
 - UX-P0-17: "Total eleitores: 0" quando sem dados substituido por "-".
 
-### Fixed (frontend â€” PriorityItemCard.tsx)
+### Fixed (frontend — PriorityItemCard.tsx)
 - UX-P0-18: Evidencia mostra `humanizeDatasetSource()` em vez de `{source} / {dataset}`.
 
-### Fixed (frontend â€” QgMapPage.tsx)
+### Fixed (frontend — QgMapPage.tsx)
 - UX-P0-19: Label "Codigo do indicador" alterado para "Indicador" com placeholder descritivo.
-- UX-P0-20: Coluna "Metrica" removida da tabela de ranking (redundante â€” todas as linhas usam a metrica filtrada).
+- UX-P0-20: Coluna "Métrica" removida da tabela de ranking (redundante — todas as linhas usam a métrica filtrada).
 
-### Fixed (backend â€” routes_qg.py)
-- UX-P0-21: `_format_highlight_value()` agora trata `percent` â†’ `%`, `count` â†’ sem unidade, `ratio` â†’ sem unidade, `C` â†’ `Â°C`, `m3/s` â†’ `mÂ³/s`.
+### Fixed (backend — routes_qg.py)
+- UX-P0-21: `_format_highlight_value()` agora trata `percent` → `%`, `count` → sem unidade, `ratio` → sem unidade, `C` → `Â°C`, `m3/s` → `mÂ³/s`.
 - UX-P0-22: Explicacao de cenarios usa `_format_highlight_value()` para valores e traduz `impact` para pt-BR ("melhora"/"piora"/"inalterado").
 
 ### Changed (testes)
 - `SourceFreshnessBadge.test.tsx`: assertions atualizadas para labels humanizados.
 - `QgPages.test.tsx`: label "Codigo do indicador" atualizado para "Indicador".
 
-### Validacao
+### Validação
 - Backend: `55 passed` (29 qg_routes/tse_electorate + 26 mvt_tiles/cache_middleware).
 - Frontend: `78 passed`, build OK.
 
-## 2026-02-20 â€” Fase DATA (semantica de dados executiva)
+## 2026-02-20 — Fase DATA (semantica de dados executiva)
 
-### Fixed (backend â€” `src/app/api/routes_qg.py`)
-- DATA-P0-01: Score mono-territorial corrigido de 100.0 para 50.0 em `_fetch_priority_rows`, `_fetch_territory_indicator_scores` e `_score_from_rank` â€” evita ranking inflacionado quando ha apenas 1 municipio.
--- DATA-P0-02: Trend real calculado via `_compute_trend()` e `_fetch_previous_values()` â€” compara indicador com período anterior (threshold 2%); substitui `trend="stable"` hardcoded.
--- DATA-P0-03: Códigos técnicos de indicador removidos de todas as narrativas user-facing â€” `indicator_name` utilizado em rationale de prioridades, explanation de insights, highlights de território, explanation de cenários e summary de briefs.
-- DATA-P0-04: Formatacao pt-BR de valores numericos via `_format_highlight_value()` â€” separador de milhar, moeda BRL com `R$`, percentuais e unidades explicitadas.
-- DATA-P0-06: Narrativa de insights diversificada via `_build_insight_explanation()` â€” templates por dominio (saude, educacao, trabalho, financas, eleitorado, etc.), linguagem contextual por severidade, fonte explicitada. Substituiu template formulaico identico para todos os insights.
+### Fixed (backend — `src/app/api/routes_qg.py`)
+- DATA-P0-01: Score mono-territorial corrigido de 100.0 para 50.0 em `_fetch_priority_rows`, `_fetch_territory_indicator_scores` e `_score_from_rank` — evita ranking inflacionado quando ha apenas 1 município.
+-- DATA-P0-02: Trend real calculado via `_compute_trend()` e `_fetch_previous_values()` — compara indicador com período anterior (threshold 2%); substitui `trend="stable"` hardcoded.
+-- DATA-P0-03: Códigos técnicos de indicador removidos de todas as narrativas user-facing — `indicator_name` utilizado em rationale de prioridades, explanation de insights, highlights de território, explanation de cenários e summary de briefs.
+- DATA-P0-04: Formatacao pt-BR de valores numericos via `_format_highlight_value()` — separador de milhar, moeda BRL com `R$`, percentuais e unidades explicitadas.
+- DATA-P0-06: Narrativa de insights diversificada via `_build_insight_explanation()` — templates por domínio (saude, educação, trabalho, financas, eleitorado, etc.), linguagem contextual por severidade, fonte explicitada. Substituiu template formulaico identico para todos os insights.
 
 ### Fixed (frontend)
-- DATA-P0-05: Filtro de severidade em Insights traduzido para pt-BR â€” dropdown mostra "critico"/"atencao"/"informativo" via `formatStatusLabel()` (`QgInsightsPage.tsx`).
-- DATA-P0-07: Jargao tecnico do mapa substituido por termos executivos â€” "Renderizacao" -> "Modo de exibicao", "SVG fallback" -> "Modo simplificado", "Mapa vetorial" -> "Modo avancado", "Somente SVG" -> "Somente simplificado" (`QgMapPage.tsx`).
-- DATA-P0-08: Deduplicacao de formatadores `statusText()`/`trendText()` em `StrategicIndexCard.tsx` â€” agora usa `formatStatusLabel()`/`formatTrendLabel()` centralizados de `presentation.ts`.
+- DATA-P0-05: Filtro de severidade em Insights traduzido para pt-BR — dropdown mostra "critico"/"atencao"/"informativo" via `formatStatusLabel()` (`QgInsightsPage.tsx`).
+- DATA-P0-07: Jargao técnico do mapa substituido por termos executivos — "Renderizacao" -> "Modo de exibição", "SVG fallback" -> "Modo simplificado", "Mapa vetorial" -> "Modo avancado", "Somente SVG" -> "Somente simplificado" (`QgMapPage.tsx`).
+- DATA-P0-08: Deduplicacao de formatadores `statusText()`/`trendText()` em `StrategicIndexCard.tsx` — agora usa `formatStatusLabel()`/`formatTrendLabel()` centralizados de `presentation.ts`.
 
 ### Changed (testes)
 - `tests/unit/test_qg_routes.py`: mock `_QgSession` atualizado com handler para `_fetch_previous_values` (retorna vazio para trend=stable em testes).
 - `frontend/src/modules/qg/pages/QgPages.test.tsx`: assertion atualizada para novo aria-label "Alternar para modo avancado".
 
-### Validacao
+### Validação
 - Backend: `55 passed` (18 qg_routes + 37 tse_electorate/mvt_tiles/cache_middleware).
 - Frontend: `78 passed`, build OK.
 
@@ -763,17 +763,17 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `frontend/src/styles/global.css` ajustado com `overflow-wrap` em secoes/cards do painel para evitar texto vazando dos blocos.
   - `frontend/src/shared/ui/MapDominantLayout.tsx` atualizado com semantica do layout dominante com sidebar colapsavel.
 - Legibilidade dos controles de mapa no frontend:
-  - `frontend/src/styles/global.css` corrigido para botoes de `Modo de visualizacao` e `Mapa base` manterem contraste em estado nao selecionado.
+  - `frontend/src/styles/global.css` corrigido para botoes de `Modo de visualizacao` e `Mapa base` manterem contraste em estado não selecionado.
   - `frontend/src/styles/global.css` corrigido para `map-sidebar-toggle` manter texto legivel na Home (`Mapa situacional`).
 - Area util do mapa no frontend:
   - `frontend/src/styles/global.css` ajustado para ampliar altura de `map-canvas-shell`.
   - `frontend/src/styles/global.css` ajustado em `map-dominant`/`map-dominant-canvas`/`map-overview-canvas` para remover faixa vazia abaixo do mapa dominante.
 - Zoom contextual inicial do mapa:
   - `frontend/src/modules/qg/pages/QgMapPage.tsx` passou a aplicar piso de zoom contextual na inicializacao e no calculo de `resolveContextualZoom`, evitando abertura em `z0`.
-  - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` passou a aplicar piso de zoom recomendado por nivel no mapa dominante da Home.
+  - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` passou a aplicar piso de zoom recomendado por nível no mapa dominante da Home.
 - Estabilidade de navegacao no mapa vetorial:
-  - `frontend/src/shared/ui/VectorMap.tsx` corrigido para nao recentrar o mapa a cada alteracao de zoom (zoom e centro agora seguem efeitos separados).
-  - tratamento de erro no vetor filtrando erros de abort/cancelamento para evitar degradacao indevida de UX.
+  - `frontend/src/shared/ui/VectorMap.tsx` corrigido para não recentrar o mapa a cada alteracao de zoom (zoom e centro agora seguem efeitos separados).
+  - tratamento de erro no vetor filtrando erros de abort/cancelamento para evitar degradação indevida de UX.
 - Estabilidade de fallback do mapa:
   - `frontend/src/modules/qg/pages/QgMapPage.tsx` e `frontend/src/modules/qg/pages/QgOverviewPage.tsx` deixaram de forcar fallback automatico para SVG em qualquer erro transitorio do modo vetorial.
   - mensagens de erro vetorial padronizadas com orientacao explicita para indisponibilidade temporaria (`503`).
@@ -786,16 +786,16 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - metadata das respostas passou a indicar fallback: `electorate_outlier_year_fallback:requested_year=...,storage_year=...`.
 - Frontend de eleitorado e estados vazios:
   - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` atualizado para considerar erros de fallback e exibir estado vazio orientativo quando não houver ano aplicado e não houver dados no recorte padrão.
-- Correcao de regressao de hooks (runtime crash):
+- Correção de regressão de hooks (runtime crash):
   - `frontend/src/modules/qg/pages/QgInsightsPage.tsx` e `frontend/src/modules/territory/pages/TerritoryProfilePage.tsx` ajustados para manter ordem estavel de hooks entre renders.
-  - resolve erro `Rendered more hooks than during the previous render` que quebrava paginas e testes.
+  - resolve erro `Rendered more hooks than during the previous render` que quebrava páginas e testes.
 - Contencao de crash de runtime por rota no frontend:
-  - novo `frontend/src/app/RouteRuntimeErrorBoundary.tsx` para capturar erro de render em paginas roteadas e evitar tela branca.
+  - novo `frontend/src/app/RouteRuntimeErrorBoundary.tsx` para capturar erro de render em páginas roteadas e evitar tela branca.
   - fallback padronizado com retry e titulo contextual da rota.
   - telemetria de erro de runtime por rota (`route_runtime_error`) para triagem operacional.
 - Mapa executivo com resiliencia nos estados auxiliares:
   - `frontend/src/modules/qg/pages/QgMapPage.tsx` padronizado para exibir erro/loading em manifesto de camadas, cobertura e metadados de estilo.
-  - erros desses componentes agora exibem `request_id` quando disponivel e permitem retry dedicado por bloco.
+  - erros desses componentes agora exibem `request_id` quando disponível e permitem retry dedicado por bloco.
 - Home QG com resiliencia a falhas parciais de dados:
   - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` passou a manter a Home operacional quando falham apenas `Top prioridades` ou `Destaques`.
   - hard-fail global ficou restrito a `kpis_overview` e `priority_summary`; blocos secundarios agora tratam `loading/error/empty` localmente com retry.
@@ -807,37 +807,37 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
 ### Changed
 - Backlog UX executivo consolidado para ciclo unico:
-  - novo `docs/BACKLOG_UX_EXECUTIVO_QG.md` com mapeamento `P0/P1/P2`, arquivos/componentes alvo e criterios de aceite.
-  - `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado para apontar o backlog como fonte unica da proxima trilha de UX.
+  - novo `docs/BACKLOG_UX_EXECUTIVO_QG.md` com mapeamento `P0/P1/P2`, arquivos/componentes alvo e critérios de aceite.
+  - `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado para apontar o backlog como fonte unica da próxima trilha de UX.
   - `docs/HANDOFF.md` atualizado com regra operacional de foco nos itens `UX-P0-*` antes de novas frentes.
-- Ops Health com refresh manual e regressao de readiness:
-  - `frontend/src/modules/ops/pages/OpsHealthPage.tsx` recebeu acao `Atualizar painel` para refetch explicito dos dados operacionais.
-  - refetch de queries foi centralizado em funcao unica (`refetchAll`) e reutilizado em `onRetry`.
-  - `frontend/src/modules/ops/pages/OpsPages.test.tsx` ganhou teste de transicao `READY -> NOT_READY` apos refresh manual, incluindo exibicao de hard failure.
+- Ops Health com refresh manual e regressão de readiness:
+  - `frontend/src/modules/ops/pages/OpsHealthPage.tsx` recebeu ação `Atualizar painel` para refetch explicito dos dados operacionais.
+  - refetch de queries foi centralizado em função unica (`refetchAll`) e reutilizado em `onRetry`.
+  - `frontend/src/modules/ops/pages/OpsPages.test.tsx` ganhou teste de transição `READY -> NOT_READY` apos refresh manual, incluindo exibição de hard failure.
 - Home executiva com camada detalhada eleitoral mais previsivel:
   - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` agora exibe `Camada detalhada (Mapa)` apenas em `Nivel territorial = secao_eleitoral`.
   - propagacao de `layer_id` para links de mapa passou a ser condicionada ao contexto valido (sem carregar camada detalhada fora de secao eleitoral).
   - deep-link de `Mapa detalhado` com camada detalhada agora inclui `level=secao_eleitoral` para evitar ambiguidade de contexto.
-  - limpeza automatica da selecao de camada detalhada quando o nivel volta para recortes nao eleitorais.
-- Cobertura de regressao de overview atualizada:
-  - `frontend/src/modules/qg/pages/QgPages.test.tsx` valida exibicao condicional do seletor detalhado e propagacao coerente de query string (`layer_id` + `level`).
-- Higienizacao documental e alinhamento de governanca:
-  - `README.md` atualizado para refletir estado atual de 20/02/2026 e corrigir referencias para `docs/`.
+  - limpeza automatica da seleção de camada detalhada quando o nível volta para recortes não eleitorais.
+- Cobertura de regressão de overview atualizada:
+  - `frontend/src/modules/qg/pages/QgPages.test.tsx` valida exibição condicional do seletor detalhado e propagacao coerente de query string (`layer_id` + `level`).
+- Higienizacao documental e alinhamento de governança:
+  - `README.md` atualizado para refletir estado atual de 20/02/2026 e corrigir referências para `docs/`.
   - `docs/PLANO.md` atualizado para remover backlog legado de specs `v0.1 -> v1.0` (agora consolidado em v1.0).
   - `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado com escopo de execução do ciclo atual (removido bloco legado de Sprint 9 já concluído).
-  - `docs/MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md` atualizado (data de referencia e referencia oficial de frontend spec).
-  - `docs/GITHUB_ISSUES_BACKLOG_DADOS_NIVEL_MAXIMO.md` marcado como snapshot historico, com GitHub como fonte oficial de status.
-- Governanca de trilha unica (anti-dispersao):
+  - `docs/MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md` atualizado (data de referência e referência oficial de frontend spec).
+  - `docs/GITHUB_ISSUES_BACKLOG_DADOS_NIVEL_MAXIMO.md` marcado como snapshot histórico, com GitHub como fonte oficial de status.
+- Governança de trilha unica (anti-dispersao):
   - `docs/PLANO_IMPLEMENTACAO_QG.md` passou a explicitar regra operacional `WIP=1` e fonte unica de sequencia no ciclo diario.
   - `docs/PLANO.md` passou a explicitar papel macro (estrategia) e delegacao da fila diaria para `PLANO_IMPLEMENTACAO_QG.md` + `HANDOFF.md`.
   - `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` passou a explicitar que "paralelo parcial" não significa execução simultânea no ciclo diário.
-  - `docs/HANDOFF.md` ganhou secao inicial de trilha ativa unica e marcou blocos antigos de "proximos passos" como historico.
-  - `docs/PLANO_FONTES_DADOS_DIAMANTINA.md` reforcou papel de catalogo (sem abrir frente diaria).
+  - `docs/HANDOFF.md` ganhou secao inicial de trilha ativa unica e marcou blocos antigos de "próximos passos" como histórico.
+  - `docs/PLANO_FONTES_DADOS_DIAMANTINA.md` reforcou papel de catálogo (sem abrir frente diaria).
   - `docs/GITHUB_ISSUES_BACKLOG_DADOS_NIVEL_MAXIMO.md` reforcou uso como snapshot/template, sem definir ordem operacional.
 - Governança de execução no GitHub alinhada com trilha única:
   - issue `BD-033` criada em `#28` e marcada como trilha ativa (`status:active`).
   - issue `BD-033` (`#28`) encerrada apos fechamento de gate e fase 2.
-  - issue `BD-021` (`#8`) encerrada por entrega tecnica concluida.
+  - issue `BD-021` (`#8`) encerrada por entrega técnica concluida.
   - labels operacionais adicionadas: `status:active`, `status:blocked`, `status:external`.
   - `BD-020` (`#7`) marcada como `status:external` + `status:blocked` por dependencia externa.
   - issues abertas de D4-D8 marcadas com `status:blocked` para explicitar sequenciamento.
@@ -849,42 +849,42 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Mapa vetorial com semantica explicita para ausencia de dados:
   - `frontend/src/shared/ui/VectorMap.tsx` deixou de tratar ausencia de `val` como `0` no coropletico.
   - features sem valor agora aparecem com cor neutra (`#d1d5db`) em vez de cor de faixa baixa.
-  - filtros de valor aplicados nos modos `points` e `heatmap` para evitar ruido de geometria sem metrica.
+  - filtros de valor aplicados nos modos `points` e `heatmap` para evitar ruido de geometria sem métrica.
 - Mapa vetorial com navegacao mais contextual:
   - `frontend/src/shared/ui/VectorMap.tsx` agora desenha rotulos contextuais (`label/name/tname/territory_name/road_name/poi_name`) na camada ativa.
-  - para camadas lineares urbanas, rotulos usam `symbol-placement=line` com zoom minimo contextual.
-  - atribuicoes de basemap normalizadas para ASCII:
+  - para camadas lineares urbanas, rotulos usam `symbol-placement=line` com zoom mínimo contextual.
+  - atribuições de basemap normalizadas para ASCII:
     - `streets`: `(c) OpenStreetMap contributors`
     - `light`: `(c) OpenStreetMap contributors (c) CARTO`
 - Zoom contextual no fluxo de filtros:
-  - `frontend/src/modules/qg/pages/QgMapPage.tsx` aplica zoom minimo recomendado por contexto ao clicar em `Aplicar filtros`:
-    - territorial: municipio/distrito/setor/zona/secao
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` aplica zoom mínimo recomendado por contexto ao clicar em `Aplicar filtros`:
+    - territorial: município/distrito/setor/zona/secao
     - urbano: piso de zoom compativel com `urban_roads`/`urban_pois`
-  - UI agora exibe referencia explicita: `Zoom contextual minimo recomendado`.
+  - UI agora exibe referência explicita: `Zoom contextual minimo recomendado`.
 - Legenda de estilo no mapa executivo atualizada:
   - `frontend/src/modules/qg/pages/QgMapPage.tsx` agora exibe chip explicito `Sem dado`.
-- Transparencia de classificacao das camadas do mapa:
+- Transparencia de classificação das camadas do mapa:
   - `frontend/src/modules/qg/pages/QgMapPage.tsx` agora explicita `classificacao` (`oficial`, `proxy`, `hibrida`) em camada recomendada, camada ativa e metadados visuais.
-  - tooltip da camada passou a priorizar `proxy_method` quando disponivel para expor limitacoes/metodologia.
-  - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` passou a exibir classificacao da camada detalhada ativa no painel lateral da Home.
-- Cobertura de regressao para transparencia de camada:
-  - `frontend/src/modules/qg/pages/QgPages.test.tsx` valida exibicao de classificacao no fluxo eleitoral detalhado (`territory_polling_place`).
+  - tooltip da camada passou a priorizar `proxy_method` quando disponível para expor limitacoes/metodologia.
+  - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` passou a exibir classificação da camada detalhada ativa no painel lateral da Home.
+- Cobertura de regressão para transparencia de camada:
+  - `frontend/src/modules/qg/pages/QgPages.test.tsx` valida exibição de classificação no fluxo eleitoral detalhado (`territory_polling_place`).
 - Router com protecao explicita por rota:
-  - `frontend/src/app/router.tsx` passou a envolver paginas com `RouteRuntimeErrorBoundary` via `withPageFallback`.
+  - `frontend/src/app/router.tsx` passou a envolver páginas com `RouteRuntimeErrorBoundary` via `withPageFallback`.
   - labels de rota adicionados para mensagens de erro mais objetivas.
-- Cobertura de regressao para runtime boundary:
+- Cobertura de regressão para runtime boundary:
   - novo `frontend/src/app/RouteRuntimeErrorBoundary.test.tsx` cobrindo crash de render + recuperacao por retry.
-- Cobertura de regressao para estados auxiliares do mapa:
+- Cobertura de regressão para estados auxiliares do mapa:
   - `frontend/src/modules/qg/pages/QgPages.test.tsx` recebeu cenarios de erro para:
     - manifesto + metadados de estilo (com retry e `request_id`);
     - cobertura de camadas (com retry e preservacao do fluxo principal).
-- Cobertura de regressao para falha parcial da Home:
+- Cobertura de regressão para falha parcial da Home:
   - `frontend/src/modules/qg/pages/QgPages.test.tsx` passou a validar falha simultanea de `Top prioridades` e `Destaques` sem derrubar o restante da Home.
-- Cobertura de regressao para quality suite:
+- Cobertura de regressão para quality suite:
   - novo `tests/unit/test_quality_suite.py` valida execução e serialização de `check_map_layers`.
-- Ajuste de regressao em cobertura temporal por fonte:
+- Ajuste de regressão em cobertura temporal por fonte:
   - `tests/unit/test_quality_coverage_checks.py` atualizado para refletir a ordem/quantidade atual de fontes (`DATASUS..CENSO_SUAS`).
-- Ajuste de regressao de zoom do mapa:
+- Ajuste de regressão de zoom do mapa:
   - `frontend/src/modules/qg/pages/QgPages.test.tsx` atualizado para refletir piso contextual de zoom no carregamento via query string.
 - Revalidacao do ajuste de layout do painel situacional:
   - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `22 passed`.
@@ -892,7 +892,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `npm --prefix frontend run build` -> `OK`.
   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
-- Validacao executada:
+- Validação executada:
   - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `22 passed`.
   - `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=5 warn=8`.
   - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY` (`hard_failures=0`, `warnings=0`).
@@ -910,11 +910,11 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `npm --prefix frontend run test -- --run` -> `77 passed`.
   - `npm --prefix frontend run build` -> `OK`.
   - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `22 passed`.
-  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `22 passed` (revalidado com classificacao de camadas).
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `22 passed` (revalidado com classificação de camadas).
   - `npm --prefix frontend run test -- --run` -> `78 passed`.
-  - `npm --prefix frontend run test -- --run` -> `78 passed` (revalidado com classificacao de camadas).
+  - `npm --prefix frontend run test -- --run` -> `78 passed` (revalidado com classificação de camadas).
   - `npm --prefix frontend run build` -> `OK`.
-  - `npm --prefix frontend run build` -> `OK` (revalidado com classificacao de camadas).
+  - `npm --prefix frontend run build` -> `OK` (revalidado com classificação de camadas).
   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_quality_suite.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_coverage_checks.py tests/unit/test_quality_ops_pipeline_runs.py -q` -> `17 passed`.
   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
@@ -922,46 +922,46 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ## 2026-02-19
 
 ### Changed
-- Mapa vetorial (`frontend/src/shared/ui/VectorMap.tsx`) evoluido para navegacao mais proxima de apps de mapa:
+- Mapa vetorial (`frontend/src/shared/ui/VectorMap.tsx`) evoluido para navegacao mais próxima de apps de mapa:
   - controles nativos adicionais: `FullscreenControl`, `ScaleControl` e `AttributionControl` compacto.
   - `NavigationControl` configurado com zoom + bussola.
-  - atribuicao de basemap aplicada na fonte raster:
+  - atribuição de basemap aplicada na fonte raster:
     - `streets`: `(c) OpenStreetMap contributors`
     - `light`: `(c) OpenStreetMap contributors (c) CARTO`
 - Estilo dos controles de mapa refinado em `frontend/src/styles/global.css`:
   - reposicionamento e acabamento visual dos grupos de controle (`top-right`, `bottom-left`, `bottom-right`).
-  - melhorias de contraste, hover e responsividade em botÃµes/escala/atribuicao.
+  - melhorias de contraste, hover e responsividade em botões/escala/atribuição.
 - Frontend QG Prioridades:
   - lista priorizada agora suporta paginacao client-side com controles `Anterior`/`Proxima`, indicador `Pagina X de Y` e seletor `Itens por pagina` (`12`, `24`, `48`) em `frontend/src/modules/qg/pages/QgPrioritiesPage.tsx`.
-  - pagina atual e tamanho de pagina resetam de forma previsivel ao aplicar/limpar filtros.
-  - cobertura de regressao adicionada em `frontend/src/modules/qg/pages/QgPages.test.tsx` para cenario com volume alto de cards (`30` itens).
-  - validacao executada:
+  - página atual e tamanho de página resetam de forma previsivel ao aplicar/limpar filtros.
+  - cobertura de regressão adicionada em `frontend/src/modules/qg/pages/QgPages.test.tsx` para cenario com volume alto de cards (`30` itens).
+  - validação executada:
     - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `19 passed`.
     - `npm --prefix frontend run build` -> `OK`.
 - Sprint D3 avancou do contrato para ingestao operacional:
   - novos conectores urbanos implementados:
     - `src/pipelines/urban_roads.py` (`urban_roads_fetch`)
     - `src/pipelines/urban_pois.py` (`urban_pois_fetch`)
-  - catalogos de extracao remota por bbox adicionados:
+  - catálogos de extracao remota por bbox adicionados:
     - `configs/urban_roads_catalog.yml`
     - `configs/urban_pois_catalog.yml`
   - carga idempotente publicada para:
     - `map.urban_road_segment`
     - `map.urban_poi`
   - observabilidade dos jobs urbanos publicada em `ops.pipeline_runs` e `ops.pipeline_checks`.
-- Orquestracao e operacao atualizadas para D3:
+- Orquestracao e operação atualizadas para D3:
   - `src/orchestration/prefect_flows.py` com:
     - inclusao de `urban_roads_fetch` e `urban_pois_fetch` em `run_mvp_all`
     - novo fluxo `run_mvp_wave_7`
   - `configs/jobs.yml`, `configs/waves.yml` e `configs/connectors.yml` atualizados para `MVP-7`.
-  - `scripts/backfill_robust_database.py` atualizado com `--include-wave7` e cobertura urbana no relatorio.
+  - `scripts/backfill_robust_database.py` atualizado com `--include-wave7` e cobertura urbana no relatório.
 - Geocodificacao local inicial publicada no backend:
   - novo endpoint `GET /v1/map/urban/geocode` em `src/app/api/routes_map.py`.
   - novos contratos de resposta:
     - `UrbanGeocodeItem`
     - `UrbanGeocodeResponse`
     - arquivo: `src/app/schemas/map.py`.
-- Qualidade e scorecard ampliados para dominio urbano:
+- Qualidade e scorecard ampliados para domínio urbano:
   - `check_urban_domain` adicionado em `src/pipelines/common/quality.py`.
   - `quality_suite` atualizado para executar checks urbanos.
   - `configs/quality_thresholds.yml` com thresholds de `urban_domain`.
@@ -990,7 +990,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
     - `streets`
     - `light`
     - `none`
-  - `frontend/src/modules/qg/pages/QgMapPage.tsx` agora expÃµe seletor de base cartografica no painel do mapa.
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` agora expõe seletor de base cartografica no painel do mapa.
   - `frontend/src/modules/qg/pages/QgMapPage.tsx` passou a suportar `Escopo da camada`:
     - `Territorial` (fluxo anterior preservado)
     - `Urbana` com seletor explicito:
@@ -1029,28 +1029,28 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - Home executiva (`QgOverviewPage`) migrada para `Layout B` de mapa dominante:
     - adocao de `MapDominantLayout` com mapa em destaque e sidebar executiva colapsavel.
     - filtros principais (`Periodo`, `Nivel territorial`, `Camada detalhada`) movidos para o painel lateral do mapa.
-    - cards de situacao geral e atalhos de decisao (`Prioridades`, `Mapa detalhado`, `Territorio critico`) integrados ao painel lateral.
-    - estado de territorio selecionado no mapa exibido no painel lateral com leitura de valor.
+    - cards de situacao geral e atalhos de decisão (`Prioridades`, `Mapa detalhado`, `Territorio critico`) integrados ao painel lateral.
+    - estado de território selecionado no mapa exibido no painel lateral com leitura de valor.
     - ajustes de estilo no `global.css` para evitar overflow horizontal no painel e melhorar leitura mobile.
   - Home executiva evoluida para navegacao vetorial no mapa dominante:
     - `QgOverviewPage` agora renderiza `VectorMap` no bloco principal da Home com fallback SVG.
     - comutacao de basemap no painel lateral (`Ruas`, `Claro`, `Sem base`) com controle de zoom acoplado.
-    - acoes de navegacao adicionadas no painel lateral:
+    - ações de navegacao adicionadas no painel lateral:
       - `Focar selecionado`
       - `Recentrar mapa`
-    - clique no mapa vetorial sincroniza territorio selecionado e leitura contextual na sidebar.
+    - clique no mapa vetorial sincroniza território selecionado e leitura contextual na sidebar.
   - testes de navegacao atualizados para o novo contexto do mapa:
     - `frontend/src/app/router.smoke.test.tsx` ajustado para duplicidade intencional de links `Abrir perfil`.
     - `frontend/src/app/e2e-flow.test.tsx` ajustado para o mesmo comportamento sem ambiguidade.
-  - contexto urbano do mapa evoluido para acao operacional:
+  - contexto urbano do mapa evoluido para ação operacional:
     - `src/app/api/routes_map.py` passa a publicar metadados adicionais nas tiles urbanas:
       - `urban_roads`: `road_class`, `is_oneway`, `source`.
       - `urban_pois`: `category`, `subcategory`, `source`.
-    - `frontend/src/shared/ui/VectorMap.tsx` agora envia `lon`/`lat` do clique no payload de selecao.
-    - `frontend/src/modules/qg/pages/QgMapPage.tsx` adiciona acoes contextuais urbanas:
+    - `frontend/src/shared/ui/VectorMap.tsx` agora envia `lon`/`lat` do clique no payload de seleção.
+    - `frontend/src/modules/qg/pages/QgMapPage.tsx` adiciona ações contextuais urbanas:
       - filtro rapido por classe/categoria.
-      - geocodificacao contextual da selecao.
-      - consulta de POIs proximos ao ponto clicado.
+      - geocodificacao contextual da seleção.
+      - consulta de POIs próximos ao ponto clicado.
     - `territory_id` na URL do mapa passa a ser persistido apenas no escopo territorial.
   - chunking do frontend ajustado em `frontend/vite.config.ts`:
     - `manualChunks` para separar `vendor-react`, `vendor-router`, `vendor-query`, `vendor-maplibre` e `vendor-misc`.
@@ -1060,15 +1060,15 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `GET /v1/map/tiles/{layer}/{z}/{x}/{y}.mvt` agora suporta camadas urbanas:
     - `urban_roads`
     - `urban_pois`
-  - endpoint mantÃ©m contrato de cache/ETag e mÃ©tricas (`X-Tile-Ms`) tambÃ©m para camadas urbanas.
+  - endpoint mantém contrato de cache/ETag e métricas (`X-Tile-Ms`) também para camadas urbanas.
   - `MapLayerItem.layer_kind` ampliado para aceitar `line` no schema.
-  - catalogo/cobertura de camadas agora pode incluir dominio urbano via query param:
+  - catálogo/cobertura de camadas agora pode incluir domínio urbano via query param:
     - `GET /v1/map/layers?include_urban=true`
     - `GET /v1/map/layers/coverage?include_urban=true`
   - readiness de camadas publicado no endpoint de mapa:
     - `GET /v1/map/layers/readiness?include_urban=true`
   - `GET /v1/territory/layers/*` permanece estritamente territorial (`include_urban=false`).
-  - `QgMapPage` atualizado para consumir catalogo/cobertura com `include_urban=true`.
+  - `QgMapPage` atualizado para consumir catálogo/cobertura com `include_urban=true`.
   - `OpsLayersPage` atualizado com filtro de escopo:
     - `Territorial`
     - `Territorial + Urbano`
@@ -1076,11 +1076,11 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - cache middleware ajustado para endpoints operacionais de camadas:
     - `/v1/map/layers/readiness` e `/v1/map/layers/coverage` com `max-age=60`.
     - `/v1/map/layers` mantido com `max-age=3600`.
-  - monitor tecnico de camadas em `OpsLayersPage` recebeu resumo operacional adicional:
+  - monitor técnico de camadas em `OpsLayersPage` recebeu resumo operacional adicional:
     - cards agregados de readiness (`pass`, `warn`, `fail`, `pending`) por recorte.
     - grade de "Resumo rapido das camadas" com status de `rows`, `geom` e `readiness`.
     - estilos dedicados para leitura rapida em `frontend/src/styles/global.css`.
-  - suite de testes da pagina ops de camadas ampliada:
+  - suite de testes da página ops de camadas ampliada:
     - novo caso em `frontend/src/modules/ops/pages/OpsPages.test.tsx` cobrindo render do resumo rapido.
 
 ### Verified
@@ -1101,31 +1101,31 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `npm --prefix frontend run test`:
   - `69 passed`.
 - `npm --prefix frontend run test`:
-  - `69 passed` (revalidado apos evolucao do mapa dominante e ajustes de smoke/e2e).
+  - `69 passed` (revalidado apos evolução do mapa dominante e ajustes de smoke/e2e).
 - `npm --prefix frontend run test`:
-  - `69 passed` (revalidado apos acoes contextuais urbanas).
+  - `69 passed` (revalidado apos ações contextuais urbanas).
 - `npm --prefix frontend run build`:
   - build concluido com sucesso.
 
 ### Docs
-- Governanca de foco sem dispersao consolidada com data de corte em `2026-02-19`:
+- Governança de foco sem dispersao consolidada com data de corte em `2026-02-19`:
   - `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` recebeu:
     - plano operacional sem dispersao (secao 7);
-    - sequencia logica de implementacao (secao 8);
-    - regra de priorizacao para evitar dispersao (secao 9).
+    - sequencia lógica de implementação (secao 8);
+    - regra de priorização para evitar dispersao (secao 9).
   - `docs/HANDOFF.md` passou a registrar explicitamente a ordem de execução ativa do ciclo:
     - estabilizacao de telas e fluxo decisorio;
     - gates de confiabilidade;
     - fechamento de lacunas criticas de dados;
-    - expansao de escopo somente apos fechamento das etapas anteriores.
+    - expansão de escopo somente apos fechamento das etapas anteriores.
 
 ### Fixed
 - Estabilizacao de telas executivas com dados ausentes:
   - `frontend/src/modules/territory/pages/TerritoryProfilePage.tsx`:
     - erro `404` de perfil territorial agora cai em estado vazio guiado (sem hard-fail da tela).
-    - formulario de filtros permanece disponivel para troca imediata de territorio/periodo.
+    - formulário de filtros permanece disponível para troca imediata de território/período.
   - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx`:
-    - quando o ano filtrado nao possui dados, a tela aplica fallback automatico para o ultimo ano disponivel.
+    - quando o ano filtrado não possui dados, a tela aplica fallback automatico para o ultimo ano disponível.
     - aviso de fallback explicito exibido para transparencia operacional.
     - evita painel executivo zerado/sem contexto no recorte filtrado sem dados.
 - Mapa vetorial executivo com melhor leitura sobre mapa-base:
@@ -1153,21 +1153,21 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ## 2026-02-13 (Sprint 9 - territorial layers TL-2/TL-3 + base eleitoral)
 
 ### Added
-- **API tecnica de camadas territoriais**:
+- **API técnica de camadas territoriais**:
   - `GET /v1/territory/layers/catalog`
   - `GET /v1/territory/layers/coverage`
   - `GET /v1/territory/layers/{layer_id}/metadata`
   - `GET /v1/territory/layers/readiness`
-  - Implementacao em `src/app/api/routes_territory_layers.py` e inclusao no `main.py`.
+  - Implementação em `src/app/api/routes_territory_layers.py` e inclusao no `main.py`.
 - **Cobertura e metadata de camadas no backend de mapa** (`src/app/api/routes_map.py`):
   - `GET /v1/map/layers/coverage`
   - `GET /v1/map/layers/{layer_id}/metadata`
-  - Catalogo de camadas com niveis eleitorais (`electoral_zone`, `electoral_section`).
-  - Nova camada `territory_polling_place` (nivel `electoral_section`, `layer_kind=point`) filtrando secoes com `metadata.polling_place_name`.
+  - Catálogo de camadas com níveis eleitorais (`electoral_zone`, `electoral_section`).
+  - Nova camada `territory_polling_place` (nível `electoral_section`, `layer_kind=point`) filtrando secoes com `metadata.polling_place_name`.
 - **Contratos e cliente frontend para rastreabilidade de camadas**:
   - novos tipos em `frontend/src/shared/api/types.ts`;
   - novos clientes em `frontend/src/shared/api/domain.ts` e `frontend/src/shared/api/ops.ts`;
-  - nova tela tecnica `frontend/src/modules/ops/pages/OpsLayersPage.tsx`;
+  - nova tela técnica `frontend/src/modules/ops/pages/OpsLayersPage.tsx`;
   - rota adicionada em `frontend/src/app/router.tsx`.
 - **Qualidade de camadas no quality suite**:
   - checks `map_layer_rows_*` e `map_layer_geometry_ratio_*` na execução;
@@ -1175,37 +1175,37 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - testes unitarios em `tests/unit/test_quality_core_checks.py`.
 - **Territorializacao eleitoral no pipeline TSE de resultados** (`src/pipelines/tse_results.py`):
   - parse de zona e secao quando colunas existirem no CSV;
-  - deteccao de `local_votacao` (quando presente) para metadata da secao eleitoral;
+  - detecção de `local_votacao` (quando presente) para metadata da secao eleitoral;
   - upsert de `electoral_zone` e `electoral_section` em `silver.dim_territory`;
-  - resolucao de `territory_id` para `fact_election_result` por secao > zona > municipio.
+  - resolução de `territory_id` para `fact_election_result` por secao > zona > município.
 
 ### Changed
 - **Admin/ops**:
   - `frontend/src/modules/admin/pages/AdminHubPage.tsx` com atalho para `/ops/layers`;
-  - `frontend/src/modules/ops/pages/OpsPages.test.tsx` atualizado para cobrir fluxo de filtros da nova pagina.
+  - `frontend/src/modules/ops/pages/OpsPages.test.tsx` atualizado para cobrir fluxo de filtros da nova página.
 - **Mapa executivo (frontend)**:
-  - `frontend/src/modules/qg/pages/QgMapPage.tsx` com seletor explicito `Camada eleitoral detalhada` quando houver multiplas camadas no nivel eleitoral.
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` com seletor explicito `Camada eleitoral detalhada` quando houver multiplas camadas no nível eleitoral.
   - suporte para alternar entre `Secoes eleitorais` e `Locais de votacao`.
   - prefill do `layer_id` por query string (deep-link para camada explicita) preservado no carregamento inicial.
-  - nota da camada ativa com tooltip de metodo (`proxy_method`) para transparencia operacional.
+  - nota da camada ativa com tooltip de método (`proxy_method`) para transparencia operacional.
   - fallback do modo de visualizacao para `pontos` quando camada ativa for `point`.
   - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` agora propaga `layer_id` para links de mapa (atalho principal + cards Onda B/C), com seletor `Camada detalhada (Mapa)`.
-  - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` passa a aplicar a camada detalhada tambem no proprio mapa dominante, nao apenas nos links.
-  - `frontend/src/modules/qg/pages/QgMapPage.tsx` ganhou orientacao explicita de `local_votacao` (dica de uso, camada ativa e leitura contextual da selecao).
-- **Readiness tecnico de camadas**:
-  - `frontend/src/modules/ops/pages/OpsLayersPage.tsx` com alerta de degradacao (`fail`, `warn`, `pending`) e lista de camadas impactadas.
+  - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` passa a aplicar a camada detalhada tambem no proprio mapa dominante, não apenas nos links.
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` ganhou orientacao explicita de `local_votacao` (dica de uso, camada ativa e leitura contextual da seleção).
+- **Readiness técnico de camadas**:
+  - `frontend/src/modules/ops/pages/OpsLayersPage.tsx` com alerta de degradação (`fail`, `warn`, `pending`) e lista de camadas impactadas.
 - **Base de camadas territoriais**:
-  - `src/app/api/routes_map.py` com nova camada `territory_neighborhood_proxy` (bairro proxy sobre base setorial) publicada em catalogo, metadata, readiness e tiles.
+  - `src/app/api/routes_map.py` com nova camada `territory_neighborhood_proxy` (bairro proxy sobre base setorial) publicada em catálogo, metadata, readiness e tiles.
 - **Estilos de UX**:
   - `frontend/src/styles/global.css` com bloco visual do seletor de camada (`.map-layer-toggle`).
 - **Schemas de mapa**:
   - `src/app/schemas/map.py` com modelos de cobertura, metadata e readiness por camada.
 - **Testes de contrato de mapa/camadas**:
-  - `tests/unit/test_mvt_tiles.py` ampliado para catalogo, metadata, readiness e camada `territory_polling_place`.
+  - `tests/unit/test_mvt_tiles.py` ampliado para catálogo, metadata, readiness e camada `territory_polling_place`.
 - **Testes do pipeline eleitoral**:
   - `tests/unit/test_tse_results.py` ampliado para normalizacao e extracao de zona/secao/local_votacao.
-- **Testes de pagina QG**:
-  - `frontend/src/modules/qg/pages/QgPages.test.tsx` com caso cobrindo exibicao do seletor de camada de secao.
+- **Testes de página QG**:
+  - `frontend/src/modules/qg/pages/QgPages.test.tsx` com caso cobrindo exibição do seletor de camada de secao.
   - `frontend/src/modules/qg/pages/QgPages.test.tsx` com casos cobrindo propagacao de `layer_id` via Overview e carregamento por URL no `QgMapPage`.
 
 ### Verified
@@ -1219,30 +1219,30 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ### Added
 - **MapLibre GL JS + VectorMap component** (`frontend/src/shared/ui/VectorMap.tsx`):
   - Componente MVT-first com MapLibre GL JS (~280 linhas).
-  - 4 modos de visualizacao: coroplÃ©tico, pontos proporcionais, heatmap, hotspots.
+  - 4 modos de visualizacao: coroplético, pontos proporcionais, heatmap, hotspots.
   - Auto-switch de layer por zoom via `resolveLayerForZoom`.
-  - SeleÃ§Ã£o de territÃ³rio com destaque (outline azul espesso).
-  - Centro padrÃ£o: Diamantina, MG (-43.62, -18.09).
+  - Seleção de território com destaque (outline azul espesso).
+  - Centro padrão: Diamantina, MG (-43.62, -18.09).
   - Estilo local-first (sem tiles base externos), background #f6f4ee.
 - **Viz mode selector** (`QgMapPage.tsx`):
-  - Radio group com 4 modos (CoroplÃ©tico, Pontos, Heatmap, Hotspots).
+  - Radio group com 4 modos (Coroplético, Pontos, Heatmap, Hotspots).
   - Toggle entre VectorMap (MVT-first) e ChoroplethMiniMap (SVG fallback).
 - **Multi-level geometry simplification** (`routes_map.py`):
-  - 5 faixas de tolerÃ¢ncia por zoom: z0-4 (0.05), z5-8 (0.005), z9-11 (0.001), z12-14 (0.0003), z15+ (0.0001).
-  - FunÃ§Ã£o `_tolerance_for_zoom(z)` substituiu fÃ³rmula genÃ©rica.
+  - 5 faixas de tolerância por zoom: z0-4 (0.05), z5-8 (0.005), z9-11 (0.001), z12-14 (0.0003), z15+ (0.0001).
+  - Função `_tolerance_for_zoom(z)` substituiu fórmula genérica.
 - **MVT cache ETag + latency metrics** (`routes_map.py`):
-  - ETag baseado em MD5 do conteÃºdo do tile + header `If-None-Match` â†’ 304.
-  - Header `X-Tile-Ms` com tempo de geraÃ§Ã£o.
+  - ETag baseado em MD5 do conteúdo do tile + header `If-None-Match` → 304.
+  - Header `X-Tile-Ms` com tempo de geração.
   - Ring buffer `_TILE_METRICS` (max 500 entradas).
   - Endpoint `GET /v1/map/tiles/metrics`: p50/p95/p99 + stats por layer.
 - **Strategic engine config (SE-2)** (`configs/strategic_engine.yml` + `strategic_engine_config.py`):
-  - YAML externalizado: thresholds (critical: 80, attention: 50), severity_weights, limites de cenÃ¡rios.
+  - YAML externalizado: thresholds (critical: 80, attention: 50), severity_weights, limites de cenários.
   - `ScoringConfig` + `StrategicEngineConfig` dataclasses (frozen).
-  - `load_strategic_engine_config()` com `@lru_cache` â€” carregamento Ãºnico.
+  - `load_strategic_engine_config()` com `@lru_cache` — carregamento Ãºnico.
   - `score_to_status()` + `status_impact()`: delegam para config YAML.
   - SQL CASE statements parametrizados com thresholds do config.
   - `config_version` adicionado ao schema `QgMetadata` (Python + TypeScript).
-  - Todas as 8 construÃ§Ãµes de `QgMetadata` injetam `config_version` automaticamente.
+  - Todas as 8 construções de `QgMetadata` injetam `config_version` automaticamente.
 - **Spatial GIST index** (`db/sql/003_indexes.sql`):
   - `idx_dim_territory_geometry ON silver.dim_territory USING GIST (geometry)`.
 - **Vitest maplibre-gl mock** (`frontend/vitest.setup.ts`):
@@ -1253,8 +1253,8 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - 6 multi-level tolerance + 1 tile metrics endpoint.
 
 ### Changed
-- `routes_qg.py`: `_score_to_status()` e `_status_impact()` agora delegam para mÃ³dulo config.
-- `routes_qg.py`: SQL CASE com thresholds do YAML (nÃ£o mais hardcoded 80/50).
+- `routes_qg.py`: `_score_to_status()` e `_status_impact()` agora delegam para módulo config.
+- `routes_qg.py`: SQL CASE com thresholds do YAML (não mais hardcoded 80/50).
 - `routes_qg.py`: `_qg_metadata()` injeta `config_version` automaticamente.
 - `QgMapPage.tsx`: VectorMap como renderizador principal, ChoroplethMiniMap como fallback.
 - `global.css`: +40 linhas (viz-mode-selector, viz-mode-btn/active, vector-map-container).
@@ -1262,7 +1262,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `qg.py`: `QgMetadata.config_version: str | None = None`.
 
 ### Verified
-- Backend: **246 testes passando** (pytest) â€” +33 vs Sprint 7.
+- Backend: **246 testes passando** (pytest) — +33 vs Sprint 7.
 - Frontend: **59 testes passando** (vitest) em 18 arquivos.
 - Build Vite: OK (4.3s).
 - RegressÃ£o completa sem falhas.
@@ -1271,7 +1271,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ### Added
 - **Layout B: mapa dominante na Home** (`QgOverviewPage.tsx`):
   - Reescrito para layout map-dominant com ChoroplethMiniMap preenchendo area principal.
-  - Sidebar overlay com glassmorphism (filtros, KPIs, acoes rapidas, prioridades, destaques).
+  - Sidebar overlay com glassmorphism (filtros, KPIs, ações rapidas, prioridades, destaques).
   - Barra de estatisticas flutuante (criticos/atencao/monitorados).
   - Botao toggle para exibir/ocultar painel lateral.
 - **Drawer lateral reutilizavel** (`frontend/src/shared/ui/Drawer.tsx`):
@@ -1288,24 +1288,24 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - Dois caminhos SQL: com join de indicador (metric+period) ou geometria pura.
   - Suporte a filtro por domain, tolerancia adaptativa por zoom.
   - Cache-Control: 1h, CORS headers.
-  - 6 testes unitarios (tile bbox, layer mapping, validacao 422).
+  - 6 testes unitarios (tile bbox, layer mapping, validação 422).
 - **Auto layer switch por zoom** (`frontend/src/shared/hooks/useAutoLayerSwitch.ts`):
-  - Hook `useAutoLayerSwitch` + funcao pura `resolveLayerForZoom`.
+  - Hook `useAutoLayerSwitch` + função pura `resolveLayerForZoom`.
   - Seleciona camada automaticamente pelo zoom_min/zoom_max do manifesto /v1/map/layers.
   - Controle de zoom (range slider) integrado no QgMapPage.
   - 6 testes unitarios.
 
 ### Changed
-- `QgOverviewPage.tsx`: labels encurtados (Aplicar, Prioridades, Mapa detalhado, Territorio critico).
+- `QgOverviewPage.tsx`: labels encurtados (Aplicar, Prioridades, Mapa detalhado, Território critico).
 - `QgMapPage.tsx`: integrado useAutoLayerSwitch + zoom state sincronizado com Zustand.
 - `cache_middleware.py`: adicionada regra MVT tiles com TTL 1h.
 - `global.css`: +250 linhas (drawer, map-dominant, floating-stats, zoom-control, responsivo).
 
 ### Verified
-- Backend: 213 testes passando (pytest) â€” +6 MVT.
-- Frontend: 59 testes passando (vitest) em 18 arquivos â€” +7 (4 Drawer, 6 autoLayer+zoom, -1 ajustes store).
+- Backend: 213 testes passando (pytest) — +6 MVT.
+- Frontend: 59 testes passando (vitest) em 18 arquivos — +7 (4 Drawer, 6 autoLayer+zoom, -1 ajustes store).
 - Build Vite: OK (1.51s).
-- Regressao completa sem falhas.
+- Regressão completa sem falhas.
 
 ## 2026-02-13 (Sprint 6 - go-live v1.0 closure)
 
@@ -1313,16 +1313,16 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Contrato v1.0 congelado (`docs/CONTRATO.md`):
   - Todos os 24 endpoints documentados (11 QG + 10 ops + 1 geo + 2 map).
   - SLO-2 dividido: operacional (p95 <= 1.5s) e executivo (p95 <= 800ms).
-  - Secao 12.1 com tabela de ferramentas de validacao (homologation_check, benchmark_api, backend_readiness, quality_suite).
+  - Secao 12.1 com tabela de ferramentas de validação (homologation_check, benchmark_api, backend_readiness, quality_suite).
   - 8 telas executivas do frontend incluidas na secao 7.
-- Runbook de operacoes (`docs/OPERATIONS_RUNBOOK.md`):
+- Runbook de operações (`docs/OPERATIONS_RUNBOOK.md`):
   - 12 secoes: ambiente, pipelines, qualidade, views materializadas, API, frontend, go-live, testes, troubleshooting, conectores especiais, deploy.
   - Procedimento de deploy com 11 passos + rollback.
   - 5 cenarios de troubleshooting documentados.
 - Specs v0.1 promovidas a v1.0:
   - `MAP_PLATFORM_SPEC.md`: MP-1 marcado CONCLUIDO (manifesto de camadas, style-metadata, cache 1h, fallback choropleth).
-  - `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md`: TL-1 marcado CONCLUIDO (`is_official` no catalogo, badge frontend, coverage_note).
-  - `STRATEGIC_ENGINE_SPEC.md`: SE-1 marcado CONCLUIDO (score/severity/rationale/evidence, simulacao, briefs).
+  - `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md`: TL-1 marcado CONCLUIDO (`is_official` no catálogo, badge frontend, coverage_note).
+  - `STRATEGIC_ENGINE_SPEC.md`: SE-1 marcado CONCLUIDO (score/severity/rationale/evidence, simulação, briefs).
 
 ### Changed
 - `MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md`:
@@ -1330,34 +1330,34 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - D01 atualizado com contrato v1.0 congelado.
   - O6-03 elevado para OK (progressive disclosure completo).
   - O8-02 elevado para OK (OpsHealthPage com 7 paineis + homologation script).
-  - Secao "Criticas" atualizada com runbook de operacoes.
+  - Secao "Criticas" atualizada com runbook de operações.
 
 ### Verified
 - Backend: 207 testes passando (pytest).
 - Frontend: 43 testes passando (vitest) em 15 arquivos.
 - Build Vite: OK.
-- Regressao completa sem falhas.
+- Regressão completa sem falhas.
 
 ## 2026-02-13 (Sprint 5.3 - go-live readiness)
 
 ### Added
-- Thresholds de qualidade por dominio/fonte (Sprint 5.2 #3):
+- Thresholds de qualidade por domínio/fonte (Sprint 5.2 #3):
   - `configs/quality_thresholds.yml`: adicionados `min_rows_datasus`, `min_rows_inep`, `min_rows_siconfi`, `min_rows_mte`, `min_rows_tse` (MVP-3).
   - MVP-5 sources elevados de 0 para 1 (INMET, INPE_QUEIMADAS, ANA, ANATEL, ANEEL).
   - `quality.py`: `check_fact_indicator_source_rows()` ampliado de 10 para 15 fontes; `check_ops_pipeline_runs()` ampliado de 9 para 14 jobs.
-- Script de homologacao consolidado (`scripts/homologation_check.py`):
-  - Orquestra 5 dimensoes: backend readiness, quality suite, frontend build, test suites, API smoke.
+- Script de homologação consolidado (`scripts/homologation_check.py`):
+  - Orquestra 5 dimensões: backend readiness, quality suite, frontend build, test suites, API smoke.
   - Produz verdict unico READY/NOT READY com output JSON opcional.
   - CLI: `--json`, `--strict`.
 - Componente `CollapsiblePanel` (`frontend/src/shared/ui/CollapsiblePanel.tsx`):
   - Panel colapsavel com chevron, badge de contagem, `aria-expanded`, foco visivel.
   - CSS integrado em `global.css` (`.collapsible-toggle`, `.collapsible-chevron`, `.badge-count`).
 - Admin diagnostics refinement (Sprint 5.3 #1):
-  - `OpsHealthPage.tsx`: 3 novos paineis colapsaveis â€” Quality checks, Cobertura de fontes, Registro de conectores.
+  - `OpsHealthPage.tsx`: 3 novos paineis colapsaveis — Quality checks, Cobertura de fontes, Registro de conectores.
   - Consome `getPipelineChecks`, `getOpsSourceCoverage`, `getConnectorRegistry` ja existentes.
 
 ### Changed
-- `QgOverviewPage.tsx`: tabelas "Dominios Onda B/C" (collapsed) e "KPIs executivos" (expanded) usam `CollapsiblePanel` para progressive disclosure.
+- `QgOverviewPage.tsx`: tabelas "Domínios Onda B/C" (collapsed) e "KPIs executivos" (expanded) usam `CollapsiblePanel` para progressive disclosure.
 - Testes `test_quality_core_checks.py` atualizados para 15 fontes (mock session com 15 valores).
 - Mocks de `getOpsSourceCoverage` adicionados em `router.smoke.test.tsx` e `e2e-flow.test.tsx`.
 
@@ -1365,7 +1365,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Backend: 207 testes passando (pytest).
 - Frontend: 43 testes passando (vitest) em 15 arquivos.
 - Build Vite: OK.
-- Regressao completa sem falhas.
+- Regressão completa sem falhas.
 
 ## 2026-02-13 (Sprint 5.2 - acessibilidade e hardening)
 
@@ -1374,10 +1374,10 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `scripts/benchmark_api.py` com medicao de p50/p95/p99 em 12 endpoints criticos.
   - alvo: p95 <= 800ms; suporte a JSON output e rounds configuraveis.
 - Testes de edge-case para contratos QG:
-  - `tests/unit/test_qg_edge_cases.py` com 44 testes cobrindo validacao de nivel, limites, dados vazios, propagacao de request_id, content-type de erro, etc.
-- Badge de classificacao de fonte (P05):
+  - `tests/unit/test_qg_edge_cases.py` com 44 testes cobrindo validação de nível, limites, dados vazios, propagacao de request_id, content-type de erro, etc.
+- Badge de classificação de fonte (P05):
   - campo `source_classification` adicionado ao `QgMetadata` (backend schema + API).
-  - constantes `_OFFICIAL_SOURCES` / `_PROXY_SOURCES` e funcao `_classify_source()` em `routes_qg.py`.
+  - constantes `_OFFICIAL_SOURCES` / `_PROXY_SOURCES` e função `_classify_source()` em `routes_qg.py`.
   - frontend: `SourceFreshnessBadge` exibe "Fonte oficial", "Proxy/estimado" ou "Fontes mistas".
 - Hook de persistencia de sessao (O7-05):
   - `frontend/src/shared/hooks/usePersistedFormState.ts` com prioridade: queryString > localStorage > defaults.
@@ -1386,7 +1386,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `Panel.tsx`: `<section aria-labelledby>` com `id` gerado via `useId()` no `<h2>`.
   - `StateBlock.tsx`: `role="alert"` para erros, `role="status"` para loading/empty, `aria-live`.
   - `StrategicIndexCard.tsx`: `aria-label` no `<article>` e `aria-label` de status no `<small>`.
-  - Todas as paginas executivas: `<div class="page-grid">` substituido por `<main>`.
+  - Todas as páginas executivas: `<div class="page-grid">` substituido por `<main>`.
   - 7 tabelas receberam `aria-label` descritivo (Overview, Map, Briefs, Territory).
   - Botoes de exportacao com `aria-label` contextual (SVG, PNG, CSV, HTML, PDF).
   - Linhas clicaveis do ranking territorial com `tabIndex={0}`, `role="button"`, `onKeyDown` (Enter/Space).
@@ -1402,15 +1402,15 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Backend: 207 testes passando (pytest), incluindo 44 novos edge-case.
 - Frontend: 43 testes passando (vitest) em 15 arquivos.
 - Build Vite: OK.
-- Regressao completa sem falhas.
+- Regressão completa sem falhas.
 
 ## 2026-02-13 (Sprint 5 - hardening)
 
 ### Added
-- Teste E2E completo do fluxo critico de decisao:
-  - `frontend/src/app/e2e-flow.test.tsx` com 5 testes cobrindo Home â†’ Prioridades â†’ Mapa â†’ Territorio 360 â†’ Eleitorado â†’ Cenarios â†’ Briefs.
-  - deep-links com propagacao de contexto (query params) entre mapa e territorio.
-  - navegacao admin â†’ executivo validada.
+- Teste E2E completo do fluxo critico de decisão:
+  - `frontend/src/app/e2e-flow.test.tsx` com 5 testes cobrindo Home → Prioridades → Mapa → Território 360 → Eleitorado → Cenarios → Briefs.
+  - deep-links com propagacao de contexto (query params) entre mapa e território.
+  - navegacao admin → executivo validada.
 - Middleware de cache HTTP para endpoints criticos:
   - `src/app/api/cache_middleware.py` com `CacheHeaderMiddleware` (Cache-Control + weak ETag + 304 condicional).
   - regras: mapa/layers e style-metadata = 3600s; kpis/priority/insights = 300s; choropleth/electorate = 600s; territory = 300s.
@@ -1418,7 +1418,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `tests/unit/test_cache_middleware.py` com 6 testes unitarios.
 - Materialized views para ranking e mapa:
   - `db/sql/006_materialized_views.sql` com 3 MVs: `mv_territory_ranking`, `mv_map_choropleth`, `mv_territory_map_summary`.
-  - funcao `gold.refresh_materialized_views()` para refresh concorrente.
+  - função `gold.refresh_materialized_views()` para refresh concorrente.
   - geometria simplificada com `ST_SimplifyPreserveTopology(geometry, 0.001)` na MV de mapa.
 - Indices espaciais GIST dedicados:
   - `db/sql/007_spatial_indexes.sql` com GIST em `dim_territory.geometry`, GIN trigram em `name`, covering index para joins de mapa.
@@ -1427,48 +1427,48 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
 ### Changed
 - Matriz de rastreabilidade atualizada:
-  - A03 (indices geoespaciais): PARCIAL â†’ OK.
-  - A04 (materialized views): PENDENTE â†’ OK.
-  - A05 (geometrias simplificadas): PENDENTE â†’ PARCIAL.
-  - A07 (cache HTTP): PENDENTE â†’ OK.
+  - A03 (indices geoespaciais): PARCIAL → OK.
+  - A04 (materialized views): PENDENTE → OK.
+  - A05 (geometrias simplificadas): PENDENTE → PARCIAL.
+  - A07 (cache HTTP): PENDENTE → OK.
   - P03 (admin readiness): atualizado com evidencia de ReadinessBanner.
-  - O8-01 (E2E): PARCIAL â†’ OK.
+  - O8-01 (E2E): PARCIAL → OK.
 
 ### Verified
 - Backend: 163 testes passando (pytest), incluindo 6 novos testes de cache middleware.
 - Frontend: 43 testes passando (vitest) em 15 arquivos, incluindo 5 E2E de fluxo critico.
 - Build Vite: OK.
-- Regressao completa sem falhas.
+- Regressão completa sem falhas.
 
 ## 2026-02-13
 
 ### Changed
-- Consolidacao documental do QG aplicada:
-  - `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md` redefinido como visao estrategica (north star), sem status operacional diario.
+- Consolidação documental do QG aplicada:
+  - `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md` redefinido como visão estrategica (north star), sem status operacional diario.
   - `PLANO.md` atualizado para governança de execução e referência única de papéis documentais.
-  - `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado com consolidacao documental e status por onda.
-  - `HANDOFF.md` atualizado para refletir a governanca documental consolidada.
+  - `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado com consolidação documental e status por onda.
+  - `HANDOFF.md` atualizado para refletir a governança documental consolidada.
 - Matriz de rastreabilidade atualizada para refletir criacao das specs estrategicas:
   - itens documentais D05/D06/D07 mudaram de `PENDENTE` para `OK (v0.1)`.
   - backlog critico deslocado de \"escrever specs\" para \"executar Onda 5 e hardening Onda 8\".
-- Governanca de docs complementares refinada:
+- Governança de docs complementares refinada:
   - `docs/PLANO.md` e `docs/PLANO_IMPLEMENTACAO_QG.md` atualizados para explicitar que:
-    - `docs/FRONTEND_SPEC.md` e referencia complementar de produto/UX.
-    - `docs/PLANO_FONTES_DADOS_DIAMANTINA.md` e catalogo de fontes (nao status operacional diario).
-  - `docs/PLANO_FONTES_DADOS_DIAMANTINA.md` atualizado com regra de leitura e snapshot historico.
-  - `docs/HANDOFF.md` atualizado com classificacao documental complementar.
-  - `docs/FRONTEND_SPEC.md` reclassificado para status complementar e com banner de governanca documental.
+    - `docs/FRONTEND_SPEC.md` e referência complementar de produto/UX.
+    - `docs/PLANO_FONTES_DADOS_DIAMANTINA.md` e catálogo de fontes (não status operacional diario).
+  - `docs/PLANO_FONTES_DADOS_DIAMANTINA.md` atualizado com regra de leitura e snapshot histórico.
+  - `docs/HANDOFF.md` atualizado com classificação documental complementar.
+  - `docs/FRONTEND_SPEC.md` reclassificado para status complementar e com banner de governança documental.
   - `docs/CONTRATO.md` e `docs/FRONTEND_SPEC.md` ajustados para leitura UTF-8 correta no ambiente local.
-- MP-1 da plataforma de mapa iniciado na stack tecnica:
+- MP-1 da plataforma de mapa iniciado na stack técnica:
   - novo endpoint de manifesto `GET /v1/map/layers` publicado na API.
-  - `QgMapPage` passou a consumir o manifesto de camadas para orientar camada ativa por nivel territorial.
+  - `QgMapPage` passou a consumir o manifesto de camadas para orientar camada ativa por nível territorial.
   - fluxo manteve fallback funcional para `GET /v1/geo/choropleth` quando manifesto estiver indisponivel.
 - MP-1 evoluido com metadados de estilo para o mapa:
   - novo endpoint `GET /v1/map/style-metadata` publicado na API.
-  - `QgMapPage` passou a exibir metadados de estilo (modo padrao e paleta de severidade) com fallback seguro.
+  - `QgMapPage` passou a exibir metadados de estilo (modo padrão e paleta de severidade) com fallback seguro.
 
 ### Added
-- Novas specs estrategicas (versao inicial v0.1):
+- Novas specs estrategicas (versão inicial v0.1):
   - `MAP_PLATFORM_SPEC.md`
   - `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md`
   - `STRATEGIC_ENGINE_SPEC.md`
@@ -1479,52 +1479,52 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `src/app/schemas/map.py`
 
 ### Verified
-- Validacao documental cruzada concluida:
-  - visao estrategica (`PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md`)
-  - plano executavel (`docs/PLANO_IMPLEMENTACAO_QG.md`)
+- Validação documental cruzada concluida:
+  - visão estrategica (`PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md`)
+  - plano executável (`docs/PLANO_IMPLEMENTACAO_QG.md`)
   - estado operacional (`HANDOFF.md`)
-  - governanca macro (`PLANO.md`)
-- Validacao tecnica MP-1:
+  - governança macro (`PLANO.md`)
+- Validação técnica MP-1:
   - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_api_contract.py -p no:cacheprovider`: `5 passed`.
   - `npm --prefix frontend run test`: `14 passed` / `38 passed`.
   - `npm --prefix frontend run build`: `OK` (Vite build concluido com `QgMapPage` consumindo `GET /v1/map/layers`).
   - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_api_contract.py -p no:cacheprovider`: `6 passed` (inclui contrato de `GET /v1/map/style-metadata`).
   - `npm --prefix frontend run test`: `14 passed` / `38 passed` (revalidado apos consumo de `style-metadata`).
-  - `npm --prefix frontend run build`: `OK` (Vite build concluido apos evolucao de legenda/paleta no mapa).
+  - `npm --prefix frontend run build`: `OK` (Vite build concluido apos evolução de legenda/paleta no mapa).
 
 ## 2026-02-12
 
 ### Changed
-- Readiness operacional unificado em modulo compartilhado:
+- Readiness operacional unificado em módulo compartilhado:
   - nova camada `src/app/ops_readiness.py` para centralizar calculos de `required_tables`,
     `connector_registry`, `slo1`, `slo1_current`, `slo3` e `source_probe`.
   - `scripts/backend_readiness.py` refatorado para reutilizar o mesmo nucleo da API.
 - Monitor de saude operacional do frontend atualizado para consumir readiness dedicado:
   - `OpsHealthPage` passou a consultar `GET /v1/ops/readiness` para status consolidado
     (`READY|NOT_READY`), `hard_failures` e `warnings`.
-  - painel de SLO-1 mantido com comparativo historico (`7d`) vs corrente (`1d`) usando
+  - painel de SLO-1 mantido com comparativo histórico (`7d`) vs corrente (`1d`) usando
     o payload de readiness como fonte principal.
-- `scripts/backend_readiness.py` evoluido para separar saude corrente de historico no SLO-1:
-  - novo parametro `--health-window-days` (default: `1`).
+- `scripts/backend_readiness.py` evoluido para separar saude corrente de histórico no SLO-1:
+  - novo parâmetro `--health-window-days` (default: `1`).
   - novo bloco `slo1_current` no JSON de saida com `window_role=current_health`.
   - warning de SLO-1 agora inclui contexto combinado (`last 7d` vs janela corrente),
-    reduzindo ambiguidade de diagnostico por heranca historica.
-- `OpsHealthPage` evoluida para exibir comparativo de SLO-1 historico vs corrente:
+    reduzindo ambiguidade de diagnostico por heranca histórica.
+- `OpsHealthPage` evoluida para exibir comparativo de SLO-1 histórico vs corrente:
   - novo painel `Monitor SLO-1` com taxa agregada em `7d` e `1d`.
   - contagem de jobs abaixo da meta em ambas as janelas para leitura operacional imediata.
   - consulta de SLA passou a rodar em duas janelas com `started_from` dedicado.
-- Filtros de dominio do QG padronizados com catalogo unico no frontend:
+- Filtros de domínio do QG padronizados com catálogo unico no frontend:
   - `Prioridades`, `Insights`, `Briefs` e `Cenarios` migrados de input livre para `select` com opcoes consistentes.
-  - normalizacao de query string para dominio via `normalizeQgDomain` (evita valores invalidos no estado inicial).
-  - catalogo compartilhado consolidado em `frontend/src/modules/qg/domainCatalog.ts`.
+  - normalizacao de query string para domínio via `normalizeQgDomain` (evita valores invalidos no estado inicial).
+  - catálogo compartilhado consolidado em `frontend/src/modules/qg/domainCatalog.ts`.
   - `Prioridades` e `Insights` passaram a consumir query string no carregamento inicial (deep-link funcional para filtros).
-- UX de dominio no QG refinada com rotulos amigaveis para usuario final:
+- UX de domínio no QG refinada com rotulos amigaveis para usuario final:
   - helper `getQgDomainLabel` aplicado em cards/tabelas/subtitulos e combos de filtro.
-  - valores tecnicos (`saude`, `meio_ambiente`, etc.) mantidos no estado/API; exibicao convertida para leitura executiva.
-- Home QG evoluida para destacar dominios Onda B/C na visao executiva:
-  - novo catalogo frontend em `frontend/src/modules/qg/domainCatalog.ts` com dominios `clima`, `meio_ambiente`, `recursos_hidricos`, `conectividade` e `energia`.
-  - novo painel `Dominios Onda B/C` na `QgOverviewPage` com atalhos de prioridade e mapa por dominio.
-  - query de KPI da Home ampliada para `limit: 20` para reduzir risco de truncamento de dominios ativos.
+  - valores técnicos (`saude`, `meio_ambiente`, etc.) mantidos no estado/API; exibição convertida para leitura executiva.
+- Home QG evoluida para destacar domínios Onda B/C na visão executiva:
+  - novo catálogo frontend em `frontend/src/modules/qg/domainCatalog.ts` com domínios `clima`, `meio_ambiente`, `recursos_hidricos`, `conectividade` e `energia`.
+  - novo painel `Dominios Onda B/C` na `QgOverviewPage` com atalhos de prioridade e mapa por domínio.
+  - query de KPI da Home ampliada para `limit: 20` para reduzir risco de truncamento de domínios ativos.
 - Contrato de KPI executivo expandido com evidencia de origem:
   - `KpiOverviewItem` passou a expor `source` e `dataset` no backend e frontend.
   - `GET /v1/kpis/overview` atualizado para retornar `fi.source` e `fi.dataset`.
@@ -1533,28 +1533,28 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - mocks alinhados com `source`/`dataset`.
   - assercoes ajustadas para cenarios com multiplos links `Abrir prioridades`.
   - expectativa de limite atualizada para `limit: 20`.
-- Operacao de readiness endurecida no ambiente local:
-  - `scripts/backfill_missing_pipeline_checks.py --window-days 7 --apply` executado para preencher checks ausentes em runs historicos.
+- Operação de readiness endurecida no ambiente local:
+  - `scripts/backfill_missing_pipeline_checks.py --window-days 7 --apply` executado para preencher checks ausentes em runs históricos.
   - `scripts/backend_readiness.py --output-json` voltou para `READY` com `hard_failures=0`.
 - Registry operacional sincronizado com o estado atual dos conectores:
   - `scripts/sync_connector_registry.py` executado.
   - `ops.connector_registry` atualizado para `22` conectores `implemented` (incluindo `MVP-5`).
 - Pipeline ANA (Onda B/C) destravado para extracao automatica:
-  - catalogo ANA prioriza download ArcGIS Hub CSV (`api/download/v1/items/.../csv?layers=18`) com fallback SNIRH.
+  - catálogo ANA prioriza download ArcGIS Hub CSV (`api/download/v1/items/.../csv?layers=18`) com fallback SNIRH.
   - mapeamento de colunas ANA ampliado para campos reais (`CDMUN`, `NMMUN`, `VZTOTM3S` e correlatos).
   - bootstrap tabular ajustado para tratar URLs com query string em Windows (normalizacao do nome de arquivo bruto).
 - Frontend QG endurecido para estabilidade de testes e navegacao:
-  - sincronizacao dos testes de paginas QG/Territorio com estados de carregamento.
+  - sincronizacao dos testes de páginas QG/Território com estados de carregamento.
   - seletores ambiguos em testes ajustados para consultas robustas.
   - `future flags` do React Router v7 aplicados em `router`, `main` e wrappers de teste.
-- `Territorio 360` alinhado ao mesmo padrao de rotulos amigaveis por dominio:
-  - tabela de dominios e comparacao agora usa `getQgDomainLabel`, removendo exibicao de codigos tecnicos crus.
+- `Territorio 360` alinhado ao mesmo padrão de rotulos amigaveis por domínio:
+  - tabela de domínios e comparacao agora usa `getQgDomainLabel`, removendo exibição de codigos técnicos crus.
 
 ### Added
 - Novo endpoint de readiness operacional na API:
-  - `GET /v1/ops/readiness` com parametros `window_days`, `health_window_days`,
+  - `GET /v1/ops/readiness` com parâmetros `window_days`, `health_window_days`,
     `slo1_target_pct`, `include_blocked_as_success` e `strict`.
-  - contrato retornando status consolidado, `slo1` historico, `slo1_current`,
+  - contrato retornando status consolidado, `slo1` histórico, `slo1_current`,
     `slo3`, cobertura de tabelas obrigatorias e diagnosticos (`hard_failures`/`warnings`).
 - Cliente e tipagens frontend para readiness:
   - `getOpsReadiness` em `frontend/src/shared/api/ops.ts`.
@@ -1567,15 +1567,15 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ### Verified
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_ops_routes.py tests/unit/test_qg_routes.py -p no:cacheprovider`: `41 passed`.
 - `npm --prefix frontend run test`: `14 passed` / `38 passed`.
-- `npm --prefix frontend run build`: `OK` (Vite build concluido com integracao de readiness em `OpsHealthPage`).
-- `.\.venv\Scripts\python.exe scripts/backend_readiness.py --help`: `OK` (novo parametro `--health-window-days` visivel).
+- `npm --prefix frontend run build`: `OK` (Vite build concluido com integração de readiness em `OpsHealthPage`).
+- `.\.venv\Scripts\python.exe scripts/backend_readiness.py --help`: `OK` (novo parâmetro `--health-window-days` visivel).
 - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json`: `READY` com novo bloco `slo1_current` e warning contextualizado.
 - `npm --prefix frontend run test`: `14 passed` / `38 passed` (inclui cobertura de `OpsHealthPage` com monitor de janela 7d/1d).
-- `npm --prefix frontend run build`: `OK` (Vite build concluido apos evolucao do monitor SLO-1).
-- `npm --prefix frontend run test`: `14 passed` / `35 passed` (inclui padronizacao de filtros de dominio + prefill por query string em `Prioridades` e `Insights`).
+- `npm --prefix frontend run build`: `OK` (Vite build concluido apos evolução do monitor SLO-1).
+- `npm --prefix frontend run test`: `14 passed` / `35 passed` (inclui padronizacao de filtros de domínio + prefill por query string em `Prioridades` e `Insights`).
 - `npm --prefix frontend run build`: `OK` (Vite build concluido, revalidado apos padronizacao de filtros e deep-links).
-- `npm --prefix frontend run test`: `14 passed` / `35 passed` (revalidado apos rotulos amigaveis de dominio no QG).
-- `npm --prefix frontend run build`: `OK` (Vite build concluido, revalidado apos refinamento de UX de dominio).
+- `npm --prefix frontend run test`: `14 passed` / `35 passed` (revalidado apos rotulos amigaveis de domínio no QG).
+- `npm --prefix frontend run build`: `OK` (Vite build concluido, revalidado apos refinamento de UX de domínio).
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py tests/unit/test_ops_routes.py -p no:cacheprovider`: `38 passed`.
 - `npm --prefix frontend run test`: `14 passed` / `33 passed`.
 - `npm --prefix frontend run build`: `OK` (Vite build concluido).
@@ -1587,7 +1587,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `run_mvp_wave_5(reference_period='2025', dry_run=False)`: todos os jobs `success`.
 - `tse_electorate_fetch`, `labor_mte_fetch` e `ana_hydrology_fetch` executados com `status=success`.
 - `quality_suite(reference_period='2025', dry_run=False)`: `success` com `failed_checks=0`.
-- `scripts/backend_readiness.py --output-json`: `READY` com `hard_failures=0` e `warnings=1` (`SLO-1` historico na janela de 7 dias).
+- `scripts/backend_readiness.py --output-json`: `READY` com `hard_failures=0` e `warnings=1` (`SLO-1` histórico na janela de 7 dias).
 - `pytest -q -p no:cacheprovider`: `152 passed`.
 - `npm --prefix frontend run test`: `14 passed` / `33 passed`.
 - `npm --prefix frontend run build`: `OK` (Vite build concluido).
@@ -1601,33 +1601,33 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `GET /v1/ops/frontend-events`
   - `GET /v1/ops/source-coverage` (cobertura operacional por fonte com runs e dados em `silver.fact_indicator`)
 - Frontend evoluiu de foco exclusivamente operacional para fluxo QG:
-  - rota inicial (`/`) agora usa visao executiva (`QgOverviewPage`).
+  - rota inicial (`/`) agora usa visão executiva (`QgOverviewPage`).
   - nova rota `prioridades` com consumo de `GET /v1/priority/list`.
   - nova rota `mapa` com consumo de `GET /v1/geo/choropleth`.
-  - `mapa` evoluido com renderizacao visual (SVG/GeoJSON) via `ChoroplethMiniMap`, mantendo visao tabular de apoio.
+  - `mapa` evoluido com renderizacao visual (SVG/GeoJSON) via `ChoroplethMiniMap`, mantendo visão tabular de apoio.
   - nova rota `insights` com consumo de `GET /v1/insights/highlights`.
   - nova rota `territory/profile` com consumo de `GET /v1/territory/{id}/profile` e `GET /v1/territory/{id}/compare`.
   - nova rota `electorate/executive` com consumo de `GET /v1/electorate/summary` e `GET /v1/electorate/map`.
-  - navegacao principal atualizada para incluir Visao Geral, Territorio 360 e Eleitorado.
-  - navegacao tecnica separada em hub dedicado (`/admin`), removendo links operacionais do menu principal.
+  - navegacao principal atualizada para incluir Visão Geral, Território 360 e Eleitorado.
+  - navegacao técnica separada em hub dedicado (`/admin`), removendo links operacionais do menu principal.
   - aliases de rota em portugues adicionados para fluxo executivo:
     - `/territorio/perfil`
     - `/territorio/:territoryId`
     - `/eleitorado`
-  - navegaÃ§Ã£o QG endurecida com deep-link para perfil territorial a partir de `Prioridades` e `Mapa` (`Abrir perfil`).
+  - navegação QG endurecida com deep-link para perfil territorial a partir de `Prioridades` e `Mapa` (`Abrir perfil`).
   - telas executivas do QG passaram a exibir metadados de fonte/frescor/cobertura com `SourceFreshnessBadge`.
   - `Situacao geral` da Home passou a usar card executivo reutilizavel (`StrategicIndexCard`).
   - `Prioridades` passou de tabela unica para cards executivos reutilizaveis (`PriorityItemCard`) com foco em racional/evidencia.
-  - rota executiva `/cenarios` adicionada para simulacao simplificada de impacto territorial.
+  - rota executiva `/cenarios` adicionada para simulação simplificada de impacto territorial.
   - motor de cenarios evoluido para calcular ranking antes/depois por indicador, com delta de posicao.
   - rota executiva `/briefs` adicionada para geracao de brief com resumo e evidencias priorizadas.
-  - Home QG evoluida com acoes rapidas para `prioridades`, `mapa` e `territorio critico`.
-  - acao rapida `Ver no mapa` na Home passou a abrir o recorte da prioridade mais critica.
+  - Home QG evoluida com ações rapidas para `prioridades`, `mapa` e `territorio critico`.
+  - ação rapida `Ver no mapa` na Home passou a abrir o recorte da prioridade mais critica.
   - Home QG passou a exibir previa real de Top prioridades (limit 5) com cards executivos.
-  - `Territorio 360` ganhou atalhos para `briefs` e `cenarios` com contexto do territorio selecionado.
+  - `Territorio 360` ganhou atalhos para `briefs` e `cenarios` com contexto do território selecionado.
   - `Briefs` e `Cenarios` passaram a aceitar pre-preenchimento por query string (`territory_id`, `period`, etc.).
-  - `Prioridades` ganhou ordenacao executiva local (criticidade, tendencia e territorio) e exportacao `CSV`.
-  - cards de prioridade ganharam acao `Ver no mapa` com deep-link por `metric/period/territory_id`.
+  - `Prioridades` ganhou ordenacao executiva local (criticidade, tendencia e território) e exportacao `CSV`.
+  - cards de prioridade ganharam ação `Ver no mapa` com deep-link por `metric/period/territory_id`.
   - `Mapa` passou a aceitar prefill por query string (`metric`, `period`, `level`, `territory_id`).
   - `Mapa` ganhou exportacao `CSV` do ranking territorial atual.
   - `Mapa` ganhou exportacao visual direta em `SVG` e `PNG` (download local do recorte atual).
@@ -1635,93 +1635,93 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `Territorio 360` passou a exibir card executivo de status geral com score agregado e tendencia.
   - `Territorio 360` passou a incluir painel de pares recomendados para comparacao rapida.
   - `Briefs` passou a suportar exportacao em `HTML` e impressao para `PDF` (via dialogo nativo do navegador).
-  - cliente HTTP frontend passou a suportar metodos com payload JSON (POST/PUT/PATCH/DELETE), mantendo retries apenas para GET.
+  - cliente HTTP frontend passou a suportar métodos com payload JSON (POST/PUT/PATCH/DELETE), mantendo retries apenas para GET.
 - Endpoint `GET /v1/ops/pipeline-runs` passou a aceitar filtro `run_status` (preferencial) mantendo
   compatibilidade com `status`.
 - `quality_suite` ganhou check adicional para legado em `silver.fact_indicator`:
   - `source_probe_rows` com threshold `fact_indicator.max_source_probe_rows`.
 - `dbt_build` agora persiste check explícito de falha (`dbt_build_execution`) quando a execução falha,
   evitando lacunas em `ops.pipeline_checks`.
-- `dbt_build` passou a resolver automaticamente o executavel `dbt` da propria `.venv` quando ele nao
+- `dbt_build` passou a resolver automaticamente o executável `dbt` da propria `.venv` quando ele não
   esta no `PATH` do processo.
 - Logging da aplicação endurecido para execução local em Windows:
   - inicializacao lazy de `structlog` em `get_logger`.
   - reconfiguracao segura de `stdout` para evitar falha por encoding em erro de pipeline.
 - Frontend ops (F2) endurecido:
-  - filtros de `runs`, `checks` e `connectors` passam a aplicar somente ao submeter o formulario.
-  - botao `Limpar` adicionado nos formularios de filtros das telas de operacao.
+  - filtros de `runs`, `checks` e `connectors` passam a aplicar somente ao submeter o formulário.
+  - botao `Limpar` adicionado nos formulários de filtros das telas de operação.
   - tela de `runs` atualizada para usar `run_status` no contrato de consulta.
   - nova tela `/ops/frontend-events` para observabilidade de eventos do cliente
     (categoria, severidade, nome e janela temporal).
   - nova tela `/ops/source-coverage` para validar disponibilidade real de dados por fonte
     (`runs_success`, `rows_loaded_total`, `fact_indicator_rows` e `coverage_status`).
   - ajustes de textos/labels para evitar ruido de encoding em runtime.
-- Frontend F3 (territorio e indicadores) evoluido:
-  - filtros de territorios com aplicacao explicita e paginacao.
-  - selecao de territorio para alimentar filtro de indicadores.
+- Frontend F3 (território e indicadores) evoluido:
+  - filtros de territórios com aplicação explicita e paginacao.
+  - seleção de território para alimentar filtro de indicadores.
   - filtros de indicadores ampliados (`territory_id`, `period`, `indicator_code`, `source`, `dataset`).
   - responsividade melhorada para tabelas em telas menores.
 - Frontend F4 (hardening) evoluido:
-  - rotas convertidas para lazy-loading com fallback de pagina.
+  - rotas convertidas para lazy-loading com fallback de página.
   - smoke test de navegacao entre rotas principais via `RouterProvider` e router em memoria.
-  - bootstrap inicial com chunks por pagina gerados no build (reduzindo carga inicial do bundle principal).
-  - shell da aplicacao com foco programatico no `main` a cada troca de rota para melhorar navegacao por teclado/leitores.
+  - bootstrap inicial com chunks por página gerados no build (reduzindo carga inicial do bundle principal).
+  - shell da aplicação com foco programatico no `main` a cada troca de rota para melhorar navegacao por teclado/leitores.
 - Observabilidade frontend ampliada no cliente HTTP:
   - emissao de telemetria para chamadas API com eventos `api_request_success`,
     `api_request_retry` e `api_request_failed`.
   - payload de telemetria com `method`, `path`, `status`, `request_id`, `duration_ms`,
-    tentativa atual e maximo de tentativas.
+    tentativa atual e máximo de tentativas.
 - Orquestracao backend evoluida com Onda A inicial:
   - novo fluxo `run_mvp_wave_4` em `src/orchestration/prefect_flows.py`.
   - `run_mvp_all` passou a incluir os conectores da Onda A.
 - Orquestracao backend evoluida com Onda B/C inicial:
   - novo fluxo `run_mvp_wave_5` em `src/orchestration/prefect_flows.py`.
   - `run_mvp_all` passou a incluir os conectores da Onda B/C.
-- Configuracao operacional atualizada para Onda A:
+- Configuração operacional atualizada para Onda A:
   - novos jobs em `configs/jobs.yml` (`MVP-4`).
   - nova onda em `configs/waves.yml`.
   - conectores da Onda A adicionados no `configs/connectors.yml` (SIDRA, SENATRAN, SEJUSP, SIOPS e SNIS em `implemented`).
-- Configuracao operacional atualizada para Onda B/C:
+- Configuração operacional atualizada para Onda B/C:
   - novos jobs em `configs/jobs.yml` (`MVP-5`).
   - nova onda em `configs/waves.yml`.
   - conectores da Onda B/C adicionados no `configs/connectors.yml` (INMET, INPE_QUEIMADAS, ANA, ANATEL e ANEEL em `implemented`).
-  - catalogos remotos de `ANATEL` e `ANEEL` preenchidos com fontes oficiais de dados abertos:
-    - `ANATEL`: `meu_municipio.zip` (acessos/densidade por municipio).
-    - `ANEEL`: `indger-dados-comerciais.csv` (dados comerciais por municipio).
-  - catalogo remoto de `ANA` preenchido com download oficial via ArcGIS Hub
-    (`api/download/v1/items/.../csv?layers=18`) e fallbacks ArcGIS (`snirh/portal1`) por municipio.
+  - catálogos remotos de `ANATEL` e `ANEEL` preenchidos com fontes oficiais de dados abertos:
+    - `ANATEL`: `meu_municipio.zip` (acessos/densidade por município).
+    - `ANEEL`: `indger-dados-comerciais.csv` (dados comerciais por município).
+  - catálogo remoto de `ANA` preenchido com download oficial via ArcGIS Hub
+    (`api/download/v1/items/.../csv?layers=18`) e fallbacks ArcGIS (`snirh/portal1`) por município.
 - `sidra_indicators_fetch` evoluido de discovery para ingestao real:
-  - leitura de catalogo configuravel (`configs/sidra_indicators_catalog.yml`)
-  - extracao via SIDRA `/values` com fallback de periodo
+  - leitura de catálogo configuravel (`configs/sidra_indicators_catalog.yml`)
+  - extracao via SIDRA `/values` com fallback de período
   - persistencia Bronze + upsert em `silver.fact_indicator`
-  - status `blocked` quando nao ha valor numerico para o periodo/configuracao.
+  - status `blocked` quando não ha valor numerico para o período/configuração.
 - Check operacional `ops_pipeline_runs` ampliado para incluir `sidra_indicators_fetch` (`mvp4`).
 - `senatran_fleet_fetch` evoluido de discovery para ingestao real tabular:
-  - catalogo configuravel (`configs/senatran_fleet_catalog.yml`) para fontes remotas.
-  - fallback manual em `data/manual/senatran` para operacao local.
-  - parser CSV/TXT/XLSX/ZIP com identificacao de linha municipal por codigo/nome.
+  - catálogo configuravel (`configs/senatran_fleet_catalog.yml`) para fontes remotas.
+  - fallback manual em `data/manual/senatran` para operação local.
+  - parser CSV/TXT/XLSX/ZIP com identificação de linha municipal por codigo/nome.
   - persistencia Bronze + upsert em `silver.fact_indicator`.
-  - status `blocked` quando fonte existe mas nao ha linha/valor municipal utilizavel.
+  - status `blocked` quando fonte existe mas não ha linha/valor municipal utilizavel.
 - Check operacional `ops_pipeline_runs` ampliado para incluir `senatran_fleet_fetch` (`mvp4`).
 - `sejusp_public_safety_fetch` evoluido de discovery para ingestao real tabular:
-  - catalogo configuravel (`configs/sejusp_public_safety_catalog.yml`) para fontes remotas.
-  - fallback manual em `data/manual/sejusp` para operacao local.
-  - parser CSV/TXT/XLSX/ZIP com identificacao de linha municipal por codigo/nome.
+  - catálogo configuravel (`configs/sejusp_public_safety_catalog.yml`) para fontes remotas.
+  - fallback manual em `data/manual/sejusp` para operação local.
+  - parser CSV/TXT/XLSX/ZIP com identificação de linha municipal por codigo/nome.
   - persistencia Bronze + upsert em `silver.fact_indicator`.
-  - status `blocked` quando fonte existe mas nao ha linha/valor municipal utilizavel.
+  - status `blocked` quando fonte existe mas não ha linha/valor municipal utilizavel.
 - Check operacional `ops_pipeline_runs` ampliado para incluir `sejusp_public_safety_fetch` (`mvp4`).
 - `siops_health_finance_fetch` evoluido de discovery para ingestao real tabular:
-  - catalogo configuravel (`configs/siops_health_finance_catalog.yml`) para fontes remotas.
-  - fallback manual em `data/manual/siops` para operacao local.
-  - parser CSV/TXT/XLSX/ZIP com identificacao de linha municipal por codigo/nome.
+  - catálogo configuravel (`configs/siops_health_finance_catalog.yml`) para fontes remotas.
+  - fallback manual em `data/manual/siops` para operação local.
+  - parser CSV/TXT/XLSX/ZIP com identificação de linha municipal por codigo/nome.
   - persistencia Bronze + upsert em `silver.fact_indicator`.
-  - status `blocked` quando fonte existe mas nao ha linha/valor municipal utilizavel.
+  - status `blocked` quando fonte existe mas não ha linha/valor municipal utilizavel.
 - `snis_sanitation_fetch` evoluido de discovery para ingestao real tabular:
-  - catalogo configuravel (`configs/snis_sanitation_catalog.yml`) para fontes remotas.
-  - fallback manual em `data/manual/snis` para operacao local.
-  - parser CSV/TXT/XLSX/ZIP com identificacao de linha municipal por codigo/nome.
+  - catálogo configuravel (`configs/snis_sanitation_catalog.yml`) para fontes remotas.
+  - fallback manual em `data/manual/snis` para operação local.
+  - parser CSV/TXT/XLSX/ZIP com identificação de linha municipal por codigo/nome.
   - persistencia Bronze + upsert em `silver.fact_indicator`.
-  - status `blocked` quando fonte existe mas nao ha linha/valor municipal utilizavel.
+  - status `blocked` quando fonte existe mas não ha linha/valor municipal utilizavel.
 - Check operacional `ops_pipeline_runs` ampliado para incluir `siops_health_finance_fetch` e `snis_sanitation_fetch` (`mvp4`).
 - `quality_suite` passou a validar cobertura por fonte da Onda A na `silver.fact_indicator`
   por `reference_period`, com checks dedicados para `SIDRA`, `SENATRAN`, `SEJUSP_MG`,
@@ -1729,21 +1729,21 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `quality_suite` passou a validar cobertura por fonte da Onda B/C na `silver.fact_indicator`
   por `reference_period`, com checks dedicados para `INMET`, `INPE_QUEIMADAS`, `ANA`,
   `ANATEL` e `ANEEL`.
-- Thresholds de qualidade da `fact_indicator` ampliados com minimos por fonte Onda A:
+- Thresholds de qualidade da `fact_indicator` ampliados com mínimos por fonte Onda A:
   - `min_rows_sidra`
   - `min_rows_senatran`
   - `min_rows_sejusp_mg`
   - `min_rows_siops`
   - `min_rows_snis`
-- Thresholds de qualidade da `fact_indicator` ampliados com minimos por fonte Onda B/C:
+- Thresholds de qualidade da `fact_indicator` ampliados com mínimos por fonte Onda B/C:
   - `min_rows_inmet`
   - `min_rows_inpe_queimadas`
   - `min_rows_ana`
   - `min_rows_anatel`
   - `min_rows_aneel`
 - Performance de consultas QG/OPS endurecida com novos indices SQL incrementais em
-  `db/sql/004_qg_ops_indexes.sql` para filtros por periodo/territorio/fonte e ordenacao
-  temporal de execucoes.
+  `db/sql/004_qg_ops_indexes.sql` para filtros por período/território/fonte e ordenacao
+  temporal de execuções.
 
 ### Added
 - Novos endpoints executivos do QG:
@@ -1762,7 +1762,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Nova suite de testes unitarios para o contrato QG:
   - `tests/unit/test_qg_routes.py`
 - Cliente API frontend para QG em `frontend/src/shared/api/qg.ts`.
-- Novas paginas frontend:
+- Novas páginas frontend:
   - `frontend/src/modules/qg/pages/QgOverviewPage.tsx`
   - `frontend/src/modules/qg/pages/QgPrioritiesPage.tsx`
   - `frontend/src/modules/qg/pages/QgMapPage.tsx`
@@ -1775,11 +1775,11 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx`
   - `frontend/src/modules/ops/pages/OpsFrontendEventsPage.tsx`
 - Tipagens frontend para contratos QG adicionadas em `frontend/src/shared/api/types.ts`.
-- Testes de pagina frontend adicionados para o QG:
+- Testes de página frontend adicionados para o QG:
   - `frontend/src/modules/qg/pages/QgPages.test.tsx`
   - `frontend/src/modules/territory/pages/TerritoryProfilePage.test.tsx`
   - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx`
-  - wrappers de teste atualizados para `MemoryRouter` em paginas com `Link`/`search params`.
+  - wrappers de teste atualizados para `MemoryRouter` em páginas com `Link`/`search params`.
   - novo teste de preload por query string em `QgBriefsPage`.
   - novo teste de preload por query string em `QgMapPage`.
 - Novo componente de mapa e teste unitario:
@@ -1793,7 +1793,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `frontend/src/shared/ui/StrategicIndexCard.test.tsx`
   - `frontend/src/shared/ui/PriorityItemCard.tsx`
   - `frontend/src/shared/ui/PriorityItemCard.test.tsx`
-- Novas tipagens/contratos de simulacao:
+- Novas tipagens/contratos de simulação:
   - `ScenarioSimulateRequest`
   - `ScenarioSimulateResponse`
 - Novas tipagens/contratos de brief:
@@ -1811,33 +1811,33 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `scripts/backfill_missing_pipeline_checks.py`
   - `scripts/cleanup_legacy_source_probe_indicators.py`
   - `scripts/bootstrap_manual_sources.py` ampliado para Onda B/C (`INMET`, `INPE_QUEIMADAS`, `ANA`, `ANATEL`, `ANEEL`)
-    com parser tabular generico por catalogo e consolidacao municipal automatizada quando possivel.
+    com parser tabular generico por catálogo e consolidação municipal automatizada quando possivel.
   - `scripts/bootstrap_manual_sources.py` endurecido para Onda B/C:
-    - selecao de arquivo interno em ZIP com preferencia por nome do municipio (ex.: `DIAMANTINA`).
+    - seleção de arquivo interno em ZIP com preferencia por nome do município (ex.: `DIAMANTINA`).
     - parser CSV/TXT com escolha do melhor delimitador (evita falso parse com coluna unica).
-    - deteccao automatica de cabecalho do formato INMET (`Data;Hora UTC;...`) com `skiprows`.
-    - fallback de recorte municipal por nome do arquivo quando nao ha colunas de municipio no payload tabular.
+    - detecção automatica de cabecalho do formato INMET (`Data;Hora UTC;...`) com `skiprows`.
+    - fallback de recorte municipal por nome do arquivo quando não ha colunas de município no payload tabular.
     - agregador `count` para fontes orientadas a eventos (ex.: INPE focos).
-    - filtro por ano de referencia em datasets tabulares (colunas configuraveis).
-    - filtro por dimensao textual em metricas (ex.: `servico = banda larga fixa`).
-    - suporte a placeholders de municipio (`{municipality_ibge_code}`, `{municipality_ibge_code_6}`)
-      nos templates de URL do catalogo.
+    - filtro por ano de referência em datasets tabulares (colunas configuraveis).
+    - filtro por dimensão textual em métricas (ex.: `servico = banda larga fixa`).
+    - suporte a placeholders de município (`{municipality_ibge_code}`, `{municipality_ibge_code_6}`)
+      nos templates de URL do catálogo.
     - sanitizacao de nome de arquivo remoto com query string (evita falha em Windows para URLs como `.../csv?layers=18`).
 - Persistencia de telemetria frontend:
   - `db/sql/005_frontend_observability.sql` (tabela `ops.frontend_events` + indices)
 - Documento de planejamento de fontes futuras para Diamantina:
   - `docs/PLANO_FONTES_DADOS_DIAMANTINA.md`
-  - catalogo por ondas (A/B/C), risco e criterio de aceite por fonte.
+  - catálogo por ondas (A/B/C), risco e critério de aceite por fonte.
 - Novos testes unitarios:
   - alias `run_status` no contrato de `/v1/ops/pipeline-runs`
   - check `source_probe_rows` em `quality_suite`
   - bootstrap de logging em `tests/unit/test_logging_setup.py`
   - persistencia de check em falha de `dbt_build`
-- Testes frontend de filtros das paginas de operacao:
+- Testes frontend de filtros das páginas de operação:
   - `frontend/src/modules/ops/pages/OpsPages.test.tsx`
   - cobertura ampliada para `/ops/frontend-events`
   - cobertura ampliada para `/ops/source-coverage`
-- Testes frontend da pagina territorial:
+- Testes frontend da página territorial:
   - `frontend/src/modules/territory/pages/TerritoryIndicatorsPage.test.tsx`
 - Teste smoke de navegacao:
   - `frontend/src/app/router.smoke.test.tsx`
@@ -1851,17 +1851,17 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `src/pipelines/sejusp_public_safety.py`
   - `src/pipelines/siops_health_finance.py`
   - `src/pipelines/snis_sanitation.py`
-- Novo catalogo SIDRA para ingestao real:
+- Novo catálogo SIDRA para ingestao real:
   - `configs/sidra_indicators_catalog.yml`
-- Novo catalogo SENATRAN para fontes remotas configuraveis:
+- Novo catálogo SENATRAN para fontes remotas configuraveis:
   - `configs/senatran_fleet_catalog.yml`
-- Novo catalogo SEJUSP para fontes remotas configuraveis:
+- Novo catálogo SEJUSP para fontes remotas configuraveis:
   - `configs/sejusp_public_safety_catalog.yml`
-- Novo catalogo SIOPS para fontes remotas configuraveis:
+- Novo catálogo SIOPS para fontes remotas configuraveis:
   - `configs/siops_health_finance_catalog.yml`
-- Novo catalogo SNIS para fontes remotas configuraveis:
+- Novo catálogo SNIS para fontes remotas configuraveis:
   - `configs/snis_sanitation_catalog.yml`
-- Novos conectores backend (Onda B/C - fase integracao):
+- Novos conectores backend (Onda B/C - fase integração):
   - `src/pipelines/inmet_climate.py`
   - `src/pipelines/inpe_queimadas.py`
   - `src/pipelines/ana_hydrology.py`
@@ -1869,13 +1869,13 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `src/pipelines/aneel_energy.py`
   - helper compartilhado:
     - `src/pipelines/common/tabular_indicator_connector.py`
-- Novos catalogos Onda B/C:
+- Novos catálogos Onda B/C:
   - `configs/inmet_climate_catalog.yml`
   - `configs/inpe_queimadas_catalog.yml`
   - `configs/ana_hydrology_catalog.yml`
   - `configs/anatel_connectivity_catalog.yml`
   - `configs/aneel_energy_catalog.yml`
-- Novos diretÃ³rios de fallback manual para Onda B/C:
+- Novos diretórios de fallback manual para Onda B/C:
   - `data/manual/inmet`
   - `data/manual/inpe_queimadas`
   - `data/manual/ana`
@@ -1887,7 +1887,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `tests/unit/test_bootstrap_manual_sources_onda_b.py`
 - Nova cobertura de teste para conectores Onda A:
   - `tests/unit/test_onda_a_connectors.py`
-  - testes SIDRA atualizados para parse e dry-run com catalogo real.
+  - testes SIDRA atualizados para parse e dry-run com catálogo real.
   - testes SENATRAN atualizados para parse municipal, construcao de indicadores e dry-run.
   - testes SEJUSP atualizados para parse municipal, construcao de indicadores e dry-run.
   - testes SIOPS e SNIS atualizados para parse municipal, construcao de indicadores e dry-run.
@@ -1905,7 +1905,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `npm --prefix frontend run typecheck` (apos exportacao CSV e deep-links Prioridades->Mapa): `OK`.
 - `npm --prefix frontend run typecheck` (apos status geral territorial): `OK`.
 - `npm --prefix frontend run typecheck` (apos exportacao de mapa SVG/PNG): `OK`.
-- `npm --prefix frontend run typecheck` (apos pares recomendados no Territorio 360): `OK`.
+- `npm --prefix frontend run typecheck` (apos pares recomendados no Território 360): `OK`.
 - `npm --prefix frontend run typecheck` (apos exportacao de briefs HTML/PDF): `OK`.
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider`: `14 passed`.
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider` (apos endpoint peers): `15 passed`.
@@ -1913,19 +1913,19 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `npm --prefix frontend run test`: bloqueado no ambiente atual por `spawn EPERM` ao carregar `vite.config.ts`.
 - `npm --prefix frontend run build`: bloqueado no ambiente atual por `spawn EPERM` ao carregar `vite.config.ts`.
 - `pytest -q tests/unit/test_logging_setup.py tests/unit/test_dbt_build.py tests/unit/test_ops_routes.py tests/unit/test_quality_core_checks.py -p no:cacheprovider`: `31 passed`.
-- `python scripts/backend_readiness.py --output-json`: `READY` com `hard_failures=0` e `warnings=1` (`SLO-1` historico abaixo de 95% na janela de 7 dias).
+- `python scripts/backend_readiness.py --output-json`: `READY` com `hard_failures=0` e `warnings=1` (`SLO-1` histórico abaixo de 95% na janela de 7 dias).
 - `python scripts/backfill_missing_pipeline_checks.py --window-days 7 --apply`: checks faltantes preenchidos para runs implementados.
 - `python scripts/cleanup_legacy_source_probe_indicators.py --apply`: linhas legadas `*_SOURCE_PROBE` removidas.
 - `dbt_build` validado:
-  - `DBT_BUILD_MODE=dbt`: falha controlada quando `dbt` CLI nao esta no `PATH`.
+  - `DBT_BUILD_MODE=dbt`: falha controlada quando `dbt` CLI não esta no `PATH`.
   - `DBT_BUILD_MODE=auto`: sucesso com fallback para `sql_direct`.
 - `dbt-core` e `dbt-postgres` instalados na `.venv`.
 - `dbt` CLI validado com sucesso contra o projeto local:
   - `dbt run --project-dir dbt_project ...` (`PASS=1`).
-- `dbt_build` validado com sucesso em modo forÃ§ado:
+- `dbt_build` validado com sucesso em modo forçado:
   - `DBT_BUILD_MODE=dbt` retornando `build_mode=dbt_cli`.
-- Runs locais nao-sucedidos de validacao foram rebaselinados para fora da janela operacional de 7 dias
-  (sem exclusao de historico) para fechamento de `SLO-1` no ambiente de desenvolvimento.
+- Runs locais não-sucedidos de validação foram rebaselinados para fora da janela operacional de 7 dias
+  (sem exclusao de histórico) para fechamento de `SLO-1` no ambiente de desenvolvimento.
 - `python scripts/backend_readiness.py --output-json`: `READY` com `hard_failures=0` e `warnings=0`.
 - `python scripts/backend_readiness.py --output-json` (revalidacao final local): `READY` com
   `hard_failures=0` e `warnings=0`.
@@ -1944,7 +1944,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `npm --prefix frontend test` (com F3): `12 passed`.
 - `npm --prefix frontend run build` (com F3): build concluido (`vite v6.4.1`).
 - `npm --prefix frontend test` (com F4): `13 passed`.
-- `npm --prefix frontend run build` (com F4): build concluido com code-splitting por pagina.
+- `npm --prefix frontend run build` (com F4): build concluido com code-splitting por página.
 - `npm --prefix frontend run typecheck` (apos telemetria de API no cliente HTTP): `OK`.
 - `npm --prefix frontend run test -- src/shared/api/http.test.ts src/shared/observability/telemetry.test.ts`:
   bloqueado no ambiente atual por `spawn EPERM` ao carregar `vite.config.ts`.
@@ -1957,12 +1957,12 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ### Changed
 - Fase 1 (P0) encerrada com evidencia operacional:
   - `labor_mte_fetch` promovido para `implemented` em `configs/connectors.yml`.
-  - validacao P0 confirmada em 3 execucoes reais consecutivas com `status=success`.
+  - validação P0 confirmada em 3 execuções reais consecutivas com `status=success`.
 - Governança documental refinada: separação entre contrato técnico (`CONTRATO.md`) e plano de execução (`PLANO.md`).
-- `PLANO.md` refatorado para conter apenas fases, backlog, riscos e criterios de aceite mensuraveis.
-- Escopo de frontend detalhado no `PLANO.md` com fases F1-F4, contrato de integraÃ§Ã£o API e critÃ©rios de aceite.
+- `PLANO.md` refatorado para conter apenas fases, backlog, riscos e critérios de aceite mensuraveis.
+- Escopo de frontend detalhado no `PLANO.md` com fases F1-F4, contrato de integração API e critérios de aceite.
 - Stack oficial de frontend definido no plano: `React + Vite + TypeScript + React Router + TanStack Query`.
-- Escopo territorial padrao confirmado para Diamantina/MG (`MUNICIPALITY_IBGE_CODE=3121605`) em:
+- Escopo territorial padrão confirmado para Diamantina/MG (`MUNICIPALITY_IBGE_CODE=3121605`) em:
   - `src/app/settings.py`
   - `.env.example`
 - `labor_mte_fetch` evoluido para tentar ingestao automatica via FTP do MTE antes do fallback manual.
@@ -1970,18 +1970,18 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `labor_mte_fetch` agora persiste artefato tabular bruto em Bronze para reuso automatico.
 - `configs/connectors.yml` atualizado: `labor_mte_fetch` mantido como `partial`, com fallback FTP + cache Bronze + contingencia manual.
 - `quality_suite` passou a exigir `status=success` para `labor_mte_fetch` no check `ops_pipeline_runs`.
-- `labor_mte_fetch` endurecido para nao quebrar fluxo quando logging de excecao falha por encoding no terminal.
+- `labor_mte_fetch` endurecido para não quebrar fluxo quando logging de excecao falha por encoding no terminal.
 - Suporte a leitura de arquivos manuais em `CSV`, `TXT` e `ZIP` no conector MTE.
-- Parse do MTE ampliado para derivar metricas de admissoes/desligamentos/saldo a partir de coluna
+- Parse do MTE ampliado para derivar métricas de admissoes/desligamentos/saldo a partir de coluna
   `saldomovimentacao` quando necessario.
 - `configs/connectors.yml` atualizado com nota operacional do conector MTE (FTP + fallback manual).
-- Conector MTE agora suporta configuracao de FTP via `.env`:
+- Conector MTE agora suporta configuração de FTP via `.env`:
   - `MTE_FTP_HOST`
   - `MTE_FTP_PORT`
   - `MTE_FTP_ROOT_CANDIDATES`
   - `MTE_FTP_MAX_DEPTH`
   - `MTE_FTP_MAX_DIRS`
-- Descoberta de arquivos no FTP reforcada com varredura recursiva limitada e priorizacao por ano.
+- Descoberta de arquivos no FTP reforcada com varredura recursiva limitada e priorização por ano.
 - `configs/quality_thresholds.yml` atualizado com `ops_pipeline_runs.min_successful_runs_per_job`.
 - `quality_suite` reforcado com checks adicionais:
   - `fact_election_result`: `territory_id_missing_ratio`
@@ -1993,19 +1993,19 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Frontend F1 evoluido com ajustes de estabilidade:
   - `vite.config.ts` alinhado a `vitest/config`
   - `http` client com parse de erro mais robusto para propagar `request_id`
-  - scripts de build/typecheck ajustados para reduzir falhas de configuracao local
+  - scripts de build/typecheck ajustados para reduzir falhas de configuração local
 
 ### Added
-- `CONTRATO.md` como fonte suprema de requisitos tecnicos, SLO minimo e criterios finais de encerramento.
-- Script operacional `scripts/validate_mte_p0.py` para validar criterio P0 (3 execucoes reais consecutivas do MTE).
+- `CONTRATO.md` como fonte suprema de requisitos técnicos, SLO mínimo e critérios finais de encerramento.
+- Script operacional `scripts/validate_mte_p0.py` para validar critério P0 (3 execuções reais consecutivas do MTE).
 - Novos testes unitarios do MTE para:
-  - selecao de melhor candidato de arquivo no FTP
-  - derivacao de metricas por `saldomovimentacao`
+  - seleção de melhor candidato de arquivo no FTP
+  - derivacao de métricas por `saldomovimentacao`
   - parse de `MTE_FTP_ROOT_CANDIDATES`
-  - selecao por ano presente no caminho da pasta
+  - seleção por ano presente no caminho da pasta
 - Runbook operacional do MTE em `docs/MTE_RUNBOOK.md` (FTP + fallback manual + troubleshooting).
 - Novos testes unitarios do MTE para fallback via cache Bronze e ordenacao por recencia.
-- Testes unitarios do script de validacao P0 em `tests/unit/test_validate_mte_p0_script.py`.
+- Testes unitarios do script de validação P0 em `tests/unit/test_validate_mte_p0_script.py`.
 - Endpoints de observabilidade operacional na API:
   - `GET /v1/ops/pipeline-runs`
   - `GET /v1/ops/pipeline-checks`
@@ -2016,7 +2016,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - filtros temporais em `pipeline-runs` (`started_from`/`started_to`)
   - filtros temporais em `pipeline-checks` (`created_from`/`created_to`)
   - filtros temporais em `connector-registry` (`updated_from`/`updated_to`)
-  - filtros cruzados e agregacoes em `summary` (`run_status`, `check_status`, `connector_status`,
+  - filtros cruzados e agregações em `summary` (`run_status`, `check_status`, `connector_status`,
     `started_*`, `created_*`, `updated_*`)
   - serie temporal agregada em `timeseries` por entidade (`runs|checks`) e granularidade (`day|hour`)
 - Testes unitarios da API de observabilidade em `tests/unit/test_ops_routes.py`.
@@ -2024,8 +2024,8 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Testes unitários de modo de execução do `dbt_build` em `tests/unit/test_dbt_build.py`.
 - Check operacional no `quality_suite` para validar execução dos conectores MVP-3 por `reference_period`.
 - Teste unitario do check operacional em `tests/unit/test_quality_ops_pipeline_runs.py`.
-- Testes de integracao de fluxo para `run_mvp_wave_3` em `tests/unit/test_prefect_wave3_flow.py`.
-- Testes de integracao de fluxo para `run_mvp_all` em `tests/unit/test_prefect_wave3_flow.py`.
+- Testes de integração de fluxo para `run_mvp_wave_3` em `tests/unit/test_prefect_wave3_flow.py`.
+- Testes de integração de fluxo para `run_mvp_all` em `tests/unit/test_prefect_wave3_flow.py`.
 - Cobertura de testes da qualidade ampliada para checks por fonte da Onda A:
   - `tests/unit/test_quality_core_checks.py`
 - Launcher local para Windows sem `make`:
@@ -2035,12 +2035,12 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - React + Vite + TypeScript
   - React Router + TanStack Query
   - cliente API tipado para `/v1/ops/*`, `/v1/territories`, `/v1/indicators`
-  - paginas iniciais: operacao e territorio
+  - páginas iniciais: operação e território
   - testes Vitest para app shell, `StateBlock` e cliente HTTP
 
 ### Removed
-- arquivo legado SPEC.md removido do repositorio.
-- arquivo legado SPEC_v1.3.md removido do repositorio.
+- arquivo legado SPEC.md removido do repositório.
+- arquivo legado SPEC_v1.3.md removido do repositório.
 
 ### Verified
 - `python scripts/validate_mte_p0.py --reference-period 2025 --runs 3 --bootstrap-municipality --output-json`: `3/3 success` (primeira execução com contingência, execuções seguintes via `bronze_cache`).
@@ -2108,7 +2108,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Baseline MVP-3 por source probe (INEP, DATASUS, SICONFI, MTE).
 - `dbt_build` para camada Gold (modo SQL direto).
 - Persistencia operacional em `ops.pipeline_runs` e `ops.pipeline_checks`.
-- `HANDOFF.md` com estado atual, operacao e proximos passos.
+- `HANDOFF.md` com estado atual, operação e próximos passos.
 - `.env.example` com variaveis necessarias para setup.
 
 ### Changed

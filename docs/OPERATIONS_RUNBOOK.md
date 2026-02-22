@@ -1,12 +1,12 @@
-﻿# Runbook de Operacoes - Plataforma de Inteligencia Territorial
+﻿# Runbook de Operações - Plataforma de Inteligencia Territorial
 
-Data de referencia: 2026-02-13  
-Versao: v1.0
+Data de referência: 2026-02-13  
+Versão: v1.0
 
-## 1) Visao geral
+## 1) Visão geral
 
-Este documento consolida os procedimentos operacionais para ambiente de homologacao
-e producao da plataforma. Complementa o `CONTRATO.md` (requisitos tecnicos) e o
+Este documento consolida os procedimentos operacionais para ambiente de homologação
+e produção da plataforma. Complementa o `CONTRATO.md` (requisitos técnicos) e o
 `HANDOFF.md` (estado operacional corrente).
 
 ---
@@ -15,7 +15,7 @@ e producao da plataforma. Complementa o `CONTRATO.md` (requisitos tecnicos) e o
 
 ### 2.1 Pre-requisitos
 
-| Componente | Versao minima | Verificacao |
+| Componente | Versão minima | Verificacao |
 |---|---|---|
 | Python | 3.12+ | `python --version` |
 | Node.js | 20+ | `node --version` |
@@ -64,11 +64,11 @@ docker-compose up -d
 
 ---
 
-## 3) Execucao de pipelines
+## 3) Execução de pipelines
 
 ### 3.1 Estrutura de jobs
 
-Cada pipeline segue o padrao:
+Cada pipeline segue o padrão:
 
 ```python
 def run(*, reference_period: str, force: bool = False,
@@ -76,10 +76,10 @@ def run(*, reference_period: str, force: bool = False,
         timeout_seconds: int = 300) -> dict:
 ```
 
-### 3.2 Execucao individual
+### 3.2 Execução individual
 
 ```powershell
-# Dry-run (nao escreve dados)
+# Dry-run (não escreve dados)
 python -m pipelines.ibge_indicators --reference-period 2025 --dry-run
 
 # Execucao real
@@ -99,7 +99,7 @@ python -m pipelines.ibge_indicators --reference-period 2025 --force
 | MVP-4 | SIDRA, SENATRAN, SEJUSP_MG, SIOPS, SNIS | `make mvp4` |
 | MVP-5 | INMET, INPE_QUEIMADAS, ANA, ANATEL, ANEEL | `make mvp5` |
 
-### 3.4 Execucao completa
+### 3.4 Execução completa
 
 ```powershell
 # Executar todas as ondas em sequencia
@@ -117,13 +117,13 @@ python -m pipelines.quality_suite --reference-period 2025
 
 | Check | Tabela | O que valida |
 |---|---|---|
-| `check_dim_territory` | `dim_territory` | Municipio existe, distritos minimos, geometria valida |
-| `check_fact_electorate` | `fact_electorate` | Nao-negativo, referencia e territorio preenchidos |
-| `check_fact_election_result` | `fact_election_result` | Nao-negativo, referencia e territorio preenchidos |
-| `check_fact_indicator` | `fact_indicator` | Codigo/referencia/valor/territorio validos, probe rows |
+| `check_dim_territory` | `dim_territory` | Município existe, distritos mínimos, geometria valida |
+| `check_fact_electorate` | `fact_electorate` | Não-negativo, referência e território preenchidos |
+| `check_fact_election_result` | `fact_election_result` | Não-negativo, referência e território preenchidos |
+| `check_fact_indicator` | `fact_indicator` | Codigo/referência/valor/território validos, probe rows |
 | `check_fact_indicator_source_rows` | `fact_indicator` | Min rows por fonte (15 fontes configuradas) |
 | `check_source_schema_contracts` | `ops.source_schema_contracts` | Cobertura ativa de contratos por conector implementado/partial |
-| `check_source_schema_drift` | `ops.source_schema_contracts` + catalogo PG | Drift de schema (tabela, colunas obrigatorias e tipos por conector) |
+| `check_source_schema_drift` | `ops.source_schema_contracts` + catálogo PG | Drift de schema (tabela, colunas obrigatorias e tipos por conector) |
 | `check_ops_pipeline_runs` | `ops.pipeline_runs` | Presenca de runs para 14 jobs implementados |
 
 ### 4.2 Thresholds
@@ -144,8 +144,8 @@ Configurados em `configs/quality_thresholds.yml`. Fontes com min_rows:
 ### 4.3 Interpretacao
 
 - `pass`: check dentro dos limites
-- `warn`: check abaixo do threshold mas nao critico
-- `fail`: requer acao corretiva â€” registrar em HANDOFF.md
+- `warn`: check abaixo do threshold mas não critico
+- `fail`: requer ação corretiva — registrar em HANDOFF.md
 
 ---
 
@@ -182,7 +182,7 @@ Criados em `db/sql/007_spatial_indexes.sql`:
 
 ---
 
-## 6) API â€” operacao
+## 6) API — operação
 
 ### 6.1 Iniciar servidor
 
@@ -213,7 +213,7 @@ Endpoints com cache: `/map/layers`, `/map/style-metadata`, `/kpis/*`, `/priority
 
 ---
 
-## 7) Frontend â€” build e deploy
+## 7) Frontend — build e deploy
 
 ### 7.1 Build
 
@@ -237,9 +237,9 @@ npm --prefix frontend run test   # 43 testes, 15 arquivos
 
 ---
 
-## 8) Validacao de go-live
+## 8) Validação de go-live
 
-### 8.1 Homologacao consolidada
+### 8.1 Homologação consolidada
 
 ```powershell
 python scripts/homologation_check.py
@@ -247,7 +247,7 @@ python scripts/homologation_check.py
 python scripts/homologation_check.py --json
 ```
 
-**5 dimensoes verificadas:**
+**5 dimensões verificadas:**
 
 1. Backend readiness (schema, SLO-1, ops tracking, PostGIS)
 2. Quality suite (ultimo run com status success)
@@ -309,7 +309,7 @@ python -m pytest tests/unit/test_qg_edge_cases.py -q
 npm --prefix frontend run test
 ```
 
-### 9.3 Regressao completa
+### 9.3 Regressão completa
 
 ```powershell
 # Backend + frontend + build
@@ -322,7 +322,7 @@ npm --prefix frontend run build
 
 ## 10) Troubleshooting
 
-### 10.1 API nao inicia
+### 10.1 API não inicia
 
 1. Verificar `DATABASE_URL` no `.env`
 2. Testar conexao: `psql $DATABASE_URL -c "SELECT 1;"`
@@ -341,11 +341,11 @@ npm --prefix frontend run build
 1. Verificar qual check falhou: `SELECT * FROM ops.pipeline_checks WHERE status='fail' ORDER BY created_at_utc DESC;`
 2. Verificar thresholds: `cat configs/quality_thresholds.yml`
 3. Recarregar dados da fonte problematica com `--force`
-4. Registrar acao corretiva em HANDOFF.md
+4. Registrar ação corretiva em HANDOFF.md
 
 ### 10.4 Frontend build falha
 
-1. Verificar versao do Node: `node --version` (requer 20+)
+1. Verificar versão do Node: `node --version` (requer 20+)
 2. Limpar cache: `rm -rf frontend/node_modules && npm --prefix frontend install`
 3. Verificar erros TypeScript: `npx --prefix frontend tsc --noEmit`
 
@@ -374,7 +374,7 @@ Pre-requisitos:
 2. PostgreSQL/PostGIS acessivel no `.env`.
 3. Schemas `silver` e `ops` inicializados.
 
-Execucao padrao:
+Execução padrão:
 
 ```powershell
 # Passo A - baseline de cobertura robusta
@@ -395,8 +395,8 @@ Passo opcional (onda social):
 
 Triagem:
 1. Critico: `hard_failure` no readiness ou qualquer check `fail`.
-2. Alto: `warn` recorrente por 2 semanas na mesma metrica.
-3. Medio: oscilacao pontual sem regressao estrutural.
+2. Alto: `warn` recorrente por 2 semanas na mesma métrica.
+3. Medio: oscilacao pontual sem regressão estrutural.
 
 Evidencias obrigatorias:
 1. `data/reports/robustness_backfill_report.json`
@@ -413,7 +413,7 @@ Fonte primaria:
    - `/pdet/microdados/NOVO CAGED`
    - `/pdet/microdados/NOVO_CAGED`
 
-Parametros `.env`:
+Parâmetros `.env`:
 1. `MTE_FTP_HOST` (default `ftp.mtps.gov.br`)
 2. `MTE_FTP_PORT` (default `21`)
 3. `MTE_FTP_ROOT_CANDIDATES`
@@ -423,7 +423,7 @@ Parametros `.env`:
 Cascata de fallback:
 1. Web probe -> FTP download -> Bronze cache -> manual (`data/manual/mte`) -> `blocked`.
 
-Execucao:
+Execução:
 
 ```powershell
 # Dry-run
@@ -447,7 +447,7 @@ Interpretacao rapida:
 1. TSE: discovery automatico via CKAN; fallback por Bronze cache quando necessario.
 2. Fontes MVP-5 (`INMET`, `INPE_QUEIMADAS`, `ANA`, `ANATEL`, `ANEEL`): monitorar `min_rows=1` e estabilidade dos runs apos deploy.
 
-### 11.4 Execucao dedicada BD-050 (historico ambiental multi-ano)
+### 11.4 Execução dedicada BD-050 (histórico ambiental multi-ano)
 
 Fluxo recomendado para D5:
 
@@ -459,17 +459,17 @@ Fluxo recomendado para D5:
 .\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json
 ```
 
-Leitura minima do relatorio `bd050_environment_history_report.json`:
-1. `summary.execution_status.success` deve cobrir os 3 jobs para todos os periodos.
+Leitura minima do relatório `bd050_environment_history_report.json`:
+1. `summary.execution_status.success` deve cobrir os 3 jobs para todos os períodos.
 2. `coverage` deve mostrar `distinct_periods` crescente por `INMET`, `INPE_QUEIMADAS` e `ANA`.
 3. Qualquer `manual_required` ou `blocked` deve abrir triagem imediata no runbook.
 
-### 11.5 BD-051 - agregacao ambiental territorial
+### 11.5 BD-051 - agregação ambiental territorial
 
 Objetivo operacional:
-1. garantir disponibilidade da agregacao de risco ambiental por `district` e `census_sector`.
+1. garantir disponibilidade da agregação de risco ambiental por `district` e `census_sector`.
 
-Validacao rapida:
+Validação rapida:
 
 ```powershell
 # Reaplicar SQL para garantir view atualizada
@@ -490,7 +490,7 @@ Checks de qualidade esperados no ultimo `quality_suite`:
 Objetivo operacional:
 1. garantir disponibilidade do mart Gold ambiental para consumo executivo em `/v1/environment/risk`.
 
-Validacao rapida:
+Validação rapida:
 
 ```powershell
 # Reaplicar SQL para garantir mart atualizado
@@ -510,61 +510,61 @@ Checks de qualidade esperados no ultimo `quality_suite`:
 ### 11.7 BD-080 - carga incremental + reprocessamento seletivo
 
 Objetivo operacional:
-1. evitar reprocessamento desnecessario por `job + reference_period` sem perder capacidade de atualizar periodos stale.
-2. permitir reprocessamento pontual de conectores/periodos com controle explicito.
+1. evitar reprocessamento desnecessario por `job + reference_period` sem perder capacidade de atualizar períodos stale.
+2. permitir reprocessamento pontual de conectores/períodos com controle explicito.
 
-Execucao recomendada:
+Execução recomendada:
 
 ```powershell
-# Incremental padrao (stale >= 168h), com dbt/quality pos-carga
+# Incremental padrão (stale >= 168h), com dbt/quality pós-carga
 .\.venv\Scripts\python.exe scripts/run_incremental_backfill.py --output-json data/reports/incremental_backfill_report.json
 
-# Reprocessamento seletivo por job e periodo
+# Reprocessamento seletivo por job e período
 .\.venv\Scripts\python.exe scripts/run_incremental_backfill.py --jobs sidra_indicators_fetch,senatran_fleet_fetch --reprocess-jobs sidra_indicators_fetch --reprocess-periods 2025 --output-json data/reports/incremental_backfill_report.json
 ```
 
-Leitura minima do relatorio:
+Leitura minima do relatório:
 1. `plan[*].execute` define o que foi executado vs skip por sucesso fresco.
 2. `summary.execution_status` deve ficar sem `failed` (ou sem status fora de `success`/`blocked` quando `--allow-blocked`).
-3. `summary.post_load_runs` confirma disparo de `dbt_build`/`quality_suite` por periodo com sucesso incremental.
+3. `summary.post_load_runs` confirma disparo de `dbt_build`/`quality_suite` por período com sucesso incremental.
 
-### 11.8 BD-082 - playbook de incidentes e operacao assistida
+### 11.8 BD-082 - playbook de incidentes e operação assistida
 
 Objetivo operacional:
-1. consolidar triagem unica de incidente com severidade e acoes recomendadas.
+1. consolidar triagem unica de incidente com severidade e ações recomendadas.
 2. reduzir tempo de resposta em falhas de pipeline/qualidade/readiness.
 
-Execucao recomendada:
+Execução recomendada:
 
 ```powershell
 # Snapshot unico para triagem operacional
 .\.venv\Scripts\python.exe scripts/generate_incident_snapshot.py --output-json data/reports/incident_snapshot.json
 ```
 
-Leitura minima do relatorio `incident_snapshot.json`:
+Leitura minima do relatório `incident_snapshot.json`:
 1. `severity` deve orientar o modo de resposta (`critical`, `high`, `normal`).
 2. `summary` concentra volume de `hard_failures`, `warnings`, `failed_runs`, `failed_checks`.
-3. `recommended_actions` define o plano minimo de mitigacao antes do proximo ciclo de carga.
+3. `recommended_actions` define o plano mínimo de mitigacao antes do próximo ciclo de carga.
 
-### 11.9 Consolidacao operacional de 30 dias (fechamento pos-D8)
+### 11.9 Consolidação operacional de 30 dias (fechamento pós-D8)
 
 Objetivo operacional:
 1. avaliar o fechamento formal da janela de 30 dias com gates objetivos de robustez.
 2. consolidar em um unico artefato: readiness + quality + scorecard + incidente.
 
-Execucao recomendada:
+Execução recomendada:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json
 ```
 
-Leitura minima do relatorio `ops_robustness_window_30d.json`:
+Leitura minima do relatório `ops_robustness_window_30d.json`:
 1. `status` precisa estar em `READY` para fechamento formal da janela.
 2. `gates.all_pass` deve estar `true` (com `strict=true`, inclui `slo_1_window_target` e ausencia de warnings).
 3. `quality_no_unresolved_failed_checks_window` deve estar `pass`.
 4. `readiness.hard_failures` deve estar zerado.
-5. `incident_window.failed_checks` e `incident_window.failed_runs` sao contexto historico; triagem operacional usa `unresolved_failed_checks_window` e `unresolved_failed_runs_window`.
-6. `warnings_summary.actionable` deve estar `0`; warnings historicos de SLO com janela de saude estavel ficam em `warnings_summary.informational`.
+5. `incident_window.failed_checks` e `incident_window.failed_runs` sao contexto histórico; triagem operacional usa `unresolved_failed_checks_window` e `unresolved_failed_runs_window`.
+6. `warnings_summary.actionable` deve estar `0`; warnings históricos de SLO com janela de saude estavel ficam em `warnings_summary.informational`.
 
 ## 12) Procedimento de deploy
 

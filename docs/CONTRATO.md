@@ -60,7 +60,7 @@ Regras obrigatorias:
    - checksum SHA256
    - manifesto correspondente em `data/manifests/...`
 4. Retries nunca podem sobrescrever arquivos Bronze existentes.
-5. `dry_run=True` nao pode escrever em Bronze nem banco.
+5. `dry_run=True` não pode escrever em Bronze nem banco.
 
 Retencao e salvaguardas:
 1. Retencao minima conforme `BRONZE_RETENTION_DAYS`.
@@ -77,7 +77,7 @@ Silver:
 - `silver.fact_electorate`
 - `silver.fact_election_result`
 
-Gold (executivo minimo):
+Gold (executivo mínimo):
 - `gold.mart_priority_drivers`
 
 Ops:
@@ -300,7 +300,7 @@ O sistema é considerado finalizado quando:
 | Homologação consolidada | `scripts/homologation_check.py` | 5 dimensões: backend readiness, quality suite, frontend build, test suites, API smoke |
 | Benchmark de performance | `scripts/benchmark_api.py` | p50/p95/p99 em 12 endpoints executivos, alvo p95 ≤ 800ms |
 | Backend readiness | `scripts/backend_readiness.py` | Schema, SLO-1, ops tracking, PostGIS |
-| Quality suite | `src/pipelines/quality_suite.py` | Suite de checks de qualidade por dominio (territorial, eleitoral, indicadores por fonte, urbano, ambiental, contratos de schema e operacao) |
+| Quality suite | `src/pipelines/quality_suite.py` | Suite de checks de qualidade por domínio (territorial, eleitoral, indicadores por fonte, urbano, ambiental, contratos de schema e operação) |
 
 ## 13) Governança documental
 
@@ -312,12 +312,12 @@ O sistema é considerado finalizado quando:
 
 ## 14) Meta oficial de robustez maxima da base de dados
 
-Fonte executavel desta meta:
+Fonte executável desta meta:
 - `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`
 
-Criterios obrigatorios para declarar "base no nivel maximo":
+Critérios obrigatorios para declarar "base no nível máximo":
 1. 100% das fontes priorizadas no backlog em status `implemented`.
-2. Historico minimo de 5 anos por dominio quando a fonte disponibilizar.
+2. Histórico mínimo de 5 anos por domínio quando a fonte disponibilizar.
 3. Cobertura territorial:
    - `municipality`: 100% dos fatos principais.
    - `district`: >= 80% dos indicadores elegiveis.
@@ -325,8 +325,8 @@ Criterios obrigatorios para declarar "base no nivel maximo":
    - `electoral_zone`: 100% para eleitorado e resultados.
 4. Qualidade:
    - `quality_suite` sem `fail` por 30 dias corridos.
-5. Operacao:
-   - zero dependencia manual recorrente para execucao.
+5. Operação:
+   - zero dependencia manual recorrente para execução.
 6. Geoespacial:
    - camadas territoriais e urbanas essenciais operacionais para consumo em mapa.
 
