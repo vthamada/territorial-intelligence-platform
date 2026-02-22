@@ -397,6 +397,68 @@ class _OpsReadinessSession:
         raise AssertionError(f"Unexpected SQL in readiness test: {sql}")
 
 
+class _OpsRobustnessWindowSession:
+    def __init__(self, *, historical_success_runs: int = 10, failed_checks_last_window: int = 0) -> None:
+        self.last_params: dict[str, Any] | None = None
+        self.params_history: list[dict[str, Any]] = []
+        self.historical_success_runs = historical_success_runs
+        self.failed_checks_last_window = failed_checks_last_window
+
+    def execute(self, *_args: Any, **_kwargs: Any) -> _CountResult | _RowsResult:
+        params = _kwargs.get("params")
+        if params is None and len(_args) >= 2 and isinstance(_args[1], dict):
+            params = _args[1]
+        if isinstance(params, dict):
+            self.last_params = params
+            self.params_history.append(dict(params))
+
+        sql = str(_args[0]).lower() if _args else ""
+
+        if "from pg_extension" in sql:
+            return _CountResult("3.5.2")
+        if "from information_schema.tables" in sql:
+            return _RowsResult(
+                [
+                    ("silver", "dim_territory"),
+                    ("silver", "fact_indicator"),
+                    ("silver", "fact_electorate"),
+                    ("silver", "fact_election_result"),
+                    ("ops", "pipeline_runs"),
+                    ("ops", "pipeline_checks"),
+                    ("ops", "connector_registry"),
+                ]
+            )
+        if "from ops.connector_registry" in sql and "group by status::text" in sql:
+            return _RowsResult([("implemented", 22)])
+        if (
+            "from ops.connector_registry" in sql
+            and "select connector_name" in sql
+            and "where status = 'implemented'" in sql
+            and "order by connector_name" in sql
+        ):
+            return _RowsResult([("sidra_indicators_fetch",)])
+        if "where pr.started_at_utc >= now() - make_interval(days => :window_days)" in sql and "group by pr.job_name" in sql:
+            if params and params.get("window_days") == 7:
+                return _RowsResult([("sidra_indicators_fetch", 3, 3)])
+            return _RowsResult([("sidra_indicators_fetch", 10, self.historical_success_runs)])
+        if "count(*)" in sql and "join implemented i on i.connector_name = pr.job_name" in sql and "join ops.pipeline_checks pc" not in sql:
+            return _CountResult(10)
+        if "count(distinct pr.run_id)" in sql:
+            return _CountResult(10)
+        if "left join ops.pipeline_checks pc on pc.run_id = pr.run_id" in sql:
+            return _RowsResult([])
+        if "from silver.fact_indicator" in sql and "source_probe" in sql:
+            return _RowsResult([])
+        if "from ops.v_data_coverage_scorecard" in sql:
+            return _RowsResult([("pass", 28), ("warn", 3)])
+        if "from ops.pipeline_runs" in sql and "group by status::text" in sql:
+            return _RowsResult([("success", 10), ("blocked", 1)])
+        if "from ops.pipeline_checks" in sql and "and status = 'fail'" in sql:
+            return _CountResult(self.failed_checks_last_window)
+
+        raise AssertionError(f"Unexpected SQL in robustness-window test: {sql}")
+
+
 class _FrontendEventsIngestSession:
     def __init__(self) -> None:
         self.last_params: dict[str, Any] | None = None
@@ -471,6 +533,10 @@ def _source_coverage_db() -> Generator[_OpsSourceCoverageSession, None, None]:
 
 def _readiness_db() -> Generator[_OpsReadinessSession, None, None]:
     yield _OpsReadinessSession()
+
+
+def _robustness_window_db() -> Generator[_OpsRobustnessWindowSession, None, None]:
+    yield _OpsRobustnessWindowSession()
 
 
 def _frontend_events_ingest_db() -> Generator[_FrontendEventsIngestSession, None, None]:
@@ -921,6 +987,42 @@ def test_ops_readiness_endpoint_accepts_custom_windows_and_strict_mode() -> None
     assert payload["strict"] is True
     assert any(item.get("window_days") == 14 for item in session.params_history)
     assert any(item.get("window_days") == 2 for item in session.params_history)
+    app.dependency_overrides.clear()
+
+
+def test_ops_robustness_window_endpoint_returns_consolidated_snapshot() -> None:
+    app.dependency_overrides[get_db] = _robustness_window_db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/ops/robustness-window")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "READY"
+    assert payload["window_days"] == 30
+    assert payload["health_window_days"] == 7
+    assert payload["gates"]["all_pass"] is True
+    assert payload["incident_window"]["failed_checks"] == 0
+    assert payload["scorecard_status_counts"]["pass"] == 28
+    app.dependency_overrides.clear()
+
+
+def test_ops_robustness_window_endpoint_strict_mode_rejects_warnings() -> None:
+    session = _OpsRobustnessWindowSession(historical_success_runs=8, failed_checks_last_window=0)
+
+    def _db() -> Generator[_OpsRobustnessWindowSession, None, None]:
+        yield session
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/ops/robustness-window?strict=true")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "NOT_READY"
+    assert payload["gates"]["warnings_absent"]["pass"] is False
+    assert "warnings_absent" in payload["gates"]["required_for_status"]
     app.dependency_overrides.clear()
 
 

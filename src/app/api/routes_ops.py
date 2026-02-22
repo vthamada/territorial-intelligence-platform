@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.api.utils import normalize_pagination
+from app.ops_robustness_window import build_ops_robustness_window_report
 from app.ops_readiness import build_backend_readiness_report
 from app.schemas.responses import PaginatedResponse
 
@@ -892,6 +893,25 @@ def get_ops_readiness(
         "strict": strict,
         **report,
     }
+
+
+@router.get("/robustness-window")
+def get_ops_robustness_window(
+    window_days: int = Query(default=30, ge=1),
+    health_window_days: int = Query(default=7, ge=1),
+    slo1_target_pct: float = Query(default=95.0, ge=0, le=100),
+    include_blocked_as_success: bool = Query(default=False),
+    strict: bool = Query(default=False),
+    db: Session = Depends(get_db),  # noqa: B008
+) -> dict[str, Any]:
+    return build_ops_robustness_window_report(
+        db,
+        window_days=window_days,
+        health_window_days=health_window_days,
+        slo1_target_pct=slo1_target_pct,
+        include_blocked_as_success=include_blocked_as_success,
+        strict=strict,
+    )
 
 
 @router.get("/sla")

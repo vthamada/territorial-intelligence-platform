@@ -2,6 +2,29 @@
 
 Todas as mudancas relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-22 - Consolidacao operacional 30d publicada (pos-D8)
+
+### Added
+- novo modulo `src/app/ops_robustness_window.py` com consolidacao unica da janela operacional:
+  - readiness por janela;
+  - scorecard de cobertura por status;
+  - incidente agregado (`failed_runs`, `blocked_runs`, `failed_checks`);
+  - gates formais para fechamento (`slo_1_window_target`, `readiness_no_hard_failures`, `quality_no_failed_checks_window`, `scorecard_no_fail_metrics`, `warnings_absent`).
+- novo endpoint `GET /v1/ops/robustness-window`.
+- novo script `scripts/export_ops_robustness_window.py` para gerar `data/reports/ops_robustness_window_30d.json`.
+- nova suite `tests/unit/test_ops_robustness_window.py`.
+
+### Changed
+- `tests/unit/test_ops_routes.py` ampliado com cenarios do endpoint `/v1/ops/robustness-window`.
+- `docs/CONTRATO.md` atualizado com o endpoint operacional de consolidacao por janela.
+- `docs/OPERATIONS_RUNBOOK.md` ampliado com secao `11.9` para rotina de fechamento operacional de 30 dias.
+- `docs/PLANO_IMPLEMENTACAO_QG.md` e `docs/HANDOFF.md` atualizados para refletir operacao recorrente da janela 30d como proximo passo imediato.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_robustness_window.py tests/unit/test_ops_routes.py -q -p no:cacheprovider` -> `29 passed`.
+- `.\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --help` -> `OK`.
+- `.\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --output-json data/reports/ops_robustness_window_30d.json` -> `status=NOT_READY`, `severity=critical`, `all_pass=False`.
+
 ## 2026-02-22 - D8 BD-082 implementado (playbook de incidentes e operacao assistida)
 
 ### Added

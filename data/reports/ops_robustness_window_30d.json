@@ -1,0 +1,511 @@
+{
+  "generated_at_utc": "2026-02-22T20:15:31.713102+00:00",
+  "status": "NOT_READY",
+  "strict": false,
+  "window_days": 30,
+  "health_window_days": 7,
+  "slo1_target_pct": 95.0,
+  "include_blocked_as_success": false,
+  "severity": "critical",
+  "gates": {
+    "slo_1_window_target": {
+      "pass": false,
+      "value": 90.68,
+      "target": 95.0
+    },
+    "readiness_no_hard_failures": {
+      "pass": true,
+      "value": 0,
+      "target": 0
+    },
+    "quality_no_failed_checks_window": {
+      "pass": false,
+      "value": 31,
+      "target": 0
+    },
+    "scorecard_no_fail_metrics": {
+      "pass": true,
+      "value": 0,
+      "target": 0
+    },
+    "warnings_absent": {
+      "pass": false,
+      "value": 1,
+      "target": 0
+    },
+    "all_pass": false,
+    "required_for_status": [
+      "slo_1_window_target",
+      "readiness_no_hard_failures",
+      "quality_no_failed_checks_window",
+      "scorecard_no_fail_metrics"
+    ]
+  },
+  "scorecard_status_counts": {
+    "pass": 28,
+    "warn": 4
+  },
+  "incident_window": {
+    "window_days": 30,
+    "runs_total": 249,
+    "runs_by_status": {
+      "blocked": 14,
+      "failed": 12,
+      "success": 223
+    },
+    "failed_runs": 12,
+    "blocked_runs": 14,
+    "failed_checks": 31
+  },
+  "recommended_actions": [
+    "Executar reprocessamento seletivo para jobs com status failed.",
+    "Corrigir checks com status fail antes do proximo ciclo operacional."
+  ],
+  "readiness": {
+    "generated_at_utc": "2026-02-22T20:15:30.179519Z",
+    "window_days": 30,
+    "postgis": {
+      "installed": true,
+      "version": "3.6.1"
+    },
+    "required_tables": {
+      "required": [
+        {
+          "schema": "silver",
+          "table": "dim_territory"
+        },
+        {
+          "schema": "silver",
+          "table": "fact_indicator"
+        },
+        {
+          "schema": "silver",
+          "table": "fact_electorate"
+        },
+        {
+          "schema": "silver",
+          "table": "fact_election_result"
+        },
+        {
+          "schema": "ops",
+          "table": "pipeline_runs"
+        },
+        {
+          "schema": "ops",
+          "table": "pipeline_checks"
+        },
+        {
+          "schema": "ops",
+          "table": "connector_registry"
+        }
+      ],
+      "found_count": 7,
+      "missing": []
+    },
+    "connector_registry": {
+      "total": 27,
+      "by_status": {
+        "implemented": 25,
+        "partial": 2
+      },
+      "implemented_jobs": [
+        "ana_hydrology_fetch",
+        "anatel_connectivity_fetch",
+        "aneel_energy_fetch",
+        "dbt_build",
+        "education_inep_fetch",
+        "finance_siconfi_fetch",
+        "health_datasus_fetch",
+        "ibge_admin_fetch",
+        "ibge_geometries_fetch",
+        "ibge_indicators_fetch",
+        "inmet_climate_fetch",
+        "inpe_queimadas_fetch",
+        "labor_mte_fetch",
+        "quality_suite",
+        "sejusp_public_safety_fetch",
+        "senatran_fleet_fetch",
+        "sidra_indicators_fetch",
+        "siops_health_finance_fetch",
+        "snis_sanitation_fetch",
+        "tse_catalog_discovery",
+        "tse_electorate_fetch",
+        "tse_results_fetch",
+        "urban_pois_fetch",
+        "urban_roads_fetch",
+        "urban_transport_fetch"
+      ]
+    },
+    "slo1": {
+      "window_days": 30,
+      "target_pct": 95.0,
+      "include_blocked_as_success": false,
+      "total_runs": 236,
+      "successful_runs": 214,
+      "success_rate_pct": 90.68,
+      "meets_target": false,
+      "below_target_jobs": [
+        "aneel_energy_fetch",
+        "dbt_build",
+        "ibge_admin_fetch",
+        "ibge_geometries_fetch",
+        "inmet_climate_fetch",
+        "inpe_queimadas_fetch",
+        "labor_mte_fetch",
+        "quality_suite",
+        "sejusp_public_safety_fetch",
+        "senatran_fleet_fetch",
+        "siops_health_finance_fetch",
+        "snis_sanitation_fetch"
+      ],
+      "items": [
+        {
+          "job_name": "ana_hydrology_fetch",
+          "total_runs": 10,
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "anatel_connectivity_fetch",
+          "total_runs": 10,
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "aneel_energy_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "dbt_build",
+          "total_runs": 10,
+          "successful_runs": 4,
+          "success_rate_pct": 40.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "education_inep_fetch",
+          "total_runs": 3,
+          "successful_runs": 3,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "finance_siconfi_fetch",
+          "total_runs": 3,
+          "successful_runs": 3,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "health_datasus_fetch",
+          "total_runs": 3,
+          "successful_runs": 3,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "ibge_admin_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "ibge_geometries_fetch",
+          "total_runs": 6,
+          "successful_runs": 4,
+          "success_rate_pct": 66.67,
+          "meets_target": false
+        },
+        {
+          "job_name": "ibge_indicators_fetch",
+          "total_runs": 3,
+          "successful_runs": 3,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "inmet_climate_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "inpe_queimadas_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "labor_mte_fetch",
+          "total_runs": 11,
+          "successful_runs": 8,
+          "success_rate_pct": 72.73,
+          "meets_target": false
+        },
+        {
+          "job_name": "quality_suite",
+          "total_runs": 37,
+          "successful_runs": 34,
+          "success_rate_pct": 91.89,
+          "meets_target": false
+        },
+        {
+          "job_name": "sejusp_public_safety_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "senatran_fleet_fetch",
+          "total_runs": 15,
+          "successful_runs": 14,
+          "success_rate_pct": 93.33,
+          "meets_target": false
+        },
+        {
+          "job_name": "sidra_indicators_fetch",
+          "total_runs": 10,
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "siops_health_finance_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "snis_sanitation_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "tse_catalog_discovery",
+          "total_runs": 14,
+          "successful_runs": 14,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "tse_electorate_fetch",
+          "total_runs": 14,
+          "successful_runs": 14,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "tse_results_fetch",
+          "total_runs": 14,
+          "successful_runs": 14,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "urban_pois_fetch",
+          "total_runs": 1,
+          "successful_runs": 1,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "urban_roads_fetch",
+          "total_runs": 1,
+          "successful_runs": 1,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "urban_transport_fetch",
+          "total_runs": 1,
+          "successful_runs": 1,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        }
+      ]
+    },
+    "slo1_current": {
+      "window_days": 7,
+      "target_pct": 95.0,
+      "include_blocked_as_success": false,
+      "total_runs": 171,
+      "successful_runs": 162,
+      "success_rate_pct": 94.74,
+      "meets_target": false,
+      "below_target_jobs": [
+        "aneel_energy_fetch",
+        "inmet_climate_fetch",
+        "inpe_queimadas_fetch",
+        "quality_suite",
+        "sejusp_public_safety_fetch",
+        "senatran_fleet_fetch",
+        "siops_health_finance_fetch",
+        "snis_sanitation_fetch"
+      ],
+      "items": [
+        {
+          "job_name": "ana_hydrology_fetch",
+          "total_runs": 10,
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "anatel_connectivity_fetch",
+          "total_runs": 10,
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "aneel_energy_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "ibge_admin_fetch",
+          "total_runs": 2,
+          "successful_runs": 2,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "ibge_geometries_fetch",
+          "total_runs": 2,
+          "successful_runs": 2,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "inmet_climate_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "inpe_queimadas_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "quality_suite",
+          "total_runs": 26,
+          "successful_runs": 24,
+          "success_rate_pct": 92.31,
+          "meets_target": false
+        },
+        {
+          "job_name": "sejusp_public_safety_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "senatran_fleet_fetch",
+          "total_runs": 15,
+          "successful_runs": 14,
+          "success_rate_pct": 93.33,
+          "meets_target": false
+        },
+        {
+          "job_name": "sidra_indicators_fetch",
+          "total_runs": 10,
+          "successful_runs": 10,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "siops_health_finance_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "snis_sanitation_fetch",
+          "total_runs": 10,
+          "successful_runs": 9,
+          "success_rate_pct": 90.0,
+          "meets_target": false
+        },
+        {
+          "job_name": "tse_catalog_discovery",
+          "total_runs": 11,
+          "successful_runs": 11,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "tse_electorate_fetch",
+          "total_runs": 11,
+          "successful_runs": 11,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "tse_results_fetch",
+          "total_runs": 11,
+          "successful_runs": 11,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "urban_pois_fetch",
+          "total_runs": 1,
+          "successful_runs": 1,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "urban_roads_fetch",
+          "total_runs": 1,
+          "successful_runs": 1,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
+          "job_name": "urban_transport_fetch",
+          "total_runs": 1,
+          "successful_runs": 1,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        }
+      ],
+      "window_role": "current_health"
+    },
+    "slo3": {
+      "window_days": 30,
+      "total_runs": 236,
+      "runs_with_checks": 236,
+      "runs_missing_checks": 0,
+      "meets_target": true,
+      "sample_missing_run_ids": []
+    },
+    "source_probe": {
+      "total_rows": 0,
+      "by_source": {}
+    },
+    "hard_failures": [],
+    "warnings": [
+      "SLO-1 below target: 90.68% < 95.0% (last 30d, current 94.74% in 7d)."
+    ]
+  }
+}

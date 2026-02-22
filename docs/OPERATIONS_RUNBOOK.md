@@ -545,6 +545,24 @@ Leitura minima do relatorio `incident_snapshot.json`:
 1. `severity` deve orientar o modo de resposta (`critical`, `high`, `normal`).
 2. `summary` concentra volume de `hard_failures`, `warnings`, `failed_runs`, `failed_checks`.
 3. `recommended_actions` define o plano minimo de mitigacao antes do proximo ciclo de carga.
+
+### 11.9 Consolidacao operacional de 30 dias (fechamento pos-D8)
+
+Objetivo operacional:
+1. avaliar o fechamento formal da janela de 30 dias com gates objetivos de robustez.
+2. consolidar em um unico artefato: readiness + quality + scorecard + incidente.
+
+Execucao recomendada:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json
+```
+
+Leitura minima do relatorio `ops_robustness_window_30d.json`:
+1. `status` precisa estar em `READY` para fechamento formal da janela.
+2. `gates.all_pass` deve estar `true` (ou com `strict=true`, incluindo ausencia de warnings).
+3. `incident_window.failed_checks` e `readiness.hard_failures` devem estar zerados.
+
 ## 12) Procedimento de deploy
 
 ### 12.1 Pre-deploy checklist

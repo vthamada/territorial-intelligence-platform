@@ -21,7 +21,7 @@ Escopo: plano executavel para consolidar QG estrategico em producao com dados re
    - executar itens de `D6` em sequencia (`BD-060` -> `BD-061` -> `BD-062`);
    - registrar evidencias de cada item em `HANDOFF` e `CHANGELOG` antes de avancar.
 4. Proximo passo imediato:
-   - consolidar janela operacional de 30 dias (SLOs + readiness + incident snapshot) para fechamento formal do nivel maximo.
+   - operar e acompanhar a janela de 30 dias com artefato unico (`/v1/ops/robustness-window` e `scripts/export_ops_robustness_window.py`) ate fechamento formal do nivel maximo.
 5. Fonte unica de sequencia de execucao:
    - este arquivo (secoes `0`, `5` e `9`).
    - `docs/HANDOFF.md` registra apenas estado corrente e proximo passo imediato da mesma trilha.

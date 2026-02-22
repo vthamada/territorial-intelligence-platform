@@ -38,12 +38,28 @@ Contrato tecnico principal: `CONTRATO.md`
    - scorecard de cobertura sem regressao critica;
    - evidencias registradas no proprio `HANDOFF` e em `docs/CHANGELOG.md`.
 5. Proximo passo imediato:
-   - consolidar janela de 30 dias com SLO/readiness/incident snapshot para fechamento formal do nivel maximo.
+   - executar rotina recorrente da janela de 30 dias com `scripts/export_ops_robustness_window.py` ate estabilizar `status=READY` com `gates.all_pass=true`.
 6. Governanca de issue:
    - ao concluir item tecnico, encerrar issue correspondente no GitHub na mesma rodada.
 7. Regra de leitura:
    - apenas esta secao define "proximo passo executavel" no momento;
    - secoes de "proximos passos" antigas abaixo devem ser lidas como historico.
+
+## Atualizacao tecnica (2026-02-22) - Consolidacao operacional 30d publicada (pos-D8)
+
+1. Consolidacao unica de robustez operacional publicada:
+   - novo modulo `src/app/ops_robustness_window.py` para agregar readiness + scorecard + incidentes da janela.
+   - novo endpoint `GET /v1/ops/robustness-window` com default operacional `window_days=30` e `health_window_days=7`.
+2. Evidencia versionavel da janela:
+   - novo script `scripts/export_ops_robustness_window.py` com saida padrao em `data/reports/ops_robustness_window_30d.json`.
+3. Cobertura de testes:
+   - nova suite `tests/unit/test_ops_robustness_window.py`.
+   - `tests/unit/test_ops_routes.py` ampliado para o endpoint `/v1/ops/robustness-window`.
+4. Validacao executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_robustness_window.py tests/unit/test_ops_routes.py -q -p no:cacheprovider` -> `29 passed`.
+   - `.\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --output-json data/reports/ops_robustness_window_30d.json` -> `status=NOT_READY`, `severity=critical`, `all_pass=False` (janela ainda em consolidacao).
+5. Proximo passo operacional:
+   - reduzir `failed_checks` e estabilizar execucao para convergir a janela de 30 dias para `READY`.
 
 ## Atualizacao tecnica (2026-02-22) - D8 BD-082 implementado (playbook de incidentes e operacao assistida)
 
