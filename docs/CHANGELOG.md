@@ -285,7 +285,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - inferencia de `target_table`/`dataset`;
   - normalizacao de colunas obrigatorias/opcionais/tipos/constraints;
   - geracao de registros de contrato versionado.
-- novo script `scripts/sync_schema_contracts.py` para sincronizacao idempotente de contratos no banco.
+- novo script `scripts/sync_schema_contracts.py` para sincronização idempotente de contratos no banco.
 - nova suite unit `tests/unit/test_schema_contracts.py`.
 
 ### Changed
@@ -416,7 +416,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `gh issue close 17 --repo vthamada/territorial-intelligence-platform`
   - `gh issue edit 18 --repo vthamada/territorial-intelligence-platform --add-label status:active --remove-label status:blocked`
 
-## 2026-02-21 - D5 BD-050 implementado (historico INMET/INPE/ANA multi-ano)
+## 2026-02-21 - D5 BD-050 implementado (histórico INMET/INPE/ANA multi-ano)
 
 ### Added
 - novo script operacional `scripts/backfill_environment_history.py` para executar `BD-050` em fluxo unico:
@@ -458,7 +458,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ### Added
 - endpoint executivo `GET /v1/mobility/access` em `src/app/api/routes_qg.py` com:
   - filtro por `period`, `level` e `limit`;
-  - fallback de periodo para ultimo `reference_period` disponivel;
+  - fallback de período para último `reference_period` disponível;
   - resposta tipada com metadata + itens de deficit de mobilidade por territorio.
 - novos contratos de schema em `src/app/schemas/qg.py`:
   - `MobilityAccessItem`
@@ -472,7 +472,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ### Changed
 - `db/sql/011_mobility_access_mart.sql` endurecido para robustez de calculo:
   - eliminacao de sobrecontagem por join multiplo (agregacoes separadas por dominio: vias, pontos de transporte e POIs);
-  - vinculo de populacao por periodo do SENATRAN com fallback controlado para ultima populacao disponivel;
+  - vínculo de população por período do SENATRAN com fallback controlado para última população disponível;
   - casts explicitos para `ROUND(..., 2)` compativeis com Postgres;
   - score de acesso e deficit com tipagem consistente (`double precision`).
 - `src/app/api/cache_middleware.py` atualizado para cachear `GET /v1/mobility/access` (`max-age=300`).
@@ -560,7 +560,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ### Changed (backend)
 -- `src/app/db.py` ajustado para cache por `database_url` (string hashável), removendo falha estrutural `unhashable type: 'Settings'` em execuções reais dos conectores.
 -- `src/pipelines/senatran_fleet.py` evoluído para suporte histórico mais robusto:
-  - descoberta automatica de CSVs SENATRAN por ano na pagina oficial (`frota-de-veiculos-{ano}`);
+  - descoberta automática de CSVs SENATRAN por ano na página oficial (`frota-de-veiculos-{ano}`);
   - render de URI com placeholders `{reference_period}` e `{year}`;
   - filtro de seguranca para evitar uso de URI remota com ano divergente do `reference_period`;
   - priorizacao de fallback manual por ano no nome do arquivo;
@@ -569,11 +569,11 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `configs/senatran_fleet_catalog.yml` passa a operar como complemento opcional da descoberta automatica.
 
 ### Changed (testes)
-- `tests/unit/test_db_cache.py` adicionado para validar cache de engine/session factory sem depender de objeto `Settings` hashavel.
+- `tests/unit/test_db_cache.py` adicionado para validar cache de engine/session factory sem depender de objeto `Settings` hashável.
 - `tests/unit/test_onda_a_connectors.py` ampliado com cobertura SENATRAN:
   - descoberta de links CSV por ano;
   - priorizacao e bloqueio de fallback manual por ano;
-  - parse de CSV com preambulo e milhares por virgula;
+  - parse de CSV com preâmbulo e milhares por vírgula;
   - resolucao de dataset remoto via descoberta com catalogo vazio.
 
 ### Verified
@@ -593,13 +593,13 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
 ### Changed (estado operacional)
 - `docs/HANDOFF.md` atualizado para espelhar exatamente a mesma trilha e remover ambiguidade de proxima fase:
-  - proximo passo imediato consolidado em acao unica (execucao do pacote de gate);
-  - criterio de saida e bloqueio explicito de `D4..D8` ate fechamento do gate.
+  - próximo passo imediato consolidado em ação única (execução do pacote de gate);
+  - critério de saída e bloqueio explícito de `D4..D8` até fechamento do gate.
 
 ### Notes
-- Objetivo do ajuste: eliminar bifurcacao de execucao ("ou fase A/ou fase B") e manter fila unica com criterio objetivo de encerramento.
+-- Objetivo do ajuste: eliminar bifurcação de execução ("ou fase A/ou fase B") e manter fila única com critério objetivo de encerramento.
 
-### Verified (execucao do gate em 2026-02-21)
+### Verified (execução do gate em 2026-02-21)
 - Backend:
   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
