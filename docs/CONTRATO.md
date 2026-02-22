@@ -148,6 +148,7 @@ Endpoints operacionais:
 - `GET /v1/ops/source-coverage` — cobertura por fonte com rows, runs, status
 - `GET /v1/ops/readiness` — diagnóstico de prontidão operacional
 - `GET /v1/ops/robustness-window` — consolidação operacional por janela (gates de SLO/readiness/quality)
+- `GET /v1/ops/robustness-history` — histórico paginado de snapshots de robustez operacional
 - `POST /v1/ops/frontend-events` — ingestão de telemetria frontend
 - `GET /v1/ops/frontend-events` — consulta de eventos frontend
 

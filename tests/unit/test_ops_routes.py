@@ -488,6 +488,48 @@ class _OpsRobustnessWindowSession:
         raise AssertionError(f"Unexpected SQL in robustness-window test: {sql}")
 
 
+class _OpsRobustnessHistorySession:
+    def __init__(self) -> None:
+        self._execute_calls = 0
+        self.last_params: dict[str, Any] | None = None
+
+    def execute(self, *_args: Any, **_kwargs: Any) -> _CountResult | _RowsResult:
+        params = _kwargs.get("params")
+        if params is None and len(_args) >= 2 and isinstance(_args[1], dict):
+            params = _args[1]
+        if isinstance(params, dict):
+            self.last_params = params
+        self._execute_calls += 1
+        if self._execute_calls == 1:
+            return _CountResult(1)
+        return _RowsResult(
+            [
+                {
+                    "snapshot_id": 7,
+                    "generated_at_utc": datetime(2026, 2, 22, 20, 31, tzinfo=UTC),
+                    "window_days": 30,
+                    "health_window_days": 7,
+                    "slo1_target_pct": 95.0,
+                    "include_blocked_as_success": True,
+                    "strict": False,
+                    "status": "READY",
+                    "severity": "normal",
+                    "gates_all_pass": True,
+                    "payload": {
+                        "warnings_summary": {
+                            "total": 1,
+                            "actionable": 0,
+                            "informational": 1,
+                        },
+                        "gates": {
+                            "all_pass": True,
+                        },
+                    },
+                }
+            ]
+        )
+
+
 class _FrontendEventsIngestSession:
     def __init__(self) -> None:
         self.last_params: dict[str, Any] | None = None
@@ -566,6 +608,10 @@ def _readiness_db() -> Generator[_OpsReadinessSession, None, None]:
 
 def _robustness_window_db() -> Generator[_OpsRobustnessWindowSession, None, None]:
     yield _OpsRobustnessWindowSession()
+
+
+def _robustness_history_db() -> Generator[_OpsRobustnessHistorySession, None, None]:
+    yield _OpsRobustnessHistorySession()
 
 
 def _frontend_events_ingest_db() -> Generator[_FrontendEventsIngestSession, None, None]:
@@ -1081,6 +1127,55 @@ def test_ops_robustness_window_endpoint_marks_not_ready_with_unresolved_failed_c
     assert payload["status"] == "NOT_READY"
     assert payload["gates"]["quality_no_unresolved_failed_checks_window"]["pass"] is False
     assert payload["unresolved_failed_checks_window"]["total"] == 3
+    app.dependency_overrides.clear()
+
+
+def test_ops_robustness_history_endpoint_returns_paginated_payload() -> None:
+    app.dependency_overrides[get_db] = _robustness_history_db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/ops/robustness-history?page=1&page_size=20")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["page"] == 1
+    assert payload["page_size"] == 20
+    assert payload["total"] == 1
+    assert len(payload["items"]) == 1
+    assert payload["items"][0]["snapshot_id"] == 7
+    assert payload["items"][0]["status"] == "READY"
+    assert payload["items"][0]["warnings_summary"]["actionable"] == 0
+    assert payload["items"][0]["gates"]["all_pass"] is True
+    app.dependency_overrides.clear()
+
+
+def test_ops_robustness_history_endpoint_accepts_filters() -> None:
+    session = _OpsRobustnessHistorySession()
+
+    def _db() -> Generator[_OpsRobustnessHistorySession, None, None]:
+        yield session
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get(
+        "/v1/ops/robustness-history"
+        "?window_days=30"
+        "&strict=false"
+        "&status=READY"
+        "&severity=normal"
+        "&generated_from=2026-02-01T00:00:00Z"
+        "&generated_to=2026-02-28T23:59:59Z"
+    )
+
+    assert response.status_code == 200
+    assert session.last_params is not None
+    assert session.last_params["window_days"] == 30
+    assert session.last_params["strict"] is False
+    assert session.last_params["status"] == "READY"
+    assert session.last_params["severity"] == "normal"
+    assert session.last_params["generated_from"] == datetime(2026, 2, 1, 0, 0, tzinfo=UTC)
+    assert session.last_params["generated_to"] == datetime(2026, 2, 28, 23, 59, 59, tzinfo=UTC)
     app.dependency_overrides.clear()
 
 

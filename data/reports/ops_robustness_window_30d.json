@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-02-22T20:39:29.804497+00:00",
+  "generated_at_utc": "2026-02-22T21:14:41.152101+00:00",
   "status": "READY",
   "strict": false,
   "window_days": 30,
@@ -86,7 +86,7 @@
     "Manter monitoramento padrao e registrar consolidacao semanal."
   ],
   "readiness": {
-    "generated_at_utc": "2026-02-22T20:39:28.366911Z",
+    "generated_at_utc": "2026-02-22T21:14:39.583316Z",
     "window_days": 30,
     "postgis": {
       "installed": true,

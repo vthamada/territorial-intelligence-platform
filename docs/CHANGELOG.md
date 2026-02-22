@@ -2,6 +2,28 @@
 
 Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-22 - Persistência histórica de robustez operacional (pós-D8)
+
+### Added
+- nova migration `db/sql/018_ops_robustness_snapshots.sql` com:
+  - tabela `ops.robustness_window_snapshots`;
+  - índices `idx_robustness_snapshots_generated` e `idx_robustness_snapshots_filters`;
+  - view `ops.v_robustness_window_snapshot_latest`.
+- novo script `scripts/persist_ops_robustness_window.py` para:
+  - gerar o consolidado de robustez;
+  - persistir snapshot no banco;
+  - salvar artefato JSON em `data/reports/`.
+- novo endpoint `GET /v1/ops/robustness-history` com paginação e filtros por janela/status/severidade.
+
+### Changed
+- `docs/CONTRATO.md` atualizado com o endpoint `/v1/ops/robustness-history`.
+- `docs/OPERATIONS_RUNBOOK.md` atualizado com rotina de persistência e acompanhamento de tendência do histórico.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_routes.py tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `44 passed`.
+- `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 20 SQL scripts`.
+- `.\.venv\Scripts\python.exe scripts/persist_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `snapshot_id=1`, `status=READY`, `severity=normal`, `all_pass=True`.
+
 ## 2026-02-22 - Warning residual tratado (severidade 30d normalizada)
 
 ### Changed

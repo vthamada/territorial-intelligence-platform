@@ -556,6 +556,9 @@ Execução recomendada:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json
+
+# Persistência no banco + artefato JSON
+.\.venv\Scripts\python.exe scripts/persist_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json
 ```
 
 Leitura minima do relatório `ops_robustness_window_30d.json`:
@@ -565,6 +568,7 @@ Leitura minima do relatório `ops_robustness_window_30d.json`:
 4. `readiness.hard_failures` deve estar zerado.
 5. `incident_window.failed_checks` e `incident_window.failed_runs` sao contexto histórico; triagem operacional usa `unresolved_failed_checks_window` e `unresolved_failed_runs_window`.
 6. `warnings_summary.actionable` deve estar `0`; warnings históricos de SLO com janela de saude estavel ficam em `warnings_summary.informational`.
+7. acompanhar tendência pelo endpoint `GET /v1/ops/robustness-history` (filtro por janela/status/severidade).
 
 ## 12) Procedimento de deploy
 

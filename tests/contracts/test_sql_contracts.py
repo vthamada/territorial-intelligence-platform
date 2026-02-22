@@ -151,3 +151,13 @@ def test_d8_performance_tuning_sql_has_required_objects() -> None:
     assert "idx_urban_road_segment_name_trgm" in tuning_sql
     assert "idx_urban_poi_name_trgm" in tuning_sql
     assert "idx_urban_transport_stop_name_trgm" in tuning_sql
+
+
+def test_ops_robustness_snapshots_sql_has_required_objects() -> None:
+    snapshots_sql = Path("db/sql/018_ops_robustness_snapshots.sql").read_text(encoding="utf-8")
+    assert "CREATE TABLE IF NOT EXISTS ops.robustness_window_snapshots" in snapshots_sql
+    assert "idx_robustness_snapshots_generated" in snapshots_sql
+    assert "idx_robustness_snapshots_filters" in snapshots_sql
+    assert "CREATE OR REPLACE VIEW ops.v_robustness_window_snapshot_latest AS" in snapshots_sql
+    assert "gates_all_pass BOOLEAN NOT NULL" in snapshots_sql
+    assert "payload JSONB NOT NULL" in snapshots_sql

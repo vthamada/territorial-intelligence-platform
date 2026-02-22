@@ -38,7 +38,7 @@ Contrato técnico principal: `CONTRATO.md`
    - scorecard de cobertura sem regressão critica;
    - evidencias registradas no proprio `HANDOFF` e em `docs/CHANGELOG.md`.
 5. Próximo passo imediato:
-   - manter rotina recorrente da janela de 30 dias com `scripts/export_ops_robustness_window.py` e acompanhar drift para manter `status=READY`, `severity=normal` e `gates.all_pass=true`.
+   - manter rotina recorrente da janela de 30 dias com persistência de snapshots (`scripts/persist_ops_robustness_window.py`) e acompanhar drift para manter `status=READY`, `severity=normal` e `gates.all_pass=true`.
 6. Governança de issue:
    - ao concluir item técnico, encerrar issue correspondente no GitHub na mesma rodada.
 7. Regra de leitura:
@@ -59,6 +59,22 @@ Contrato técnico principal: `CONTRATO.md`
 4. Estado atual da consolidação:
    - janela operacional 30d: `READY`;
    - warning histórico de SLO (30d) classificado como `informational` no consolidado, sem impacto de severidade.
+
+## Atualização técnica (2026-02-22) - Histórico de robustez operacional persistido
+
+1. Persistência de snapshots no banco:
+   - nova migration `db/sql/018_ops_robustness_snapshots.sql` com:
+     - tabela `ops.robustness_window_snapshots`;
+     - índices de consulta por tempo/filtros;
+     - view `ops.v_robustness_window_snapshot_latest`.
+2. Script operacional de persistência:
+   - novo `scripts/persist_ops_robustness_window.py` para gerar relatório e gravar snapshot no banco.
+3. API operacional de histórico:
+   - novo endpoint `GET /v1/ops/robustness-history` com filtros por janela/status/severidade e paginação.
+4. Validação executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_routes.py tests/contracts/test_sql_contracts.py -q -p no:cacheprovider` -> `44 passed`.
+   - `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 20 SQL scripts`.
+   - `.\.venv\Scripts\python.exe scripts/persist_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `snapshot_id=1`, `status=READY`, `severity=normal`, `all_pass=True`.
 
 ## Atualizacao técnica (2026-02-22) - Consolidação operacional 30d publicada (pós-D8)
 

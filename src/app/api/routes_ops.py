@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from typing import Any
 
@@ -911,6 +912,97 @@ def get_ops_robustness_window(
         slo1_target_pct=slo1_target_pct,
         include_blocked_as_success=include_blocked_as_success,
         strict=strict,
+    )
+
+
+@router.get("/robustness-history", response_model=PaginatedResponse)
+def get_ops_robustness_history(
+    window_days: int | None = Query(default=None, ge=1),
+    strict: bool | None = Query(default=None),
+    status: str | None = Query(default=None, pattern="^(READY|NOT_READY)$"),
+    severity: str | None = Query(default=None, pattern="^(critical|high|normal)$"),
+    generated_from: datetime | None = Query(default=None),  # noqa: B008
+    generated_to: datetime | None = Query(default=None),  # noqa: B008
+    page: int = Query(default=1),
+    page_size: int = Query(default=50),
+    db: Session = Depends(get_db),  # noqa: B008
+) -> PaginatedResponse:
+    page, page_size, offset = normalize_pagination(page, page_size)
+    params = {
+        "window_days": window_days,
+        "strict": strict,
+        "status": status,
+        "severity": severity,
+        "generated_from": generated_from,
+        "generated_to": generated_to,
+        "limit": page_size,
+        "offset": offset,
+    }
+
+    total = db.execute(
+        text(
+            """
+            SELECT COUNT(*)
+            FROM ops.robustness_window_snapshots s
+            WHERE (CAST(:window_days AS INTEGER) IS NULL OR s.window_days = CAST(:window_days AS INTEGER))
+              AND (CAST(:strict AS BOOLEAN) IS NULL OR s.strict = CAST(:strict AS BOOLEAN))
+              AND (CAST(:status AS TEXT) IS NULL OR s.status = CAST(:status AS TEXT))
+              AND (CAST(:severity AS TEXT) IS NULL OR s.severity = CAST(:severity AS TEXT))
+              AND (CAST(:generated_from AS TIMESTAMPTZ) IS NULL OR s.generated_at_utc >= CAST(:generated_from AS TIMESTAMPTZ))
+              AND (CAST(:generated_to AS TIMESTAMPTZ) IS NULL OR s.generated_at_utc <= CAST(:generated_to AS TIMESTAMPTZ))
+            """
+        ),
+        params,
+    ).scalar_one()
+
+    rows = db.execute(
+        text(
+            """
+            SELECT
+                s.snapshot_id,
+                s.generated_at_utc,
+                s.window_days,
+                s.health_window_days,
+                s.slo1_target_pct,
+                s.include_blocked_as_success,
+                s.strict,
+                s.status,
+                s.severity,
+                s.gates_all_pass,
+                s.payload
+            FROM ops.robustness_window_snapshots s
+            WHERE (CAST(:window_days AS INTEGER) IS NULL OR s.window_days = CAST(:window_days AS INTEGER))
+              AND (CAST(:strict AS BOOLEAN) IS NULL OR s.strict = CAST(:strict AS BOOLEAN))
+              AND (CAST(:status AS TEXT) IS NULL OR s.status = CAST(:status AS TEXT))
+              AND (CAST(:severity AS TEXT) IS NULL OR s.severity = CAST(:severity AS TEXT))
+              AND (CAST(:generated_from AS TIMESTAMPTZ) IS NULL OR s.generated_at_utc >= CAST(:generated_from AS TIMESTAMPTZ))
+              AND (CAST(:generated_to AS TIMESTAMPTZ) IS NULL OR s.generated_at_utc <= CAST(:generated_to AS TIMESTAMPTZ))
+            ORDER BY s.generated_at_utc DESC, s.snapshot_id DESC
+            LIMIT :limit OFFSET :offset
+            """
+        ),
+        params,
+    ).mappings().all()
+
+    items: list[dict[str, Any]] = []
+    for row in rows:
+        item = dict(row)
+        payload = item.get("payload") or {}
+        if isinstance(payload, str):
+            try:
+                payload = json.loads(payload)
+            except Exception:
+                payload = {}
+        item["payload"] = payload
+        item["warnings_summary"] = payload.get("warnings_summary", {})
+        item["gates"] = payload.get("gates", {})
+        items.append(item)
+
+    return PaginatedResponse(
+        page=page,
+        page_size=page_size,
+        total=total,
+        items=items,
     )
 
 
