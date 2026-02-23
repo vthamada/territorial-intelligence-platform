@@ -2,7 +2,145 @@
 
 Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
-## 2026-02-23 - Historico de robustez com drift entre snapshots
+## 2026-02-22 - Homologação operacional P1 (benchmark mapa + frontend-events)
+
+### Changed
+- `src/app/api/routes_ops.py` ajustado no `POST /v1/ops/frontend-events` para robustez de persistência e compatibilidade de teste:
+  - serialização de `attributes` para JSON antes de `CAST(... AS JSONB)`;
+  - commit após insert para garantir consistência de leitura entre requisições;
+  - commit condicional (`callable`) para manter compatibilidade com sessões fake dos testes unitários.
+- artefato de benchmark urbano atualizado em `data/reports/benchmark_urban_map.json` com nova execução recorrente.
+
+### Verified
+- `\.\.venv\Scripts\python.exe scripts/benchmark_api.py --suite urban --rounds 30 --json-output data/reports/benchmark_urban_map.json` -> `ALL PASS`.
+  - `map/urban/roads` p95 `48.7ms`;
+  - `map/urban/pois` p95 `31.4ms`;
+  - `map/urban/nearby-pois` p95 `31.9ms`;
+  - `map/urban/geocode` p95 `34.7ms`.
+- prova ponta a ponta de observabilidade frontend:
+  - `POST /v1/ops/frontend-events` -> `202 accepted`;
+  - `GET /v1/ops/frontend-events` -> evento de probe recuperado (`matched_count=1`).
+- `\.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_routes.py -q -p no:cacheprovider` -> `30 passed`.
+
+## 2026-02-22 - P1 mapa (telemetria operacional de interação e erro)
+
+### Changed
+- `frontend/src/modules/qg/pages/QgMapPage.tsx` atualizado para emitir telemetria frontend dos eventos críticos de mapa:
+  - `map_zoom_changed` (alteração de zoom);
+  - `map_layer_changed` (mudança efetiva de camada);
+  - `map_mode_changed` (modo de visualização e mapa base);
+  - `map_tile_error` (falhas vetoriais com contexto de camada/nível).
+- `frontend/src/modules/qg/pages/QgPages.test.tsx` ampliado com regressão:
+  - `emits map telemetry for mode, zoom and layer changes`.
+
+### Verified
+- `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+
+## 2026-02-22 - Fechamento da rodada P0 (validação executiva conjunta)
+
+### Changed
+- rodada de fechamento P0 executada com validação conjunta das páginas executivas priorizadas:
+  - `QgMapPage` (camada eleitoral e estado sem `local_votacao`),
+  - `ElectorateExecutivePage` (fallback resiliente),
+  - `TerritoryProfilePage` (estado `empty` para highlights ausentes).
+- documentação de estado consolidada para transição da próxima rodada sem abertura de frente paralela.
+
+### Verified
+- `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx src/modules/electorate/pages/ElectorateExecutivePage.test.tsx src/modules/territory/pages/TerritoryProfilePage.test.tsx` -> `31 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+
+## 2026-02-22 - P0 ciclo completo (Eleitorado: fallback resiliente)
+
+### Changed
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` endurecido para separar erro de fallback do erro principal:
+  - falha de fallback não derruba a tela quando o ano selecionado já retorna dados válidos;
+  - fallback só gera erro bloqueante quando o recorte solicitado está sem dados e o fallback também falha.
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` ampliado com regressões:
+  - `does not break when fallback queries fail but selected year has data`;
+  - `shows fallback error when selected year has no data and fallback fails`.
+
+### Verified
+- `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx src/modules/territory/pages/TerritoryProfilePage.test.tsx` -> `8 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+
+## 2026-02-22 - P0 continuidade (Território 360: estado empty de destaques)
+
+### Changed
+- `frontend/src/modules/territory/pages/TerritoryProfilePage.tsx` atualizado para explicitar estado `empty` quando `profile.highlights` estiver vazio:
+  - título: `Sem destaques no recorte`;
+  - mensagem: orientação contextual sem interromper o restante do perfil 360.
+- `frontend/src/modules/territory/pages/TerritoryProfilePage.test.tsx` ampliado com regressão:
+  - `shows empty highlights state when profile has no highlights`.
+
+### Verified
+- `npm --prefix frontend run test -- --run src/modules/territory/pages/TerritoryProfilePage.test.tsx src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `6 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+
+## 2026-02-22 - P0 iniciado no mapa executivo (estado contextual sem local_votacao)
+
+### Changed
+- `frontend/src/modules/qg/pages/QgMapPage.tsx` atualizado para explicitar estado contextual quando o nível `secao_eleitoral` estiver ativo e a camada `territory_polling_place` não estiver disponível no manifesto:
+  - mensagem dedicada de continuidade operacional sem quebrar fluxo;
+  - manutenção explícita da referência por seção eleitoral quando aplicável.
+- `frontend/src/modules/qg/pages/QgPages.test.tsx` ampliado com regressão:
+  - `shows contextual guidance when local_votacao layer is unavailable`.
+
+### Verified
+- `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `23 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+
+## 2026-02-22 - Monitoramento operacional recorrente (estabilidade mantida)
+
+### Changed
+- ciclo leve de monitoramento executado para manter rastreabilidade da janela operacional:
+  - `scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
+  - `scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=29`, `warn=3`.
+  - `scripts/export_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `status=READY`, `severity=normal`, `all_pass=True`.
+  - `scripts/persist_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `snapshot_id=4`, `status=READY`, `severity=normal`, `all_pass=True`.
+
+### Verified
+- `\.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `warnings=0`.
+- `\.\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `status=READY`, `all_pass=True`.
+
+## 2026-02-22 - Recuperação operacional de SLO-1 (warning removido)
+
+### Changed
+- ciclo adicional executado para recuperar taxa agregada de sucesso na janela operacional:
+  - `quality_suite(reference_period='2025', dry_run=False)` executado com `status=success`, `failed_checks=0`.
+  - `dbt_build(reference_period='2025', dry_run=False)` reexecutado com `8` runs de sucesso (`build_mode=sql_direct`).
+- evidências operacionais atualizadas após recuperação:
+  - `scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
+  - `slo1` (7d) convergiu para `95.03%` (`172/181`) e passou o alvo de `95%`.
+  - `data/reports/data_coverage_scorecard.json` -> `pass=29`, `warn=3`.
+  - `scripts/export_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `status=READY`, `severity=normal`, `all_pass=True`.
+  - `scripts/persist_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `snapshot_id=3`, `status=READY`, `severity=normal`, `all_pass=True`.
+
+### Verified
+- `\.\.venv\Scripts\python.exe -c "from pipelines.quality_suite import run; import json; print(json.dumps(run(reference_period='2025', dry_run=False), ensure_ascii=False, default=str))"` -> `status=success`, `failed_checks=0`.
+- `\.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `warnings=0`.
+
+## 2026-02-22 - Rodada de consolidação operacional (janela 30d + gates técnicos)
+
+### Changed
+- consolidado operacional de 30 dias reexecutado com persistência de novo snapshot:
+  - `scripts/export_ops_robustness_window.py` -> `status=READY`, `severity=normal`, `all_pass=True`.
+  - `scripts/persist_ops_robustness_window.py` -> `snapshot_id=2`, `status=READY`, `severity=normal`, `all_pass=True`.
+- histórico operacional revalidado em `GET /v1/ops/robustness-history`:
+  - `total=2` snapshots.
+  - snapshot mais recente com `drift.status_transition=baseline` e sem deltas acionáveis.
+  - snapshot anterior com `drift.status_transition=stable`, `drift.severity_transition=stable`, `delta_* = 0`.
+- evidências de cobertura e readiness atualizadas:
+  - `data/reports/data_coverage_scorecard.json` -> `pass=28`, `warn=4`.
+  - `scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=1` (SLO-1 abaixo da meta na janela de 7 dias).
+
+### Verified
+- `\.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q -p no:cacheprovider` -> `33 passed`.
+- `\.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q -p no:cacheprovider` -> `29 passed`.
+- `npm --prefix frontend run test -- --run` -> `78 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+
+## 2026-02-22 - Historico de robustez com drift entre snapshots
 
 ### Changed
 - `GET /v1/ops/robustness-history` agora retorna `drift` por snapshot com:

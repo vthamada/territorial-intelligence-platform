@@ -212,4 +212,51 @@ describe("TerritoryProfilePage", () => {
     expect(screen.getByLabelText("Territorio base")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Aplicar filtros" })).toBeInTheDocument();
   });
+
+  it("shows empty highlights state when profile has no highlights", async () => {
+    vi.mocked(getTerritoryProfile).mockResolvedValueOnce({
+      territory_id: "3121605",
+      territory_name: "Diamantina",
+      territory_level: "municipio",
+      period: "2025",
+      overall_score: 74.5,
+      overall_status: "attention",
+      overall_trend: "up",
+      metadata: {
+        source_name: "silver.fact_indicator",
+        updated_at: null,
+        coverage_note: "territorial_aggregated",
+        unit: null,
+        notes: null,
+      },
+      highlights: [],
+      domains: [
+        {
+          domain: "saude",
+          status: "stable",
+          score: null,
+          indicators_count: 1,
+          indicators: [
+            {
+              indicator_code: "DATASUS_APS_COBERTURA",
+              indicator_name: "Cobertura APS",
+              value: 77.5,
+              unit: "%",
+              reference_period: "2025",
+              status: "stable",
+            },
+          ],
+        },
+      ],
+    });
+
+    renderWithQueryClient(<TerritoryProfilePage />);
+
+    await waitFor(() => expect(getTerritories).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getTerritoryProfile).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("Sem destaques no recorte")).toBeInTheDocument();
+    expect(
+      screen.getByText("Nao ha destaques narrativos para o territorio e periodo selecionados."),
+    ).toBeInTheDocument();
+  });
 });

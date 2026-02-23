@@ -259,4 +259,256 @@ describe("ElectorateExecutivePage", () => {
     expect(screen.queryByText("Sem dados para o ano informado")).not.toBeInTheDocument();
     expect(screen.getByText("MASCULINO")).toBeInTheDocument();
   });
+
+  it("does not break when fallback queries fail but selected year has data", async () => {
+    let summaryUndefinedCalls = 0;
+    let mapUndefinedCalls = 0;
+
+    vi.mocked(getElectorateSummary).mockImplementation(async (params) => {
+      const year = params?.year;
+      if (year === 2022) {
+        return {
+          level: "municipio",
+          year: 2022,
+          metadata: {
+            source_name: "silver.fact_electorate",
+            updated_at: null,
+            coverage_note: "territorial_aggregated",
+            unit: "voters",
+            notes: null,
+          },
+          total_voters: 15000,
+          turnout: 11000,
+          turnout_rate: 73.3,
+          abstention_rate: 26.7,
+          blank_rate: 1.8,
+          null_rate: 2.2,
+          by_sex: [{ label: "MASCULINO", voters: 7200, share_percent: 48 }],
+          by_age: [],
+          by_education: [],
+        };
+      }
+
+      summaryUndefinedCalls += 1;
+      if (summaryUndefinedCalls >= 2) {
+        throw new Error("Fallback summary unavailable");
+      }
+
+      return {
+        level: "municipio",
+        year: 2024,
+        metadata: {
+          source_name: "silver.fact_electorate",
+          updated_at: null,
+          coverage_note: "territorial_aggregated",
+          unit: "voters",
+          notes: null,
+        },
+        total_voters: 12000,
+        turnout: 8000,
+        turnout_rate: 80,
+        abstention_rate: 20,
+        blank_rate: 2,
+        null_rate: 3,
+        by_sex: [{ label: "MASCULINO", voters: 5800, share_percent: 48.3 }],
+        by_age: [],
+        by_education: [],
+      };
+    });
+
+    vi.mocked(getElectorateMap).mockImplementation(async (params) => {
+      const year = params?.year;
+      const metric = (params?.metric ?? "voters") as "voters" | "turnout" | "abstention_rate" | "blank_rate" | "null_rate";
+      if (year === 2022) {
+        return {
+          level: "municipio",
+          metric,
+          year: 2022,
+          metadata: {
+            source_name: "silver.fact_electorate",
+            updated_at: null,
+            coverage_note: "territorial_aggregated",
+            unit: "voters",
+            notes: null,
+          },
+          items: [
+            {
+              territory_id: "3121605",
+              territory_name: "Diamantina",
+              territory_level: "municipio",
+              metric,
+              value: metric === "voters" ? 15000 : 26.7,
+              year: 2022,
+              geometry: null,
+            },
+          ],
+        };
+      }
+
+      mapUndefinedCalls += 1;
+      if (mapUndefinedCalls >= 2) {
+        throw new Error("Fallback map unavailable");
+      }
+
+      return {
+        level: "municipio",
+        metric,
+        year: 2024,
+        metadata: {
+          source_name: "silver.fact_electorate",
+          updated_at: null,
+          coverage_note: "territorial_aggregated",
+          unit: "voters",
+          notes: null,
+        },
+        items: [
+          {
+            territory_id: "3121605",
+            territory_name: "Diamantina",
+            territory_level: "municipio",
+            metric,
+            value: metric === "voters" ? 12000 : 20,
+            year: 2024,
+            geometry: null,
+          },
+        ],
+      };
+    });
+
+    renderWithQueryClient(<ElectorateExecutivePage />);
+
+    await waitFor(() => expect(getElectorateSummary).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getElectorateMap).toHaveBeenCalledTimes(1));
+
+    await userEvent.clear(screen.getByLabelText("Ano"));
+    await userEvent.type(screen.getByLabelText("Ano"), "2022");
+    await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+
+    await waitFor(() => {
+      expect(vi.mocked(getElectorateSummary).mock.calls).toContainEqual([
+        expect.objectContaining({ level: "municipality", year: 2022 }),
+      ]);
+    });
+
+    expect((await screen.findAllByText("2022")).length).toBeGreaterThan(0);
+    expect(screen.queryByText("Falha ao carregar fallback do eleitorado")).not.toBeInTheDocument();
+    expect(screen.getAllByText("15.000").length).toBeGreaterThan(0);
+  });
+
+  it("shows fallback error when selected year has no data and fallback fails", async () => {
+    let summaryUndefinedCalls = 0;
+    let mapUndefinedCalls = 0;
+
+    vi.mocked(getElectorateSummary).mockImplementation(async (params) => {
+      const year = params?.year;
+      if (year === 2022) {
+        return {
+          level: "municipio",
+          year: null,
+          metadata: {
+            source_name: "silver.fact_electorate",
+            updated_at: null,
+            coverage_note: "territorial_aggregated",
+            unit: "voters",
+            notes: null,
+          },
+          total_voters: 0,
+          turnout: 0,
+          turnout_rate: null,
+          abstention_rate: null,
+          blank_rate: null,
+          null_rate: null,
+          by_sex: [],
+          by_age: [],
+          by_education: [],
+        };
+      }
+
+      summaryUndefinedCalls += 1;
+      if (summaryUndefinedCalls >= 2) {
+        throw new Error("Fallback summary unavailable");
+      }
+
+      return {
+        level: "municipio",
+        year: 2024,
+        metadata: {
+          source_name: "silver.fact_electorate",
+          updated_at: null,
+          coverage_note: "territorial_aggregated",
+          unit: "voters",
+          notes: null,
+        },
+        total_voters: 12000,
+        turnout: 8000,
+        turnout_rate: 80,
+        abstention_rate: 20,
+        blank_rate: 2,
+        null_rate: 3,
+        by_sex: [{ label: "MASCULINO", voters: 5800, share_percent: 48.3 }],
+        by_age: [],
+        by_education: [],
+      };
+    });
+
+    vi.mocked(getElectorateMap).mockImplementation(async (params) => {
+      const year = params?.year;
+      const metric = (params?.metric ?? "voters") as "voters" | "turnout" | "abstention_rate" | "blank_rate" | "null_rate";
+      if (year === 2022) {
+        return {
+          level: "municipio",
+          metric,
+          year: null,
+          metadata: {
+            source_name: "silver.fact_electorate",
+            updated_at: null,
+            coverage_note: "territorial_aggregated",
+            unit: "voters",
+            notes: null,
+          },
+          items: [],
+        };
+      }
+
+      mapUndefinedCalls += 1;
+      if (mapUndefinedCalls >= 2) {
+        throw new Error("Fallback map unavailable");
+      }
+
+      return {
+        level: "municipio",
+        metric,
+        year: 2024,
+        metadata: {
+          source_name: "silver.fact_electorate",
+          updated_at: null,
+          coverage_note: "territorial_aggregated",
+          unit: "voters",
+          notes: null,
+        },
+        items: [
+          {
+            territory_id: "3121605",
+            territory_name: "Diamantina",
+            territory_level: "municipio",
+            metric,
+            value: metric === "voters" ? 12000 : 20,
+            year: 2024,
+            geometry: null,
+          },
+        ],
+      };
+    });
+
+    renderWithQueryClient(<ElectorateExecutivePage />);
+
+    await waitFor(() => expect(getElectorateSummary).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getElectorateMap).toHaveBeenCalledTimes(1));
+
+    await userEvent.clear(screen.getByLabelText("Ano"));
+    await userEvent.type(screen.getByLabelText("Ano"), "2022");
+    await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+
+    expect(await screen.findByText("Falha ao carregar fallback do eleitorado")).toBeInTheDocument();
+  });
 });

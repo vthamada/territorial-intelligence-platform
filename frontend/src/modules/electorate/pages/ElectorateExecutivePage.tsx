@@ -81,8 +81,7 @@ export function ElectorateExecutivePage() {
     summaryQuery.isPending ||
     mapQuery.isPending ||
     (appliedYear !== undefined && (fallbackSummaryQuery.isPending || fallbackMapQuery.isPending));
-  const fallbackError = appliedYear !== undefined ? fallbackSummaryQuery.error ?? fallbackMapQuery.error : null;
-  const firstError = summaryQuery.error ?? mapQuery.error ?? fallbackError;
+  const firstError = summaryQuery.error ?? mapQuery.error;
 
   function applyFilters() {
     const parsedYear = yearInput.trim() ? Number(yearInput) : undefined;
@@ -122,6 +121,24 @@ export function ElectorateExecutivePage() {
   const summary = summaryQuery.data!;
   const map = mapQuery.data!;
   const hasNoData = summary.year === null || (summary.total_voters === 0 && map.items.length === 0);
+  const fallbackError = hasNoData && appliedYear !== undefined ? fallbackSummaryQuery.error ?? fallbackMapQuery.error : null;
+  if (fallbackError) {
+    const { message, requestId } = formatApiError(fallbackError);
+    return (
+      <StateBlock
+        tone="error"
+        title="Falha ao carregar fallback do eleitorado"
+        message={message}
+        requestId={requestId}
+        onRetry={() => {
+          void summaryQuery.refetch();
+          void mapQuery.refetch();
+          void fallbackSummaryQuery.refetch();
+          void fallbackMapQuery.refetch();
+        }}
+      />
+    );
+  }
   const fallbackYear = fallbackSummaryQuery.data?.year ?? null;
   const hasFallbackData =
     Boolean(fallbackSummaryQuery.data?.year) &&

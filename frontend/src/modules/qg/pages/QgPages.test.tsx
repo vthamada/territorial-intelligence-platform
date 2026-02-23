@@ -1,12 +1,13 @@
 import type { ReactElement } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getChoropleth, getMapLayers, getMapLayersCoverage, getMapStyleMetadata, getTerritories } from "../../../shared/api/domain";
 import { ApiClientError } from "../../../shared/api/http";
 import { getInsightsHighlights, getKpisOverview, getPriorityList, getPrioritySummary, postBriefGenerate, postScenarioSimulate } from "../../../shared/api/qg";
+import { emitTelemetry } from "../../../shared/observability/telemetry";
 import { QgBriefsPage } from "./QgBriefsPage";
 import { QgInsightsPage } from "./QgInsightsPage";
 import { QgMapPage } from "./QgMapPage";
@@ -29,6 +30,10 @@ vi.mock("../../../shared/api/domain", () => ({
   getMapLayersCoverage: vi.fn(),
   getMapStyleMetadata: vi.fn(),
   getTerritories: vi.fn()
+}));
+
+vi.mock("../../../shared/observability/telemetry", () => ({
+  emitTelemetry: vi.fn(),
 }));
 
 function LocationSearchProbe() {
@@ -689,6 +694,37 @@ describe("QG pages", () => {
     ).toBeGreaterThan(0);
   });
 
+  it("shows contextual guidance when local_votacao layer is unavailable", async () => {
+    vi.mocked(getMapLayers).mockResolvedValueOnce({
+      generated_at_utc: "2026-02-13T18:20:00Z",
+      default_layer_id: "territory_electoral_section",
+      fallback_endpoint: "/v1/geo/choropleth",
+      items: [
+        {
+          id: "territory_electoral_section",
+          label: "Secoes eleitorais",
+          territory_level: "electoral_section",
+          is_official: false,
+          official_status: "proxy",
+          source: "silver.dim_territory",
+          default_visibility: true,
+          zoom_min: 12,
+          zoom_max: null,
+        },
+      ],
+    });
+
+    renderWithQueryClient(
+      <QgMapPage />,
+      ["/mapa?level=secao_eleitoral&metric=MTE_NOVO_CAGED_SALDO_TOTAL&period=2025"],
+    );
+
+    expect(
+      await screen.findByText(/Camada local_votacao indisponivel no manifesto atual/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("Camada eleitoral detalhada")).not.toBeInTheDocument();
+  });
+
   it("applies insights filters only on submit", async () => {
     renderWithQueryClient(<QgInsightsPage />);
     await waitFor(() => expect(getInsightsHighlights).toHaveBeenCalledTimes(1));
@@ -788,6 +824,26 @@ describe("QG pages", () => {
     expect(screen.getByRole("radio", { name: "Pontos" })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("button", { name: "Alternar para modo avancado" })).toBeInTheDocument();
     expect((screen.getByLabelText("Nivel de zoom do mapa") as HTMLInputElement).value).toBe("10");
+  });
+
+  it("emits map telemetry for mode, zoom and layer changes", async () => {
+    renderWithQueryClient(<QgMapPage />, ["/mapa?metric=MTE_NOVO_CAGED_SALDO_TOTAL&period=2025&level=municipio"]);
+
+    await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
+    await screen.findByRole("button", { name: /Exportar.*SVG/ });
+
+    await userEvent.click(screen.getByRole("radio", { name: "Heatmap" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Claro" }));
+    fireEvent.change(screen.getByLabelText("Nivel de zoom do mapa"), { target: { value: "9" } });
+    await userEvent.selectOptions(screen.getByLabelText("Nivel territorial"), "distrito");
+    await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+
+    await waitFor(() => {
+      const names = vi.mocked(emitTelemetry).mock.calls.map(([event]) => event.name);
+      expect(names).toContain("map_mode_changed");
+      expect(names).toContain("map_zoom_changed");
+      expect(names).toContain("map_layer_changed");
+    });
   });
 
   it("syncs map query params after applying filters and view controls", async () => {

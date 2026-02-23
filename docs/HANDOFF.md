@@ -1,6 +1,6 @@
 # Territorial Intelligence Platform - Handoff
 
-Data de referência: 2026-02-21
+Data de referência: 2026-02-22
 Planejamento principal: `docs/PLANO_IMPLEMENTACAO_QG.md`
 North star de produto: `docs/VISION.md`
 Contrato técnico principal: `CONTRATO.md`
@@ -45,7 +45,100 @@ Contrato técnico principal: `CONTRATO.md`
    - apenas esta secao define "próximo passo executável" no momento;
    - secoes de "próximos passos" antigas abaixo devem ser lidas como histórico.
 
-## Atualizacao tecnica (2026-02-23) - Drift operacional no historico de robustez
+## Atualizacao tecnica (2026-02-22) - Homologacao operacional do mapa concluida
+
+1. Homologação ponta a ponta da observabilidade do mapa executada com API local:
+  - benchmark recorrente do mapa urbano em `data/reports/benchmark_urban_map.json` com `ALL PASS`.
+  - latências p95 medidas: `roads=48.7ms`, `pois=31.4ms`, `nearby-pois=31.9ms`, `geocode=34.7ms` (alvo `<=1000ms`).
+2. Endpoint de eventos frontend validado em fluxo real:
+  - `POST /v1/ops/frontend-events` retornando `202 accepted` com `event_id`.
+  - `GET /v1/ops/frontend-events` retornando o evento de prova (`matched_count=1`).
+3. Ajuste backend aplicado para robustez de persistência em `src/app/api/routes_ops.py`:
+  - serialização de `attributes` para JSON antes de `JSONB`;
+  - commit após insert para consistência entre requisições;
+  - commit condicional para preservar compatibilidade com sessão fake de teste.
+4. Validacao executada:
+  - `\.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_routes.py -q -p no:cacheprovider` -> `30 passed`.
+5. Proximo passo imediato (WIP=1):
+  - manter cadência de benchmark urbano + leitura periódica de `/v1/ops/frontend-events` como rotina de monitoramento defensável, sem abrir nova frente de produto.
+
+## Atualizacao tecnica (2026-02-22) - P1 telemetria do mapa operacionalizada
+
+1. Telemetria frontend integrada ao `QgMapPage` para eventos críticos de observabilidade do mapa:
+  - `map_zoom_changed`;
+  - `map_layer_changed`;
+  - `map_mode_changed`;
+  - `map_tile_error`.
+2. Cobertura de regressão adicionada em `frontend/src/modules/qg/pages/QgPages.test.tsx`:
+  - `emits map telemetry for mode, zoom and layer changes`.
+3. Validacao executada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+4. Proximo passo imediato (WIP=1):
+  - fechar benchmark recorrente do mapa e consolidar evidência de leitura dos eventos em `/v1/ops/frontend-events` para homologação ponta a ponta defensável.
+
+## Atualizacao tecnica (2026-02-22) - Fechamento da rodada P0
+
+1. Validação conjunta das páginas executivas concluída:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx src/modules/electorate/pages/ElectorateExecutivePage.test.tsx src/modules/territory/pages/TerritoryProfilePage.test.tsx` -> `31 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+2. Escopo P0 consolidado na rodada:
+  - mapa executivo com orientação contextual para ausência de `local_votacao`;
+  - eleitorado com fallback resiliente;
+  - território 360 com estado `empty` explícito para highlights ausentes.
+3. Próximo passo imediato (WIP=1):
+  - manter monitoramento operacional recorrente e abrir próxima rodada apenas para refinamentos P1 (benchmark recorrente + cobertura de regressão expandida), sem abrir nova frente de produto.
+
+## Atualizacao tecnica (2026-02-22) - P0 ciclo completo no Eleitorado
+
+1. Resiliência de fallback implementada no `ElectorateExecutivePage`:
+  - falha de fallback não interrompe a experiência quando o ano solicitado retorna dados;
+  - erro de fallback torna-se bloqueante apenas quando o ano solicitado está sem dados e não há fallback utilizável.
+2. Regressões adicionadas:
+  - `does not break when fallback queries fail but selected year has data`;
+  - `shows fallback error when selected year has no data and fallback fails`.
+3. Validação executada:
+  - `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx src/modules/territory/pages/TerritoryProfilePage.test.tsx` -> `8 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+4. Próximo passo imediato (WIP=1):
+  - consolidar P0 final em `QgMapPage` + `ElectorateExecutivePage` + `TerritoryProfilePage` com uma rodada única de regressão de páginas executivas (`QgPages`, `ElectorateExecutivePage`, `TerritoryProfilePage`) e atualização documental de fechamento.
+
+## Atualizacao tecnica (2026-02-22) - P0 continuidade em Território 360
+
+1. Robustez de estado no painel de destaques do perfil territorial:
+  - `frontend/src/modules/territory/pages/TerritoryProfilePage.tsx` agora mostra `StateBlock` de `empty` quando `profile.highlights` estiver vazio, evitando painel sem contexto.
+2. Cobertura de regressão adicionada:
+  - `frontend/src/modules/territory/pages/TerritoryProfilePage.test.tsx` com cenário `shows empty highlights state when profile has no highlights`.
+3. Validacao executada:
+  - `npm --prefix frontend run test -- --run src/modules/territory/pages/TerritoryProfilePage.test.tsx src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `6 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+4. Próximo passo imediato (WIP=1):
+  - continuar P0 no `ElectorateExecutivePage` para endurecer estados de suporte (error/empty/fallback) e regressões associadas.
+
+## Atualizacao tecnica (2026-02-22) - P0 iniciado no mapa executivo
+
+1. Implementacao iniciada no frontend para robustez de estado em camada eleitoral:
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` agora exibe mensagem contextual quando `level=secao_eleitoral` e a camada `territory_polling_place` não está disponível no manifesto.
+2. Regressão adicionada:
+  - `frontend/src/modules/qg/pages/QgPages.test.tsx` com cenário `shows contextual guidance when local_votacao layer is unavailable`.
+3. Validacao executada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `23 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+
+## Checklist executável (1 dia) - próxima continuidade P0 (WIP=1)
+
+1. Camada eleitoral detalhada no mapa:
+  - consolidar estados `com local_votacao` vs `sem local_votacao` com mensagens objetivas e sem ambiguidade operacional.
+2. Legibilidade e transparência da camada ativa:
+  - manter visível `Classificacao da camada (official/proxy/hybrid)` e `hint` de método quando disponível.
+3. Estados de suporte nas telas executivas críticas:
+  - revisar `Mapa`, `Territorio 360` e `Eleitorado` para `loading/error/empty/data` com `StateBlock` consistente.
+4. Critérios de aceite da rodada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` em `pass`.
+  - `npm --prefix frontend run build` em `OK`.
+  - atualização de evidências em `docs/CHANGELOG.md` e `docs/HANDOFF.md`.
+
+## Atualizacao tecnica (2026-02-22) - Drift operacional no historico de robustez
 
 1. Endpoint `GET /v1/ops/robustness-history` evoluido com campo `drift` por snapshot.
 2. O `drift` agora traz:
@@ -58,6 +151,50 @@ Contrato técnico principal: `CONTRATO.md`
 4. Validacao executada:
    - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_routes.py -q -p no:cacheprovider` -> `30 passed`.
    - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_robustness_window.py -q -p no:cacheprovider` -> `4 passed`.
+
+## Atualizacao operacional (2026-02-22) - Monitoramento recorrente (estabilidade mantida)
+
+1. Checagem leve executada para manutenção do estado operacional:
+  - `\.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
+  - `\.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=29`, `warn=3`.
+  - `\.\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `status=READY`, `severity=normal`, `all_pass=True`.
+2. Persistencia de historico atualizada:
+  - `\.\.venv\Scripts\python.exe scripts/persist_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `snapshot_id=4`, `status=READY`, `severity=normal`, `all_pass=True`.
+3. Proximo passo imediato (WIP=1):
+  - manter cadencia recorrente de monitoramento sem abrir nova frente, preservando `READY/normal/all_pass` e `warnings=0`.
+
+## Atualizacao operacional (2026-02-22) - Rodada de consolidacao 30d e gates tecnicos
+
+1. Janela operacional de 30 dias revalidada com persistencia:
+  - `\.\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `status=READY`, `severity=normal`, `all_pass=True`.
+  - `\.\.venv\Scripts\python.exe scripts/persist_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `snapshot_id=2`, `status=READY`, `severity=normal`, `all_pass=True`.
+2. Historico de robustez consultado em `GET /v1/ops/robustness-history?page_size=5`:
+  - `total=2` snapshots;
+  - snapshot mais recente com `drift.status_transition=baseline`;
+  - snapshot anterior com `drift.status_transition=stable`, `drift.severity_transition=stable` e `drift.delta_* = 0`.
+3. Gates tecnicos da rodada executados:
+  - `\.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q -p no:cacheprovider` -> `33 passed`.
+  - `\.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q -p no:cacheprovider` -> `29 passed`.
+  - `npm --prefix frontend run test -- --run` -> `78 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+4. Evidencias operacionais atualizadas:
+  - `\.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=28`, `warn=4`.
+  - `\.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=1` (`SLO-1 7d=94.77%`, `current 1d=60.0%`).
+5. Proximo passo imediato (WIP=1):
+  - manter monitoramento recorrente da janela 30d e do `quality_suite`, preservando `status=READY`, `severity=normal` e `warnings=0` no readiness.
+
+## Atualizacao operacional (2026-02-22) - Recuperacao de SLO-1 concluida (warnings=0)
+
+1. Ciclo de recuperacao executado sem abrir nova frente:
+  - `\.\.venv\Scripts\python.exe -c "from pipelines.quality_suite import run; import json; print(json.dumps(run(reference_period='2025', dry_run=False), ensure_ascii=False, default=str))"` -> `status=success`, `failed_checks=0`.
+  - `dbt_build` reexecutado com `8` runs de sucesso (`build_mode=sql_direct`).
+2. Readiness operacional convergiu para estado sem warning:
+  - `\.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
+  - `slo1` (7d): `95.03%` (`172/181`), acima do alvo de `95%`.
+3. Evidencias atualizadas da rodada:
+  - `\.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=29`, `warn=3`.
+  - `\.\.venv\Scripts\python.exe scripts/export_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `status=READY`, `severity=normal`, `all_pass=True`.
+  - `\.\.venv\Scripts\python.exe scripts/persist_ops_robustness_window.py --window-days 30 --health-window-days 7 --output-json data/reports/ops_robustness_window_30d.json` -> `snapshot_id=3`, `status=READY`, `severity=normal`, `all_pass=True`.
 
 ## Atualizacao técnica (2026-02-22) - Janela 30d em READY com gates consolidados
 

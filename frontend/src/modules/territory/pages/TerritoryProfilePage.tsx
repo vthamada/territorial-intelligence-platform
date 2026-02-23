@@ -394,16 +394,24 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
       </Panel>
 
       <Panel title={profile.territory_name} subtitle={`Nivel ${formatLevelLabel(profile.territory_level)} - evidencias por dominio`}>
-        <ul className="trend-list">
-          {profile.highlights.map((item) => (
-            <li key={item}>
-              <div>
-                <strong>Destaque</strong>
-                <p>{item}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
+        {profile.highlights.length === 0 ? (
+          <StateBlock
+            tone="empty"
+            title="Sem destaques no recorte"
+            message="Nao ha destaques narrativos para o territorio e periodo selecionados."
+          />
+        ) : (
+          <ul className="trend-list">
+            {profile.highlights.map((item) => (
+              <li key={item}>
+                <div>
+                  <strong>Destaque</strong>
+                  <p>{item}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </Panel>
 
       <Panel title="Pares recomendados" subtitle="Territorios similares para comparacao rapida">

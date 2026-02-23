@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-02-22T21:14:41.152101+00:00",
+  "generated_at_utc": "2026-02-23T01:06:22.113856+00:00",
   "status": "READY",
   "strict": false,
   "window_days": 30,
@@ -9,13 +9,13 @@
   "severity": "normal",
   "gates": {
     "slo_1_window_target": {
-      "pass": false,
-      "value": 94.94,
+      "pass": true,
+      "value": 95.12,
       "target": 95.0
     },
     "slo_1_health_window_target": {
       "pass": true,
-      "value": 98.84,
+      "value": 98.9,
       "target": 95.0,
       "window_days": 7
     },
@@ -48,16 +48,16 @@
     ]
   },
   "scorecard_status_counts": {
-    "pass": 28,
-    "warn": 4
+    "pass": 29,
+    "warn": 3
   },
   "incident_window": {
     "window_days": 30,
-    "runs_total": 250,
+    "runs_total": 259,
     "runs_by_status": {
       "blocked": 14,
       "failed": 12,
-      "success": 224
+      "success": 233
     },
     "failed_runs": 12,
     "blocked_runs": 14,
@@ -74,19 +74,17 @@
     "items": []
   },
   "warnings_summary": {
-    "total": 1,
+    "total": 0,
     "actionable": 0,
-    "informational": 1,
+    "informational": 0,
     "actionable_items": [],
-    "informational_items": [
-      "SLO-1 below target in historical window: 94.94% < 95.0% (last 30d), but current health window is stable (98.84% in last 7d)."
-    ]
+    "informational_items": []
   },
   "recommended_actions": [
     "Manter monitoramento padrao e registrar consolidacao semanal."
   ],
   "readiness": {
-    "generated_at_utc": "2026-02-22T21:14:39.583316Z",
+    "generated_at_utc": "2026-02-23T01:06:21.299312Z",
     "window_days": 30,
     "postgis": {
       "installed": true,
@@ -164,10 +162,10 @@
       "window_days": 30,
       "target_pct": 95.0,
       "include_blocked_as_success": true,
-      "total_runs": 237,
-      "successful_runs": 225,
-      "success_rate_pct": 94.94,
-      "meets_target": false,
+      "total_runs": 246,
+      "successful_runs": 234,
+      "success_rate_pct": 95.12,
+      "meets_target": true,
       "below_target_jobs": [
         "dbt_build",
         "ibge_admin_fetch",
@@ -198,9 +196,9 @@
         },
         {
           "job_name": "dbt_build",
-          "total_runs": 11,
-          "successful_runs": 5,
-          "success_rate_pct": 45.45,
+          "total_runs": 19,
+          "successful_runs": 13,
+          "success_rate_pct": 68.42,
           "meets_target": false
         },
         {
@@ -268,9 +266,9 @@
         },
         {
           "job_name": "quality_suite",
-          "total_runs": 37,
-          "successful_runs": 34,
-          "success_rate_pct": 91.89,
+          "total_runs": 38,
+          "successful_runs": 35,
+          "success_rate_pct": 92.11,
           "meets_target": false
         },
         {
@@ -356,9 +354,9 @@
       "window_days": 7,
       "target_pct": 95.0,
       "include_blocked_as_success": true,
-      "total_runs": 172,
-      "successful_runs": 170,
-      "success_rate_pct": 98.84,
+      "total_runs": 181,
+      "successful_runs": 179,
+      "success_rate_pct": 98.9,
       "meets_target": true,
       "below_target_jobs": [
         "quality_suite"
@@ -387,8 +385,8 @@
         },
         {
           "job_name": "dbt_build",
-          "total_runs": 1,
-          "successful_runs": 1,
+          "total_runs": 9,
+          "successful_runs": 9,
           "success_rate_pct": 100.0,
           "meets_target": true
         },
@@ -422,9 +420,9 @@
         },
         {
           "job_name": "quality_suite",
-          "total_runs": 26,
-          "successful_runs": 24,
-          "success_rate_pct": 92.31,
+          "total_runs": 27,
+          "successful_runs": 25,
+          "success_rate_pct": 92.59,
           "meets_target": false
         },
         {
@@ -509,8 +507,8 @@
     },
     "slo3": {
       "window_days": 30,
-      "total_runs": 237,
-      "runs_with_checks": 237,
+      "total_runs": 246,
+      "runs_with_checks": 246,
       "runs_missing_checks": 0,
       "meets_target": true,
       "sample_missing_run_ids": []
@@ -520,8 +518,6 @@
       "by_source": {}
     },
     "hard_failures": [],
-    "warnings": [
-      "SLO-1 below target in historical window: 94.94% < 95.0% (last 30d), but current health window is stable (98.84% in last 7d)."
-    ]
+    "warnings": []
   }
 }

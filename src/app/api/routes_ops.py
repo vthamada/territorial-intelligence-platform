@@ -234,12 +234,15 @@ def ingest_frontend_event(
             "category": payload.category,
             "name": payload.name,
             "severity": payload.severity,
-            "attributes": payload.attributes or {},
+            "attributes": json.dumps(payload.attributes or {}),
             "event_timestamp_utc": payload.timestamp_utc,
             "request_id": getattr(request.state, "request_id", None),
             "user_agent": request.headers.get("user-agent"),
         },
     ).scalar_one()
+    commit = getattr(db, "commit", None)
+    if callable(commit):
+        commit()
     return FrontendEventIngestResponse(status="accepted", event_id=int(event_id))
 
 

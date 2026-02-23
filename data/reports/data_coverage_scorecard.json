@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-02-22T17:52:10.951667+00:00",
+  "generated_at_utc": "2026-02-23T01:06:13.407878+00:00",
   "municipality_ibge_code": "3121605",
   "window_days": 7,
   "scorecard": {
@@ -79,11 +79,11 @@
       {
         "metric_group": "operations",
         "metric_name": "implemented_runs_success_pct_7d",
-        "observed_value": "94.74",
+        "observed_value": "95.03",
         "target_value": "95",
         "comparator": "gte",
         "unit": "pct",
-        "status": "warn"
+        "status": "pass"
       },
       {
         "metric_group": "priority_drivers",
@@ -294,8 +294,8 @@
       }
     ],
     "status_counts": {
-      "pass": 28,
-      "warn": 4
+      "pass": 29,
+      "warn": 3
     }
   },
   "indicator_source_period_coverage": [
@@ -606,7 +606,7 @@
     }
   ],
   "readiness": {
-    "generated_at_utc": "2026-02-22T17:52:10.938669Z",
+    "generated_at_utc": "2026-02-23T01:06:13.394052Z",
     "window_days": 7,
     "postgis": {
       "installed": true,
@@ -684,10 +684,10 @@
       "window_days": 7,
       "target_pct": 95.0,
       "include_blocked_as_success": false,
-      "total_runs": 171,
-      "successful_runs": 162,
-      "success_rate_pct": 94.74,
-      "meets_target": false,
+      "total_runs": 181,
+      "successful_runs": 172,
+      "success_rate_pct": 95.03,
+      "meets_target": true,
       "below_target_jobs": [
         "aneel_energy_fetch",
         "inmet_climate_fetch",
@@ -721,6 +721,13 @@
           "meets_target": false
         },
         {
+          "job_name": "dbt_build",
+          "total_runs": 9,
+          "successful_runs": 9,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
           "job_name": "ibge_admin_fetch",
           "total_runs": 2,
           "successful_runs": 2,
@@ -750,9 +757,9 @@
         },
         {
           "job_name": "quality_suite",
-          "total_runs": 26,
-          "successful_runs": 24,
-          "success_rate_pct": 92.31,
+          "total_runs": 27,
+          "successful_runs": 25,
+          "success_rate_pct": 92.59,
           "meets_target": false
         },
         {
@@ -838,19 +845,26 @@
       "window_days": 1,
       "target_pct": 95.0,
       "include_blocked_as_success": false,
-      "total_runs": 4,
-      "successful_runs": 2,
-      "success_rate_pct": 50.0,
+      "total_runs": 14,
+      "successful_runs": 12,
+      "success_rate_pct": 85.71,
       "meets_target": false,
       "below_target_jobs": [
         "quality_suite"
       ],
       "items": [
         {
+          "job_name": "dbt_build",
+          "total_runs": 9,
+          "successful_runs": 9,
+          "success_rate_pct": 100.0,
+          "meets_target": true
+        },
+        {
           "job_name": "quality_suite",
-          "total_runs": 4,
-          "successful_runs": 2,
-          "success_rate_pct": 50.0,
+          "total_runs": 5,
+          "successful_runs": 3,
+          "success_rate_pct": 60.0,
           "meets_target": false
         }
       ],
@@ -858,8 +872,8 @@
     },
     "slo3": {
       "window_days": 7,
-      "total_runs": 171,
-      "runs_with_checks": 171,
+      "total_runs": 181,
+      "runs_with_checks": 181,
       "runs_missing_checks": 0,
       "meets_target": true,
       "sample_missing_run_ids": []
@@ -869,8 +883,6 @@
       "by_source": {}
     },
     "hard_failures": [],
-    "warnings": [
-      "SLO-1 below target: 94.74% < 95.0% (last 7d, current 50.0% in 1d)."
-    ]
+    "warnings": []
   }
 }

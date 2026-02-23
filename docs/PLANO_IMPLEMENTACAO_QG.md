@@ -227,6 +227,16 @@ Entregar e estabilizar o QG estratégico municipal de Diamantina/MG, com:
    - ordem obrigatoria: `P0 -> P1 -> P2`;
    - sem abrir nova frente antes de concluir os itens de prioridade alta.
 
+Status da rodada (2026-02-22):
+1. Item 4 da prioridade alta concluido na homologação operacional do mapa:
+   - benchmark urbano `ALL PASS` em `data/reports/benchmark_urban_map.json`;
+   - prova ponta a ponta de observabilidade em `/v1/ops/frontend-events` com `POST 202` e leitura do evento no `GET`.
+2. Ajuste backend aplicado para suportar persistência consistente de eventos frontend:
+   - serialização de `attributes` para `JSONB`;
+   - commit defensivo após ingestão com compatibilidade para sessão fake de testes.
+3. Próximo passo imediato:
+   - manter cadência recorrente de benchmark + validação de leitura de eventos, sem abrir nova frente.
+
 ## 5.2 Prioridade media
 
 1. Revalidar desempenho das rotas executivas e de mapa com benchmark recorrente:

@@ -11,6 +11,7 @@ import { formatDecimal, formatLevelLabel, toNumber } from "../../../shared/ui/pr
 import { StateBlock } from "../../../shared/ui/StateBlock";
 import type { BasemapMode, VectorMapFeatureSelection, VizMode } from "../../../shared/ui/VectorMap";
 import { useFilterStore } from "../../../shared/stores/filterStore";
+import { emitTelemetry } from "../../../shared/observability/telemetry";
 
 const TILE_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:8000/v1";
 const BASEMAP_STREETS_URL =
@@ -389,6 +390,11 @@ export function QgMapPage() {
     initialScope === "territorial" ? initialLayerId : null,
   );
   const previousAppliedLevelRef = useRef(appliedLevel);
+  const previousZoomRef = useRef(initialZoom);
+  const previousVizModeRef = useRef(initialVizMode);
+  const previousBasemapRef = useRef(initialBasemap);
+  const previousLayerKeyRef = useRef<string>("");
+  const previousVectorErrorRef = useRef<string | null>(null);
 
   useEffect(() => {
     globalFilters.setZoom(initialZoom);
@@ -517,6 +523,18 @@ export function QgMapPage() {
     appliedMapScope === "territorial"
       ? layersCoverageQuery.data?.items.find((item) => item.territory_level === activeTerritoryLevel)
       : layersCoverageQuery.data?.items.find((item) => item.layer_id === selectedUrbanLayer.id);
+  const telemetryRecommendedLayer =
+    appliedMapScope === "urban"
+      ? selectedUrbanLayer
+      : levelScopedLayers.find((layerItem) => layerItem.default_visibility) ?? levelScopedLayers[0] ?? null;
+  const telemetryExplicitLayer =
+    appliedMapScope === "territorial" && selectedVectorLayerId
+      ? levelScopedLayers.find((layerItem) => layerItem.id === selectedVectorLayerId) ?? null
+      : null;
+  const telemetryEffectiveLayer =
+    appliedMapScope === "urban" ? selectedUrbanLayer : telemetryExplicitLayer ?? autoLayer ?? telemetryRecommendedLayer;
+  const telemetryEffectiveLayerId = telemetryEffectiveLayer?.id ?? "n/d";
+  const telemetryEffectiveLayerClassification = formatLayerClassificationLabel(telemetryEffectiveLayer);
 
   useEffect(() => {
     setVectorMapError(null);
@@ -604,6 +622,96 @@ export function QgMapPage() {
     setCurrentZoom(newZoom);
     globalFilters.setZoom(newZoom);
   }
+
+  useEffect(() => {
+    if (previousZoomRef.current === currentZoom) {
+      return;
+    }
+    emitTelemetry({
+      category: "performance",
+      name: "map_zoom_changed",
+      severity: "info",
+      attributes: {
+        zoom: currentZoom,
+        scope: appliedMapScope,
+        level: appliedLevel,
+        metric: appliedMetric,
+        period: appliedPeriod,
+      },
+    });
+    previousZoomRef.current = currentZoom;
+  }, [appliedLevel, appliedMapScope, appliedMetric, appliedPeriod, currentZoom]);
+
+  useEffect(() => {
+    if (previousVizModeRef.current === vizMode) {
+      return;
+    }
+    emitTelemetry({
+      category: "lifecycle",
+      name: "map_mode_changed",
+      severity: "info",
+      attributes: {
+        viz_mode: vizMode,
+        scope: appliedMapScope,
+        level: appliedLevel,
+      },
+    });
+    previousVizModeRef.current = vizMode;
+  }, [appliedLevel, appliedMapScope, vizMode]);
+
+  useEffect(() => {
+    if (previousBasemapRef.current === basemapMode) {
+      return;
+    }
+    emitTelemetry({
+      category: "lifecycle",
+      name: "map_mode_changed",
+      severity: "info",
+      attributes: {
+        basemap_mode: basemapMode,
+        scope: appliedMapScope,
+        level: appliedLevel,
+      },
+    });
+    previousBasemapRef.current = basemapMode;
+  }, [appliedLevel, appliedMapScope, basemapMode]);
+
+  useEffect(() => {
+    const nextLayerKey = [appliedMapScope, appliedLevel, telemetryEffectiveLayerId].join("::");
+    if (previousLayerKeyRef.current === nextLayerKey) {
+      return;
+    }
+    emitTelemetry({
+      category: "lifecycle",
+      name: "map_layer_changed",
+      severity: "info",
+      attributes: {
+        scope: appliedMapScope,
+        level: appliedLevel,
+        layer_id: telemetryEffectiveLayerId,
+        layer_classification: telemetryEffectiveLayerClassification,
+      },
+    });
+    previousLayerKeyRef.current = nextLayerKey;
+  }, [appliedLevel, appliedMapScope, telemetryEffectiveLayerClassification, telemetryEffectiveLayerId]);
+
+  useEffect(() => {
+    if (!vectorMapError || previousVectorErrorRef.current === vectorMapError) {
+      return;
+    }
+    emitTelemetry({
+      category: "frontend_error",
+      name: "map_tile_error",
+      severity: "error",
+      attributes: {
+        message: vectorMapError,
+        scope: appliedMapScope,
+        level: appliedLevel,
+        layer_id: telemetryEffectiveLayerId,
+      },
+    });
+    previousVectorErrorRef.current = vectorMapError;
+  }, [appliedLevel, appliedMapScope, telemetryEffectiveLayerId, vectorMapError]);
 
   function focusTerritoryFromSearch() {
     if (appliedMapScope !== "territorial" || sortedItems.length === 0) {
@@ -842,6 +950,7 @@ export function QgMapPage() {
   const pollingPlaceLayer = isElectoralSectionLevel
     ? levelScopedLayers.find((layerItem) => layerItem.id === "territory_polling_place") ?? null
     : null;
+  const hasPollingPlaceLayer = Boolean(pollingPlaceLayer);
   const sectionGeometryLayer = isElectoralSectionLevel
     ? levelScopedLayers.find((layerItem) => layerItem.id === "territory_electoral_section") ?? null
     : null;
@@ -1013,12 +1122,18 @@ export function QgMapPage() {
             </p>
           </div>
         ) : null}
-        {isElectoralSectionLevel && pollingPlaceLayer ? (
+        {isElectoralSectionLevel && hasPollingPlaceLayer ? (
           <p className="map-layer-guidance">
             {isPollingPlaceActive
               ? "Local de votacao ativo: pontos derivados de secao eleitoral com nome detectado no payload oficial."
               : "Dica: selecione 'Locais de votacao' para ver o campo local_votacao quando disponivel."}
             {sectionGeometryLayer ? ` Camada de referencia territorial: ${sectionGeometryLayer.label}.` : ""}
+          </p>
+        ) : null}
+        {isElectoralSectionLevel && !hasPollingPlaceLayer ? (
+          <p className="map-layer-guidance">
+            Camada local_votacao indisponivel no manifesto atual; mantendo exibicao por secao eleitoral.
+            {sectionGeometryLayer ? ` Camada ativa de referencia: ${sectionGeometryLayer.label}.` : ""}
           </p>
         ) : null}
         <div className="zoom-control compact" aria-label="Controle de zoom">
