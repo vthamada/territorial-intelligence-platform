@@ -501,9 +501,49 @@ class _OpsRobustnessHistorySession:
             self.last_params = params
         self._execute_calls += 1
         if self._execute_calls == 1:
-            return _CountResult(1)
+            return _CountResult(2)
         return _RowsResult(
             [
+                {
+                    "snapshot_id": 8,
+                    "generated_at_utc": datetime(2026, 2, 23, 10, 5, tzinfo=UTC),
+                    "window_days": 30,
+                    "health_window_days": 7,
+                    "slo1_target_pct": 95.0,
+                    "include_blocked_as_success": True,
+                    "strict": False,
+                    "status": "NOT_READY",
+                    "severity": "high",
+                    "gates_all_pass": False,
+                    "payload": {
+                        "warnings_summary": {
+                            "total": 2,
+                            "actionable": 1,
+                            "informational": 1,
+                        },
+                        "gates": {
+                            "all_pass": False,
+                        },
+                        "unresolved_failed_checks_window": {"total": 2},
+                        "unresolved_failed_runs_window": {"total": 1},
+                    },
+                    "previous_snapshot_id": 7,
+                    "previous_generated_at_utc": datetime(2026, 2, 22, 20, 31, tzinfo=UTC),
+                    "previous_status": "READY",
+                    "previous_severity": "normal",
+                    "previous_payload": {
+                        "warnings_summary": {
+                            "total": 1,
+                            "actionable": 0,
+                            "informational": 1,
+                        },
+                        "gates": {
+                            "all_pass": True,
+                        },
+                        "unresolved_failed_checks_window": {"total": 0},
+                        "unresolved_failed_runs_window": {"total": 0},
+                    },
+                },
                 {
                     "snapshot_id": 7,
                     "generated_at_utc": datetime(2026, 2, 22, 20, 31, tzinfo=UTC),
@@ -524,7 +564,14 @@ class _OpsRobustnessHistorySession:
                         "gates": {
                             "all_pass": True,
                         },
+                        "unresolved_failed_checks_window": {"total": 0},
+                        "unresolved_failed_runs_window": {"total": 0},
                     },
+                    "previous_snapshot_id": None,
+                    "previous_generated_at_utc": None,
+                    "previous_status": None,
+                    "previous_severity": None,
+                    "previous_payload": None,
                 }
             ]
         )
@@ -1140,12 +1187,20 @@ def test_ops_robustness_history_endpoint_returns_paginated_payload() -> None:
     payload = response.json()
     assert payload["page"] == 1
     assert payload["page_size"] == 20
-    assert payload["total"] == 1
-    assert len(payload["items"]) == 1
-    assert payload["items"][0]["snapshot_id"] == 7
-    assert payload["items"][0]["status"] == "READY"
-    assert payload["items"][0]["warnings_summary"]["actionable"] == 0
-    assert payload["items"][0]["gates"]["all_pass"] is True
+    assert payload["total"] == 2
+    assert len(payload["items"]) == 2
+    assert payload["items"][0]["snapshot_id"] == 8
+    assert payload["items"][0]["status"] == "NOT_READY"
+    assert payload["items"][0]["warnings_summary"]["actionable"] == 1
+    assert payload["items"][0]["gates"]["all_pass"] is False
+    assert payload["items"][0]["drift"]["previous_snapshot_id"] == 7
+    assert payload["items"][0]["drift"]["status_transition"] == "regressed"
+    assert payload["items"][0]["drift"]["severity_transition"] == "regressed"
+    assert payload["items"][0]["drift"]["delta_unresolved_failed_checks"] == 2
+    assert payload["items"][0]["drift"]["delta_unresolved_failed_runs"] == 1
+    assert payload["items"][0]["drift"]["delta_actionable_warnings"] == 1
+    assert payload["items"][1]["snapshot_id"] == 7
+    assert payload["items"][1]["drift"]["status_transition"] == "baseline"
     app.dependency_overrides.clear()
 
 

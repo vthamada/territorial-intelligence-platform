@@ -51,6 +51,52 @@ def _aggregate_timeseries_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any
     return [buckets[key] for key in sorted(buckets)]
 
 
+def _parse_json_payload(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            return {}
+    return {}
+
+
+def _extract_robustness_metric(payload: dict[str, Any], path: tuple[str, ...]) -> int | None:
+    current: Any = payload
+    for key in path:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    if current is None:
+        return None
+    try:
+        return int(current)
+    except (TypeError, ValueError):
+        return None
+
+
+def _classify_transition(
+    current: str | None,
+    previous: str | None,
+    *,
+    order: dict[str, int],
+) -> str:
+    if current is None or previous is None:
+        return "baseline"
+    current_rank = order.get(current)
+    previous_rank = order.get(previous)
+    if current_rank is None or previous_rank is None:
+        return "unknown"
+    if current_rank == previous_rank:
+        return "stable"
+    if current_rank < previous_rank:
+        return "improved"
+    return "regressed"
+
+
 @router.get("/pipeline-runs", response_model=PaginatedResponse)
 def list_pipeline_runs(
     run_id: str | None = Query(default=None),
@@ -958,44 +1004,132 @@ def get_ops_robustness_history(
     rows = db.execute(
         text(
             """
+            WITH filtered AS (
+                SELECT
+                    s.snapshot_id,
+                    s.generated_at_utc,
+                    s.window_days,
+                    s.health_window_days,
+                    s.slo1_target_pct,
+                    s.include_blocked_as_success,
+                    s.strict,
+                    s.status,
+                    s.severity,
+                    s.gates_all_pass,
+                    s.payload
+                FROM ops.robustness_window_snapshots s
+                WHERE (CAST(:window_days AS INTEGER) IS NULL OR s.window_days = CAST(:window_days AS INTEGER))
+                  AND (CAST(:strict AS BOOLEAN) IS NULL OR s.strict = CAST(:strict AS BOOLEAN))
+                  AND (CAST(:status AS TEXT) IS NULL OR s.status = CAST(:status AS TEXT))
+                  AND (CAST(:severity AS TEXT) IS NULL OR s.severity = CAST(:severity AS TEXT))
+                  AND (CAST(:generated_from AS TIMESTAMPTZ) IS NULL OR s.generated_at_utc >= CAST(:generated_from AS TIMESTAMPTZ))
+                  AND (CAST(:generated_to AS TIMESTAMPTZ) IS NULL OR s.generated_at_utc <= CAST(:generated_to AS TIMESTAMPTZ))
+            ),
+            ranked AS (
+                SELECT
+                    f.*,
+                    LAG(f.snapshot_id) OVER (
+                        ORDER BY f.generated_at_utc DESC, f.snapshot_id DESC
+                    ) AS previous_snapshot_id,
+                    LAG(f.generated_at_utc) OVER (
+                        ORDER BY f.generated_at_utc DESC, f.snapshot_id DESC
+                    ) AS previous_generated_at_utc,
+                    LAG(f.status) OVER (
+                        ORDER BY f.generated_at_utc DESC, f.snapshot_id DESC
+                    ) AS previous_status,
+                    LAG(f.severity) OVER (
+                        ORDER BY f.generated_at_utc DESC, f.snapshot_id DESC
+                    ) AS previous_severity,
+                    LAG(f.payload) OVER (
+                        ORDER BY f.generated_at_utc DESC, f.snapshot_id DESC
+                    ) AS previous_payload
+                FROM filtered f
+            )
             SELECT
-                s.snapshot_id,
-                s.generated_at_utc,
-                s.window_days,
-                s.health_window_days,
-                s.slo1_target_pct,
-                s.include_blocked_as_success,
-                s.strict,
-                s.status,
-                s.severity,
-                s.gates_all_pass,
-                s.payload
-            FROM ops.robustness_window_snapshots s
-            WHERE (CAST(:window_days AS INTEGER) IS NULL OR s.window_days = CAST(:window_days AS INTEGER))
-              AND (CAST(:strict AS BOOLEAN) IS NULL OR s.strict = CAST(:strict AS BOOLEAN))
-              AND (CAST(:status AS TEXT) IS NULL OR s.status = CAST(:status AS TEXT))
-              AND (CAST(:severity AS TEXT) IS NULL OR s.severity = CAST(:severity AS TEXT))
-              AND (CAST(:generated_from AS TIMESTAMPTZ) IS NULL OR s.generated_at_utc >= CAST(:generated_from AS TIMESTAMPTZ))
-              AND (CAST(:generated_to AS TIMESTAMPTZ) IS NULL OR s.generated_at_utc <= CAST(:generated_to AS TIMESTAMPTZ))
-            ORDER BY s.generated_at_utc DESC, s.snapshot_id DESC
+                snapshot_id,
+                generated_at_utc,
+                window_days,
+                health_window_days,
+                slo1_target_pct,
+                include_blocked_as_success,
+                strict,
+                status,
+                severity,
+                gates_all_pass,
+                payload,
+                previous_snapshot_id,
+                previous_generated_at_utc,
+                previous_status,
+                previous_severity,
+                previous_payload
+            FROM ranked
+            ORDER BY generated_at_utc DESC, snapshot_id DESC
             LIMIT :limit OFFSET :offset
             """
         ),
         params,
     ).mappings().all()
 
+    status_order = {"READY": 0, "NOT_READY": 1}
+    severity_order = {"normal": 0, "high": 1, "critical": 2}
     items: list[dict[str, Any]] = []
     for row in rows:
         item = dict(row)
-        payload = item.get("payload") or {}
-        if isinstance(payload, str):
-            try:
-                payload = json.loads(payload)
-            except Exception:
-                payload = {}
+        payload = _parse_json_payload(item.get("payload"))
+        previous_payload = _parse_json_payload(item.get("previous_payload"))
+        unresolved_failed_checks = _extract_robustness_metric(
+            payload, ("unresolved_failed_checks_window", "total")
+        )
+        previous_unresolved_failed_checks = _extract_robustness_metric(
+            previous_payload, ("unresolved_failed_checks_window", "total")
+        )
+        unresolved_failed_runs = _extract_robustness_metric(
+            payload, ("unresolved_failed_runs_window", "total")
+        )
+        previous_unresolved_failed_runs = _extract_robustness_metric(
+            previous_payload, ("unresolved_failed_runs_window", "total")
+        )
+        actionable_warnings = _extract_robustness_metric(
+            payload, ("warnings_summary", "actionable")
+        )
+        previous_actionable_warnings = _extract_robustness_metric(
+            previous_payload, ("warnings_summary", "actionable")
+        )
+        drift = {
+            "previous_snapshot_id": item.get("previous_snapshot_id"),
+            "previous_generated_at_utc": item.get("previous_generated_at_utc"),
+            "status_transition": _classify_transition(
+                item.get("status"),
+                item.get("previous_status"),
+                order=status_order,
+            ),
+            "severity_transition": _classify_transition(
+                item.get("severity"),
+                item.get("previous_severity"),
+                order=severity_order,
+            ),
+            "delta_unresolved_failed_checks": None,
+            "delta_unresolved_failed_runs": None,
+            "delta_actionable_warnings": None,
+        }
+        if unresolved_failed_checks is not None and previous_unresolved_failed_checks is not None:
+            drift["delta_unresolved_failed_checks"] = (
+                unresolved_failed_checks - previous_unresolved_failed_checks
+            )
+        if unresolved_failed_runs is not None and previous_unresolved_failed_runs is not None:
+            drift["delta_unresolved_failed_runs"] = unresolved_failed_runs - previous_unresolved_failed_runs
+        if actionable_warnings is not None and previous_actionable_warnings is not None:
+            drift["delta_actionable_warnings"] = actionable_warnings - previous_actionable_warnings
+
         item["payload"] = payload
         item["warnings_summary"] = payload.get("warnings_summary", {})
         item["gates"] = payload.get("gates", {})
+        item["drift"] = drift
+        item.pop("previous_payload", None)
+        item.pop("previous_snapshot_id", None)
+        item.pop("previous_generated_at_utc", None)
+        item.pop("previous_status", None)
+        item.pop("previous_severity", None)
         items.append(item)
 
     return PaginatedResponse(

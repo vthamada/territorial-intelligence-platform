@@ -2,7 +2,21 @@
 
 Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-23 - Historico de robustez com drift entre snapshots
+
+### Changed
+- `GET /v1/ops/robustness-history` agora retorna `drift` por snapshot com:
+  - `status_transition` e `severity_transition` (`improved|regressed|stable|baseline`);
+  - deltas de operacao: `delta_unresolved_failed_checks`, `delta_unresolved_failed_runs`, `delta_actionable_warnings`;
+  - referencia temporal para comparacao (`previous_snapshot_id`, `previous_generated_at_utc`).
+- endpoint passou a calcular drift sobre snapshots consecutivos da serie filtrada (janela/strict/status/severity) antes da paginacao.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_routes.py -q -p no:cacheprovider` -> `30 passed`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_robustness_window.py -q -p no:cacheprovider` -> `4 passed`.
+
 ## 2026-02-22 - Persistência histórica de robustez operacional (pós-D8)
+
 
 ### Added
 - nova migration `db/sql/018_ops_robustness_snapshots.sql` com:
@@ -2145,8 +2159,6 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Suite de testes local: `20 passed`.
 - Fluxos MVP executados com sucesso em modo direto.
 - Fluxo Prefect completo validado em `dry_run`.
-
-
 
 
 

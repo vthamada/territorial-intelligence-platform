@@ -45,6 +45,20 @@ Contrato técnico principal: `CONTRATO.md`
    - apenas esta secao define "próximo passo executável" no momento;
    - secoes de "próximos passos" antigas abaixo devem ser lidas como histórico.
 
+## Atualizacao tecnica (2026-02-23) - Drift operacional no historico de robustez
+
+1. Endpoint `GET /v1/ops/robustness-history` evoluido com campo `drift` por snapshot.
+2. O `drift` agora traz:
+   - transicao de status (`improved|regressed|stable|baseline`);
+   - transicao de severidade (`improved|regressed|stable|baseline`);
+   - deltas de pendencias operacionais (`unresolved_failed_checks`, `unresolved_failed_runs`, `actionable_warnings`).
+3. Uso operacional imediato:
+   - priorizar resposta quando `drift.status_transition=regressed` ou `drift.severity_transition=regressed`;
+   - acompanhar convergencia semanal por `drift.delta_* <= 0`.
+4. Validacao executada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_routes.py -q -p no:cacheprovider` -> `30 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_robustness_window.py -q -p no:cacheprovider` -> `4 passed`.
+
 ## Atualizacao técnica (2026-02-22) - Janela 30d em READY com gates consolidados
 
 1. Ajuste de critério operacional do consolidado 30d:
@@ -1924,7 +1938,6 @@ Sprint atual recomendado:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_up.ps1`
 - Encerrar API + frontend iniciados pelo launcher:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_down.ps1`
-
 
 
 

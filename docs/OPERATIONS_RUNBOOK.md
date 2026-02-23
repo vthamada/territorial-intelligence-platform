@@ -568,7 +568,7 @@ Leitura minima do relatório `ops_robustness_window_30d.json`:
 4. `readiness.hard_failures` deve estar zerado.
 5. `incident_window.failed_checks` e `incident_window.failed_runs` sao contexto histórico; triagem operacional usa `unresolved_failed_checks_window` e `unresolved_failed_runs_window`.
 6. `warnings_summary.actionable` deve estar `0`; warnings históricos de SLO com janela de saude estavel ficam em `warnings_summary.informational`.
-7. acompanhar tendência pelo endpoint `GET /v1/ops/robustness-history` (filtro por janela/status/severidade).
+7. acompanhar tendência pelo endpoint `GET /v1/ops/robustness-history` (filtro por janela/status/severidade), priorizando snapshots com `drift.status_transition=regressed`, `drift.severity_transition=regressed` ou `drift.delta_actionable_warnings > 0`.
 
 ## 12) Procedimento de deploy
 
@@ -602,4 +602,3 @@ Leitura minima do relatório `ops_robustness_window_30d.json`:
 3. Rebuild frontend
 4. Reiniciar API
 5. Verificar health
-
