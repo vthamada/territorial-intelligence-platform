@@ -1,0 +1,4 @@
+resources:
+  - name: suasweb_repasse_municipal_csv
+    extension: .csv
+    uri: "https://aplicacoes.mds.gov.br/sagi/servicos/misocial/?fl=codigo_ibge%2Canomes_s%20suas_repasse_mun_vl_gestao_suas_f%20suas_repasse_mun_vl_psb_f%20suas_repasse_mun_vl_pse_alta_complexidade_f%20suas_repasse_mun_vl_pse_media_complexidade_f%20suas_repasse_mun_vl_grupo_programas_f%20suas_repasse_mun_vl_sem_classificacao_f%20suas_repasse_mun_vl_fundo_a_fundo_f%20suas_repasse_mun_vl_total_fundo_f%2C%20suas_repasse_mun_vl_gestao_pbf_cadun_f%20suas_repasse_mun_vl_pcf_f%20suas_repasse_mun_vl_gestao_pab_f%20suas_repasse_mun_vl_pse_f%20suas_repasse_mun_dt_atualizacao_s&fq=suas_repasse_mun_dt_atualizacao_s%3A*&q=*%3A*&rows=100000&sort=anomes_s%20desc%2C%20codigo_ibge%20asc&wt=csv&fq=anomes_s:{reference_period}*"

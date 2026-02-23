@@ -241,6 +241,10 @@ function normalizeUrbanLayerId(value: string | null): string {
   return value === "urban_pois" ? "urban_pois" : "urban_roads";
 }
 
+function formatScopeLabel(scope: LayerScope) {
+  return scope === "urban" ? "Urbana" : "Territorial";
+}
+
 const MAP_LEVEL_ORDER: string[] = [
   "municipality",
   "district",
@@ -384,8 +388,11 @@ export function QgMapPage() {
   const [useVectorMap, setUseVectorMap] = useState(initialUseVectorMap);
   const [selectedFeature, setSelectedFeature] = useState<VectorMapFeatureSelection | null>(null);
   const [territorySearch, setTerritorySearch] = useState("");
+  const [territoryFocusNotice, setTerritoryFocusNotice] = useState<string | null>(null);
+  const [mapRecenterNotice, setMapRecenterNotice] = useState<string | null>(null);
   const [focusSignal, setFocusSignal] = useState(initialTerritoryId ? 1 : 0);
   const [resetViewSignal, setResetViewSignal] = useState(0);
+  const [layerSelectionNotice, setLayerSelectionNotice] = useState<string | null>(null);
   const [selectedVectorLayerId, setSelectedVectorLayerId] = useState<string | null>(
     initialScope === "territorial" ? initialLayerId : null,
   );
@@ -545,6 +552,16 @@ export function QgMapPage() {
 
   useEffect(() => {
     if (appliedMapScope !== "territorial") {
+      setLayerSelectionNotice(null);
+      return;
+    }
+    if (selectedVectorLayerId) {
+      setLayerSelectionNotice(null);
+    }
+  }, [appliedMapScope, selectedVectorLayerId]);
+
+  useEffect(() => {
+    if (appliedMapScope !== "territorial") {
       return;
     }
     if (!selectedVectorLayerId) {
@@ -555,6 +572,7 @@ export function QgMapPage() {
     }
     if (!availableLevelLayerIds.has(selectedVectorLayerId)) {
       setSelectedVectorLayerId(null);
+      setLayerSelectionNotice("Camada detalhada anterior indisponivel para o nivel atual; selecao automatica restaurada.");
     }
   }, [appliedMapScope, availableLevelLayerIds, levelScopedLayers.length, selectedVectorLayerId]);
 
@@ -563,10 +581,13 @@ export function QgMapPage() {
       return;
     }
     if (previousAppliedLevelRef.current !== appliedLevel) {
+      if (selectedVectorLayerId) {
+        setLayerSelectionNotice("Nivel territorial alterado; camada detalhada reiniciada para recomendacao automatica.");
+      }
       setSelectedVectorLayerId(null);
     }
     previousAppliedLevelRef.current = appliedLevel;
-  }, [appliedLevel, appliedMapScope]);
+  }, [appliedLevel, appliedMapScope, selectedVectorLayerId]);
 
   useEffect(() => {
     const nextSearch = new URLSearchParams();
@@ -727,6 +748,8 @@ export function QgMapPage() {
     }
     setSelectedTerritoryId(match.territory_id);
     setTerritorySearch(match.territory_name);
+    setTerritoryFocusNotice(null);
+    setMapRecenterNotice(null);
     setFocusSignal((value) => value + 1);
   }
 
@@ -734,14 +757,23 @@ export function QgMapPage() {
     if (!selectedTerritoryId) {
       return;
     }
+    setTerritoryFocusNotice(null);
+    setMapRecenterNotice(null);
     setFocusSignal((value) => value + 1);
   }
 
-  function recenterMap() {
+  function recenterMap(clearNotice = true) {
+    if (clearNotice) {
+      setTerritoryFocusNotice(null);
+      setMapRecenterNotice(null);
+    }
     setResetViewSignal((value) => value + 1);
   }
 
   function applyFilters() {
+    const hadTerritoryContext = Boolean(selectedTerritoryId || selectedFeature || territorySearch.trim());
+    const scopeChanged = mapScope !== appliedMapScope;
+    const levelChanged = level !== appliedLevel;
     const formTerritoryLevel = toManifestTerritoryLevel(level);
     const formLevelLayers = territorialLayers.filter((layerItem) => layerItem.territory_level === formTerritoryLevel);
     const formPreferredTerritorialLayer =
@@ -759,6 +791,11 @@ export function QgMapPage() {
     setSelectedTerritoryId(undefined);
     setTerritorySearch("");
     setSelectedFeature(null);
+    if (hadTerritoryContext) {
+      setTerritoryFocusNotice("Filtros aplicados; foco territorial anterior reiniciado.");
+    } else {
+      setTerritoryFocusNotice(null);
+    }
     if (mapScope === "urban") {
       setSelectedVectorLayerId(null);
     }
@@ -768,12 +805,18 @@ export function QgMapPage() {
       setCurrentZoom(nextZoom);
       globalFilters.setZoom(nextZoom);
     }
-    if (mapScope !== appliedMapScope || level !== appliedLevel || nextZoom !== currentZoom) {
-      recenterMap();
+    const zoomChanged = nextZoom !== currentZoom;
+    const shouldRecenter = scopeChanged || levelChanged || zoomChanged;
+    if (shouldRecenter) {
+      setMapRecenterNotice("Filtros aplicados; mapa recentrado automaticamente para manter contexto do recorte.");
+      recenterMap(false);
+    } else {
+      setMapRecenterNotice(null);
     }
   }
 
   function clearFilters() {
+    const hadTerritoryContext = Boolean(selectedTerritoryId || selectedFeature || territorySearch.trim());
     setMetric("MTE_NOVO_CAGED_SALDO_TOTAL");
     setPeriod("2025");
     setLevel("municipio");
@@ -787,6 +830,11 @@ export function QgMapPage() {
     setSelectedTerritoryId(undefined);
     setTerritorySearch("");
     setSelectedFeature(null);
+    if (hadTerritoryContext) {
+      setTerritoryFocusNotice("Filtros limpos; foco territorial reiniciado.");
+    } else {
+      setTerritoryFocusNotice(null);
+    }
     setExportError(null);
     setVectorMapError(null);
     setBasemapMode("streets");
@@ -794,7 +842,8 @@ export function QgMapPage() {
     setUseVectorMap(true);
     setCurrentZoom(4);
     globalFilters.setZoom(4);
-    recenterMap();
+    setMapRecenterNotice("Filtros limpos; mapa recentrado para a visao inicial.");
+    recenterMap(false);
   }
 
   function exportCsv() {
@@ -955,14 +1004,28 @@ export function QgMapPage() {
     ? levelScopedLayers.find((layerItem) => layerItem.id === "territory_electoral_section") ?? null
     : null;
   const isPollingPlaceActive = effectiveLayer?.id === "territory_polling_place";
+  const canTogglePollingLayer = Boolean(isElectoralSectionLevel && hasPollingPlaceLayer && sectionGeometryLayer);
+  const pollingLayerToggleTargetId = isPollingPlaceActive
+    ? sectionGeometryLayer?.id ?? null
+    : pollingPlaceLayer?.id ?? null;
+  const effectiveRendererLabel = useVectorMap && canUseVectorMap ? "Modo avancado" : "Modo simplificado";
+  const effectiveBasemapLabel = BASEMAP_MODES.find((mode) => mode.value === basemapMode)?.label ?? basemapMode;
+  const effectiveVizLabel = VIZ_MODES.find((mode) => mode.value === effectiveVizMode)?.label ?? effectiveVizMode;
 
   const selectedTerritoryName = selectedItem?.territory_name ?? selectedFeature?.tname;
   const selectedTerritoryValue = selectedItem?.value ?? selectedFeature?.val;
   const selectedTerritoryIdSafe = selectedItem?.territory_id ?? selectedFeature?.tid;
   const selectedFeatureLabel = selectedFeature?.label ?? selectedTerritoryName;
+  const topTerritory = sortedItems[0] ?? null;
+  const bottomTerritory = sortedItems.length > 1 ? sortedItems[sortedItems.length - 1] ?? null : null;
+  const selectedTerritoryRank =
+    selectedItem && sortedItems.length > 0
+      ? sortedItems.findIndex((item) => item.territory_id === selectedItem.territory_id) + 1
+      : null;
   const recommendedLayerClassification = formatLayerClassificationLabel(recommendedLayer);
   const effectiveLayerClassification = formatLayerClassificationLabel(effectiveLayer);
   const effectiveLayerHint = buildLayerClassificationHint(effectiveLayer);
+  const effectiveLayerSourceLabel = selectedVectorLayerId ? "manual" : "automatica";
   const selectedFeatureCategory = selectedFeature?.category ?? null;
   const selectedFeatureQueryText = optionalText(selectedFeatureLabel ?? selectedTerritoryName);
   const selectedFeatureSubcategory = optionalText(selectedFeature?.rawProperties?.subcategory);
@@ -1095,16 +1158,45 @@ export function QgMapPage() {
             ? ` | Auto-zoom: ${autoLayer.label} (${formatLayerClassificationLabel(autoLayer)}; z=${currentZoom})`
             : null}
         </p>
+        <p className="map-selected-note" aria-label="Resumo operacional do mapa">
+          Resumo do mapa: escopo {formatScopeLabel(appliedMapScope)} | nivel {formatLevelLabel(appliedLevel)} | camada {effectiveLayer?.label ?? "n/d"} | visualizacao {effectiveVizLabel} | base {effectiveBasemapLabel} | renderizacao {effectiveRendererLabel}
+        </p>
+        {appliedMapScope === "territorial" && isChoroplethLevel && sortedItems.length > 0 ? (
+          <section className="map-context-card" aria-label="Leitura executiva imediata">
+            <h3>Leitura executiva imediata</h3>
+            <p>
+              Prioridade territorial atual: <strong>{topTerritory?.territory_name ?? "n/d"}</strong>
+              {topTerritory ? ` (${formatNumber(topTerritory.value)})` : ""}.
+            </p>
+            {bottomTerritory ? (
+              <p>
+                Menor valor no recorte: <strong>{bottomTerritory.territory_name}</strong>
+                {` (${formatNumber(bottomTerritory.value)})`}.
+              </p>
+            ) : null}
+            {selectedItem && selectedTerritoryRank ? (
+              <p>
+                Território selecionado: <strong>{selectedItem.territory_name}</strong>
+                {` | posição ${selectedTerritoryRank}/${sortedItems.length}`}.
+              </p>
+            ) : (
+              <p>Próximo passo: selecione um território para abrir ações contextuais de prioridade, insights e brief.</p>
+            )}
+          </section>
+        ) : null}
         {hasMultipleLevelLayers ? (
           <div className="map-layer-toggle">
             <label>
               {isElectoralSectionLevel ? "Camada eleitoral detalhada" : "Camada detalhada"}
               <select
                 value={selectedVectorLayerId ?? ""}
-                onChange={(event) => setSelectedVectorLayerId(event.target.value || null)}
+                onChange={(event) => {
+                  setLayerSelectionNotice(null);
+                  setSelectedVectorLayerId(event.target.value || null);
+                }}
                 aria-label={isElectoralSectionLevel ? "Camada eleitoral detalhada" : "Camada detalhada"}
               >
-                <option value="">Automatica (recomendada)</option>
+                <option value="">Automatica (recomendada no zoom atual)</option>
                 {levelScopedLayers.map((layerItem) => (
                   <option key={layerItem.id} value={layerItem.id}>
                     {layerItem.label}
@@ -1118,22 +1210,57 @@ export function QgMapPage() {
             >
               Camada ativa: <strong>{effectiveLayer?.label ?? "n/d"}</strong>
               {effectiveLayer ? ` | classificacao: ${effectiveLayerClassification}` : ""}
+              {effectiveLayer ? ` | origem: ${effectiveLayerSourceLabel}` : ""}
               {effectiveLayer?.proxy_method ? ` | metodo: ${effectiveLayer.proxy_method}` : ""}
             </p>
+            {selectedVectorLayerId ? (
+              <button
+                type="button"
+                className="button-secondary"
+                onClick={() => {
+                  setLayerSelectionNotice("Selecao automatica restaurada manualmente.");
+                  setSelectedVectorLayerId(null);
+                }}
+                aria-label="Usar camada automatica"
+              >
+                Usar camada automatica
+              </button>
+            ) : null}
           </div>
         ) : null}
+        {layerSelectionNotice ? <p className="map-layer-guidance">{layerSelectionNotice}</p> : null}
         {isElectoralSectionLevel && hasPollingPlaceLayer ? (
-          <p className="map-layer-guidance">
-            {isPollingPlaceActive
-              ? "Local de votacao ativo: pontos derivados de secao eleitoral com nome detectado no payload oficial."
-              : "Dica: selecione 'Locais de votacao' para ver o campo local_votacao quando disponivel."}
-            {sectionGeometryLayer ? ` Camada de referencia territorial: ${sectionGeometryLayer.label}.` : ""}
-          </p>
+          <div className="map-layer-guidance">
+            <p>
+              {isPollingPlaceActive
+                ? "Local de votacao ativo: pontos derivados de secao eleitoral com nome detectado no payload oficial."
+                : "Dica: selecione 'Locais de votacao' para ver o campo local_votacao quando disponivel."}
+              {sectionGeometryLayer ? ` Camada de referencia territorial: ${sectionGeometryLayer.label}.` : ""}
+            </p>
+            {canTogglePollingLayer ? (
+              <button
+                type="button"
+                className="button-secondary"
+                onClick={() => {
+                  setLayerSelectionNotice(null);
+                  setSelectedVectorLayerId(pollingLayerToggleTargetId);
+                }}
+                aria-label={isPollingPlaceActive ? "Exibir secoes eleitorais" : "Exibir locais de votacao"}
+              >
+                {isPollingPlaceActive ? "Exibir secoes eleitorais" : "Exibir locais de votacao"}
+              </button>
+            ) : null}
+          </div>
         ) : null}
         {isElectoralSectionLevel && !hasPollingPlaceLayer ? (
           <p className="map-layer-guidance">
             Camada local_votacao indisponivel no manifesto atual; mantendo exibicao por secao eleitoral.
             {sectionGeometryLayer ? ` Camada ativa de referencia: ${sectionGeometryLayer.label}.` : ""}
+          </p>
+        ) : null}
+        {isElectoralSectionLevel ? (
+          <p className="map-selected-note" title="Secoes eleitorais representam os recortes territoriais; locais de votacao representam os pontos detectados no payload quando disponivel.">
+            Legenda eleitoral: secoes eleitorais = recorte territorial | locais de votacao = pontos de atendimento.
           </p>
         ) : null}
         <div className="zoom-control compact" aria-label="Controle de zoom">
@@ -1152,6 +1279,7 @@ export function QgMapPage() {
           </label>
         </div>
         <p className="map-selected-note">Zoom contextual minimo recomendado: z{contextualZoomFloor}.</p>
+        {mapRecenterNotice ? <p className="map-selected-note">{mapRecenterNotice}</p> : null}
         {appliedMapScope === "territorial" ? (
           <div className="map-territory-search">
             <label htmlFor="territory-search-input">Buscar territorio</label>
@@ -1169,7 +1297,7 @@ export function QgMapPage() {
               <button type="button" className="button-secondary" onClick={focusSelectedTerritory} disabled={!selectedTerritoryId}>
                 Focar selecionado
               </button>
-              <button type="button" className="button-secondary" onClick={recenterMap}>
+              <button type="button" className="button-secondary" onClick={() => recenterMap()}>
                 Recentrar mapa
               </button>
             </div>
@@ -1178,15 +1306,17 @@ export function QgMapPage() {
                 <option key={item.territory_id} value={item.territory_name} />
               ))}
             </datalist>
+            {territoryFocusNotice ? <p className="map-selected-note">{territoryFocusNotice}</p> : null}
           </div>
         ) : (
           <div className="map-territory-search-row">
             <button type="button" className="button-secondary" onClick={focusSelectedTerritory} disabled={!selectedTerritoryId}>
               Focar selecionado
             </button>
-            <button type="button" className="button-secondary" onClick={recenterMap}>
+            <button type="button" className="button-secondary" onClick={() => recenterMap()}>
               Recentrar mapa
             </button>
+            {territoryFocusNotice ? <p className="map-selected-note">{territoryFocusNotice}</p> : null}
           </div>
         )}
         {mapLayersQuery.isPending && !mapLayersQuery.data ? (

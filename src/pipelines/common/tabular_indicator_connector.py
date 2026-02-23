@@ -52,7 +52,7 @@ class IndicatorSpec:
     unit: str
     category: str
     candidates: tuple[str, ...]
-    aggregator: Literal["sum", "avg", "max", "min", "first"] = "sum"
+    aggregator: Literal["sum", "avg", "max", "min", "first", "count"] = "sum"
     row_filters: dict[str, tuple[str, ...]] | None = None
 
 
@@ -73,6 +73,9 @@ class TabularConnectorDefinition:
     municipality_name_columns: tuple[str, ...] = _DEFAULT_MUNICIPALITY_NAME_COLUMNS
     reference_year_columns: tuple[str, ...] = ()
     prefer_manual_first: bool = False
+
+
+ResolvedDataset = tuple[pd.DataFrame, bytes, str, str, str, str]
 
 
 def _normalize_text(value: str) -> str:
@@ -404,6 +407,35 @@ def _extract_candidate_values_with_filters(
     return values
 
 
+def _has_non_empty_candidate_value(row: dict[str, Any], candidates: tuple[str, ...]) -> bool:
+    for key in candidates:
+        if key not in row:
+            continue
+        raw_value = row.get(key)
+        if raw_value is None:
+            continue
+        token = str(raw_value).strip()
+        if not token or token.casefold() in {"nan", "none", "null", "-", "..."}:
+            continue
+        return True
+    return False
+
+
+def _count_rows_with_candidates(
+    rows: list[dict[str, Any]],
+    *,
+    candidates: tuple[str, ...],
+    row_filters: dict[str, tuple[str, ...]] | None,
+) -> int:
+    count = 0
+    for row in rows:
+        if not _row_matches_filters(row, row_filters=row_filters):
+            continue
+        if _has_non_empty_candidate_value(row, candidates):
+            count += 1
+    return count
+
+
 def _aggregate_values(values: list[Decimal], aggregator: str) -> Decimal:
     if not values:
         raise ValueError("values must not be empty")
@@ -417,6 +449,8 @@ def _aggregate_values(values: list[Decimal], aggregator: str) -> Decimal:
         return min(values)
     if aggregator == "avg":
         return sum(values, Decimal("0")) / Decimal(str(len(values)))
+    if aggregator == "count":
+        return Decimal(str(len(values)))
     raise ValueError(f"Unsupported aggregator '{aggregator}'.")
 
 
@@ -471,6 +505,28 @@ def _build_indicator_rows(
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for spec in indicator_specs:
+        if spec.aggregator == "count":
+            count_value = _count_rows_with_candidates(
+                municipality_rows,
+                candidates=spec.candidates,
+                row_filters=spec.row_filters,
+            )
+            if count_value <= 0:
+                continue
+            rows.append(
+                {
+                    "territory_id": territory_id,
+                    "source": source,
+                    "dataset": fact_dataset_name,
+                    "indicator_code": spec.code,
+                    "indicator_name": spec.name,
+                    "unit": spec.unit,
+                    "category": spec.category,
+                    "value": Decimal(str(count_value)),
+                    "reference_period": reference_period,
+                }
+            )
+            continue
         values = _extract_candidate_values_with_filters(
             municipality_rows,
             candidates=spec.candidates,
@@ -517,22 +573,53 @@ def _resolve_dataset(
     municipality_ibge_code: str,
     client: HttpClient,
 ) -> tuple[pd.DataFrame, bytes, str, str, str, str, list[str]] | None:
+    datasets, warnings = _resolve_datasets(
+        definition=definition,
+        reference_period=reference_period,
+        municipality_name=municipality_name,
+        municipality_ibge_code=municipality_ibge_code,
+        client=client,
+    )
+    if not datasets:
+        return None
+    first = datasets[0]
+    return (*first, warnings)
+
+
+def _resolve_datasets(
+    *,
+    definition: TabularConnectorDefinition,
+    reference_period: str,
+    municipality_name: str,
+    municipality_ibge_code: str,
+    client: HttpClient,
+) -> tuple[list[ResolvedDataset], list[str]]:
     warnings: list[str] = []
     resources = _load_catalog(definition.catalog_path)
     manual_candidates = _list_manual_candidates(definition.manual_dir)
 
-    def _try_manual() -> tuple[pd.DataFrame, bytes, str, str, str, str, list[str]] | None:
+    def _try_manual() -> list[ResolvedDataset]:
         for candidate in manual_candidates:
             try:
                 raw_bytes = candidate.read_bytes()
                 suffix = candidate.suffix.casefold()
                 df = _load_dataframe_from_bytes(raw_bytes, suffix=suffix)
-                return df, raw_bytes, suffix, "manual", candidate.resolve().as_uri(), candidate.name, warnings
+                return [
+                    (
+                        df,
+                        raw_bytes,
+                        suffix,
+                        "manual",
+                        candidate.resolve().as_uri(),
+                        candidate.name,
+                    )
+                ]
             except Exception as exc:
                 warnings.append(f"{definition.source} manual source failed for '{candidate.name}': {exc}")
-        return None
+        return []
 
-    def _try_remote() -> tuple[pd.DataFrame, bytes, str, str, str, str, list[str]] | None:
+    def _try_remote() -> list[ResolvedDataset]:
+        resolved: list[ResolvedDataset] = []
         for resource in resources:
             uri_template = str(resource.get("uri", "")).strip()
             if not uri_template:
@@ -558,25 +645,25 @@ def _resolve_dataset(
                         municipality_ibge_code[:6],
                     ),
                 )
-                return df, raw_bytes, suffix, "remote", uri, Path(uri).name, warnings
+                resolved.append((df, raw_bytes, suffix, "remote", uri, Path(uri).name))
             except Exception as exc:
                 warnings.append(f"{definition.source} remote source failed for '{uri}': {exc}")
-        return None
+        return resolved
 
     if definition.prefer_manual_first:
-        manual_result = _try_manual()
-        if manual_result is not None:
-            return manual_result
+        manual_results = _try_manual()
+        if manual_results:
+            return manual_results, warnings
         remote_result = _try_remote()
-        if remote_result is not None:
-            return remote_result
-        return None
+        if remote_result:
+            return remote_result, warnings
+        return [], warnings
 
     remote_result = _try_remote()
-    if remote_result is not None:
-        return remote_result
+    if remote_result:
+        return remote_result, warnings
 
-    return _try_manual()
+    return _try_manual(), warnings
 
 
 def _upsert_fact_indicator_rows(settings: Settings, load_rows: list[dict[str, Any]]) -> int:
@@ -679,14 +766,15 @@ def run_tabular_connector(
         max_retries=max_retries,
     )
     try:
-        dataset = _resolve_dataset(
+        datasets, source_warnings = _resolve_datasets(
             definition=definition,
             reference_period=parsed_reference_period,
             municipality_name=municipality_name,
             municipality_ibge_code=municipality_ibge_code,
             client=client,
         )
-        if dataset is None:
+        warnings.extend(source_warnings)
+        if not datasets:
             warnings.append(
                 f"No {definition.source} source available (remote catalog and manual directory failed)."
             )
@@ -741,28 +829,58 @@ def run_tabular_connector(
                 "errors": [],
             }
 
-        df, raw_bytes, source_suffix, source_type, source_uri, source_file_name, source_warnings = dataset
-        warnings.extend(source_warnings)
-        rows_extracted = len(df)
-
-        municipality_rows = _resolve_municipality_rows(
-            df,
-            municipality_ibge_code=municipality_ibge_code,
-            municipality_name=municipality_name,
-            code_columns=definition.municipality_code_columns,
-            name_columns=definition.municipality_name_columns,
-            source_file_name=source_file_name,
-        )
-        municipality_rows = _filter_rows_by_reference_year(
-            municipality_rows,
-            year=parsed_reference_period,
-            year_columns=definition.reference_year_columns,
-        )
-        if not municipality_rows:
-            warnings.append(
-                f"{definition.source} row not found for municipality code/name "
-                f"({municipality_ibge_code}/{municipality_name})."
+        rows_extracted = 0
+        municipality_rows: list[dict[str, Any]] = []
+        source_types: set[str] = set()
+        source_entries: list[dict[str, Any]] = []
+        for df, raw_bytes, source_suffix, source_type, source_uri, source_file_name in datasets:
+            rows_extracted += len(df)
+            source_types.add(source_type)
+            source_entries.append(
+                {
+                    "source_type": source_type,
+                    "source_uri": source_uri,
+                    "source_file_name": source_file_name,
+                    "source_suffix": source_suffix,
+                    "raw_bytes": raw_bytes,
+                }
             )
+
+            resource_rows = _resolve_municipality_rows(
+                df,
+                municipality_ibge_code=municipality_ibge_code,
+                municipality_name=municipality_name,
+                code_columns=definition.municipality_code_columns,
+                name_columns=definition.municipality_name_columns,
+                source_file_name=source_file_name,
+            )
+            resource_rows = _filter_rows_by_reference_year(
+                resource_rows,
+                year=parsed_reference_period,
+                year_columns=definition.reference_year_columns,
+            )
+            if not resource_rows:
+                warnings.append(
+                    f"{definition.source} row not found for municipality code/name "
+                    f"({municipality_ibge_code}/{municipality_name}) in '{source_file_name}'."
+                )
+                continue
+            municipality_rows.extend(resource_rows)
+
+        if municipality_rows:
+            deduplicated_rows: list[dict[str, Any]] = []
+            seen_signatures: set[str] = set()
+            for row in municipality_rows:
+                signature = json.dumps(
+                    {k: str(v) for k, v in row.items()},
+                    sort_keys=True,
+                    ensure_ascii=False,
+                )
+                if signature in seen_signatures:
+                    continue
+                seen_signatures.add(signature)
+                deduplicated_rows.append(row)
+            municipality_rows = deduplicated_rows
 
         load_rows = _build_indicator_rows(
             territory_id=territory_id,
@@ -773,7 +891,13 @@ def run_tabular_connector(
             indicator_specs=definition.indicator_specs,
         )
 
-        if source_type == "remote" and not load_rows:
+        source_type = next(iter(source_types)) if len(source_types) == 1 else "mixed"
+        source_uri = source_entries[0]["source_uri"] if source_entries else ""
+        source_file_name = source_entries[0]["source_file_name"] if source_entries else ""
+        source_suffix = source_entries[0]["source_suffix"] if source_entries else ".json"
+        raw_bytes = source_entries[0]["raw_bytes"] if source_entries else b""
+
+        if "remote" in source_types and not load_rows:
             for manual_candidate in _list_manual_candidates(definition.manual_dir):
                 try:
                     manual_raw_bytes = manual_candidate.read_bytes()
@@ -813,13 +937,21 @@ def run_tabular_connector(
                     f"{definition.source} remote payload produced no indicator rows; "
                     f"using manual fallback '{manual_candidate.name}'."
                 )
-                df = manual_df
+                source_entries = [
+                    {
+                        "source_type": "manual",
+                        "source_uri": manual_candidate.resolve().as_uri(),
+                        "source_file_name": manual_candidate.name,
+                        "source_suffix": manual_suffix,
+                        "raw_bytes": manual_raw_bytes,
+                    }
+                ]
                 raw_bytes = manual_raw_bytes
                 source_suffix = manual_suffix
                 source_type = "manual"
                 source_uri = manual_candidate.resolve().as_uri()
                 source_file_name = manual_candidate.name
-                rows_extracted = len(df)
+                rows_extracted = len(manual_df)
                 municipality_rows = manual_rows
                 load_rows = manual_load_rows
                 break
@@ -839,6 +971,15 @@ def run_tabular_connector(
                     "source_type": source_type,
                     "source_uri": source_uri,
                     "source_file_name": source_file_name,
+                    "source_count": len(source_entries),
+                    "sources": [
+                        {
+                            "source_type": entry["source_type"],
+                            "source_uri": entry["source_uri"],
+                            "source_file_name": entry["source_file_name"],
+                        }
+                        for entry in source_entries
+                    ],
                     "municipality_matches": len(municipality_rows),
                     "indicators": [
                         {
@@ -886,20 +1027,40 @@ def run_tabular_connector(
             "source_type": source_type,
             "source_uri": source_uri,
             "source_file_name": source_file_name,
+            "sources": [
+                {
+                    "source_type": entry["source_type"],
+                    "source_uri": entry["source_uri"],
+                    "source_file_name": entry["source_file_name"],
+                }
+                for entry in source_entries
+            ],
             "rows_extracted": rows_extracted,
             "rows_written": rows_written,
             "warnings": warnings,
             "municipality_matches": len(municipality_rows),
         }
+        persist_raw = len(source_entries) == 1 and source_suffix in {
+            ".csv",
+            ".txt",
+            ".xlsx",
+            ".xls",
+            ".zip",
+            ".json",
+        }
+        artifact_extension = source_suffix if persist_raw and source_suffix else ".json"
+        artifact_raw_bytes = (
+            raw_bytes
+            if persist_raw
+            else json.dumps(bronze_payload, ensure_ascii=False).encode("utf-8")
+        )
         artifact = persist_raw_bytes(
             settings=settings,
             source=definition.source,
             dataset=definition.dataset_name,
             reference_period=parsed_reference_period,
-            raw_bytes=raw_bytes
-            if source_suffix in {".csv", ".txt", ".xlsx", ".xls", ".zip", ".json"}
-            else json.dumps(bronze_payload, ensure_ascii=False).encode("utf-8"),
-            extension=source_suffix if source_suffix else ".json",
+            raw_bytes=artifact_raw_bytes,
+            extension=artifact_extension,
             uri=source_uri,
             territory_scope=definition.territory_scope,
             dataset_version=definition.dataset_version,
@@ -936,6 +1097,14 @@ def run_tabular_connector(
                 details={
                     "source_type": source_type,
                     "source_file_name": source_file_name,
+                    "sources": [
+                        {
+                            "source_type": entry["source_type"],
+                            "source_uri": entry["source_uri"],
+                            "source_file_name": entry["source_file_name"],
+                        }
+                        for entry in source_entries
+                    ],
                     "rows_written": rows_written,
                     "municipality_matches": len(municipality_rows),
                 },

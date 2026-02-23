@@ -99,6 +99,16 @@ connectors:
     wave: MVP-5
     status: implemented
     notes: Tabular energy ingestion with remote catalog and manual fallback, Bronze snapshot, and Silver upsert.
+  - connector_name: suasweb_social_assistance_fetch
+    source: SUASWEB
+    wave: MVP-6
+    status: implemented
+    notes: Open municipal SUASWEB transfer ingestion via MISocial (CSV) with Bronze snapshot and Silver indicator upsert.
+  - connector_name: cneas_social_assistance_fetch
+    source: CNEAS
+    wave: MVP-6
+    status: implemented
+    notes: Open municipal CNEAS entities/offers ingestion via MISocial (CSV) with Bronze snapshot and Silver indicator upsert.
   - connector_name: cecad_social_protection_fetch
     source: CECAD
     wave: MVP-6

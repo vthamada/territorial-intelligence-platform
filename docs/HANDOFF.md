@@ -1,6 +1,6 @@
 # Territorial Intelligence Platform - Handoff
 
-Data de referência: 2026-02-22
+Data de referência: 2026-02-23
 Planejamento principal: `docs/PLANO_IMPLEMENTACAO_QG.md`
 North star de produto: `docs/VISION.md`
 Contrato técnico principal: `CONTRATO.md`
@@ -44,6 +44,314 @@ Contrato técnico principal: `CONTRATO.md`
 7. Regra de leitura:
    - apenas esta secao define "próximo passo executável" no momento;
    - secoes de "próximos passos" antigas abaixo devem ser lidas como histórico.
+
+## Atualizacao operacional (2026-02-23) - Backend/DB fechado para foco em frontend
+
+1. Gate de readiness de backend normalizado:
+  - `C:/Users/DTI/Desktop/territorial-intelligence-platform/.venv/Scripts/python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=1`.
+  - correção aplicada no SLO-3 (completude de checks): `runs_missing_checks=0` após backfill de check para run histórico sem registro.
+2. Governança de conectores sincronizada:
+  - `scripts/sync_connector_registry.py` executado com sucesso;
+  - `ops.connector_registry` atualizado para `total=29`, `implemented=27`, `partial=2`;
+  - `suasweb_social_assistance_fetch` e `cneas_social_assistance_fetch` confirmados como `implemented` em `MVP-6`.
+3. Execução operacional não-dry de fontes abertas concluída:
+  - `suasweb_social_assistance_fetch(reference_period='2025')` -> `success`, `rows_written=5`;
+  - `cneas_social_assistance_fetch(reference_period='2025')` -> `success`, `rows_written=4`.
+4. Evidência de persistência em banco:
+  - `silver.fact_indicator` contém `9` linhas para `source in ('SUASWEB','CNEAS')` e `reference_period='2025'`, incluindo indicadores de ofertas CNEAS por proteção (`basica`, `especial`) e total.
+5. Estado residual (não bloqueante para foco no frontend):
+  - `SLO-1` permanece em warning na janela de 7 dias (`90.48% < 95.0%`), concentrado em histórico recente de `quality_suite` e `tse_electorate_fetch`.
+6. Próximo passo imediato (WIP=1):
+  - migrar foco principal para frontend executivo (refino UX e validação de fluxo de mapa), mantendo apenas monitoramento operacional recorrente do backend.
+
+## Atualizacao operacional (2026-02-23) - Fechamento backend/db (delta de confiabilidade)
+
+1. Causa de falha recorrente em qualidade normalizada:
+  - `scripts/sync_schema_contracts.py` executado com `upserted=26` em `ops.source_schema_contracts`.
+2. Efeito validado em execução real:
+  - `quality_suite(reference_period='2025', dry_run=False)` voltou para `success` (`failed_checks=0`).
+  - checks de contratos passaram para `pass`:
+    - `schema_contracts_active_coverage_pct=100.0`;
+    - `schema_contracts_missing_connectors=0`.
+3. Estado de prontidão permanece:
+  - `backend_readiness.py --output-json` -> `READY`, `hard_failures=0`.
+4. Pendência residual para fechamento formal da trilha backend/db:
+  - `SLO-1` da janela ainda abaixo de `95%` por efeito histórico de runs não-sucedidos dentro da própria janela;
+  - ação recomendada: manter somente execuções estáveis e monitoramento até expurgo natural da janela.
+
+## Atualizacao operacional (2026-02-23) - Integracao aberta SUASWEB/CNEAS consolidada
+
+1. Integração de dados socioassistenciais abertos concluída em `MVP-6`:
+  - `suasweb_social_assistance_fetch` ativo com recorte municipal (Diamantina) e indicadores de repasse;
+  - `cneas_social_assistance_fetch` ativo com entidades e ofertas a partir de fontes abertas MISocial.
+2. Correção técnica de raiz aplicada no motor tabular (`src/pipelines/common/tabular_indicator_connector.py`):
+  - suporte a múltiplos recursos de catálogo no mesmo job (composição de indicadores entre arquivos/fontes complementares);
+  - agregador `count` ajustado para contar candidatos textuais não vazios (não apenas valores numéricos).
+3. Validação executada:
+  - `\.\.venv\Scripts\python.exe -m pytest tests/unit/test_onda_b_connectors.py tests/unit/test_prefect_wave3_flow.py -q` -> `21 passed`.
+4. Estado operacional pós-ajuste:
+  - estratégia open-data-first mantida;
+  - conectores governados (`CECAD`, `CENSO_SUAS`) continuam fora do incremental padrão e requerem opt-in (`--allow-governed-sources`).
+5. Próximo passo imediato (WIP=1):
+  - executar rodada operacional não-dry de `MVP-6` (fontes abertas) e registrar evidência de linhas persistidas em `silver.fact_indicator`.
+
+## Matriz de aderencia a VISION (2026-02-23)
+
+Objetivo: traduzir o north star de `docs/VISION.md` em execução objetiva de curto prazo, sem abrir frentes paralelas.
+
+| Bloco da VISION | Estado atual | Gap objetivo | Prioridade | Critério de aceite |
+|---|---|---|---|---|
+| Mapa dominante + painel estratégico | Alto | Refino final de UX (fluidez, legibilidade e previsibilidade de navegação) | Alta | Regressões de páginas executivas em `pass` + validação manual sem ambiguidade de estado |
+| Território eleitoral detalhado (`secao` + `local_votacao`) | Parcial | Consolidar estado `com local_votacao` vs `sem local_votacao` com `toggle/legenda/tooltip` | Alta | `QgPages.test.tsx` cobrindo ambos cenários + build frontend `OK` |
+| Cruzamento Eleitorado + Serviços + Território | Parcial/Alto | Consolidar leitura demanda x oferta no fluxo único de mapa/perfil | Média | Fluxo de navegação entre `/mapa` -> `/territorio/:id` sem perda de contexto |
+| Transparência oficial/proxy/hybrid + metadados | Alto | Ajustes finais de consistência visual/textual | Média | Badge/classificação e hint de método visíveis no estado de dados |
+| Observabilidade de mapa (telemetria + benchmark) | Alto | Manter cadência recorrente e evidência operacional única por rodada | Alta | benchmark urbano `ALL PASS` + evento de prova em `/v1/ops/frontend-events` |
+| Backlog pós-v2 (split view, time slider) | Pendente | Implementação incremental após gates de estabilização | Baixa | Planejamento fechado no plano executável antes de codar |
+
+Próximo pacote técnico recomendado (WIP=1):
+1. fechar `local_votacao` completo no `QgMapPage` (estado disponível/indisponível + legenda);
+2. executar regressão focal de mapa + build;
+3. registrar evidência em `CHANGELOG` e atualizar este `HANDOFF` no fechamento da rodada.
+
+## Atualizacao operacional (2026-02-23) - Foco ativo em dados abertos (sem bloqueio por credencial)
+
+1. Diretriz operacional consolidada para o ciclo atual:
+  - priorizar somente fontes abertas e de fácil acesso;
+  - manter `CECAD` e `CENSO_SUAS` fora da execução incremental padrão até existir autorização institucional.
+2. Implementação aplicada no orquestrador incremental:
+  - `scripts/run_incremental_backfill.py` agora exclui por padrão os conectores governados `cecad_social_protection_fetch` e `censo_suas_fetch`;
+  - habilitação desses conectores requer opt-in explícito com `--allow-governed-sources`.
+3. Próximo passo imediato (WIP=1):
+  - manter ingestão recorrente apenas de fontes abertas e monitorar cobertura/readiness sem abrir nova frente de credencial.
+
+## Atualizacao operacional (2026-02-23) - Lacunas de dados executáveis tratadas
+
+1. Plano curto executado ponta a ponta para reduzir lacunas acionáveis sem abrir nova frente:
+  - `urban_transport_fetch(reference_period='2026')` -> `success`, `rows_extracted=22`, `rows_written=22`;
+  - `tse_electorate_fetch(reference_period='2016')` -> `success`, `rows_extracted=13555`, `rows_written=13555`;
+  - `tse_results_fetch(reference_period='2020'|'2018'|'2016')` -> `success` (`12`/`30`/`12` linhas escritas).
+2. Validação de impacto pós-execução concluída:
+  - `scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> melhoria de `pass=19/warn=13` para `pass=22/warn=10`.
+3. Estado remanescente (não bloqueante para encerramento desta rodada):
+  - conectores `partial` persistem em `ops.connector_registry`: `CECAD` e `CENSO_SUAS` (dependência externa);
+  - `/v1/ops/source-coverage` mantém `TSE` e `OSM` com `no_fact_rows` neste recorte de métrica, sem regressão funcional nas camadas já alimentadas.
+4. Próximo passo imediato (WIP=1):
+  - manter foco em robustez operacional (janela recorrente + scorecard/readiness), tratando como P0 apenas lacunas com ação local imediata e sem abrir nova frente paralela.
+
+## Atualizacao operacional (2026-02-23) - Secao eleitoral no banco/API (Diamantina/MG)
+
+1. Implementação concluída em `src/pipelines/tse_electorate.py` para ingestão de seção eleitoral:
+  - consumo de `perfil_eleitor_secao_2024_MG.zip`;
+  - enriquecimento por `eleitorado_local_votacao_2024.zip`;
+  - upsert de `electoral_section` em `silver.dim_territory`;
+  - carga de `silver.fact_electorate` por seção e perfil demográfico.
+2. Validação técnica da rodada:
+  - `\.\.venv\Scripts\python.exe -m pytest tests/unit/test_tse_electorate.py -q` -> `14 passed`.
+  - `\.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `36 passed`.
+3. Execução operacional confirmada:
+  - `run(reference_period='2024', dry_run=False)` em `tse_electorate_fetch` -> `success`, `rows_extracted=15248`, `rows_written=15248`.
+4. Evidência de dados no banco após carga:
+  - `silver.dim_territory` (`level='electoral_section'`, Diamantina): `rows=144`;
+  - `silver.fact_electorate` (`level='electoral_section'`, `reference_year=2024`, Diamantina): `rows=14550`;
+  - metadados de local de votação preenchidos em `dim_territory.metadata.polling_place_name`.
+5. Próximo passo imediato (WIP=1):
+  - manter ciclo curto focado em estabilização de consumo no frontend executivo (`secao_eleitoral`/`local_votacao`) com validação recorrente, sem abrir nova frente.
+
+## Atualizacao operacional (2026-02-23) - Camadas eleitorais sem pendencia de geometria
+
+1. Correção aplicada em `src/pipelines/tse_electorate.py`:
+  - `electoral_zone` passa a receber geometria proxy (`ST_PointOnSurface` da geometria municipal), permitindo herança geométrica consistente para seções.
+2. Reprocessamento concluído:
+  - `tse_electorate_fetch` (`reference_period=2024`) -> `success`, `rows_extracted=15248`, `rows_written=15248`.
+3. Validação de geometria no banco (Diamantina):
+  - `electoral_section`: `144/144` com geometria válida;
+  - `electoral_zone`: `2/2` com geometria válida.
+4. Smoke API de consumo frontend:
+  - `GET /v1/electorate?level=secao_eleitoral&period=2024&page_size=5` -> `200`;
+  - `GET /v1/electorate/map?level=secao_eleitoral&metric=voters&year=2024&limit=5&include_geometry=false` -> `200`, `items=5`.
+5. Próximo passo imediato (WIP=1):
+  - validar no frontend a mudança de status de cobertura das camadas `Secoes eleitorais` e `Locais de votacao` para `ready`, mantendo rotina de regressão curta.
+
+## Atualizacao operacional (2026-02-23) - Fechamento de qualidade do eleitorado (Diamantina)
+
+1. Saneamento de legado concluído no banco:
+  - removidas linhas inválidas de `fact_electorate` com ano fora da faixa válida (`9999`);
+  - consolidada duplicidade de `electoral_zone` (chave `101`) com merge de fatos e reparent de seções.
+2. Prevenção de recorrência aplicada em código:
+  - `src/pipelines/tse_results.py` passou a upsertar `electoral_zone` com chave canônica (`tse_section=''`, `ibge_geocode` preenchido e conflito por índice territorial canônico).
+3. Estado pós-saneamento (Diamantina):
+  - `fact_electorate` com anos válidos: apenas `2024` (escopo municipal/zona/seção);
+  - `dim_territory` em `electoral_zone`: `1` linha para zona `101`.
+4. Smoke de API mantido em `200`:
+  - `GET /v1/electorate?level=secao_eleitoral&period=2024&page_size=5`;
+  - `GET /v1/electorate?level=zona_eleitoral&period=2024&page_size=5`;
+  - `GET /v1/electorate/map?level=secao_eleitoral&metric=voters&year=2024&limit=5&include_geometry=false`.
+5. Próximo passo imediato (WIP=1):
+  - definir e executar política de histórico eleitoral (anos anteriores) com prioridade para `2022` e `2020`, mantendo o recorte municipal e validação de cobertura por seção/local.
+
+## Atualizacao operacional (2026-02-23) - Backfill historico 2022 concluido
+
+1. Backfill de eleitorado executado em `reference_period=2022`:
+  - `tse_electorate_fetch` -> `success`, `rows_extracted=15105`, `rows_written=15105`.
+2. Estado de dados após backfill:
+  - `fact_electorate` (escopo município/zona/seção) com anos disponíveis: `2022` e `2024`;
+  - `electoral_section` permanece em `144` territórios com metadados de local preenchidos.
+3. Smoke API do ano histórico (`2022`) validado:
+  - `GET /v1/electorate?level=secao_eleitoral&period=2022&page_size=5` -> `200`;
+  - `GET /v1/electorate?level=zona_eleitoral&period=2022&page_size=5` -> `200`;
+  - `GET /v1/electorate/map?level=secao_eleitoral&metric=voters&year=2022&limit=5&include_geometry=false` -> `200`, `items=5`.
+4. Próximo passo imediato (WIP=1):
+  - executar backfill de `2020` no mesmo padrão e repetir validação curta de banco/API para consolidar histórico eleitoral mínimo comparável.
+
+## Atualizacao operacional (2026-02-23) - Backfill historico 2020 concluido
+
+1. Backfill de eleitorado executado em `reference_period=2020`:
+  - `tse_electorate_fetch` -> `success`, `rows_extracted=14766`, `rows_written=14766`.
+2. Estado histórico atual (Diamantina):
+  - anos disponíveis em `fact_electorate` (município/zona/seção): `2020`, `2022`, `2024`.
+3. Smoke API do ano histórico (`2020`) validado:
+  - `GET /v1/electorate?level=secao_eleitoral&period=2020&page_size=5` -> `200`;
+  - `GET /v1/electorate?level=zona_eleitoral&period=2020&page_size=5` -> `200`;
+  - `GET /v1/electorate/map?level=secao_eleitoral&metric=voters&year=2020&limit=5&include_geometry=false` -> `200`, `items=5`.
+4. Próximo passo imediato (WIP=1):
+  - opcional: backfill de `2018` para ampliar série histórica eleitoral antes de congelar escopo do ciclo.
+
+## Atualizacao operacional (2026-02-23) - Backfill historico 2018 concluido + robustez NaN
+
+1. Hardening aplicado em `src/pipelines/tse_electorate.py`:
+  - sanitização de `NaN` em metadata de seção (`polling_place_name`, `polling_place_code`, `voters_section`) antes do `jsonb`.
+2. Backfill de eleitorado executado em `reference_period=2018`:
+  - `tse_electorate_fetch` -> `success`, `rows_extracted=13974`, `rows_written=13974`.
+3. Estado histórico final da rodada (Diamantina):
+  - anos disponíveis em `fact_electorate` (município/zona/seção): `2018`, `2020`, `2022`, `2024`.
+4. Smoke API do ano histórico (`2018`) validado:
+  - `GET /v1/electorate?level=secao_eleitoral&period=2018&page_size=5` -> `200`;
+  - `GET /v1/electorate?level=zona_eleitoral&period=2018&page_size=5` -> `200`;
+  - `GET /v1/electorate/map?level=secao_eleitoral&metric=voters&year=2018&limit=5&include_geometry=false` -> `200`, `items=5`.
+5. Próximo passo imediato (WIP=1):
+  - congelar escopo eleitoral desta rodada e seguir apenas com monitoramento recorrente (sem abrir nova frente de dados eleitorais).
+
+## Atualizacao operacional (2026-02-23) - Ingestao TSE executada para zona/seção eleitoral
+
+1. Ingestão da onda TSE executada com `reference_period=2024`:
+  - `tse_catalog_discovery` -> `success`;
+  - `tse_electorate_fetch` -> `success` (`rows_extracted=698`, `rows_written=698`);
+  - `tse_results_fetch` -> `success` (`rows_extracted=12`, `rows_written=12`).
+  - execução adicional de `tse_results_fetch` com `reference_period=2022` -> `success` (`rows_extracted=24`, `rows_written=24`) para tentativa de obtenção de seção eleitoral.
+2. Validação pós-ingestão no banco:
+  - `silver.dim_territory` agora contém `electoral_zone` (`rows=2`);
+  - `silver.fact_electorate` contém `electoral_zone` (`rows=349`) e `municipality` (`rows=710`);
+  - `silver.fact_election_result` contém `electoral_zone` (`rows=12`) e `municipality` (`rows=12`).
+3. Validação de consumo pela API (frontend-ready):
+  - `GET /v1/electorate?level=zona_eleitoral&period=2024&page_size=5` -> `200`, `total=1`;
+  - `GET /v1/electorate/map?level=zona_eleitoral&metric=voters&year=2024&limit=5&include_geometry=false` -> `200`, `items=1`.
+4. Situação atual de seção eleitoral:
+  - `secao_eleitoral` segue sem linhas nesta base (`total=0`), pois os recursos processados (`detalhe_votacao_munzona_2024_MG.csv` e `detalhe_votacao_munzona_2022_MG.csv`) não trouxeram coluna de seção (`section_column=null` no `parse_info` registrado em `ops.pipeline_runs`).
+5. Próximo passo imediato (WIP=1):
+  - manter dados de zona eleitoral ativos para o front e abrir recorte técnico único para ingestão dedicada de seção eleitoral quando houver recurso TSE com granularidade de seção disponível para Diamantina/MG.
+
+## Atualizacao tecnica (2026-02-23) - local_votacao consolidado no mapa executivo
+
+1. Implementacao frontend concluida em `frontend/src/modules/qg/pages/QgMapPage.tsx`:
+  - toggle rapido para alternar `Locais de votacao` <-> `Secoes eleitorais` no nivel `secao_eleitoral`;
+  - legenda eleitoral explicita com tooltip de leitura;
+  - mensagens contextuais preservadas para os cenarios `com local_votacao` e `sem local_votacao`.
+2. Cobertura de regressao ampliada em `frontend/src/modules/qg/pages/QgPages.test.tsx`:
+  - validacao de botao `Exibir locais de votacao` quando a camada existe no manifesto;
+  - validacao de botao `Exibir secoes eleitorais` quando `local_votacao` esta ativo.
+3. Validacao executada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`;
+  - `npm --prefix frontend run test -- --run` -> `83 passed`;
+  - `npm --prefix frontend run build` -> `OK`.
+4. Proximo passo imediato (WIP=1):
+  - manter cadencia de benchmark/telemetria e fechar refinamentos de UX final do mapa (fluidez e legibilidade) sem abrir nova frente.
+
+## Atualizacao tecnica (2026-02-23) - Refino de legibilidade operacional no mapa
+
+1. Ajustes aplicados em `frontend/src/modules/qg/pages/QgMapPage.tsx`:
+  - resumo operacional do mapa publicado com estado consolidado (`escopo`, `nivel`, `camada`, `visualizacao`, `base`, `renderizacao`);
+  - seletor de camada automática com rótulo explícito por contexto de zoom (`Automatica (recomendada no zoom atual)`).
+2. Cobertura de regressão em `frontend/src/modules/qg/pages/QgPages.test.tsx`:
+  - validação da presença do resumo operacional;
+  - validação do novo rótulo do seletor automático.
+3. Validação executada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`;
+  - `npm --prefix frontend run test -- --run` -> `83 passed`;
+  - `npm --prefix frontend run build` -> `OK`.
+4. Próximo passo imediato (WIP=1):
+  - seguir para homologação operacional recorrente (benchmark urbano + leitura de `/v1/ops/frontend-events`) mantendo `READY/normal/all_pass`.
+
+## Atualizacao tecnica (2026-02-23) - Origem da camada explicita no painel do mapa
+
+1. Ajuste de fluidez aplicado em `frontend/src/modules/qg/pages/QgMapPage.tsx`:
+  - painel de camada detalhada passa a explicitar a origem da camada ativa (`origem: automatica` vs `origem: manual`), reduzindo ambiguidade na leitura operacional.
+2. Cobertura de regressão ampliada em `frontend/src/modules/qg/pages/QgPages.test.tsx`:
+  - cenário padrão valida transição de `origem: automatica` para `origem: manual` ao alternar para `Locais de votacao`;
+  - cenário com `layer_id` explícito valida retorno para `origem: automatica` após `Usar camada automatica`.
+3. Validação executada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`;
+  - `npm --prefix frontend run test -- --run` -> `83 passed`;
+  - `npm --prefix frontend run build` -> `OK`.
+4. Próximo passo imediato (WIP=1):
+  - manter ciclo curto de refinamento de previsibilidade de navegação no mapa com validação recorrente e sem abrir nova frente.
+
+## Atualizacao tecnica (2026-02-23) - Aviso explicito de reset do foco territorial
+
+1. Ajuste de previsibilidade aplicado em `frontend/src/modules/qg/pages/QgMapPage.tsx`:
+  - aviso dedicado quando `Aplicar filtros` reinicia foco territorial anterior;
+  - aviso dedicado quando `Limpar` reinicia foco territorial;
+  - limpeza automática do aviso ao refocar território ou recentrar manualmente o mapa.
+2. Cobertura de regressão ampliada em `frontend/src/modules/qg/pages/QgPages.test.tsx`:
+  - fluxo validado de foco territorial -> troca de escopo para urbano -> remoção de `territory_id` na URL + aviso explícito de reset.
+3. Validação executada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`;
+  - `npm --prefix frontend run test -- --run` -> `83 passed`;
+  - `npm --prefix frontend run build` -> `OK`.
+4. Próximo passo imediato (WIP=1):
+  - seguir com ajustes pequenos de fluidez de navegação no mapa (sem nova frente), mantendo evidência objetiva por rodada.
+
+## Atualizacao tecnica (2026-02-23) - Aviso de recentralizacao automatica no mapa
+
+1. Ajuste de previsibilidade aplicado em `frontend/src/modules/qg/pages/QgMapPage.tsx`:
+  - `Aplicar filtros` agora exibe aviso explícito quando o mapa é recentrado automaticamente por mudança de escopo, nível ou zoom contextual;
+  - `Limpar` agora exibe aviso explícito de retorno para visão inicial;
+  - aviso é limpo em ações manuais de recenter/refoco para evitar ruído.
+2. Cobertura de regressão ampliada em `frontend/src/modules/qg/pages/QgPages.test.tsx`:
+  - validação do aviso de recentralização no cenário de sincronização de query params após troca de escopo e aplicação de filtros.
+3. Validação executada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`;
+  - `npm --prefix frontend run test -- --run` -> `83 passed`;
+  - `npm --prefix frontend run build` -> `OK`.
+4. Próximo passo imediato (WIP=1):
+  - manter sequência de microrefinos de navegação no mapa com validação recorrente e sem abrir nova frente.
+
+## Atualizacao tecnica (2026-02-23) - Utilidade executiva imediata no mapa
+
+1. Ajuste de design orientado a decisão aplicado em `frontend/src/modules/qg/pages/QgMapPage.tsx`:
+  - novo bloco `Leitura executiva imediata` inserido no painel estratégico do mapa;
+  - destaque objetivo de prioridade territorial atual (top do recorte) e menor valor do recorte;
+  - indicação de posição do território selecionado no ranking (`posição x/y`) e próximo passo explícito quando não houver seleção ativa.
+2. Cobertura de regressão ampliada em `frontend/src/modules/qg/pages/QgPages.test.tsx`:
+  - valida presença do bloco executivo e sinais de utilidade imediata no cenário padrão do mapa.
+3. Validação executada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`;
+  - `npm --prefix frontend run test -- --run` -> `83 passed`;
+  - `npm --prefix frontend run build` -> `OK`.
+4. Próximo passo imediato (WIP=1):
+  - continuar microrefinos para reduzir ruído visual e reforçar leitura de prioridade/ação sem abrir nova frente.
+
+## Atualizacao operacional (2026-02-23) - Homologacao recorrente do mapa concluida
+
+1. Benchmark urbano reexecutado com sucesso:
+  - `\.\.venv\Scripts\python.exe scripts\benchmark_api.py --suite urban --rounds 30 --json-output data\reports\benchmark_urban_map.json` -> `ALL PASS`.
+  - p95 observados: `roads=67.2ms`, `pois=31.3ms`, `nearby-pois=31.8ms`, `geocode=32.3ms`.
+2. Correção de ambiente aplicada durante a rodada:
+  - `scripts/init_db.py` executado com `PYTHONPATH=src` para garantir objetos SQL urbanos necessários ao `geocode`.
+3. Prova ponta a ponta de observabilidade frontend validada:
+  - `POST /v1/ops/frontend-events` com `name=map_homologation_probe` -> `accepted` (`event_id=1`);
+  - `GET /v1/ops/frontend-events?name=map_homologation_probe&page_size=5` -> `total=1`.
+4. Próximo passo imediato (WIP=1):
+  - manter cadência recorrente de benchmark + eventos frontend, preservando `READY/normal/all_pass` sem abrir nova frente.
 
 ## Atualizacao tecnica (2026-02-22) - Homologacao operacional do mapa concluida
 

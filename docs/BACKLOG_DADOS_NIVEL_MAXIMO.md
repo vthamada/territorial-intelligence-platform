@@ -4,6 +4,12 @@ Data de referência: 2026-02-19
 Status: ativo  
 Escopo: plano técnico para levar a base de dados ao nível máximo de robustez para inteligencia territorial de Diamantina/MG.
 
+Atualização de estado (2026-02-23):
+1. trilhas `D4`, `D5`, `D6`, `D7` e `D8` concluídas tecnicamente.
+2. backend readiness atual em `READY` com `hard_failures=0` e pendência residual de `SLO-1` (warning de janela).
+3. pendência operacional de backend (excluindo frontend e fontes governadas CECAD/Censo SUAS):
+  - elevar taxa de sucesso de runs (`SLO-1`) para meta da janela e sustentar estabilidade por 30 dias.
+
 Fonte oficial de catálogo/priorização de fontes:
 1. este proprio documento (substitui `docs/PLANO_FONTES_DADOS_DIAMANTINA.md` para decisão).
 
@@ -245,6 +251,12 @@ Aceite:
 ### Sprint D4 - Domínio de mobilidade e infraestrutura
 Objetivo:
 1. enriquecer leitura de infraestrutura urbana e acesso.
+Status:
+- concluido tecnicamente (2026-02-21) com `BD-040`, `BD-041` e `BD-042`.
+Progresso atual:
+- `BD-040` concluido com aprofundamento de mobilidade/frota no domínio `SENATRAN` com cobertura operacional ativa no pipeline.
+- `BD-041` concluido com integração de transporte/viário municipal no domínio urbano (`urban_transport_fetch`) e consumo por API/mapa.
+- `BD-042` concluido com mart `gold.mart_mobility_access` disponível para consumo executivo e checks de qualidade associados.
 
 Issues:
 1. `BD-040`: aprofundar SENATRAN (serie histórica e categorias de frota).
@@ -467,6 +479,9 @@ Gate de saida da Fase 3:
 Regra de entrada:
 1. so iniciar novas implementações amplas de D4/D5 apos gates das Fases 1-3.
 
+Status atual (2026-02-23):
+1. `D4` e `D5` já concluídos tecnicamente; fase permanece apenas como referência histórica de sequenciamento.
+
 Escopo:
 1. mobilidade/infraestrutura (D4) e ambiental/risco (D5) com aceite mensuravel por sprint.
 
@@ -497,8 +512,9 @@ Ja implementadas no produto:
 
 Em consolidação/expansão pela trilha D*:
 1. D2: CECAD/CadUnico e Censo SUAS (com governança de acesso)
-2. D4: mobilidade e infraestrutura urbana complementar
-3. D5: histórico ambiental multi-ano e agregações por território fino
+2. D4: concluída tecnicamente (mobilidade e infraestrutura urbana)
+3. D5: concluída tecnicamente (ambiental/risco multi-nível)
+4. consolidação operacional remanescente: estabilidade de SLO-1 na janela de robustez
 
 Regra:
 1. qualquer nova fonte deve entrar como issue BD-* neste backlog antes de integrar ao plano executável.

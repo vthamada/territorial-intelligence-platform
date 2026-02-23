@@ -21,6 +21,7 @@ from app.settings import get_settings  # noqa: E402
 from pipelines.ana_hydrology import run as run_ana_hydrology  # noqa: E402
 from pipelines.anatel_connectivity import run as run_anatel_connectivity  # noqa: E402
 from pipelines.aneel_energy import run as run_aneel_energy  # noqa: E402
+from pipelines.cneas_social_assistance import run as run_cneas_social_assistance  # noqa: E402
 from pipelines.cecad_social_protection import run as run_cecad_social_protection  # noqa: E402
 from pipelines.censo_suas import run as run_censo_suas  # noqa: E402
 from pipelines.datasus_health import run as run_datasus_health  # noqa: E402
@@ -45,6 +46,7 @@ from pipelines.tse_results import run as run_tse_results  # noqa: E402
 from pipelines.urban_pois import run as run_urban_pois  # noqa: E402
 from pipelines.urban_roads import run as run_urban_roads  # noqa: E402
 from pipelines.urban_transport import run as run_urban_transport  # noqa: E402
+from pipelines.suasweb_social_assistance import run as run_suasweb_social_assistance  # noqa: E402
 
 Runner = Callable[..., dict[str, Any]]
 
@@ -69,6 +71,8 @@ JOB_RUNNERS: dict[str, Runner] = {
     "ana_hydrology_fetch": run_ana_hydrology,
     "anatel_connectivity_fetch": run_anatel_connectivity,
     "aneel_energy_fetch": run_aneel_energy,
+    "suasweb_social_assistance_fetch": run_suasweb_social_assistance,
+    "cneas_social_assistance_fetch": run_cneas_social_assistance,
     "cecad_social_protection_fetch": run_cecad_social_protection,
     "censo_suas_fetch": run_censo_suas,
     "urban_roads_fetch": run_urban_roads,
@@ -102,11 +106,20 @@ JOB_ORDER: tuple[str, ...] = (
     "ana_hydrology_fetch",
     "anatel_connectivity_fetch",
     "aneel_energy_fetch",
+    "suasweb_social_assistance_fetch",
+    "cneas_social_assistance_fetch",
     "cecad_social_protection_fetch",
     "censo_suas_fetch",
     "urban_roads_fetch",
     "urban_pois_fetch",
     "urban_transport_fetch",
+)
+
+GOVERNED_CONNECTORS: frozenset[str] = frozenset(
+    {
+        "cecad_social_protection_fetch",
+        "censo_suas_fetch",
+    }
 )
 
 
@@ -316,6 +329,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--allow-blocked", action="store_true")
+    parser.add_argument(
+        "--allow-governed-sources",
+        action="store_true",
+        help=(
+            "Include connectors that require governed authentication/authorization "
+            "(e.g., CECAD/Censo SUAS). By default they are skipped to keep "
+            "execution focused on open-access sources."
+        ),
+    )
     parser.add_argument("--timeout-seconds", type=int, default=45)
     parser.add_argument("--max-retries", type=int, default=3)
     parser.add_argument(
@@ -348,6 +370,9 @@ def main(argv: list[str] | None = None) -> int:
 
     excluded_jobs = set(_parse_csv_values(args.exclude_jobs))
     selected_jobs = [job for job in selected_jobs if job not in excluded_jobs]
+
+    if not args.allow_governed_sources:
+        selected_jobs = [job for job in selected_jobs if job not in GOVERNED_CONNECTORS]
 
     selected_jobs = [job for job in selected_jobs if job in JOB_RUNNERS]
     if not selected_jobs:

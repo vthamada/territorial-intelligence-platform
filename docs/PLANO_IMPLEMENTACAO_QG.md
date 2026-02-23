@@ -4,6 +4,14 @@ Data de referência: 2026-02-21
 Status: execução ativa (trilha unica com D8 concluido tecnicamente e foco em consolidação operacional)  
 Escopo: plano executável para consolidar QG estratégico em produção com dados reais.
 
+Atualização de consistência documental (2026-02-23):
+1. alinhado com `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` e `docs/HANDOFF.md`:
+   - `D4` e `D5` permanecem concluídos tecnicamente;
+   - backend/db em `READY` (`hard_failures=0`), com pendência residual operacional de `SLO-1` na janela.
+2. orientação de execução preservada:
+   - foco principal pode seguir para frontend;
+   - backend permanece em regime de monitoramento recorrente e hardening de confiabilidade.
+
 ## 0) Regra de foco operacional (WIP=1)
 
 1. Fila ativa unica de implementação:
@@ -236,6 +244,13 @@ Status da rodada (2026-02-22):
    - commit defensivo após ingestão com compatibilidade para sessão fake de testes.
 3. Próximo passo imediato:
    - manter cadência recorrente de benchmark + validação de leitura de eventos, sem abrir nova frente.
+
+Atualizacao complementar (2026-02-23):
+4. Item 3 da prioridade alta evoluido no frontend do mapa:
+   - `local_votacao` consolidado com toggle rapido (`Locais de votacao` <-> `Secoes eleitorais`) e legenda eleitoral explicita no `QgMapPage`.
+   - regressao dedicada validada em `QgPages.test.tsx` e build frontend `OK`.
+5. Próximo passo imediato:
+   - seguir com refinamento de UX final (fluidez/legibilidade) mantendo WIP=1 e sem abrir backlog pós-v2.
 
 ## 5.2 Prioridade media
 

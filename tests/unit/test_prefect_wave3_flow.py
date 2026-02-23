@@ -124,6 +124,16 @@ def test_run_mvp_all_propagates_common_kwargs_to_all_jobs(monkeypatch) -> None:
     monkeypatch.setattr(prefect_flows, "run_aneel_energy", _stub("aneel_energy_fetch"))
     monkeypatch.setattr(
         prefect_flows,
+        "run_suasweb_social_assistance",
+        _stub("suasweb_social_assistance_fetch"),
+    )
+    monkeypatch.setattr(
+        prefect_flows,
+        "run_cneas_social_assistance",
+        _stub("cneas_social_assistance_fetch"),
+    )
+    monkeypatch.setattr(
+        prefect_flows,
         "run_cecad_social_protection",
         _stub("cecad_social_protection_fetch"),
     )
@@ -163,6 +173,8 @@ def test_run_mvp_all_propagates_common_kwargs_to_all_jobs(monkeypatch) -> None:
         "ana_hydrology_fetch",
         "anatel_connectivity_fetch",
         "aneel_energy_fetch",
+        "suasweb_social_assistance_fetch",
+        "cneas_social_assistance_fetch",
         "cecad_social_protection_fetch",
         "censo_suas_fetch",
         "urban_roads_fetch",
@@ -260,20 +272,26 @@ def test_run_mvp_all_returns_each_job_result_payload(monkeypatch) -> None:
     def _run_aneel(**_kwargs: Any) -> dict[str, Any]:
         return {"job": "aneel_energy_fetch", "status": "success", "rows_written": 19}
 
+    def _run_suasweb(**_kwargs: Any) -> dict[str, Any]:
+        return {"job": "suasweb_social_assistance_fetch", "status": "success", "rows_written": 20}
+
+    def _run_cneas(**_kwargs: Any) -> dict[str, Any]:
+        return {"job": "cneas_social_assistance_fetch", "status": "success", "rows_written": 21}
+
     def _run_cecad(**_kwargs: Any) -> dict[str, Any]:
-        return {"job": "cecad_social_protection_fetch", "status": "success", "rows_written": 20}
+        return {"job": "cecad_social_protection_fetch", "status": "success", "rows_written": 22}
 
     def _run_censo_suas(**_kwargs: Any) -> dict[str, Any]:
-        return {"job": "censo_suas_fetch", "status": "success", "rows_written": 21}
+        return {"job": "censo_suas_fetch", "status": "success", "rows_written": 23}
 
     def _run_urban_roads(**_kwargs: Any) -> dict[str, Any]:
-        return {"job": "urban_roads_fetch", "status": "success", "rows_written": 22}
+        return {"job": "urban_roads_fetch", "status": "success", "rows_written": 24}
 
     def _run_urban_pois(**_kwargs: Any) -> dict[str, Any]:
-        return {"job": "urban_pois_fetch", "status": "success", "rows_written": 23}
+        return {"job": "urban_pois_fetch", "status": "success", "rows_written": 25}
 
     def _run_urban_transport(**_kwargs: Any) -> dict[str, Any]:
-        return {"job": "urban_transport_fetch", "status": "success", "rows_written": 24}
+        return {"job": "urban_transport_fetch", "status": "success", "rows_written": 26}
 
     monkeypatch.setattr(prefect_flows, "run_sidra_indicators", _run_sidra)
     monkeypatch.setattr(prefect_flows, "run_senatran_fleet", _run_senatran)
@@ -285,6 +303,8 @@ def test_run_mvp_all_returns_each_job_result_payload(monkeypatch) -> None:
     monkeypatch.setattr(prefect_flows, "run_ana_hydrology", _run_ana)
     monkeypatch.setattr(prefect_flows, "run_anatel_connectivity", _run_anatel)
     monkeypatch.setattr(prefect_flows, "run_aneel_energy", _run_aneel)
+    monkeypatch.setattr(prefect_flows, "run_suasweb_social_assistance", _run_suasweb)
+    monkeypatch.setattr(prefect_flows, "run_cneas_social_assistance", _run_cneas)
     monkeypatch.setattr(prefect_flows, "run_cecad_social_protection", _run_cecad)
     monkeypatch.setattr(prefect_flows, "run_censo_suas", _run_censo_suas)
     monkeypatch.setattr(prefect_flows, "run_urban_roads", _run_urban_roads)
@@ -315,11 +335,13 @@ def test_run_mvp_all_returns_each_job_result_payload(monkeypatch) -> None:
     assert result["ana_hydrology_fetch"]["rows_written"] == 17
     assert result["anatel_connectivity_fetch"]["rows_written"] == 18
     assert result["aneel_energy_fetch"]["rows_written"] == 19
-    assert result["cecad_social_protection_fetch"]["rows_written"] == 20
-    assert result["censo_suas_fetch"]["rows_written"] == 21
-    assert result["urban_roads_fetch"]["rows_written"] == 22
-    assert result["urban_pois_fetch"]["rows_written"] == 23
-    assert result["urban_transport_fetch"]["rows_written"] == 24
+    assert result["suasweb_social_assistance_fetch"]["rows_written"] == 20
+    assert result["cneas_social_assistance_fetch"]["rows_written"] == 21
+    assert result["cecad_social_protection_fetch"]["rows_written"] == 22
+    assert result["censo_suas_fetch"]["rows_written"] == 23
+    assert result["urban_roads_fetch"]["rows_written"] == 24
+    assert result["urban_pois_fetch"]["rows_written"] == 25
+    assert result["urban_transport_fetch"]["rows_written"] == 26
     assert result["dbt_build"]["models_built"] == 3
     assert result["quality_suite"]["job"] == "quality_suite"
 
@@ -436,6 +458,16 @@ def test_run_mvp_wave_6_propagates_common_kwargs_to_all_jobs(monkeypatch) -> Non
         _stub("cecad_social_protection_fetch"),
     )
     monkeypatch.setattr(prefect_flows, "run_censo_suas", _stub("censo_suas_fetch"))
+    monkeypatch.setattr(
+        prefect_flows,
+        "run_suasweb_social_assistance",
+        _stub("suasweb_social_assistance_fetch"),
+    )
+    monkeypatch.setattr(
+        prefect_flows,
+        "run_cneas_social_assistance",
+        _stub("cneas_social_assistance_fetch"),
+    )
     monkeypatch.setattr(prefect_flows, "run_quality_suite", _stub("quality_suite"))
 
     result = prefect_flows.run_mvp_wave_6.fn(
@@ -447,6 +479,8 @@ def test_run_mvp_wave_6_propagates_common_kwargs_to_all_jobs(monkeypatch) -> Non
     )
 
     assert set(result.keys()) == {
+        "suasweb_social_assistance_fetch",
+        "cneas_social_assistance_fetch",
         "cecad_social_protection_fetch",
         "censo_suas_fetch",
         "quality_suite",

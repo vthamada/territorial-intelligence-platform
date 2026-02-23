@@ -561,6 +561,14 @@ describe("QG pages", () => {
     renderWithQueryClient(<QgMapPage />);
     await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
     await screen.findByLabelText("Indicador");
+    expect(await screen.findByLabelText("Leitura executiva imediata")).toBeInTheDocument();
+    expect(
+      screen.queryAllByText((_, element) =>
+        (element?.textContent ?? "").includes("Prioridade territorial atual:") &&
+        (element?.textContent ?? "").includes("Diamantina"),
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText(/posição 1\/1/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Exportar.*SVG/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Exportar.*PNG/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Abrir brief do territorio" })).toHaveAttribute(
@@ -645,10 +653,17 @@ describe("QG pages", () => {
     );
 
     expect(await screen.findByLabelText("Camada eleitoral detalhada")).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Automatica (recomendada)" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Automatica (recomendada no zoom atual)" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Secoes eleitorais" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Locais de votacao" })).toBeInTheDocument();
     expect(screen.getByText(/Dica: selecione 'Locais de votacao'/i)).toBeInTheDocument();
+    expect(screen.getByText(/origem: automatica/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText("Resumo operacional do mapa")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Exibir locais de votacao" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Exibir locais de votacao" }));
+    expect((screen.getByLabelText("Camada eleitoral detalhada") as HTMLSelectElement).value).toBe("territory_polling_place");
+    expect(screen.getByText(/origem: manual/i)).toBeInTheDocument();
   });
 
   it("loads explicit layer selection from URL query param", async () => {
@@ -688,6 +703,13 @@ describe("QG pages", () => {
     const selector = await screen.findByLabelText("Camada eleitoral detalhada");
     expect(selector).toHaveValue("territory_polling_place");
     expect(screen.getByText(/Local de votacao ativo/i)).toBeInTheDocument();
+    expect(screen.getByText(/origem: manual/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Exibir secoes eleitorais" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Usar camada automatica" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Usar camada automatica" }));
+    expect((screen.getByLabelText("Camada eleitoral detalhada") as HTMLSelectElement).value).toBe("");
+    expect(screen.getByText(/Selecao automatica restaurada manualmente/i)).toBeInTheDocument();
+    expect(screen.getByText(/origem: automatica/i)).toBeInTheDocument();
     expect(
       screen.queryAllByText((_, element) => element?.textContent?.includes("Classificacao da camada: proxy") ?? false)
         .length,
@@ -869,6 +891,9 @@ describe("QG pages", () => {
       expect(search).toContain("viz=points");
       expect(search).toContain("zoom=");
     });
+    expect(
+      screen.getByText(/Filtros aplicados; mapa recentrado automaticamente para manter contexto do recorte/i),
+    ).toBeInTheDocument();
   });
 
   it("supports urban layer scope from URL without choropleth request", async () => {
@@ -939,6 +964,16 @@ describe("QG pages", () => {
       const search = screen.getByTestId("location-search").textContent ?? "";
       expect(search).toContain("territory_id=3121605");
     });
+
+    await userEvent.selectOptions(screen.getByLabelText("Escopo da camada"), "urban");
+    await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+
+    await waitFor(() => {
+      const search = screen.getByTestId("location-search").textContent ?? "";
+      expect(search).toContain("scope=urban");
+      expect(search).not.toContain("territory_id=");
+    });
+    expect(screen.getByText(/Filtros aplicados; foco territorial anterior reiniciado/i)).toBeInTheDocument();
   });
 
   it("loads priority filters from URL query params", async () => {

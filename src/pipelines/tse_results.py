@@ -388,6 +388,7 @@ def _upsert_electoral_zone_territory(
     canonical_key = f"electoral_zone:tse:{uf}:{tse_zone}"
     source_entity_id = f"electoral_zone:{municipality_ibge_code}:{tse_zone}"
     zone_name = f"Zona eleitoral {tse_zone} - {municipality_name}"
+    normalized_section = ""
     metadata = {
         "official_status": "proxy",
         "proxy_method": "Geometria herdada do municipio para disponibilizar visualizacao inicial por zona.",
@@ -420,9 +421,9 @@ def _upsert_electoral_zone_territory(
                     :canonical_key,
                     :source_system,
                     :source_entity_id,
-                    NULL,
+                    :municipality_ibge_code,
                     :tse_zone,
-                    NULL,
+                    :tse_section,
                     :name,
                     :normalized_name,
                     :uf,
@@ -435,11 +436,14 @@ def _upsert_electoral_zone_territory(
                     ),
                     CAST(:metadata AS jsonb)
                 )
-                ON CONFLICT (source_system, source_entity_id, municipality_ibge_code)
+                ON CONFLICT (level, ibge_geocode, tse_zone, tse_section, municipality_ibge_code)
                 DO UPDATE SET
                     parent_territory_id = EXCLUDED.parent_territory_id,
                     canonical_key = EXCLUDED.canonical_key,
+                    source_system = EXCLUDED.source_system,
+                    source_entity_id = EXCLUDED.source_entity_id,
                     tse_zone = EXCLUDED.tse_zone,
+                    tse_section = EXCLUDED.tse_section,
                     name = EXCLUDED.name,
                     normalized_name = EXCLUDED.normalized_name,
                     uf = EXCLUDED.uf,
@@ -455,6 +459,7 @@ def _upsert_electoral_zone_territory(
                 "source_system": SOURCE,
                 "source_entity_id": source_entity_id,
                 "tse_zone": tse_zone,
+                "tse_section": normalized_section,
                 "name": zone_name,
                 "normalized_name": _normalize_text(zone_name),
                 "uf": uf,

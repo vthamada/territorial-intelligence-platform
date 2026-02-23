@@ -131,14 +131,18 @@ def test_onda_b_connector_dry_run_uses_resolved_dataset(
     )
     monkeypatch.setattr(
         tabular_indicator_connector,
-        "_resolve_dataset",
+        "_resolve_datasets",
         lambda **kwargs: (  # noqa: ARG005
-            dataframe,
-            b"raw",
-            ".csv",
-            "manual",
-            "file:///tmp/source.csv",
-            "source.csv",
+            [
+                (
+                    dataframe,
+                    b"raw",
+                    ".csv",
+                    "manual",
+                    "file:///tmp/source.csv",
+                    "source.csv",
+                )
+            ],
             [],
         ),
     )
@@ -245,6 +249,47 @@ def test_build_indicator_rows_applies_row_filters() -> None:
     assert by_code["MOVEL"]["value"] == Decimal("300")
 
 
+def test_build_indicator_rows_count_works_with_text_candidate_values() -> None:
+    municipality_rows = [
+        {"servico": "Convivencia", "codigo_servico": "SCFV", "nivel": "Basica"},
+        {"servico": "PAIF", "codigo_servico": "PAIF", "nivel": "Basica"},
+        {"servico": "Abordagem", "codigo_servico": "ABD-01", "nivel": "Especial"},
+        {"servico": "Invalido", "codigo_servico": "", "nivel": "Especial"},
+    ]
+    specs = (
+        IndicatorSpec(
+            code="OFERTAS_TOTAL",
+            name="Ofertas",
+            unit="count",
+            category="assistencia_social",
+            candidates=("codigo_servico",),
+            aggregator="count",
+        ),
+        IndicatorSpec(
+            code="OFERTAS_BASICA",
+            name="Ofertas basica",
+            unit="count",
+            category="assistencia_social",
+            candidates=("codigo_servico",),
+            aggregator="count",
+            row_filters={"nivel": ("basica",)},
+        ),
+    )
+
+    rows = _build_indicator_rows(
+        territory_id="00000000-0000-0000-0000-000000000000",
+        reference_period="2025",
+        municipality_rows=municipality_rows,
+        source="CNEAS",
+        fact_dataset_name="cneas",
+        indicator_specs=specs,
+    )
+
+    by_code = {item["indicator_code"]: item for item in rows}
+    assert by_code["OFERTAS_TOTAL"]["value"] == Decimal("3")
+    assert by_code["OFERTAS_BASICA"]["value"] == Decimal("2")
+
+
 def test_load_dataframe_from_bytes_supports_arcgis_features_payload() -> None:
     payload = (
         '{"features":[{"attributes":{"codigo_municipio":"3121605","vazao_media_m3s":"2,5"}}]}'
@@ -275,14 +320,18 @@ def test_run_tabular_connector_uses_manual_fallback_when_remote_has_no_indicator
     )
     monkeypatch.setattr(
         tabular_indicator_connector,
-        "_resolve_dataset",
+        "_resolve_datasets",
         lambda **kwargs: (  # noqa: ARG005
-            pd.DataFrame([{"codigo_municipio": "3121605", "municipio": "Diamantina"}]),
-            b"remote",
-            ".csv",
-            "remote",
-            "https://example.org/remote.csv",
-            "remote.csv",
+            [
+                (
+                    pd.DataFrame([{"codigo_municipio": "3121605", "municipio": "Diamantina"}]),
+                    b"remote",
+                    ".csv",
+                    "remote",
+                    "https://example.org/remote.csv",
+                    "remote.csv",
+                )
+            ],
             [],
         ),
     )

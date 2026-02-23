@@ -40,6 +40,7 @@ from pipelines.mte_labor import run as run_mte_labor
 from pipelines.ana_hydrology import run as run_ana_hydrology
 from pipelines.anatel_connectivity import run as run_anatel_connectivity
 from pipelines.aneel_energy import run as run_aneel_energy
+from pipelines.cneas_social_assistance import run as run_cneas_social_assistance
 from pipelines.cecad_social_protection import run as run_cecad_social_protection
 from pipelines.censo_suas import run as run_censo_suas
 from pipelines.urban_roads import run as run_urban_roads
@@ -52,6 +53,7 @@ from pipelines.siconfi_finance import run as run_siconfi_finance
 from pipelines.sidra_indicators import run as run_sidra_indicators
 from pipelines.siops_health_finance import run as run_siops_health_finance
 from pipelines.snis_sanitation import run as run_snis_sanitation
+from pipelines.suasweb_social_assistance import run as run_suasweb_social_assistance
 from pipelines.tse_catalog import run as run_tse_catalog
 from pipelines.tse_electorate import run as run_tse_electorate
 from pipelines.tse_results import run as run_tse_results
@@ -113,6 +115,8 @@ def run_mvp_all(
         "ana_hydrology_fetch": run_ana_hydrology(**common_kwargs),
         "anatel_connectivity_fetch": run_anatel_connectivity(**common_kwargs),
         "aneel_energy_fetch": run_aneel_energy(**common_kwargs),
+        "suasweb_social_assistance_fetch": run_suasweb_social_assistance(**common_kwargs),
+        "cneas_social_assistance_fetch": run_cneas_social_assistance(**common_kwargs),
         "cecad_social_protection_fetch": run_cecad_social_protection(**common_kwargs),
         "censo_suas_fetch": run_censo_suas(**common_kwargs),
         "urban_roads_fetch": run_urban_roads(**common_kwargs),
@@ -261,6 +265,8 @@ def run_mvp_wave_6(
         "timeout_seconds": timeout_seconds,
     }
     return {
+        "suasweb_social_assistance_fetch": run_suasweb_social_assistance(**common_kwargs),
+        "cneas_social_assistance_fetch": run_cneas_social_assistance(**common_kwargs),
         "cecad_social_protection_fetch": run_cecad_social_protection(**common_kwargs),
         "censo_suas_fetch": run_censo_suas(**common_kwargs),
         "quality_suite": run_quality_suite(**common_kwargs),

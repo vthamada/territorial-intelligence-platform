@@ -37,6 +37,8 @@ waves:
     - aneel_energy_fetch
     - quality_suite
   MVP-6:
+    - suasweb_social_assistance_fetch
+    - cneas_social_assistance_fetch
     - cecad_social_protection_fetch
     - censo_suas_fetch
     - quality_suite
@@ -85,6 +87,10 @@ jobs:
   anatel_connectivity_fetch:
     reference_period: "2025"
   aneel_energy_fetch:
+    reference_period: "2025"
+  suasweb_social_assistance_fetch:
+    reference_period: "2025"
+  cneas_social_assistance_fetch:
     reference_period: "2025"
   cecad_social_protection_fetch:
     reference_period: "2025"

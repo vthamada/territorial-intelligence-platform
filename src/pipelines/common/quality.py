@@ -24,6 +24,8 @@ _INDICATOR_SOURCE_MAP: tuple[tuple[str, str], ...] = (
     ("ana", "ANA"),
     ("anatel", "ANATEL"),
     ("aneel", "ANEEL"),
+    ("suasweb", "SUASWEB"),
+    ("cneas", "CNEAS"),
     ("cecad", "CECAD"),
     ("censo_suas", "CENSO_SUAS"),
 )
