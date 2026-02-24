@@ -872,23 +872,16 @@ export function QgMapPage() {
     previousVectorErrorRef.current = vectorMapError;
   }, [appliedLevel, appliedMapScope, telemetryEffectiveLayerId, vectorMapError]);
 
-  const dismissedRef = useRef(false);
+  // Auto-open drawer ONCE when territorial data first loads (never re-opens after user dismisses)
+  const hasAutoOpenedDrawer = useRef(false);
 
   useEffect(() => {
-    dismissedRef.current = territoryDrawerDismissed;
-  }, [territoryDrawerDismissed]);
-
-  useEffect(() => {
-    if (dismissedRef.current) return;
-    if (
-      (selectedFeature ||
-        selectedTerritoryId ||
-        (appliedMapScope === "territorial" && sortedItems.length > 0)) &&
-      !territoryDrawerOpen
-    ) {
+    if (hasAutoOpenedDrawer.current) return;
+    if (appliedMapScope === "territorial" && sortedItems.length > 0) {
+      hasAutoOpenedDrawer.current = true;
       setTerritoryDrawerOpen(true);
     }
-  }, [selectedFeature, selectedTerritoryId, appliedMapScope, sortedItems.length, territoryDrawerOpen]);
+  }, [appliedMapScope, sortedItems.length]);
 
   function focusTerritoryFromSearch() {
     if (appliedMapScope !== "territorial" || sortedItems.length === 0) {
@@ -1810,6 +1803,7 @@ export function QgMapPage() {
                 onZoomChange={(z) => handleZoomChange(z)}
                 onFeatureClick={(feature) => {
                   setTerritoryDrawerDismissed(false);
+                  setTerritoryDrawerOpen(true);
                   setSelectedTerritoryId(feature.tid || undefined);
                   setSelectedFeature(feature);
                   setTerritorySearch(feature.tname ?? "");
@@ -1930,6 +1924,7 @@ export function QgMapPage() {
                     className={item.territory_id === selectedTerritoryId ? "territory-selected-row" : undefined}
                     onClick={() => {
                       setTerritoryDrawerDismissed(false);
+                      setTerritoryDrawerOpen(true);
                       setSelectedTerritoryId(item.territory_id);
                       setTerritorySearch(item.territory_name);
                       setFocusSignal((value) => value + 1);
@@ -1938,6 +1933,7 @@ export function QgMapPage() {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
                         setTerritoryDrawerDismissed(false);
+                        setTerritoryDrawerOpen(true);
                         setSelectedTerritoryId(item.territory_id);
                         setTerritorySearch(item.territory_name);
                         setFocusSignal((value) => value + 1);
