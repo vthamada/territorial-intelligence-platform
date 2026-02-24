@@ -45,10 +45,195 @@ Contrato técnico principal: `CONTRATO.md`
    - apenas esta secao define "próximo passo executável" no momento;
    - secoes de "próximos passos" antigas abaixo devem ser lidas como histórico.
 
+## Atualizacao operacional (2026-02-23) - Ícones SVG, renomeação e fix drawer
+
+1. Navegação minimalista:
+   - ícones emoji substituídos por SVGs stroke-based (componente `NavIcon.tsx`) seguindo padrão Lucide/Feather;
+   - sidebar reorganizada: 6 rotas principais + seção secundária (Território 360, Briefs, Admin).
+2. Renomeação institucional:
+   - "QG Estratégico" → "Painel de Inteligência Territorial" (header, sidebar branding, loading states, testes);
+   - eyebrow permanece "Inteligência Territorial".
+3. Fix do drawer de território no mapa:
+   - botão de fechar ampliado (2.25rem), `pointer-events: auto`, `z-index: 2`, override de `:active`;
+   - `e.stopPropagation()` no onClick do close para evitar propagação;
+   - efeito de auto-open refatorado com early return quando dismissed e check de !territoryDrawerOpen.
+4. Validação:
+   - `npx vitest run` → `89 passed` (21 files);
+   - `npm run build` → built 4.94s, tsc OK.
+5. Próximo passo imediato (WIP=1):
+   - validar visualmente com dev server; considerar dark mode toggle como P2.
+
+## Atualizacao operacional (2026-02-23) - Executive Design System v2
+
+1. Refatoração visual completa do frontend (`global.css`) com design system inspirado em dashboards executivos (Linear, Vercel, Notion):
+   - design tokens CSS custom properties (cores, sombras, raios, transições, paleta semântica);
+   - glass-morphism em sidebar e header (`backdrop-filter: blur(16px)`);
+   - painéis com elevação dinâmica, loading spinner animado, KPI cards com accent border;
+   - strategic index cards com borda colorida por nível de severidade;
+   - tabelas com zebra striping + sticky headers, staggered grid animations;
+   - custom scrollbar, print styles, sidebar branding "QG";
+   - breakpoints responsivos (≤1024px, ≤640px).
+2. TSX melhorias:
+   - `App.tsx`: ícones emoji na navegação, header reestruturado com badge "API v1";
+   - `AdminHubPage.tsx`: ícones em admin cards.
+3. Validação:
+   - `npx vitest run` -> `89 passed` (21 files);
+   - `npm run build` -> `built in 4.07s`, tsc OK.
+4. Próximo passo imediato (WIP=1):
+   - refinar micro-interações e validar comportamento visual com dev server rodando;
+   - considerar dark mode toggle como evolução futura P2.
+
+## Atualizacao operacional (2026-02-23) - Correcoes de utilidade estratégica no mapa (feedback visual)
+
+1. Correção aplicada para aumentar valor decisório do mapa executivo:
+  - presets estratégicos adicionados em `QgMapPage` para direcionar rapidamente para `secao_eleitoral` (eleitorado) e `urban_pois` (serviços por bairros/proximidade);
+  - aviso contextual quando o recorte municipal agregado não é suficiente para decisão territorial fina;
+  - bloco operacional `Top secoes por eleitorado` exibindo ranking de seções com maior volume de eleitores.
+2. Ajuste de UX do painel lateral territorial:
+  - `Drawer` do mapa passou a operar sem backdrop modal (sem escurecer toda a página) e com largura responsiva, reduzindo efeito visual de bloqueio observado.
+3. Validação da rodada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx src/shared/ui/Drawer.test.tsx` -> `31 passed`;
+  - `npm --prefix frontend run test -- --run` -> `89 passed`;
+  - `npm --prefix frontend run build` -> `OK`.
+4. Próximo passo imediato (WIP=1):
+  - seguir no refino incremental de legibilidade/fluidez do mapa mantendo foco em decisão territorial (seção eleitoral + serviços urbanos) sem abrir nova frente.
+
+## Atualizacao operacional (2026-02-23) - Homologacao backend do evento operacional do mapa
+
+1. Contrato de observabilidade consolidado no backend `/v1/ops/frontend-events`:
+  - cobertura adicionada para ingestão do evento `map_operational_state_changed` com atributos operacionais do mapa;
+  - cobertura adicionada para filtro por nome (`name=map_operational_state_changed`) na listagem paginada.
+2. Evidência técnica da rodada:
+  - `\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_routes.py -q` -> `32 passed`.
+3. Resultado operacional:
+  - frontend e backend ficam alinhados no fluxo de telemetria de estado operacional do mapa (emissão no frontend + aceitação/consulta no backend).
+4. Próximo passo imediato (WIP=1):
+  - manter refinamentos incrementais de fluidez/legibilidade no mapa executivo, sem abrir frente paralela.
+
+## Atualizacao operacional (2026-02-23) - Sprint P0 mapa (telemetria de estado operacional)
+
+1. Observabilidade do mapa executivo ampliada em `QgMapPage`:
+  - evento `map_operational_state_changed` implementado para registrar transições `loading/error/empty/data` e estados de indisponibilidade de modo simplificado.
+2. Atributos de triagem adicionados no evento:
+  - `scope`, `level`, `state`, `renderer`, `metric`, `period`.
+3. Cobertura de regressão da rodada:
+  - `QgPages.test.tsx` validando estado `empty_simplified_unavailable` com emissão do evento correspondente.
+4. Validação consolidada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `26 passed`;
+  - `npm --prefix frontend run test -- --run` -> `88 passed`;
+  - `npm --prefix frontend run build` -> `OK`.
+5. Próximo passo imediato (WIP=1):
+  - seguir no pacote P0 do mapa com refinamentos incrementais de fluidez/legibilidade mantendo evidência operacional em `/v1/ops/frontend-events` e gate completo de regressão.
+
+## Atualizacao operacional (2026-02-23) - Sprint P0 mapa executivo (previsibilidade de estados)
+
+1. Refino de fluidez/legibilidade aplicado no `QgMapPage` em ciclo curto:
+  - fallback simplificado (`svg`) agora apresenta estado explícito para níveis territoriais não coropléticos (`setor/zona/secao`), evitando renderização ambígua de mini-mapa sem dado operacional;
+  - busca/foco territorial contextualizados para recortes coropléticos (`municipio/distrito`) com orientação explícita para níveis granulares.
+2. Cobertura de regressão ampliada:
+  - `QgPages.test.tsx` recebeu cenário dedicado validando o estado `Modo simplificado indisponivel neste nivel`.
+3. Validação da rodada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `26 passed`;
+  - `npm --prefix frontend run test -- --run` -> `88 passed`;
+  - `npm --prefix frontend run build` -> `OK`.
+4. Próximo passo imediato (WIP=1):
+  - manter pacote P0 do mapa executivo com refinamentos incrementais de previsibilidade/telemetria operacional sem abrir frente paralela.
+
+## Atualizacao operacional (2026-02-23) - Hardening de robustez frontend (Admin + observabilidade)
+
+1. Paridade de erro com contrato técnico concluída no hub administrativo:
+  - `frontend/src/modules/admin/pages/AdminHubPage.tsx` agora exibe `message` e `request_id` em falhas de readiness/cobertura de camadas;
+  - retry contextual (`Tentar novamente`) disponível nas falhas do Admin Hub.
+2. Cobertura de testes de robustez ampliada:
+  - `frontend/src/modules/admin/pages/AdminHubPage.test.tsx` validando erro com `request_id` + retry;
+  - `frontend/src/shared/observability/bootstrap.test.ts` validando bootstrap único e captura de erros globais do navegador.
+3. Validação da rodada:
+  - `npm --prefix frontend run test -- --run src/modules/admin/pages/AdminHubPage.test.tsx src/shared/observability/bootstrap.test.ts` -> `3 passed`;
+  - `npm --prefix frontend run test -- --run` -> `87 passed`;
+  - `npm --prefix frontend run build` -> `OK`.
+4. Próximo passo imediato (WIP=1):
+  - seguir no pacote P0 do mapa executivo (fluidez/legibilidade e previsibilidade de estados), sem abrir nova frente e preservando gate completo de regressão + build.
+
+## Atualizacao operacional (2026-02-24) - Telemetria objetiva da troca de camada eleitoral
+
+1. Entrega P0 concluída no fluxo do mapa executivo:
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` passou a emitir `map_electoral_layer_toggled` quando ocorre transição efetiva entre `secao` e `local_votacao` no nível `secao_eleitoral`.
+2. Objetividade de triagem reforçada:
+  - evento registra `from_layer`, `to_layer`, `source`, `layer_id`, `layer_classification`, `scope` e `level`, mantendo semântica operacional para leitura em `/v1/ops/frontend-events`.
+3. Regressão de frontend validada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `25 passed`;
+  - `npm --prefix frontend run test -- --run` -> `84 passed`;
+  - `npm --prefix frontend run build` -> `OK`.
+4. Próximo passo imediato (WIP=1):
+  - manter refinamento P0 de legibilidade/fluidez no mapa executivo sem abrir nova frente, preservando gate completo de regressão + build a cada rodada.
+
+## Atualizacao operacional (2026-02-23) - UX final do mapa executivo (drawer territorial)
+
+1. Implementacao de UX do mapa em ciclo curto concluida no frontend:
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` migrado para painel territorial em drawer com estrutura executiva (status, tendencia, valor, metricas, evidencias e acoes);
+  - `frontend/src/styles/global.css` recebeu classes `territory-drawer-*` e `inline-link-button` para suportar o novo layout mantendo o `Drawer` compartilhado.
+2. Ajustes de estabilidade aplicados durante a rodada:
+  - correcoes de regressao de hooks na pagina de mapa (ordem estável);
+  - alinhamento de labels de acao para compatibilidade de testes;
+  - fallback de status no drawer derivado de valor quando a feature nao expõe `status`.
+3. Validacao da rodada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`.
+  - `npm --prefix frontend run test -- --run src/app/e2e-flow.test.tsx` -> `5 passed`.
+  - `npm --prefix frontend run test -- --run` -> `83 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+4. Regressao de fluxo E2E resolvida:
+  - causa raiz: assercao ancorada em heading (`Diamantina`) que tambem existia no drawer do mapa, gerando falso positivo de transicao de rota;
+  - correcao: `frontend/src/app/e2e-flow.test.tsx` passou a ancorar a validacao de navegacao em heading exclusivo da tela de territorio (`Status geral do territorio`).
+5. Próximo passo imediato (WIP=1):
+  - seguir com refinamentos P0 de UX do mapa mantendo regressao completa de frontend em `pass` a cada rodada.
+
+## Atualizacao operacional (2026-02-23) - Fechamento local_votacao no mapa executivo
+
+1. Refino P0 concluído no `QgMapPage` para modo `secao_eleitoral`:
+  - estado `local_votacao` explicitado na interface para cenarios `disponivel`, `indisponivel no manifesto` e `camada ativa sem nome detectado`;
+  - legenda eleitoral preservada com semântica clara de `secao eleitoral` vs `local de votacao`.
+2. Drawer territorial ajustado para previsibilidade:
+  - metadata sempre explicita comportamento de `local_votacao` quando camada de pontos está ativa, com fallback textual quando payload não traz nome do local.
+3. Validação da rodada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`;
+  - `npm --prefix frontend run test -- --run` -> `83 passed`;
+  - `npm --prefix frontend run build` -> `OK`.
+4. Próximo passo imediato (WIP=1):
+  - consolidar telemetria objetiva de interação eleitoral no mapa (troca de camada `secao/local_votacao`) mantendo o mesmo gate de regressão + build.
+
+## Atualizacao operacional (2026-02-23) - Legenda visual eleitoral e navegação lateral
+
+1. Refino de UX executiva aplicado no frontend:
+  - `QgMapPage` recebeu legenda visual compacta para modo `secao_eleitoral`, com leitura direta de `Secoes eleitorais` (recorte territorial) e `Locais de votacao` (pontos);
+  - `App` migrou navegação principal para painel lateral no desktop, mantendo as mesmas rotas/links e comportamento responsivo.
+2. Estilo consolidado sem abrir frente paralela:
+  - `global.css` atualizado com layout `app-frame/app-sidebar/app-main` e bloco `map-inline-legend`.
+3. Validação da rodada:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`;
+  - `npm --prefix frontend run test -- --run src/app/App.test.tsx` -> `1 passed`;
+  - `npm --prefix frontend run build` -> `OK`.
+4. Próximo passo imediato (WIP=1):
+  - seguir para telemetria objetiva da troca de camada eleitoral (`secao` <-> `local_votacao`) e registrar evidência operacional no mesmo gate de regressão + build.
+
+## Atualizacao operacional (2026-02-23) - Refatoracao completa de design do frontend
+
+1. Refatoracao visual ampla concluida sem alterar contrato funcional:
+  - shell executivo reestilizado com navegacao lateral consolidada e hierarquia visual mais clara;
+  - tokens visuais modernizados para padronizar contraste, superfície e legibilidade;
+  - componentes base da camada executiva (painéis, formulários, tabelas, estados e cards de contexto) harmonizados com linguagem única.
+2. Escopo técnico da rodada:
+  - mudança concentrada em `frontend/src/styles/global.css` com efeito transversal nas páginas QG/ops/território/eleitorado;
+  - nenhum endpoint/contrato API alterado.
+3. Validação de estabilidade:
+  - `npm --prefix frontend run test -- --run` -> `83 passed`;
+  - `npm --prefix frontend run build` -> `OK`.
+4. Próximo passo imediato (WIP=1):
+  - implementar telemetria objetiva da troca de camada eleitoral (`secao` <-> `local_votacao`) e fechar evidência operacional no mesmo gate de regressão + build.
+
 ## Atualizacao operacional (2026-02-23) - Backend/DB fechado para foco em frontend
 
 1. Gate de readiness de backend normalizado:
-  - `C:/Users/DTI/Desktop/territorial-intelligence-platform/.venv/Scripts/python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=1`.
+  - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=1`.
   - correção aplicada no SLO-3 (completude de checks): `runs_missing_checks=0` após backfill de check para run histórico sem registro.
 2. Governança de conectores sincronizada:
   - `scripts/sync_connector_registry.py` executado com sucesso;
@@ -101,16 +286,16 @@ Objetivo: traduzir o north star de `docs/VISION.md` em execução objetiva de cu
 
 | Bloco da VISION | Estado atual | Gap objetivo | Prioridade | Critério de aceite |
 |---|---|---|---|---|
-| Mapa dominante + painel estratégico | Alto | Refino final de UX (fluidez, legibilidade e previsibilidade de navegação) | Alta | Regressões de páginas executivas em `pass` + validação manual sem ambiguidade de estado |
-| Território eleitoral detalhado (`secao` + `local_votacao`) | Parcial | Consolidar estado `com local_votacao` vs `sem local_votacao` com `toggle/legenda/tooltip` | Alta | `QgPages.test.tsx` cobrindo ambos cenários + build frontend `OK` |
+| Mapa dominante + painel estratégico | Alto | Consolidar telemetria dos refinamentos finais de UX (incluindo navegação lateral e legenda visual) | Alta | Regressões de páginas executivas em `pass` + evidência de telemetria operacional |
+| Território eleitoral detalhado (`secao` + `local_votacao`) | Alto | Consolidar telemetria e evidência operacional da interação de camada | Alta | `QgPages.test.tsx` cobrindo cenários eleitorais + build frontend `OK` |
 | Cruzamento Eleitorado + Serviços + Território | Parcial/Alto | Consolidar leitura demanda x oferta no fluxo único de mapa/perfil | Média | Fluxo de navegação entre `/mapa` -> `/territorio/:id` sem perda de contexto |
 | Transparência oficial/proxy/hybrid + metadados | Alto | Ajustes finais de consistência visual/textual | Média | Badge/classificação e hint de método visíveis no estado de dados |
 | Observabilidade de mapa (telemetria + benchmark) | Alto | Manter cadência recorrente e evidência operacional única por rodada | Alta | benchmark urbano `ALL PASS` + evento de prova em `/v1/ops/frontend-events` |
 | Backlog pós-v2 (split view, time slider) | Pendente | Implementação incremental após gates de estabilização | Baixa | Planejamento fechado no plano executável antes de codar |
 
 Próximo pacote técnico recomendado (WIP=1):
-1. fechar `local_votacao` completo no `QgMapPage` (estado disponível/indisponível + legenda);
-2. executar regressão focal de mapa + build;
+1. consolidar telemetria de troca de camada eleitoral (`secao` <-> `local_votacao`) com evento objetivo para triagem;
+2. executar regressão focal de mapa + suíte frontend + build;
 3. registrar evidência em `CHANGELOG` e atualizar este `HANDOFF` no fechamento da rodada.
 
 ## Atualizacao operacional (2026-02-23) - Foco ativo em dados abertos (sem bloqueio por credencial)

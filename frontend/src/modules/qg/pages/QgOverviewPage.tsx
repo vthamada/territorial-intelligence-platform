@@ -228,7 +228,7 @@ export function QgOverviewPage() {
     return (
       <StateBlock
         tone="loading"
-        title="Carregando QG estrategico"
+        title="Carregando painel"
         message="Consultando KPIs, prioridades e destaques executivos."
       />
     );
@@ -239,7 +239,7 @@ export function QgOverviewPage() {
     return (
       <StateBlock
         tone="error"
-        title="Falha ao carregar QG estrategico"
+        title="Falha ao carregar painel"
         message={message}
         requestId={requestId}
         onRetry={() => {

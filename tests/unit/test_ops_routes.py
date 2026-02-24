@@ -864,6 +864,45 @@ def test_frontend_events_ingest_endpoint_accepts_payload() -> None:
     app.dependency_overrides.clear()
 
 
+def test_frontend_events_ingest_endpoint_accepts_map_operational_state_payload() -> None:
+    session = _FrontendEventsIngestSession()
+
+    def _db() -> Generator[_FrontendEventsIngestSession, None, None]:
+        yield session
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.post(
+        "/v1/ops/frontend-events",
+        json={
+            "category": "lifecycle",
+            "name": "map_operational_state_changed",
+            "severity": "info",
+            "attributes": {
+                "scope": "territorial",
+                "level": "secao_eleitoral",
+                "state": "empty_simplified_unavailable",
+                "renderer": "simplified",
+                "metric": "MTE_NOVO_CAGED_SALDO_TOTAL",
+                "period": "2025",
+            },
+            "timestamp_utc": "2026-02-23T18:30:00Z",
+        },
+    )
+
+    assert response.status_code == 202
+    payload = response.json()
+    assert payload["status"] == "accepted"
+    assert payload["event_id"] == 123
+    assert session.last_params is not None
+    assert session.last_params["category"] == "lifecycle"
+    assert session.last_params["name"] == "map_operational_state_changed"
+    assert session.last_params["severity"] == "info"
+    assert session.last_params["event_timestamp_utc"] == datetime(2026, 2, 23, 18, 30, tzinfo=UTC)
+    app.dependency_overrides.clear()
+
+
 def test_frontend_events_endpoint_returns_paginated_payload() -> None:
     app.dependency_overrides[get_db] = _frontend_events_list_db
     client = TestClient(app, raise_server_exceptions=False)
@@ -902,6 +941,23 @@ def test_frontend_events_endpoint_accepts_temporal_filters() -> None:
     assert session.last_params["severity"] == "error"
     assert session.last_params["event_from"] == datetime(2026, 2, 11, 0, 0, tzinfo=UTC)
     assert session.last_params["event_to"] == datetime(2026, 2, 11, 23, 59, 59, tzinfo=UTC)
+    app.dependency_overrides.clear()
+
+
+def test_frontend_events_endpoint_accepts_name_filter() -> None:
+    session = _FrontendEventsListSession()
+
+    def _db() -> Generator[_FrontendEventsListSession, None, None]:
+        yield session
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/ops/frontend-events?name=map_operational_state_changed")
+
+    assert response.status_code == 200
+    assert session.last_params is not None
+    assert session.last_params["name"] == "map_operational_state_changed"
     app.dependency_overrides.clear()
 
 

@@ -1,13 +1,15 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { getChoropleth, getMapLayers, getMapLayersCoverage, getMapStyleMetadata } from "../../../shared/api/domain";
 import { formatApiError } from "../../../shared/api/http";
+import { getElectorateMap } from "../../../shared/api/qg";
 import type { MapLayerItem } from "../../../shared/api/types";
 import { useAutoLayerSwitch } from "../../../shared/hooks/useAutoLayerSwitch";
 import { ChoroplethMiniMap } from "../../../shared/ui/ChoroplethMiniMap";
+import { Drawer } from "../../../shared/ui/Drawer";
 import { Panel } from "../../../shared/ui/Panel";
-import { formatDecimal, formatLevelLabel, toNumber } from "../../../shared/ui/presentation";
+import { formatDecimal, formatLevelLabel, formatStatusLabel, formatTrendLabel, toNumber } from "../../../shared/ui/presentation";
 import { StateBlock } from "../../../shared/ui/StateBlock";
 import type { BasemapMode, VectorMapFeatureSelection, VizMode } from "../../../shared/ui/VectorMap";
 import { useFilterStore } from "../../../shared/stores/filterStore";
@@ -36,6 +38,14 @@ const BASEMAP_MODES: { value: BasemapMode; label: string }[] = [
 
 type LayerScope = "territorial" | "urban";
 type LayerClassification = "official" | "proxy" | "hybrid";
+type ElectoralLayerView = "secao" | "local_votacao";
+type MapOperationalState =
+  | "loading"
+  | "error"
+  | "empty"
+  | "empty_simplified_unavailable"
+  | "empty_svg_urban_unavailable"
+  | "data";
 
 const LazyVectorMap = lazy(async () => {
   const module = await import("../../../shared/ui/VectorMap");
@@ -79,6 +89,20 @@ function formatNumber(value: unknown) {
   return formatDecimal(numeric);
 }
 
+function inferStatusFromValue(value: unknown): "critical" | "attention" | "stable" | null {
+  const numeric = toNumber(value);
+  if (numeric === null) {
+    return null;
+  }
+  if (numeric >= 80) {
+    return "stable";
+  }
+  if (numeric >= 60) {
+    return "attention";
+  }
+  return "critical";
+}
+
 function optionalText(value: unknown): string | null {
   if (value === null || value === undefined) {
     return null;
@@ -104,6 +128,19 @@ function buildApiHref(path: string, params: Record<string, string | number | nul
 
 function normalizeText(value: string) {
   return value.trim().toLowerCase();
+}
+
+function resolveElectoralLayerView(level: string, layerId: string): ElectoralLayerView | null {
+  if (level !== "electoral_section") {
+    return null;
+  }
+  if (layerId === "territory_polling_place") {
+    return "local_votacao";
+  }
+  if (layerId === "territory_electoral_section") {
+    return "secao";
+  }
+  return null;
 }
 
 function normalizeMapLevel(value: string | null) {
@@ -210,6 +247,14 @@ function recommendedZoomByLevel(level: string) {
   if (level === "zona_eleitoral") return 11;
   if (level === "secao_eleitoral") return 14;
   return 8;
+}
+
+function resolveStrategicYear(period: string) {
+  const parsed = Number.parseInt(period, 10);
+  if (!Number.isFinite(parsed) || parsed < 1994 || parsed > 2100) {
+    return 2024;
+  }
+  return parsed;
 }
 
 function resolveContextualZoom(
@@ -351,6 +396,7 @@ function triggerDownload(blob: Blob, fileName: string) {
 }
 
 export function QgMapPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const globalFilters = useFilterStore();
   const initialMetric = searchParams.get("metric") || "MTE_NOVO_CAGED_SALDO_TOTAL";
@@ -387,6 +433,8 @@ export function QgMapPage() {
   const [basemapMode, setBasemapMode] = useState<BasemapMode>(initialBasemap);
   const [useVectorMap, setUseVectorMap] = useState(initialUseVectorMap);
   const [selectedFeature, setSelectedFeature] = useState<VectorMapFeatureSelection | null>(null);
+  const [territoryDrawerOpen, setTerritoryDrawerOpen] = useState(false);
+  const [territoryDrawerDismissed, setTerritoryDrawerDismissed] = useState(false);
   const [territorySearch, setTerritorySearch] = useState("");
   const [territoryFocusNotice, setTerritoryFocusNotice] = useState<string | null>(null);
   const [mapRecenterNotice, setMapRecenterNotice] = useState<string | null>(null);
@@ -401,6 +449,8 @@ export function QgMapPage() {
   const previousVizModeRef = useRef(initialVizMode);
   const previousBasemapRef = useRef(initialBasemap);
   const previousLayerKeyRef = useRef<string>("");
+  const previousElectoralLayerViewRef = useRef<ElectoralLayerView | null>(null);
+  const previousMapOperationalStateRef = useRef<MapOperationalState | null>(null);
   const previousVectorErrorRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -443,6 +493,20 @@ export function QgMapPage() {
   const layersCoverageQuery = useQuery({
     queryKey: ["qg", "map", "layers", "coverage", appliedMetric, appliedPeriod, "include_urban"],
     queryFn: () => getMapLayersCoverage({ metric: appliedMetric, period: appliedPeriod, include_urban: true }),
+    staleTime: 60 * 1000,
+  });
+
+  const electorateSectionQuery = useQuery({
+    queryKey: ["qg", "map", "electorate-sections", appliedPeriod],
+    queryFn: () =>
+      getElectorateMap({
+        level: "secao_eleitoral",
+        year: resolveStrategicYear(appliedPeriod),
+        metric: "voters",
+        include_geometry: false,
+        limit: 300,
+      }),
+    enabled: appliedMapScope === "territorial" && appliedLevel === "secao_eleitoral",
     staleTime: 60 * 1000,
   });
   const mapLayersError = mapLayersQuery.error ? formatApiError(mapLayersQuery.error) : null;
@@ -542,6 +606,17 @@ export function QgMapPage() {
     appliedMapScope === "urban" ? selectedUrbanLayer : telemetryExplicitLayer ?? autoLayer ?? telemetryRecommendedLayer;
   const telemetryEffectiveLayerId = telemetryEffectiveLayer?.id ?? "n/d";
   const telemetryEffectiveLayerClassification = formatLayerClassificationLabel(telemetryEffectiveLayer);
+  const mapOperationalState: MapOperationalState = shouldFetchChoropleth && choroplethQuery.isPending
+    ? "loading"
+    : shouldFetchChoropleth && Boolean(choroplethQuery.error)
+      ? "error"
+      : appliedMapScope === "territorial" && isChoroplethLevel && sortedItems.length === 0
+        ? "empty"
+        : appliedMapScope === "territorial" && !isChoroplethLevel && !useVectorMap
+          ? "empty_simplified_unavailable"
+          : appliedMapScope === "urban" && !useVectorMap
+            ? "empty_svg_urban_unavailable"
+            : "data";
 
   useEffect(() => {
     setVectorMapError(null);
@@ -717,6 +792,69 @@ export function QgMapPage() {
   }, [appliedLevel, appliedMapScope, telemetryEffectiveLayerClassification, telemetryEffectiveLayerId]);
 
   useEffect(() => {
+    const currentElectoralLayerView = resolveElectoralLayerView(activeTerritoryLevel, telemetryEffectiveLayerId);
+    const previousElectoralLayerView = previousElectoralLayerViewRef.current;
+
+    if (!currentElectoralLayerView) {
+      previousElectoralLayerViewRef.current = null;
+      return;
+    }
+
+    if (!previousElectoralLayerView) {
+      previousElectoralLayerViewRef.current = currentElectoralLayerView;
+      return;
+    }
+
+    if (previousElectoralLayerView === currentElectoralLayerView) {
+      return;
+    }
+
+    emitTelemetry({
+      category: "lifecycle",
+      name: "map_electoral_layer_toggled",
+      severity: "info",
+      attributes: {
+        scope: appliedMapScope,
+        level: appliedLevel,
+        from_layer: previousElectoralLayerView,
+        to_layer: currentElectoralLayerView,
+        layer_id: telemetryEffectiveLayerId,
+        layer_classification: telemetryEffectiveLayerClassification,
+        source: selectedVectorLayerId ? "manual" : "automatica",
+      },
+    });
+
+    previousElectoralLayerViewRef.current = currentElectoralLayerView;
+  }, [
+    activeTerritoryLevel,
+    appliedLevel,
+    appliedMapScope,
+    selectedVectorLayerId,
+    telemetryEffectiveLayerClassification,
+    telemetryEffectiveLayerId,
+  ]);
+
+  useEffect(() => {
+    if (previousMapOperationalStateRef.current === mapOperationalState) {
+      return;
+    }
+    emitTelemetry({
+      category: "lifecycle",
+      name: "map_operational_state_changed",
+      severity: "info",
+      attributes: {
+        scope: appliedMapScope,
+        level: appliedLevel,
+        state: mapOperationalState,
+        renderer: useVectorMap ? "advanced" : "simplified",
+        metric: appliedMetric,
+        period: appliedPeriod,
+      },
+    });
+    previousMapOperationalStateRef.current = mapOperationalState;
+  }, [appliedLevel, appliedMapScope, appliedMetric, appliedPeriod, mapOperationalState, useVectorMap]);
+
+  useEffect(() => {
     if (!vectorMapError || previousVectorErrorRef.current === vectorMapError) {
       return;
     }
@@ -733,6 +871,24 @@ export function QgMapPage() {
     });
     previousVectorErrorRef.current = vectorMapError;
   }, [appliedLevel, appliedMapScope, telemetryEffectiveLayerId, vectorMapError]);
+
+  const dismissedRef = useRef(false);
+
+  useEffect(() => {
+    dismissedRef.current = territoryDrawerDismissed;
+  }, [territoryDrawerDismissed]);
+
+  useEffect(() => {
+    if (dismissedRef.current) return;
+    if (
+      (selectedFeature ||
+        selectedTerritoryId ||
+        (appliedMapScope === "territorial" && sortedItems.length > 0)) &&
+      !territoryDrawerOpen
+    ) {
+      setTerritoryDrawerOpen(true);
+    }
+  }, [selectedFeature, selectedTerritoryId, appliedMapScope, sortedItems.length, territoryDrawerOpen]);
 
   function focusTerritoryFromSearch() {
     if (appliedMapScope !== "territorial" || sortedItems.length === 0) {
@@ -813,6 +969,48 @@ export function QgMapPage() {
     } else {
       setMapRecenterNotice(null);
     }
+  }
+
+  function applyStrategicPreset(preset: "electoral_sections" | "urban_services") {
+    setSelectedFeature(null);
+    setSelectedTerritoryId(undefined);
+    setTerritorySearch("");
+    setLayerSelectionNotice(null);
+    setTerritoryFocusNotice(null);
+    setExportError(null);
+    setVectorMapError(null);
+
+    if (preset === "electoral_sections") {
+      const nextPeriod = /^\d{4}$/.test(period) ? period : "2024";
+      setMapScope("territorial");
+      setLevel("secao_eleitoral");
+      setPeriod(nextPeriod);
+      setAppliedMapScope("territorial");
+      setAppliedLevel("secao_eleitoral");
+      setAppliedPeriod(nextPeriod);
+      setSelectedVectorLayerId("territory_electoral_section");
+      setUseVectorMap(true);
+      const nextZoom = Math.max(currentZoom, 14);
+      setCurrentZoom(nextZoom);
+      globalFilters.setZoom(nextZoom);
+      setMapRecenterNotice("Preset aplicado: secoes eleitorais com foco no volume de eleitores por secao.");
+      recenterMap(false);
+      return;
+    }
+
+    setMapScope("urban");
+    setUrbanLayerId("urban_pois");
+    setAppliedMapScope("urban");
+    setAppliedUrbanLayerId("urban_pois");
+    setSelectedVectorLayerId(null);
+    setUseVectorMap(true);
+    setVizMode("points");
+    setBasemapMode("light");
+    const nextZoom = Math.max(currentZoom, 12);
+    setCurrentZoom(nextZoom);
+    globalFilters.setZoom(nextZoom);
+    setMapRecenterNotice("Preset aplicado: servicos urbanos para leitura territorial por bairros e proximidade.");
+    recenterMap(false);
   }
 
   function clearFilters() {
@@ -1016,6 +1214,19 @@ export function QgMapPage() {
   const selectedTerritoryValue = selectedItem?.value ?? selectedFeature?.val;
   const selectedTerritoryIdSafe = selectedItem?.territory_id ?? selectedFeature?.tid;
   const selectedFeatureLabel = selectedFeature?.label ?? selectedTerritoryName;
+  const selectedPollingPlaceName =
+    optionalText(selectedFeature?.rawProperties?.local_votacao) ??
+    optionalText(selectedFeature?.rawProperties?.polling_place_name) ??
+    (isPollingPlaceActive ? optionalText(selectedFeature?.label) : null);
+  const pollingPlaceAvailabilityNote = !isElectoralSectionLevel
+    ? null
+    : !hasPollingPlaceLayer
+      ? "local_votacao: indisponivel no manifesto atual"
+      : isPollingPlaceActive
+        ? selectedPollingPlaceName
+          ? `local_votacao: detectado (${selectedPollingPlaceName})`
+          : "local_votacao: camada ativa sem nome detectado na feicao selecionada"
+        : "local_votacao: disponivel (altere para Locais de votacao para detalhar o ponto)";
   const topTerritory = sortedItems[0] ?? null;
   const bottomTerritory = sortedItems.length > 1 ? sortedItems[sortedItems.length - 1] ?? null : null;
   const selectedTerritoryRank =
@@ -1037,6 +1248,35 @@ export function QgMapPage() {
     .filter(([key]) => !["tid", "tname", "val", "value", "geometry", "geom"].includes(key))
     .filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== "")
     .slice(0, 6);
+  const drawerTerritoryItem =
+    appliedMapScope === "territorial"
+      ? sortedItems.find((item) => item.territory_id === selectedTerritoryId) ?? sortedItems[0]
+      : undefined;
+  const drawerTerritoryId = drawerTerritoryItem?.territory_id ?? selectedFeature?.tid ?? null;
+  const drawerTerritoryName = drawerTerritoryItem?.territory_name ?? selectedFeature?.tname ?? null;
+  const drawerTerritoryValue = drawerTerritoryItem?.value ?? selectedFeature?.val ?? null;
+  const drawerStatusRaw = optionalText(selectedFeature?.rawProperties?.status);
+  const drawerStatusFallback = inferStatusFromValue(drawerTerritoryValue);
+  const drawerTrendRaw = optionalText(selectedFeature?.rawProperties?.trend);
+  const drawerScoreDisplay = formatNumber(drawerTerritoryValue);
+  const drawerStatusDisplay = drawerStatusRaw
+    ? formatStatusLabel(drawerStatusRaw)
+    : drawerStatusFallback
+      ? formatStatusLabel(drawerStatusFallback)
+      : "n/d";
+  const drawerTrendDisplay = drawerTrendRaw ? formatTrendLabel(drawerTrendRaw) : "n/d";
+  const drawerCoverageDisplay = selectedLayerCoverage
+    ? `${selectedLayerCoverage.territories_with_geometry}/${selectedLayerCoverage.territories_total}`
+    : "n/d";
+  const drawerEvidenceItems = selectedFeatureMetadata.slice(0, 4);
+  const sectionElectorateTopItems = electorateSectionQuery.data
+    ? [...electorateSectionQuery.data.items]
+        .filter((item) => typeof item.value === "number")
+        .sort((a, b) => (b.value ?? Number.NEGATIVE_INFINITY) - (a.value ?? Number.NEGATIVE_INFINITY))
+        .slice(0, 5)
+    : [];
+  const hasSingleMunicipalityView =
+    appliedMapScope === "territorial" && appliedLevel === "municipio" && sortedItems.length <= 1;
 
   const selectedTerritoryActions = appliedMapScope === "territorial" && selectedTerritoryIdSafe
     ? {
@@ -1145,6 +1385,20 @@ export function QgMapPage() {
             </button>
           </div>
         </form>
+        <div className="filter-actions" aria-label="Presets estrategicos do mapa">
+          <button type="button" className="button-secondary" onClick={() => applyStrategicPreset("electoral_sections")}>
+            Eleitorado por secao
+          </button>
+          <button type="button" className="button-secondary" onClick={() => applyStrategicPreset("urban_services")}>
+            Servicos por bairros
+          </button>
+        </div>
+        {hasSingleMunicipalityView ? (
+          <p className="map-layer-guidance">
+            Recorte municipal unico limita a decisao estrategica. Use os presets para abrir leitura por secoes eleitorais
+            ou distribuicao de servicos urbanos por bairro.
+          </p>
+        ) : null}
         <p className="map-selected-note">
           {recommendedLayer ? (
             <>
@@ -1259,10 +1513,70 @@ export function QgMapPage() {
           </p>
         ) : null}
         {isElectoralSectionLevel ? (
-          <p className="map-selected-note" title="Secoes eleitorais representam os recortes territoriais; locais de votacao representam os pontos detectados no payload quando disponivel.">
-            Legenda eleitoral: secoes eleitorais = recorte territorial | locais de votacao = pontos de atendimento.
-          </p>
+          <div className="map-inline-legend" aria-label="Legenda eleitoral executiva">
+            <h4>Legenda eleitoral</h4>
+            <ul>
+              <li>
+                <span className="map-legend-swatch map-legend-swatch-section" aria-hidden="true" />
+                <span>Secoes eleitorais (recorte territorial)</span>
+              </li>
+              <li>
+                <span className="map-legend-swatch map-legend-swatch-polling" aria-hidden="true" />
+                <span>Locais de votacao (pontos de atendimento)</span>
+              </li>
+            </ul>
+            <p className="map-selected-note" title="Secoes eleitorais representam os recortes territoriais; locais de votacao representam os pontos detectados no payload quando disponivel.">
+              Círculos priorizam leitura proporcional do eleitorado no zoom atual.
+            </p>
+          </div>
         ) : null}
+        {isElectoralSectionLevel ? (
+          electorateSectionQuery.isPending ? (
+            <StateBlock
+              tone="loading"
+              title="Carregando eleitorado por secao"
+              message="Consultando volume de eleitores para apoiar a leitura territorial fina."
+            />
+          ) : electorateSectionQuery.error ? (
+            <StateBlock
+              tone="error"
+              title="Falha ao carregar eleitorado por secao"
+              message={formatApiError(electorateSectionQuery.error).message}
+              requestId={formatApiError(electorateSectionQuery.error).requestId}
+              onRetry={() => void electorateSectionQuery.refetch()}
+            />
+          ) : sectionElectorateTopItems.length > 0 ? (
+            <section className="map-context-card" aria-label="Top secoes por eleitorado">
+              <h3>Top secoes por eleitorado</h3>
+              <p>Referencia: {electorateSectionQuery.data?.year ?? "n/d"} | metrica: eleitores.</p>
+              <div className="table-wrap">
+                <table aria-label="Top secoes por eleitores">
+                  <thead>
+                    <tr>
+                      <th>Secao</th>
+                      <th>Eleitores</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sectionElectorateTopItems.map((item) => (
+                      <tr key={`${item.territory_id}-${item.year}`}>
+                        <td>{item.territory_name}</td>
+                        <td>{formatNumber(item.value)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ) : (
+            <StateBlock
+              tone="empty"
+              title="Sem eleitorado por secao"
+              message="Nao ha volume de eleitores por secao para o periodo selecionado."
+            />
+          )
+        ) : null}
+        {pollingPlaceAvailabilityNote ? <p className="map-selected-note">{pollingPlaceAvailabilityNote}</p> : null}
         <div className="zoom-control compact" aria-label="Controle de zoom">
           <label>
             Zoom
@@ -1280,7 +1594,7 @@ export function QgMapPage() {
         </div>
         <p className="map-selected-note">Zoom contextual minimo recomendado: z{contextualZoomFloor}.</p>
         {mapRecenterNotice ? <p className="map-selected-note">{mapRecenterNotice}</p> : null}
-        {appliedMapScope === "territorial" ? (
+        {appliedMapScope === "territorial" && isChoroplethLevel ? (
           <div className="map-territory-search">
             <label htmlFor="territory-search-input">Buscar territorio</label>
             <div className="map-territory-search-row">
@@ -1308,6 +1622,11 @@ export function QgMapPage() {
             </datalist>
             {territoryFocusNotice ? <p className="map-selected-note">{territoryFocusNotice}</p> : null}
           </div>
+        ) : appliedMapScope === "territorial" ? (
+          <p className="map-selected-note">
+            Busca e foco territorial detalhado estao disponiveis no recorte coropletico (municipio/distrito). Para
+            niveis granulares, mantenha o modo avancado para exploracao operacional.
+          </p>
         ) : (
           <div className="map-territory-search-row">
             <button type="button" className="button-secondary" onClick={focusSelectedTerritory} disabled={!selectedTerritoryId}>
@@ -1490,6 +1809,7 @@ export function QgMapPage() {
                 zoom={currentZoom}
                 onZoomChange={(z) => handleZoomChange(z)}
                 onFeatureClick={(feature) => {
+                  setTerritoryDrawerDismissed(false);
                   setSelectedTerritoryId(feature.tid || undefined);
                   setSelectedFeature(feature);
                   setTerritorySearch(feature.tname ?? "");
@@ -1513,7 +1833,7 @@ export function QgMapPage() {
               />
             </Suspense>
           </div>
-        ) : appliedMapScope === "territorial" ? (
+        ) : appliedMapScope === "territorial" && isChoroplethLevel ? (
           <ChoroplethMiniMap
             items={sortedItems.map((item) => ({
               territoryId: item.territory_id,
@@ -1531,6 +1851,12 @@ export function QgMapPage() {
               setSelectedFeature(null);
             }}
           />
+        ) : appliedMapScope === "territorial" ? (
+          <StateBlock
+            tone="empty"
+            title="Modo simplificado indisponivel neste nivel"
+            message="Niveis granulares (setor/zona/secao) exigem modo avancado para leitura espacial consistente."
+          />
         ) : (
           <StateBlock
             tone="empty"
@@ -1538,71 +1864,22 @@ export function QgMapPage() {
             message="Reative o modo avancado para explorar viario e pontos de interesse."
           />
         )}
-        {selectedTerritoryName ? (
-          <section className="map-context-card" aria-label="Contexto do item selecionado">
-            <p className="map-selected-note">
-              Selecionado: <strong>{selectedFeatureLabel ?? selectedTerritoryName}</strong> | valor:{" "}
-              {formatNumber(selectedTerritoryValue)}
-              {selectedFeatureCategory ? <> | categoria: {selectedFeatureCategory}</> : null}
-            </p>
-            {isPollingPlaceActive && selectedFeatureLabel ? (
-              <p className="map-selected-note">
-                local_votacao: <strong>{selectedFeatureLabel}</strong>
-              </p>
-            ) : null}
-            {selectedFeatureMetadata.length > 0 ? (
-              <dl className="map-context-grid">
-                {selectedFeatureMetadata.map(([key, value]) => (
-                  <div key={key}>
-                    <dt>{key}</dt>
-                    <dd>{String(value)}</dd>
-                  </div>
-                ))}
-              </dl>
-            ) : null}
-            {selectedTerritoryActions ? (
-              <nav className="map-context-actions" aria-label="Acoes contextuais">
-                <Link className="inline-link" to={selectedTerritoryActions.profile}>
-                  Abrir perfil selecionado
-                </Link>
-                <Link className="inline-link" to={selectedTerritoryActions.priorities}>
-                  Abrir prioridades do territorio
-                </Link>
-                <Link className="inline-link" to={selectedTerritoryActions.insights}>
-                  Ver insights deste recorte
-                </Link>
-                <Link className="inline-link" to={selectedTerritoryActions.briefs}>
-                  Abrir brief do territorio
-                </Link>
-              </nav>
-            ) : null}
-            {selectedUrbanActions ? (
-              <>
-                <nav className="map-context-actions" aria-label="Acoes urbanas">
-                  <a className="inline-link" href={selectedUrbanActions.scopedCollection} target="_blank" rel="noreferrer">
-                    {selectedUrbanActions.scopedLabel}
-                  </a>
-                  {selectedUrbanActions.geocode ? (
-                    <a className="inline-link" href={selectedUrbanActions.geocode} target="_blank" rel="noreferrer">
-                      Geocodificar selecao
-                    </a>
-                  ) : null}
-                  {selectedUrbanActions.nearbyPois ? (
-                    <a className="inline-link" href={selectedUrbanActions.nearbyPois} target="_blank" rel="noreferrer">
-                      Buscar POIs proximos
-                    </a>
-                  ) : null}
-                </nav>
-                {selectedFeatureSubcategory || selectedFeatureSource ? (
-                  <p className="map-context-meta">
-                    {selectedFeatureSubcategory ? `Subcategoria: ${selectedFeatureSubcategory}` : ""}
-                    {selectedFeatureSubcategory && selectedFeatureSource ? " | " : ""}
-                    {selectedFeatureSource ? `Fonte: ${selectedFeatureSource}` : ""}
-                  </p>
-                ) : null}
-              </>
-            ) : null}
-          </section>
+        {drawerTerritoryName ? (
+          <p className="map-selected-note">
+            Selecionado: <strong>{selectedFeatureLabel ?? drawerTerritoryName}</strong> | valor: {drawerScoreDisplay}
+            {selectedFeatureCategory ? <> | categoria: {selectedFeatureCategory}</> : null}
+            <button
+              type="button"
+              className="inline-link-button"
+              onClick={() => {
+                setTerritoryDrawerDismissed(false);
+                setTerritoryDrawerOpen(true);
+              }}
+              aria-label="Abrir painel territorial"
+            >
+              Abrir painel
+            </button>
+          </p>
         ) : null}
         {vectorMapError ? <p className="map-export-error">{vectorMapError}</p> : null}
         {exportError ? <p className="map-export-error">{exportError}</p> : null}
@@ -1652,6 +1929,7 @@ export function QgMapPage() {
                     key={item.territory_id}
                     className={item.territory_id === selectedTerritoryId ? "territory-selected-row" : undefined}
                     onClick={() => {
+                      setTerritoryDrawerDismissed(false);
                       setSelectedTerritoryId(item.territory_id);
                       setTerritorySearch(item.territory_name);
                       setFocusSignal((value) => value + 1);
@@ -1659,6 +1937,7 @@ export function QgMapPage() {
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
+                        setTerritoryDrawerDismissed(false);
                         setSelectedTerritoryId(item.territory_id);
                         setTerritorySearch(item.territory_name);
                         setFocusSignal((value) => value + 1);
@@ -1673,7 +1952,15 @@ export function QgMapPage() {
                     <td>{item.reference_period}</td>
                     <td>{formatNumber(item.value)}</td>
                     <td>
-                      <Link className="inline-link" to={`/territorio/${item.territory_id}`}>
+                      <Link
+                        className="inline-link"
+                        to={`/territorio/${item.territory_id}`}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          void navigate(`/territorio/${item.territory_id}`);
+                        }}
+                      >
                         Abrir perfil
                       </Link>
                     </td>
@@ -1684,6 +1971,136 @@ export function QgMapPage() {
           </div>
         )}
       </Panel>
+
+      <Drawer
+        open={territoryDrawerOpen && Boolean(drawerTerritoryName)}
+        onClose={() => {
+          setTerritoryDrawerDismissed(true);
+          setTerritoryDrawerOpen(false);
+          setSelectedFeature(null);
+          setSelectedTerritoryId(undefined);
+        }}
+        title={drawerTerritoryName ?? "Contexto territorial"}
+        width="min(420px, 96vw)"
+        showBackdrop={false}
+      >
+        <section className="territory-drawer-shell" aria-label="Painel territorial">
+          <header className="territory-drawer-head">
+            <p className="territory-drawer-type">{formatLevelLabel(appliedLevel)}</p>
+            <div className="territory-drawer-status-row">
+              <span className="territory-drawer-status">Status: {drawerStatusDisplay}</span>
+              <span className="territory-drawer-trend">Tendencia: {drawerTrendDisplay}</span>
+            </div>
+            <div className="territory-drawer-score-card">
+              <p>Valor selecionado</p>
+              <strong>{drawerScoreDisplay} (selecao)</strong>
+            </div>
+          </header>
+
+          <div className="territory-drawer-stats-grid" role="list" aria-label="Metricas rapidas do territorio">
+            <article role="listitem">
+              <span>Periodo</span>
+              <strong>{appliedPeriod}</strong>
+            </article>
+            <article role="listitem">
+              <span>Camada</span>
+              <strong>{effectiveLayer?.label ?? "n/d"}</strong>
+            </article>
+            <article role="listitem">
+              <span>Zoom</span>
+              <strong>z{currentZoom}</strong>
+            </article>
+            <article role="listitem">
+              <span>Cobertura</span>
+              <strong>{drawerCoverageDisplay}</strong>
+            </article>
+          </div>
+
+          <section>
+            <h3 className="territory-drawer-section-title">Evidencias</h3>
+            {drawerEvidenceItems.length > 0 ? (
+              <ul className="territory-drawer-evidence-list">
+                {drawerEvidenceItems.map(([key, value]) => (
+                  <li key={key}>
+                    <strong>{key}:</strong> {String(value)}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="territory-drawer-meta-line">Nenhuma evidencia adicional disponivel para esta selecao.</p>
+            )}
+          </section>
+
+          {selectedTerritoryActions ? (
+            <nav className="territory-drawer-actions" aria-label="Acoes territoriais">
+              <Link className="button-secondary" to={selectedTerritoryActions.profile}>
+                Abrir perfil selecionado
+              </Link>
+              <Link className="button-secondary" to={selectedTerritoryActions.priorities}>
+                Abrir prioridades do territorio
+              </Link>
+              <Link className="button-secondary" to={selectedTerritoryActions.insights}>
+                Ver insights deste recorte
+              </Link>
+              <Link className="button-secondary" to={selectedTerritoryActions.briefs}>
+                Abrir brief do territorio
+              </Link>
+            </nav>
+          ) : null}
+
+          {selectedUrbanActions ? (
+            <nav className="territory-drawer-actions" aria-label="Acoes urbanas">
+              <a className="button-secondary" href={selectedUrbanActions.scopedCollection} target="_blank" rel="noreferrer">
+                {selectedUrbanActions.scopedLabel}
+              </a>
+              {selectedUrbanActions.geocode ? (
+                <a className="button-secondary" href={selectedUrbanActions.geocode} target="_blank" rel="noreferrer">
+                  Geocodificar selecao
+                </a>
+              ) : null}
+              {selectedUrbanActions.nearbyPois ? (
+                <a className="button-secondary" href={selectedUrbanActions.nearbyPois} target="_blank" rel="noreferrer">
+                  Buscar POIs proximos
+                </a>
+              ) : null}
+            </nav>
+          ) : null}
+
+          <section className="territory-drawer-meta-grid" aria-label="Contexto operacional da camada">
+            <p className="territory-drawer-meta-line">
+              <strong>Fonte:</strong> {selectedFeatureSource ?? effectiveLayer?.source ?? "n/d"}
+            </p>
+            <p className="territory-drawer-meta-line">
+              <strong>Classificacao:</strong> {effectiveLayerClassification}
+            </p>
+            <p className="territory-drawer-meta-line">
+              <strong>Renderizacao:</strong> {effectiveRendererLabel}
+            </p>
+            <p className="territory-drawer-meta-line">
+              <strong>Base:</strong> {effectiveBasemapLabel}
+            </p>
+            <p className="territory-drawer-meta-line">
+              <strong>Modo:</strong> {effectiveVizLabel}
+            </p>
+            {drawerTerritoryId ? (
+              <p className="territory-drawer-meta-line">
+                <strong>Territorio ID:</strong> {drawerTerritoryId}
+              </p>
+            ) : null}
+            {isPollingPlaceActive ? (
+              <p className="territory-drawer-meta-line">
+                <strong>Local votacao:</strong>{" "}
+                {selectedPollingPlaceName ?? "indisponivel no payload da feicao selecionada"}
+              </p>
+            ) : null}
+            {selectedFeatureSubcategory ? (
+              <p className="territory-drawer-meta-line">
+                <strong>Subcategoria:</strong> {selectedFeatureSubcategory}
+              </p>
+            ) : null}
+          </section>
+        </section>
+      </Drawer>
     </main>
   );
 }

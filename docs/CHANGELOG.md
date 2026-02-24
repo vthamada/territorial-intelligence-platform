@@ -2,6 +2,204 @@
 
 Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-23 - Ícones SVG minimalistas, renomeação institucional e fix drawer close
+
+### Changed
+- `frontend/src/shared/ui/NavIcon.tsx` — novo componente de ícones SVG minimalistas (stroke-based, 20×20, currentColor) para navegação, substituindo emojis: home, map, priorities, insights, scenarios, electorate, territory, briefs, admin.
+- `frontend/src/app/App.tsx`:
+  - ícones trocados de emoji para SVG via `<NavIcon>` (21px, stroke, opacidade dinâmica);
+  - sistema renomeado de "QG Estratégico" para "Painel de Inteligência Territorial";
+  - sidebar reorganizada: 6 rotas principais + seção "Complementar" (Território 360, Briefs, Admin).
+- `frontend/src/app/App.test.tsx` — assertion atualizada para novo nome do sistema.
+- `frontend/src/modules/qg/pages/QgOverviewPage.tsx` — textos de loading/error atualizados.
+- `frontend/src/shared/ui/Drawer.tsx` — `stopPropagation` adicionado no botão de fechar para evitar que o evento propague e reative seleção.
+- `frontend/src/modules/qg/pages/QgMapPage.tsx` — efeito de auto-abertura do drawer refatorado: early return imediato quando `territoryDrawerDismissed=true`, verificação de `!territoryDrawerOpen` antes de setar.
+- `frontend/src/styles/global.css`:
+  - `.drawer-close` ampliado para 2.25rem com `pointer-events: auto`, `z-index: 2`, `flex-shrink: 0` e override explícito de `:active` para impedir global `button:active` de interferir;
+  - `.nav-icon` refatorado para SVGs (width/height 20px, opacidade dinâmica 0.55→0.8→1.0);
+  - sidebar branding atualizado de "QG" para "Painel IT".
+
+### Verified
+- `npx vitest run` → 89 passed (21 files).
+- `npm run build` → built in 4.94s, tsc OK.
+
+## 2026-02-23 - Executive Design System v2 (UI/UX overhaul)
+
+### Changed
+- `frontend/src/styles/global.css`: substituição completa do bloco de redesign (linhas 1771+) pelo Executive Design System v2:
+  - design tokens (CSS custom properties) para cores, sombras, raios e transições;
+  - paleta profissional azul-executiva (`--brand: #1e40af`) com sistema semântico de status (ok/warn/err/info);
+  - sidebar e header com glass-morphism (`backdrop-filter: blur(16px) saturate(180%)`);
+  - painéis com elevação dinâmica no hover (`box-shadow` escalável);
+  - loading spinner CSS animado (`@keyframes spin`) substituindo texto estático;
+  - KPI cards com accent top-border animado no hover;
+  - strategic index cards com borda lateral colorida por nível;
+  - priority cards com efeito lift no hover;
+  - tabelas com zebra striping, sticky headers e hover rows;
+  - staggered entrance animations para page-grid (60ms entre filhos);
+  - custom scrollbar styling;
+  - `::selection` estilizado com brand-light;
+  - print styles completos (oculta sidebar, shape, pagination);
+  - sidebar `::before` com branding "QG";
+  - responsive overrides para ≤1024px e ≤640px;
+  - font-family atualizada para Inter com fallbacks.
+- `frontend/src/app/App.tsx`:
+  - navegação principal com ícones emoji por rota (📊 Visao Geral, 🎯 Prioridades, 🗺️ Mapa, etc.);
+  - `<span className="nav-icon">` com `aria-hidden="true"` para acessibilidade;
+  - header reestruturado: `app-header-left`/`app-header-right` com badge "API v1" separado.
+- `frontend/src/modules/admin/pages/AdminHubPage.tsx`: já continha ícones de admin cards (implementados em sessão anterior).
+
+### Verified
+- `npx vitest run` -> `89 passed` (21 files).
+- `npm run build` -> `built in 4.07s`, tsc OK.
+- Nenhuma regressão em testes existentes.
+
+### Changed
+- `frontend/src/modules/qg/pages/QgMapPage.tsx` reforçado para leitura estratégica real:
+  - presets diretos no topo (`Eleitorado por secao` e `Servicos por bairros`) para sair do recorte municipal agregado com um clique;
+  - mensagem contextual quando o recorte municipal único limita decisão estratégica;
+  - painel novo `Top secoes por eleitorado` (consulta `getElectorateMap` com `metric=voters`) ao operar em `secao_eleitoral`.
+- `frontend/src/shared/ui/Drawer.tsx` evoluído com `showBackdrop` opcional e uso no mapa ajustado para não bloquear visualmente toda a tela;
+- `QgMapPage` passou a usar drawer com largura responsiva (`min(420px, 96vw)`) e sem overlay modal no contexto de navegação do mapa.
+- `frontend/src/modules/qg/pages/QgPages.test.tsx` ampliado com teste dos presets estratégicos e ajustes de mock para `getElectorateMap`.
+
+### Verified
+- `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx src/shared/ui/Drawer.test.tsx` -> `31 passed`.
+- `npm --prefix frontend run test -- --run` -> `89 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+
+## 2026-02-23 - Homologacao operacional do evento map_operational_state_changed no backend ops
+
+### Changed
+- `tests/unit/test_ops_routes.py` ampliado para robustez de observabilidade em `/v1/ops/frontend-events`:
+  - novo teste de ingestão do evento `map_operational_state_changed` com payload operacional completo (`scope`, `level`, `state`, `renderer`, `metric`, `period`);
+  - novo teste de listagem com filtro por `name=map_operational_state_changed`.
+
+### Verified
+- `\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_routes.py -q` -> `32 passed`.
+
+### Notes
+- a homologação operacional do novo evento de mapa passa a ficar coberta por teste de rota no backend, sem dependência de execução manual para validação básica de contrato.
+
+## 2026-02-23 - Sprint P0 mapa: telemetria de estado operacional (loading/error/empty/data)
+
+### Changed
+- `frontend/src/modules/qg/pages/QgMapPage.tsx` recebeu evento dedicado `map_operational_state_changed` para observabilidade do estado do mapa:
+  - emissão por transição de estado com contexto de `scope`, `level`, `renderer`, `metric` e `period`;
+  - cobertura explícita para estados operacionais: `loading`, `error`, `empty`, `empty_simplified_unavailable`, `empty_svg_urban_unavailable`, `data`.
+- `frontend/src/modules/qg/pages/QgPages.test.tsx` ampliado para validar emissão do evento no cenário de nível não coroplético em modo simplificado (`renderer=svg`).
+
+### Verified
+- `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `26 passed`.
+- `npm --prefix frontend run test -- --run` -> `88 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+
+## 2026-02-23 - Sprint P0 mapa executivo: previsibilidade de estados em modo simplificado
+
+### Changed
+- `frontend/src/modules/qg/pages/QgMapPage.tsx` refinado para comportamento previsível nos níveis territoriais não coropléticos:
+  - modo simplificado (`renderer=svg`) deixa de renderizar mini-mapa sem contexto em `setor/zona/secao`;
+  - novo estado explícito: `Modo simplificado indisponivel neste nivel`, orientando uso do modo avançado para leitura espacial consistente.
+- busca/foco territorial ficou contextual ao recorte coroplético (`municipio/distrito`), com mensagem operacional dedicada para níveis granulares.
+- `frontend/src/modules/qg/pages/QgPages.test.tsx` ampliado com cobertura do novo estado de modo simplificado em nível não coroplético.
+
+### Verified
+- `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `26 passed`.
+- `npm --prefix frontend run test -- --run` -> `88 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+
+## 2026-02-23 - Hardening de robustez frontend (Admin + observabilidade)
+
+### Changed
+- `frontend/src/modules/admin/pages/AdminHubPage.tsx` alinhado ao contrato de erro frontend/API:
+  - erros de readiness e cobertura de camadas agora exibem mensagem formatada + `request_id`;
+  - ação de `Tentar novamente` adicionada para refetch direto no contexto da falha.
+- Novos testes de robustez adicionados:
+  - `frontend/src/modules/admin/pages/AdminHubPage.test.tsx` cobre erro com `request_id` e retry no Admin Hub;
+  - `frontend/src/shared/observability/bootstrap.test.ts` cobre bootstrap único e captura de `window_error`/`unhandled_rejection`.
+
+### Verified
+- `npm --prefix frontend run test -- --run src/modules/admin/pages/AdminHubPage.test.tsx src/shared/observability/bootstrap.test.ts` -> `3 passed`.
+- `npm --prefix frontend run test -- --run` -> `87 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+
+## 2026-02-24 - Mapa eleitoral: telemetria objetiva da troca secao/local_votacao
+
+### Changed
+- `frontend/src/modules/qg/pages/QgMapPage.tsx` atualizado com evento dedicado `map_electoral_layer_toggled` para rastrear troca de camada eleitoral no nível `secao_eleitoral`:
+  - emissão apenas quando há transição real entre `secao` e `local_votacao`;
+  - atributos operacionais adicionados (`from_layer`, `to_layer`, `source`, `layer_id`, `layer_classification`, `scope`, `level`) para triagem direta no backend de observabilidade.
+- `frontend/src/modules/qg/pages/QgPages.test.tsx` ampliado com teste dedicado da interação de toggle (`Exibir locais de votacao` <-> `Exibir secoes eleitorais`) validando os dois sentidos do evento.
+
+### Verified
+- `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `25 passed`.
+- `npm --prefix frontend run test -- --run` -> `84 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+
+## 2026-02-23 - Refatoracao completa de design do frontend executivo
+
+### Changed
+- `frontend/src/styles/global.css` recebeu refatoracao visual ampla para o frontend executivo, preservando contratos funcionais:
+  - novo sistema de tokens visuais (paleta, contraste, superfícies e hierarquia);
+  - reestilizacao de shell global (`app-frame`, `app-sidebar`, `app-main`) e navegacao lateral;
+  - modernizacao de painéis, botões, inputs, tabelas, chips de status e blocos de estado (`loading/error/empty`);
+  - refinamento visual do contexto de mapa (sidebar dominante, cards contextuais, legenda inline, tipografia e densidade).
+- sem alteração de APIs, rotas ou fluxo de dados; mudança focada em UX/UI e consistência visual.
+
+### Verified
+- `npm --prefix frontend run test -- --run` -> `83 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+
+## 2026-02-23 - UX executiva: legenda visual eleitoral + menu em painel lateral
+
+### Changed
+- `frontend/src/modules/qg/pages/QgMapPage.tsx` atualizado com legenda visual compacta para modo `secao_eleitoral`, reaproveitando padrão do Figma sem alterar contrato de dados:
+  - legenda com leitura explícita de `Secoes eleitorais` (recorte) e `Locais de votacao` (pontos);
+  - nota operacional mantida para leitura proporcional no zoom atual.
+- `frontend/src/app/App.tsx` ajustado para navegação principal em painel lateral (desktop), preservando os mesmos links e rotas do shell executivo.
+- `frontend/src/styles/global.css` evoluído com:
+  - layout `app-frame/app-sidebar/app-main` para suportar o menu lateral responsivo;
+  - estilos `map-inline-legend` e `map-legend-swatch-*` para a nova legenda visual no mapa.
+
+### Verified
+- `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`.
+- `npm --prefix frontend run test -- --run src/app/App.test.tsx` -> `1 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+
+## 2026-02-23 - Mapa executivo: fechamento local_votacao (estado + legenda)
+
+### Changed
+- `frontend/src/modules/qg/pages/QgMapPage.tsx` refinado no fluxo `secao_eleitoral` para explicitar estado operacional de `local_votacao`:
+  - mensagem dedicada para estado `disponivel`, `indisponivel no manifesto` e `camada ativa sem nome detectado`;
+  - legenda eleitoral mantida com leitura de recorte (`secao`) versus ponto de atendimento (`local_votacao`);
+  - drawer territorial passou a exibir `local_votacao` de forma determinística quando camada está ativa (incluindo fallback explícito quando ausente no payload).
+- `frontend/src/modules/qg/pages/QgPages.test.tsx` atualizado para cobrir os novos estados textuais de disponibilidade `local_votacao`.
+
+### Verified
+- `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`.
+- `npm --prefix frontend run test -- --run` -> `83 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+
+## 2026-02-23 - Mapa executivo: drawer territorial inspirado no figma
+
+### Changed
+- `frontend/src/modules/qg/pages/QgMapPage.tsx` atualizado para fluxo de contexto territorial em drawer:
+  - painel lateral com status/tendencia, card de valor, metricas rapidas, evidencias e acoes de navegacao;
+  - CTA inline para abrir painel quando houver territorio selecionado;
+  - autoabertura do drawer em selecao territorial e fechamento mantendo comportamento previsivel;
+  - ajuste de navegacao no link `Abrir perfil` da tabela (isolamento de propagacao de evento);
+  - fallback de classificacao de status no drawer quando a feature nao traz `status` explicito (derivado de valor).
+- `frontend/src/styles/global.css` expandido com estilos `territory-drawer-*` e `inline-link-button`, preservando o `Drawer` compartilhado.
+
+### Verified
+- `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`.
+- `npm --prefix frontend run test -- --run src/app/e2e-flow.test.tsx` -> `5 passed`.
+- `npm --prefix frontend run test -- --run` -> `83 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+
+### Notes
+- regressao E2E corrigida em `frontend/src/app/e2e-flow.test.tsx` com ancoragem em elemento exclusivo da tela de territorio (`Status geral do territorio`), evitando falso positivo por heading do drawer no mapa.
+
 ## 2026-02-23 - Foco de fechamento backend/db: contratos de schema sincronizados
 
 ### Changed
@@ -59,10 +257,10 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - persistência em banco confirmada em `silver.fact_indicator` para `source in ('SUASWEB','CNEAS')` e `reference_period='2025'`:
   - `9` indicadores ativos (incluindo `CNEAS_OFERTAS_TOTAL`, `CNEAS_OFERTAS_PROTECAO_BASICA`, `CNEAS_OFERTAS_PROTECAO_ESPECIAL`).
 - readiness revalidado:
-  - `C:/Users/DTI/Desktop/territorial-intelligence-platform/.venv/Scripts/python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=1`.
+  - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=1`.
   - SLO-3: `runs_missing_checks=0` (normalizado).
 - scorecard reexportado:
-  - `C:/Users/DTI/Desktop/territorial-intelligence-platform/.venv/Scripts/python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=22`, `warn=10`.
+  - `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=22`, `warn=10`.
 
 ### Notes
 - pendência residual não-bloqueante para foco em frontend: `SLO-1` ainda abaixo da meta na janela de 7 dias (`90.48% < 95.0%`), concentrado em histórico recente de `quality_suite` e `tse_electorate_fetch`.

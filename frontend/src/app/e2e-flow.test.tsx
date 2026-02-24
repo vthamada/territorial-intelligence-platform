@@ -252,7 +252,7 @@ describe("E2E decision flow", () => {
 
     // ── Step 4: Navigate to Território 360 (via profile link) ──
     await user.click(screen.getAllByRole("link", { name: "Abrir perfil" })[0]);
-    await screen.findByRole("heading", { name: /Diamantina/ });
+    await screen.findByRole("heading", { name: "Status geral do territorio" });
     // Overall score/status displayed
     expect(screen.getByText("atencao")).toBeInTheDocument();
 
@@ -291,7 +291,7 @@ describe("E2E decision flow", () => {
     expect(profileLink).toBeInTheDocument();
 
     await user.click(profileLink);
-    await screen.findByRole("heading", { name: /Diamantina/ });
+    await screen.findByRole("heading", { name: "Status geral do territorio" });
   });
 
   it("deep-links propagate context: territory → cenários with query params", async () => {

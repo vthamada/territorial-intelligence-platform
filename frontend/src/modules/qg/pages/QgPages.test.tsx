@@ -6,7 +6,15 @@ import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getChoropleth, getMapLayers, getMapLayersCoverage, getMapStyleMetadata, getTerritories } from "../../../shared/api/domain";
 import { ApiClientError } from "../../../shared/api/http";
-import { getInsightsHighlights, getKpisOverview, getPriorityList, getPrioritySummary, postBriefGenerate, postScenarioSimulate } from "../../../shared/api/qg";
+import {
+  getElectorateMap,
+  getInsightsHighlights,
+  getKpisOverview,
+  getPriorityList,
+  getPrioritySummary,
+  postBriefGenerate,
+  postScenarioSimulate,
+} from "../../../shared/api/qg";
 import { emitTelemetry } from "../../../shared/observability/telemetry";
 import { QgBriefsPage } from "./QgBriefsPage";
 import { QgInsightsPage } from "./QgInsightsPage";
@@ -20,6 +28,7 @@ vi.mock("../../../shared/api/qg", () => ({
   getPrioritySummary: vi.fn(),
   getPriorityList: vi.fn(),
   getInsightsHighlights: vi.fn(),
+  getElectorateMap: vi.fn(),
   postScenarioSimulate: vi.fn(),
   postBriefGenerate: vi.fn()
 }));
@@ -170,6 +179,30 @@ describe("QG pages", () => {
           robustness: "high"
         }
       ]
+    });
+
+    vi.mocked(getElectorateMap).mockResolvedValue({
+      level: "secao_eleitoral",
+      metric: "voters",
+      year: 2024,
+      metadata: {
+        source_name: "silver.fact_electorate",
+        updated_at: null,
+        coverage_note: "electoral_section",
+        unit: null,
+        notes: null,
+      },
+      items: [
+        {
+          territory_id: "3121605-101-0001",
+          territory_name: "Secao 0001",
+          territory_level: "secao_eleitoral",
+          metric: "voters",
+          value: 450,
+          year: 2024,
+          geometry: null,
+        },
+      ],
     });
 
     vi.mocked(getChoropleth).mockResolvedValue({
@@ -657,6 +690,7 @@ describe("QG pages", () => {
     expect(screen.getByRole("option", { name: "Secoes eleitorais" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Locais de votacao" })).toBeInTheDocument();
     expect(screen.getByText(/Dica: selecione 'Locais de votacao'/i)).toBeInTheDocument();
+    expect(screen.getByText(/local_votacao: disponivel/i)).toBeInTheDocument();
     expect(screen.getByText(/origem: automatica/i)).toBeInTheDocument();
     expect(await screen.findByLabelText("Resumo operacional do mapa")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Exibir locais de votacao" })).toBeInTheDocument();
@@ -664,6 +698,73 @@ describe("QG pages", () => {
     await userEvent.click(screen.getByRole("button", { name: "Exibir locais de votacao" }));
     expect((screen.getByLabelText("Camada eleitoral detalhada") as HTMLSelectElement).value).toBe("territory_polling_place");
     expect(screen.getByText(/origem: manual/i)).toBeInTheDocument();
+  });
+
+  it("emits objective telemetry when toggling electoral detailed layer", async () => {
+    vi.mocked(getMapLayers).mockResolvedValueOnce({
+      generated_at_utc: "2026-02-13T18:20:00Z",
+      default_layer_id: "territory_electoral_section",
+      fallback_endpoint: "/v1/geo/choropleth",
+      items: [
+        {
+          id: "territory_electoral_section",
+          label: "Secoes eleitorais",
+          territory_level: "electoral_section",
+          is_official: false,
+          source: "silver.dim_territory",
+          default_visibility: true,
+          zoom_min: 12,
+          zoom_max: null,
+        },
+        {
+          id: "territory_polling_place",
+          label: "Locais de votacao",
+          territory_level: "electoral_section",
+          is_official: false,
+          source: "silver.dim_territory",
+          default_visibility: false,
+          zoom_min: 12,
+          zoom_max: null,
+        },
+      ],
+    });
+
+    renderWithQueryClient(
+      <QgMapPage />,
+      ["/mapa?level=secao_eleitoral&metric=MTE_NOVO_CAGED_SALDO_TOTAL&period=2025"],
+    );
+
+    await screen.findByLabelText("Camada eleitoral detalhada");
+    vi.mocked(emitTelemetry).mockClear();
+
+    await userEvent.click(screen.getByRole("button", { name: "Exibir locais de votacao" }));
+    await userEvent.click(screen.getByRole("button", { name: "Exibir secoes eleitorais" }));
+
+    await waitFor(() => {
+      const electoralToggleEvents = vi
+        .mocked(emitTelemetry)
+        .mock.calls.map(([event]) => event)
+        .filter((event) => event.name === "map_electoral_layer_toggled");
+
+      expect(electoralToggleEvents).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            attributes: expect.objectContaining({
+              from_layer: "secao",
+              to_layer: "local_votacao",
+              source: "manual",
+            }),
+          }),
+          expect.objectContaining({
+            attributes: expect.objectContaining({
+              from_layer: "local_votacao",
+              to_layer: "secao",
+              source: "manual",
+            }),
+          }),
+        ]),
+      );
+    });
   });
 
   it("loads explicit layer selection from URL query param", async () => {
@@ -703,6 +804,7 @@ describe("QG pages", () => {
     const selector = await screen.findByLabelText("Camada eleitoral detalhada");
     expect(selector).toHaveValue("territory_polling_place");
     expect(screen.getByText(/Local de votacao ativo/i)).toBeInTheDocument();
+    expect(screen.getByText(/local_votacao: camada ativa sem nome detectado/i)).toBeInTheDocument();
     expect(screen.getByText(/origem: manual/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Exibir secoes eleitorais" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Usar camada automatica" })).toBeInTheDocument();
@@ -846,6 +948,112 @@ describe("QG pages", () => {
     expect(screen.getByRole("radio", { name: "Pontos" })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("button", { name: "Alternar para modo avancado" })).toBeInTheDocument();
     expect((screen.getByLabelText("Nivel de zoom do mapa") as HTMLInputElement).value).toBe("10");
+  });
+
+  it("applies strategic presets for electoral sections and urban services", async () => {
+    vi.mocked(getMapLayers).mockResolvedValueOnce({
+      generated_at_utc: "2026-02-13T18:20:00Z",
+      default_layer_id: "territory_municipality",
+      fallback_endpoint: "/v1/geo/choropleth",
+      items: [
+        {
+          id: "territory_municipality",
+          label: "Municipios",
+          territory_level: "municipality",
+          is_official: true,
+          source: "silver.dim_territory",
+          default_visibility: true,
+          zoom_min: 0,
+          zoom_max: 8,
+        },
+        {
+          id: "territory_electoral_section",
+          label: "Secoes eleitorais",
+          territory_level: "electoral_section",
+          is_official: false,
+          source: "silver.dim_territory",
+          default_visibility: true,
+          zoom_min: 12,
+          zoom_max: null,
+        },
+        {
+          id: "urban_pois",
+          label: "Pontos de interesse",
+          territory_level: "urban",
+          is_official: false,
+          source: "map.urban_poi",
+          default_visibility: true,
+          zoom_min: 12,
+          zoom_max: null,
+          layer_kind: "point",
+        },
+      ],
+    });
+
+    renderWithQueryClient(
+      <QgMapPage />,
+      ["/mapa?metric=MTE_NOVO_CAGED_SALDO_TOTAL&period=2025&level=secao_eleitoral&renderer=svg"],
+    );
+    await waitFor(() => expect(getMapLayers).toHaveBeenCalledTimes(1));
+    await screen.findByRole("button", { name: "Eleitorado por secao" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Eleitorado por secao" }));
+    expect((screen.getByLabelText("Nivel territorial") as HTMLSelectElement).value).toBe("secao_eleitoral");
+    expect(await screen.findByText("Top secoes por eleitorado")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Servicos por bairros" }));
+    expect((screen.getByLabelText("Escopo da camada") as HTMLSelectElement).value).toBe("urban");
+    expect((screen.getByLabelText("Camada urbana") as HTMLSelectElement).value).toBe("urban_pois");
+    expect(screen.getByRole("radio", { name: "Pontos" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: "Claro" })).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("shows explicit simplified-mode guidance for non-choropleth territorial levels", async () => {
+    vi.mocked(getMapLayers).mockResolvedValueOnce({
+      generated_at_utc: "2026-02-13T18:20:00Z",
+      default_layer_id: "territory_electoral_section",
+      fallback_endpoint: "/v1/geo/choropleth",
+      items: [
+        {
+          id: "territory_electoral_section",
+          label: "Secoes eleitorais",
+          territory_level: "electoral_section",
+          is_official: false,
+          source: "silver.dim_territory",
+          default_visibility: true,
+          zoom_min: 12,
+          zoom_max: null,
+        },
+      ],
+    });
+
+    renderWithQueryClient(
+      <QgMapPage />,
+      ["/mapa?metric=MTE_NOVO_CAGED_SALDO_TOTAL&period=2025&level=secao_eleitoral&renderer=svg"],
+    );
+
+    await waitFor(() => expect(getMapLayers).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("Modo simplificado indisponivel neste nivel")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Niveis granulares \(setor\/zona\/secao\) exigem modo avancado/i),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      const operationalStateEvents = vi
+        .mocked(emitTelemetry)
+        .mock.calls.map(([event]) => event)
+        .filter((event) => event.name === "map_operational_state_changed");
+      expect(operationalStateEvents).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            attributes: expect.objectContaining({
+              state: "empty_simplified_unavailable",
+              renderer: "simplified",
+              level: "secao_eleitoral",
+            }),
+          }),
+        ]),
+      );
+    });
   });
 
   it("emits map telemetry for mode, zoom and layer changes", async () => {

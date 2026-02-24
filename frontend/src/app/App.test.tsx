@@ -13,7 +13,7 @@ describe("App shell", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText("QG Estrategico")).toBeInTheDocument();
+    expect(screen.getByText("Painel de Inteligencia Territorial")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Visao Geral" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Prioridades" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Mapa" })).toBeInTheDocument();

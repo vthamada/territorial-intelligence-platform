@@ -6,10 +6,11 @@ type DrawerProps = {
   title: string;
   side?: "left" | "right";
   width?: string;
+  showBackdrop?: boolean;
   children: ReactNode;
 };
 
-export function Drawer({ open, onClose, title, side = "right", width = "380px", children }: DrawerProps) {
+export function Drawer({ open, onClose, title, side = "right", width = "380px", showBackdrop = true, children }: DrawerProps) {
   const panelRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -30,13 +31,13 @@ export function Drawer({ open, onClose, title, side = "right", width = "380px", 
 
   return (
     <>
-      {open && (
+      {open && showBackdrop ? (
         <div
           className="drawer-backdrop"
           onClick={onClose}
           aria-hidden="true"
         />
-      )}
+      ) : null}
       <aside
         ref={panelRef}
         className={`drawer drawer-${side} ${open ? "drawer-open" : ""}`}
@@ -51,7 +52,10 @@ export function Drawer({ open, onClose, title, side = "right", width = "380px", 
           <h2 className="drawer-title">{title}</h2>
           <button
             className="drawer-close"
-            onClick={onClose}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
             aria-label="Fechar painel"
             type="button"
           >

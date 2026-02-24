@@ -248,9 +248,71 @@ Status da rodada (2026-02-22):
 Atualizacao complementar (2026-02-23):
 4. Item 3 da prioridade alta evoluido no frontend do mapa:
    - `local_votacao` consolidado com toggle rapido (`Locais de votacao` <-> `Secoes eleitorais`) e legenda eleitoral explicita no `QgMapPage`.
+   - estados operacionais explicitados para `local_votacao` (disponivel / indisponivel no manifesto / camada ativa sem nome detectado), com fallback textual previsível no drawer.
+   - legenda visual compacta aplicada para leitura eleitoral imediata no painel do mapa.
    - regressao dedicada validada em `QgPages.test.tsx` e build frontend `OK`.
-5. Próximo passo imediato:
-   - seguir com refinamento de UX final (fluidez/legibilidade) mantendo WIP=1 e sem abrir backlog pós-v2.
+5. Item 1 da prioridade alta evoluido no shell executivo:
+   - menu principal migrado para painel lateral (desktop), preservando rotas e comportamento responsivo.
+   - regressao de shell validada em `App.test.tsx`.
+6. Refatoracao visual completa aplicada na camada frontend executiva:
+   - redesign transversal em `global.css` (tokens, superfícies, componentes-base, estados e contexto de mapa), sem alterar contratos funcionais.
+   - validacao de estabilidade em suíte frontend completa (`83 passed`) + build `OK`.
+7. Próximo passo imediato:
+   - seguir com refinamento de UX final (fluidez/legibilidade) e telemetria objetiva de troca de camada eleitoral, mantendo WIP=1 e sem abrir backlog pós-v2.
+
+Atualizacao complementar (2026-02-24):
+8. Telemetria objetiva da troca de camada eleitoral concluída no frontend:
+   - evento dedicado `map_electoral_layer_toggled` implementado em `QgMapPage` para transições `secao` <-> `local_votacao`;
+   - atributos de triagem (`from_layer`, `to_layer`, `source`, `layer_id`, `layer_classification`, `scope`, `level`) disponíveis para leitura operacional.
+   - regressão validada com `QgPages.test.tsx` (`25 passed`), suíte frontend completa (`84 passed`) e build `OK`.
+9. Próximo passo imediato:
+   - continuar refinamento P0 de UX do mapa executivo (legibilidade e fluidez) mantendo WIP=1 e gate de regressão + build por rodada.
+
+Atualizacao complementar (2026-02-23):
+10. Hardening incremental de robustez frontend concluído no eixo Admin + observabilidade:
+   - `AdminHubPage` alinhado ao contrato de erro (`message` + `request_id`) com retry contextual;
+   - testes dedicados adicionados para `AdminHubPage` e `bootstrapFrontendObservability`.
+   - gate validado em `pass`: suíte focada (`3 passed`), suíte frontend completa (`87 passed`) e build (`OK`).
+11. Próximo passo imediato:
+   - manter WIP=1 no pacote P0 do mapa executivo (fluidez, legibilidade e previsibilidade operacional) sem abrir backlog paralelo.
+
+Atualizacao complementar (2026-02-23):
+12. Sprint P0 de previsibilidade de estados no mapa executivo concluída:
+   - fallback simplificado passou a explicitar indisponibilidade para níveis não coropléticos (`setor/zona/secao`), eliminando ambiguidade visual;
+   - busca/foco territorial contextualizados ao recorte coroplético (`municipio/distrito`) com orientação explícita para níveis granulares;
+   - cobertura de regressão adicionada em `QgPages.test.tsx` para o novo estado operacional.
+13. Validação da sprint:
+   - suíte focada QG (`26 passed`), suíte frontend completa (`88 passed`) e build (`OK`).
+14. Próximo passo imediato:
+   - continuar no WIP=1 com refinamentos incrementais de fluidez + telemetria operacional do mapa, sem abrir frentes paralelas.
+
+Atualizacao complementar (2026-02-23):
+15. Sprint P0 de telemetria de estado operacional do mapa concluída:
+   - evento `map_operational_state_changed` implementado no `QgMapPage` com transições de estado operacional para triagem;
+   - estados cobertos: `loading`, `error`, `empty`, `empty_simplified_unavailable`, `empty_svg_urban_unavailable`, `data`.
+16. Cobertura e validação da sprint:
+   - `QgPages.test.tsx` ampliado para validar emissão de evento no estado simplificado indisponível em nível não coroplético;
+   - suíte focada QG (`26 passed`), suíte frontend completa (`88 passed`) e build (`OK`).
+17. Próximo passo imediato:
+   - manter WIP=1 com ajustes incrementais de fluidez/legibilidade no mapa e monitoramento de eventos em `/v1/ops/frontend-events`.
+
+Atualizacao complementar (2026-02-23):
+18. Homologacao backend do evento `map_operational_state_changed` concluída:
+   - testes de rota em `test_ops_routes.py` cobrem ingestão do evento e filtro por nome na listagem de `/v1/ops/frontend-events`.
+19. Validação da rodada:
+   - `\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_routes.py -q` -> `32 passed`.
+20. Próximo passo imediato:
+   - seguir no WIP=1 com refino incremental de fluidez do mapa executivo e manutenção do gate de regressão frontend + backend relevante.
+
+Atualizacao complementar (2026-02-23):
+21. Sprint de utilidade estratégica do mapa executada após feedback visual:
+   - presets operacionais adicionados para acesso rápido a leitura por seções eleitorais e serviços urbanos;
+   - leitura de `Top secoes por eleitorado` incorporada ao fluxo do `QgMapPage`;
+   - ajuste de drawer para uso não modal no mapa (sem bloqueio visual da tela inteira).
+22. Validação da sprint:
+   - testes focados (`31 passed`), suíte frontend completa (`89 passed`) e build (`OK`).
+23. Próximo passo imediato:
+   - manter WIP=1 no mapa com melhorias incrementais de fluidez visual e densidade informacional sem abertura de escopo paralelo.
 
 ## 5.2 Prioridade media
 

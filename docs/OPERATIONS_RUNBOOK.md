@@ -232,7 +232,7 @@ npm run build       # tsc --noEmit && vite build
 ### 7.3 Testes
 
 ```powershell
-npm --prefix frontend run test   # 43 testes, 15 arquivos
+npm --prefix frontend run test   # 88 testes, 21 arquivos
 ```
 
 ---
@@ -252,7 +252,7 @@ python scripts/homologation_check.py --json
 1. Backend readiness (schema, SLO-1, ops tracking, PostGIS)
 2. Quality suite (ultimo run com status success)
 3. Frontend build (tsc + vite sem erros)
-4. Test suites (backend 207+ + frontend 43+ todos passando)
+4. Test suites (backend + frontend com gate de regressão em pass)
 5. API smoke (GET /v1/health responde ok)
 
 **Verdict:** `READY FOR GO-LIVE` ou `NOT READY`

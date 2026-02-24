@@ -2,7 +2,9 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getOpsReadiness } from "../../../shared/api/ops";
 import { getMapLayers, getMapLayersCoverage } from "../../../shared/api/domain";
+import { formatApiError } from "../../../shared/api/http";
 import { Panel } from "../../../shared/ui/Panel";
+import { StateBlock } from "../../../shared/ui/StateBlock";
 import type {
   MapLayersCoverageResponse,
   MapLayersResponse,
@@ -13,50 +15,70 @@ type AdminRouteLink = {
   to: string;
   label: string;
   description: string;
+  icon: string;
 };
 
 const adminLinks: AdminRouteLink[] = [
   {
     to: "/ops/health",
     label: "Saude Ops",
-    description: "Saude da API, banco e volume operacional."
+    description: "Saude da API, banco e volume operacional.",
+    icon: "🩺"
   },
   {
     to: "/ops/runs",
     label: "Execucoes",
-    description: "Historico de runs de pipeline com filtros e paginacao."
+    description: "Historico de runs de pipeline com filtros e paginacao.",
+    icon: "▶️"
   },
   {
     to: "/ops/checks",
     label: "Checks",
-    description: "Resultados dos checks de qualidade e operacao."
+    description: "Resultados dos checks de qualidade e operacao.",
+    icon: "✅"
   },
   {
     to: "/ops/connectors",
     label: "Conectores",
-    description: "Registry de conectores e status por onda."
+    description: "Registry de conectores e status por onda.",
+    icon: "🔌"
   },
   {
     to: "/ops/frontend-events",
     label: "Eventos Frontend",
-    description: "Telemetria de erros, web vitals e chamadas API do cliente."
+    description: "Telemetria de erros, web vitals e chamadas API do cliente.",
+    icon: "📡"
   },
   {
     to: "/ops/source-coverage",
     label: "Cobertura por Fonte",
-    description: "Mostra se as fontes implementadas estao com dados carregados no Silver."
+    description: "Mostra se as fontes implementadas estao com dados carregados no Silver.",
+    icon: "📊"
   },
   {
     to: "/ops/layers",
     label: "Rastreabilidade de Camadas",
-    description: "Catalogo territorial, cobertura de geometria e checks de qualidade por camada."
+    description: "Catalogo territorial, cobertura de geometria e checks de qualidade por camada.",
+    icon: "🗺️"
   },
   {
     to: "/territory/indicators",
     label: "Territorios e Indicadores",
-    description: "Consulta tecnica para depuracao de dados territoriais."
+    description: "Consulta tecnica para depuracao de dados territoriais.",
+    icon: "📍"
   }
 ];
+
+type QueryErrorStateProps = {
+  title: string;
+  error: unknown;
+  onRetry: () => void;
+};
+
+function QueryErrorState({ title, error, onRetry }: QueryErrorStateProps) {
+  const { message, requestId } = formatApiError(error);
+  return <StateBlock tone="error" title={title} message={message} requestId={requestId} onRetry={onRetry} />;
+}
 
 function ReadinessBanner() {
   const readinessQuery = useQuery({
@@ -76,7 +98,13 @@ function ReadinessBanner() {
   }
 
   if (readinessQuery.error) {
-    return <p className="map-export-error">Erro ao consultar readiness.</p>;
+    return (
+      <QueryErrorState
+        title="Falha ao carregar readiness"
+        error={readinessQuery.error}
+        onRetry={() => void readinessQuery.refetch()}
+      />
+    );
   }
 
   const data = readinessQuery.data as OpsReadinessResponse;
@@ -146,7 +174,16 @@ function LayerCoverageBanner() {
   }
 
   if (mapLayersQuery.error || coverageQuery.error) {
-    return <p className="map-export-error">Erro ao consultar cobertura das camadas do mapa.</p>;
+    return (
+      <QueryErrorState
+        title="Falha ao carregar cobertura das camadas"
+        error={mapLayersQuery.error ?? coverageQuery.error}
+        onRetry={() => {
+          void mapLayersQuery.refetch();
+          void coverageQuery.refetch();
+        }}
+      />
+    );
   }
 
   const catalog = mapLayersQuery.data as MapLayersResponse;
@@ -216,7 +253,10 @@ export function AdminHubPage() {
         <div className="admin-link-grid">
           {adminLinks.map((item) => (
             <article key={item.to} className="admin-link-card">
-              <h3>{item.label}</h3>
+              <div className="admin-card-header">
+                <span className="admin-card-icon" aria-hidden="true">{item.icon}</span>
+                <h3>{item.label}</h3>
+              </div>
               <p>{item.description}</p>
               <Link className="inline-link" to={item.to}>
                 Abrir {item.label}
