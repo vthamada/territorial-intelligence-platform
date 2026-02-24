@@ -7,7 +7,7 @@ import { getElectorateMap } from "../../../shared/api/qg";
 import type { MapLayerItem } from "../../../shared/api/types";
 import { useAutoLayerSwitch } from "../../../shared/hooks/useAutoLayerSwitch";
 import { ChoroplethMiniMap } from "../../../shared/ui/ChoroplethMiniMap";
-import { Drawer } from "../../../shared/ui/Drawer";
+
 import { Panel } from "../../../shared/ui/Panel";
 import { formatDecimal, formatLevelLabel, formatStatusLabel, formatTrendLabel, toNumber } from "../../../shared/ui/presentation";
 import { StateBlock } from "../../../shared/ui/StateBlock";
@@ -433,8 +433,7 @@ export function QgMapPage() {
   const [basemapMode, setBasemapMode] = useState<BasemapMode>(initialBasemap);
   const [useVectorMap, setUseVectorMap] = useState(initialUseVectorMap);
   const [selectedFeature, setSelectedFeature] = useState<VectorMapFeatureSelection | null>(null);
-  const [territoryDrawerOpen, setTerritoryDrawerOpen] = useState(false);
-  const [territoryDrawerDismissed, setTerritoryDrawerDismissed] = useState(false);
+  const [territoryPanelCollapsed, setTerritoryPanelCollapsed] = useState(false);
   const [territorySearch, setTerritorySearch] = useState("");
   const [territoryFocusNotice, setTerritoryFocusNotice] = useState<string | null>(null);
   const [mapRecenterNotice, setMapRecenterNotice] = useState<string | null>(null);
@@ -872,16 +871,7 @@ export function QgMapPage() {
     previousVectorErrorRef.current = vectorMapError;
   }, [appliedLevel, appliedMapScope, telemetryEffectiveLayerId, vectorMapError]);
 
-  // Auto-open drawer ONCE when territorial data first loads (never re-opens after user dismisses)
-  const hasAutoOpenedDrawer = useRef(false);
 
-  useEffect(() => {
-    if (hasAutoOpenedDrawer.current) return;
-    if (appliedMapScope === "territorial" && sortedItems.length > 0) {
-      hasAutoOpenedDrawer.current = true;
-      setTerritoryDrawerOpen(true);
-    }
-  }, [appliedMapScope, sortedItems.length]);
 
   function focusTerritoryFromSearch() {
     if (appliedMapScope !== "territorial" || sortedItems.length === 0) {
@@ -1802,8 +1792,7 @@ export function QgMapPage() {
                 zoom={currentZoom}
                 onZoomChange={(z) => handleZoomChange(z)}
                 onFeatureClick={(feature) => {
-                  setTerritoryDrawerDismissed(false);
-                  setTerritoryDrawerOpen(true);
+                  setTerritoryPanelCollapsed(false);
                   setSelectedTerritoryId(feature.tid || undefined);
                   setSelectedFeature(feature);
                   setTerritorySearch(feature.tname ?? "");
@@ -1862,17 +1851,16 @@ export function QgMapPage() {
           <p className="map-selected-note">
             Selecionado: <strong>{selectedFeatureLabel ?? drawerTerritoryName}</strong> | valor: {drawerScoreDisplay}
             {selectedFeatureCategory ? <> | categoria: {selectedFeatureCategory}</> : null}
-            <button
-              type="button"
-              className="inline-link-button"
-              onClick={() => {
-                setTerritoryDrawerDismissed(false);
-                setTerritoryDrawerOpen(true);
-              }}
-              aria-label="Abrir painel territorial"
-            >
-              Abrir painel
-            </button>
+            {territoryPanelCollapsed ? (
+              <button
+                type="button"
+                className="inline-link-button"
+                onClick={() => setTerritoryPanelCollapsed(false)}
+                aria-label="Expandir painel territorial"
+              >
+                Expandir detalhes
+              </button>
+            ) : null}
           </p>
         ) : null}
         {vectorMapError ? <p className="map-export-error">{vectorMapError}</p> : null}
@@ -1923,8 +1911,7 @@ export function QgMapPage() {
                     key={item.territory_id}
                     className={item.territory_id === selectedTerritoryId ? "territory-selected-row" : undefined}
                     onClick={() => {
-                      setTerritoryDrawerDismissed(false);
-                      setTerritoryDrawerOpen(true);
+                      setTerritoryPanelCollapsed(false);
                       setSelectedTerritoryId(item.territory_id);
                       setTerritorySearch(item.territory_name);
                       setFocusSignal((value) => value + 1);
@@ -1932,8 +1919,7 @@ export function QgMapPage() {
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
-                        setTerritoryDrawerDismissed(false);
-                        setTerritoryDrawerOpen(true);
+                        setTerritoryPanelCollapsed(false);
                         setSelectedTerritoryId(item.territory_id);
                         setTerritorySearch(item.territory_name);
                         setFocusSignal((value) => value + 1);
@@ -1968,54 +1954,56 @@ export function QgMapPage() {
         )}
       </Panel>
 
-      <Drawer
-        open={territoryDrawerOpen && Boolean(drawerTerritoryName)}
-        onClose={() => {
-          setTerritoryDrawerDismissed(true);
-          setTerritoryDrawerOpen(false);
-          setSelectedFeature(null);
-          setSelectedTerritoryId(undefined);
-        }}
-        title={drawerTerritoryName ?? "Contexto territorial"}
-        width="min(420px, 96vw)"
-        showBackdrop={false}
-      >
-        <section className="territory-drawer-shell" aria-label="Painel territorial">
-          <header className="territory-drawer-head">
-            <p className="territory-drawer-type">{formatLevelLabel(appliedLevel)}</p>
-            <div className="territory-drawer-status-row">
-              <span className="territory-drawer-status">Status: {drawerStatusDisplay}</span>
-              <span className="territory-drawer-trend">Tendencia: {drawerTrendDisplay}</span>
-            </div>
-            <div className="territory-drawer-score-card">
+      {drawerTerritoryName && !territoryPanelCollapsed ? (
+        <Panel
+          title={drawerTerritoryName}
+          subtitle={`${formatLevelLabel(appliedLevel)} · ${drawerStatusDisplay} · Tendencia: ${drawerTrendDisplay}`}
+        >
+          <div className="territory-detail-bar">
+            <button
+              type="button"
+              className="button-secondary territory-detail-close"
+              onClick={() => {
+                setTerritoryPanelCollapsed(true);
+                setSelectedFeature(null);
+                setSelectedTerritoryId(undefined);
+              }}
+              aria-label="Fechar painel territorial"
+            >
+              ✕ Fechar
+            </button>
+          </div>
+
+          <div className="territory-detail-grid">
+            <div className="territory-detail-score-card">
               <p>Valor selecionado</p>
               <strong>{drawerScoreDisplay} (selecao)</strong>
             </div>
-          </header>
 
-          <div className="territory-drawer-stats-grid" role="list" aria-label="Metricas rapidas do territorio">
-            <article role="listitem">
-              <span>Periodo</span>
-              <strong>{appliedPeriod}</strong>
-            </article>
-            <article role="listitem">
-              <span>Camada</span>
-              <strong>{effectiveLayer?.label ?? "n/d"}</strong>
-            </article>
-            <article role="listitem">
-              <span>Zoom</span>
-              <strong>z{currentZoom}</strong>
-            </article>
-            <article role="listitem">
-              <span>Cobertura</span>
-              <strong>{drawerCoverageDisplay}</strong>
-            </article>
+            <div className="territory-detail-stats" role="list" aria-label="Metricas rapidas do territorio">
+              <article role="listitem">
+                <span>Periodo</span>
+                <strong>{appliedPeriod}</strong>
+              </article>
+              <article role="listitem">
+                <span>Camada</span>
+                <strong>{effectiveLayer?.label ?? "n/d"}</strong>
+              </article>
+              <article role="listitem">
+                <span>Zoom</span>
+                <strong>z{currentZoom}</strong>
+              </article>
+              <article role="listitem">
+                <span>Cobertura</span>
+                <strong>{drawerCoverageDisplay}</strong>
+              </article>
+            </div>
           </div>
 
           <section>
-            <h3 className="territory-drawer-section-title">Evidencias</h3>
+            <h3 className="territory-detail-section-title">Evidencias</h3>
             {drawerEvidenceItems.length > 0 ? (
-              <ul className="territory-drawer-evidence-list">
+              <ul className="territory-detail-evidence-list">
                 {drawerEvidenceItems.map(([key, value]) => (
                   <li key={key}>
                     <strong>{key}:</strong> {String(value)}
@@ -2023,12 +2011,12 @@ export function QgMapPage() {
                 ))}
               </ul>
             ) : (
-              <p className="territory-drawer-meta-line">Nenhuma evidencia adicional disponivel para esta selecao.</p>
+              <p className="territory-detail-meta-line">Nenhuma evidencia adicional disponivel para esta selecao.</p>
             )}
           </section>
 
           {selectedTerritoryActions ? (
-            <nav className="territory-drawer-actions" aria-label="Acoes territoriais">
+            <nav className="territory-detail-actions" aria-label="Acoes territoriais">
               <Link className="button-secondary" to={selectedTerritoryActions.profile}>
                 Abrir perfil selecionado
               </Link>
@@ -2045,7 +2033,7 @@ export function QgMapPage() {
           ) : null}
 
           {selectedUrbanActions ? (
-            <nav className="territory-drawer-actions" aria-label="Acoes urbanas">
+            <nav className="territory-detail-actions" aria-label="Acoes urbanas">
               <a className="button-secondary" href={selectedUrbanActions.scopedCollection} target="_blank" rel="noreferrer">
                 {selectedUrbanActions.scopedLabel}
               </a>
@@ -2062,41 +2050,44 @@ export function QgMapPage() {
             </nav>
           ) : null}
 
-          <section className="territory-drawer-meta-grid" aria-label="Contexto operacional da camada">
-            <p className="territory-drawer-meta-line">
-              <strong>Fonte:</strong> {selectedFeatureSource ?? effectiveLayer?.source ?? "n/d"}
-            </p>
-            <p className="territory-drawer-meta-line">
-              <strong>Classificacao:</strong> {effectiveLayerClassification}
-            </p>
-            <p className="territory-drawer-meta-line">
-              <strong>Renderizacao:</strong> {effectiveRendererLabel}
-            </p>
-            <p className="territory-drawer-meta-line">
-              <strong>Base:</strong> {effectiveBasemapLabel}
-            </p>
-            <p className="territory-drawer-meta-line">
-              <strong>Modo:</strong> {effectiveVizLabel}
-            </p>
-            {drawerTerritoryId ? (
-              <p className="territory-drawer-meta-line">
-                <strong>Territorio ID:</strong> {drawerTerritoryId}
+          <details className="territory-detail-meta-details">
+            <summary>Contexto operacional</summary>
+            <div className="territory-detail-meta-grid" aria-label="Contexto operacional da camada">
+              <p className="territory-detail-meta-line">
+                <strong>Fonte:</strong> {selectedFeatureSource ?? effectiveLayer?.source ?? "n/d"}
               </p>
-            ) : null}
-            {isPollingPlaceActive ? (
-              <p className="territory-drawer-meta-line">
-                <strong>Local votacao:</strong>{" "}
-                {selectedPollingPlaceName ?? "indisponivel no payload da feicao selecionada"}
+              <p className="territory-detail-meta-line">
+                <strong>Classificacao:</strong> {effectiveLayerClassification}
               </p>
-            ) : null}
-            {selectedFeatureSubcategory ? (
-              <p className="territory-drawer-meta-line">
-                <strong>Subcategoria:</strong> {selectedFeatureSubcategory}
+              <p className="territory-detail-meta-line">
+                <strong>Renderizacao:</strong> {effectiveRendererLabel}
               </p>
-            ) : null}
-          </section>
-        </section>
-      </Drawer>
+              <p className="territory-detail-meta-line">
+                <strong>Base:</strong> {effectiveBasemapLabel}
+              </p>
+              <p className="territory-detail-meta-line">
+                <strong>Modo:</strong> {effectiveVizLabel}
+              </p>
+              {drawerTerritoryId ? (
+                <p className="territory-detail-meta-line">
+                  <strong>Territorio ID:</strong> {drawerTerritoryId}
+                </p>
+              ) : null}
+              {isPollingPlaceActive ? (
+                <p className="territory-detail-meta-line">
+                  <strong>Local votacao:</strong>{" "}
+                  {selectedPollingPlaceName ?? "indisponivel no payload da feicao selecionada"}
+                </p>
+              ) : null}
+              {selectedFeatureSubcategory ? (
+                <p className="territory-detail-meta-line">
+                  <strong>Subcategoria:</strong> {selectedFeatureSubcategory}
+                </p>
+              ) : null}
+            </div>
+          </details>
+        </Panel>
+      ) : null}
     </main>
   );
 }

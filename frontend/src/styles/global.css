@@ -879,143 +879,150 @@ label {
   color: #0a615a;
 }
 
-.territory-drawer-shell {
-  display: grid;
-  gap: 0.9rem;
-}
-
-.territory-drawer-head {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.territory-drawer-type {
-  margin: 0;
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--ink-soft);
-}
-
-.territory-drawer-status-row {
+/* ── Territory detail inline panel ──────────────────────── */
+.territory-detail-bar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
+  justify-content: flex-end;
+  margin-bottom: 0.25rem;
 }
 
-.territory-drawer-status,
-.territory-drawer-trend {
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 0.2rem 0.55rem;
+.territory-detail-close {
   font-size: 0.82rem;
-  color: var(--ink-soft);
-  background: #fffaf3;
+  padding: 0.3rem 0.75rem;
 }
 
-.territory-drawer-score-card {
+.territory-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.territory-detail-score-card {
   border: 1px solid #d7e4f5;
   border-radius: 0.75rem;
   padding: 0.6rem 0.75rem;
   background: linear-gradient(135deg, #f4f9ff, #edf4ff);
 }
 
-.territory-drawer-score-card p {
+.territory-detail-score-card p {
   margin: 0;
   font-size: 0.76rem;
   color: var(--ink-soft);
 }
 
-.territory-drawer-score-card strong {
+.territory-detail-score-card strong {
   display: inline-block;
   margin-top: 0.2rem;
-  font-size: 1.65rem;
+  font-size: 1.5rem;
   color: var(--ink);
 }
 
-.territory-drawer-stats-grid {
+.territory-detail-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
+  gap: 0.45rem;
 }
 
-.territory-drawer-stats-grid article {
+.territory-detail-stats article {
   border: 1px solid var(--line);
   border-radius: 0.65rem;
-  padding: 0.45rem 0.55rem;
-  background: #fffefb;
+  padding: 0.4rem 0.5rem;
+  background: var(--bg-panel, #fffefb);
   display: grid;
-  gap: 0.12rem;
+  gap: 0.1rem;
 }
 
-.territory-drawer-stats-grid span {
-  font-size: 0.75rem;
+.territory-detail-stats span {
+  font-size: 0.72rem;
   color: var(--ink-soft);
 }
 
-.territory-drawer-stats-grid strong {
-  font-size: 0.9rem;
+.territory-detail-stats strong {
+  font-size: 0.85rem;
   color: var(--ink);
 }
 
-.territory-drawer-section-title {
-  margin: 0;
-  font-size: 0.84rem;
+.territory-detail-section-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--ink-soft);
 }
 
-.territory-drawer-evidence-list {
-  margin: 0.5rem 0 0;
+.territory-detail-evidence-list {
+  margin: 0 0 0.5rem;
   padding-left: 1rem;
   display: grid;
-  gap: 0.36rem;
+  gap: 0.3rem;
 }
 
-.territory-drawer-evidence-list li {
-  font-size: 0.84rem;
+.territory-detail-evidence-list li {
+  font-size: 0.82rem;
   color: var(--ink);
   line-height: 1.35;
 }
 
-.territory-drawer-actions {
+.territory-detail-actions {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.5rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.45rem;
+  margin-bottom: 0.5rem;
 }
 
-.territory-drawer-actions .button-secondary {
+.territory-detail-actions .button-secondary {
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 100%;
+  font-size: 0.82rem;
+  padding: 0.4rem 0.5rem;
 }
 
-.territory-drawer-meta-grid {
+.territory-detail-meta-details {
   border-top: 1px solid var(--line);
-  padding-top: 0.7rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.territory-detail-meta-details summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.territory-detail-meta-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.45rem 0.7rem;
+  gap: 0.35rem 0.7rem;
+  padding-top: 0.35rem;
 }
 
-.territory-drawer-meta-line {
+.territory-detail-meta-line {
   margin: 0;
-  font-size: 0.87rem;
+  font-size: 0.82rem;
   color: var(--ink-soft);
   line-height: 1.4;
   word-break: break-word;
 }
 
-.territory-drawer-meta-line strong {
+.territory-detail-meta-line strong {
   color: var(--ink);
   font-weight: 600;
 }
 
 @media (max-width: 980px) {
-  .territory-drawer-meta-grid {
+  .territory-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .territory-detail-actions {
+    grid-template-columns: 1fr;
+  }
+  .territory-detail-meta-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -2447,41 +2454,48 @@ tbody tr:hover {
   box-shadow: var(--shadow-md);
 }
 
-/* ── 18. Territory drawer ────────────────────────────────── */
-.territory-drawer-score-card {
+/* ── 18. Territory detail panel ───────────────────────────── */
+.territory-detail-score-card {
   border: 1px solid var(--info-border);
   border-radius: var(--radius-md);
   padding: 0.7rem 0.85rem;
   background: linear-gradient(135deg, var(--info-bg) 0%, #f0f7ff 100%);
 }
 
-.territory-drawer-score-card strong {
-  font-size: 1.75rem;
+.territory-detail-score-card strong {
+  font-size: 1.5rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
 }
 
-.territory-drawer-stats-grid article {
+.territory-detail-stats article {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--bg-panel);
   transition: border-color var(--duration-fast) var(--ease-in-out);
 }
 
-.territory-drawer-stats-grid article:hover {
+.territory-detail-stats article:hover {
   border-color: var(--line-strong);
 }
 
-.territory-drawer-meta-line {
+.territory-detail-meta-line {
   color: var(--ink-soft);
 }
 
-.territory-drawer-status,
-.territory-drawer-trend {
+.territory-detail-close {
+  background: transparent;
   border: 1px solid var(--line);
-  border-radius: var(--radius-full);
-  background: var(--bg-subtle);
-  font-weight: 500;
+  color: var(--ink-soft);
+  box-shadow: none;
+}
+
+.territory-detail-close:hover {
+  background: var(--bg-hover);
+  color: var(--ink);
+  box-shadow: none;
+  transform: none;
+  filter: none;
 }
 
 /* ── 19. Source freshness badge ───────────────────────────── */
@@ -3003,6 +3017,6 @@ a {
 /* ── 46. Numeric display ─────────────────────────────────── */
 .kpi-grid article strong,
 .strategic-index-card strong,
-.territory-drawer-score-card strong {
+.territory-detail-score-card strong {
   font-variant-numeric: tabular-nums;
 }
