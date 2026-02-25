@@ -50,6 +50,7 @@ from pipelines.quality_suite import run as run_quality_suite
 from pipelines.sejusp_public_safety import run as run_sejusp_public_safety
 from pipelines.senatran_fleet import run as run_senatran_fleet
 from pipelines.siconfi_finance import run as run_siconfi_finance
+from pipelines.portal_transparencia import run as run_portal_transparencia
 from pipelines.sidra_indicators import run as run_sidra_indicators
 from pipelines.siops_health_finance import run as run_siops_health_finance
 from pipelines.snis_sanitation import run as run_snis_sanitation
@@ -104,6 +105,7 @@ def run_mvp_all(
         "education_inep_fetch": run_inep_education(**common_kwargs),
         "health_datasus_fetch": run_datasus_health(**common_kwargs),
         "finance_siconfi_fetch": run_siconfi_finance(**common_kwargs),
+        "portal_transparencia_fetch": run_portal_transparencia(**common_kwargs),
         "labor_mte_fetch": run_mte_labor(**common_kwargs),
         "sidra_indicators_fetch": run_sidra_indicators(**common_kwargs),
         "senatran_fleet_fetch": run_senatran_fleet(**common_kwargs),
@@ -267,6 +269,7 @@ def run_mvp_wave_6(
     return {
         "suasweb_social_assistance_fetch": run_suasweb_social_assistance(**common_kwargs),
         "cneas_social_assistance_fetch": run_cneas_social_assistance(**common_kwargs),
+        "portal_transparencia_fetch": run_portal_transparencia(**common_kwargs),
         "cecad_social_protection_fetch": run_cecad_social_protection(**common_kwargs),
         "censo_suas_fetch": run_censo_suas(**common_kwargs),
         "quality_suite": run_quality_suite(**common_kwargs),

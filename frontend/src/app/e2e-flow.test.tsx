@@ -238,11 +238,11 @@ describe("E2E decision flow", () => {
     // Verify deep-link to mapa exists with context
     const mapLink = screen.getByRole("link", { name: "Ver no mapa" });
     expect(mapLink.getAttribute("href")).toContain("/mapa");
-    expect(mapLink.getAttribute("href")).toContain("metric=DATASUS_APS_COBERTURA");
+    expect(mapLink.getAttribute("href")).toContain("territory_id=3121605");
 
     // ── Step 3: Navigate to Mapa ──
     await user.click(screen.getByRole("link", { name: "Mapa" }));
-    await screen.findByText("Mapa estrategico");
+    await screen.findByLabelText("Buscar territorio");
     // Export buttons visible
     expect(screen.getByRole("button", { name: /Exportar.*CSV/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Exportar.*SVG/ })).toBeInTheDocument();
@@ -283,10 +283,10 @@ describe("E2E decision flow", () => {
   });
 
   it("deep-links propagate context: mapa → territory profile with query params", async () => {
-    renderApp(["/mapa?metric=DATASUS_APS_COBERTURA&period=2025&territory_id=3121605"]);
+    renderApp(["/mapa?territory_id=3121605"]);
     const user = userEvent.setup();
 
-    await screen.findByText("Mapa estrategico");
+    await screen.findByLabelText("Buscar territorio");
     const profileLink = screen.getAllByRole("link", { name: "Abrir perfil" })[0];
     expect(profileLink).toBeInTheDocument();
 

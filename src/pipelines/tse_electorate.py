@@ -693,15 +693,20 @@ def _upsert_electoral_zone(
                 :normalized_name,
                 :uf,
                 :municipality_ibge_code,
-                (
-                    SELECT
+                COALESCE(
+                    (SELECT ST_Centroid(geometry)
+                     FROM silver.dim_territory
+                     WHERE level = 'district'
+                       AND ibge_geocode = (:ibge_geocode || '05')
+                     LIMIT 1),
+                    (SELECT
                         CASE
                             WHEN geometry IS NULL THEN NULL
-                            ELSE ST_PointOnSurface(geometry)
+                            ELSE ST_Centroid(geometry)
                         END
                     FROM silver.dim_territory
                     WHERE territory_id = CAST(:parent_territory_id AS uuid)
-                    LIMIT 1
+                    LIMIT 1)
                 ),
                 CAST(:metadata AS jsonb)
             )
@@ -732,7 +737,7 @@ def _upsert_electoral_zone(
             "metadata": json.dumps(
                 {
                     "official_status": "proxy",
-                    "proxy_method": "Zona agregada em ponto representativo da geometria municipal.",
+                    "proxy_method": "Zona projetada no centroide do distrito-sede (IBGE geocode+05), com fallback para centroide municipal.",
                     "source": SOURCE,
                     "dataset": DATASET_NAME,
                 }
@@ -764,7 +769,7 @@ def _upsert_electoral_section(
     section_name = f"Secao eleitoral {section_code} (zona {zone_code}) - {municipality_name}"
     metadata: dict[str, Any] = {
         "official_status": "proxy",
-        "proxy_method": "Secao agregada em ponto representativo da geometria da zona eleitoral.",
+        "proxy_method": "Secao projetada no centroide do distrito-sede (IBGE geocode+05), com fallback para centroide da zona.",
         "source": SOURCE,
         "dataset": DATASET_NAME,
     }
@@ -807,15 +812,20 @@ def _upsert_electoral_section(
                 :normalized_name,
                 :uf,
                 :municipality_ibge_code,
-                (
-                    SELECT
+                COALESCE(
+                    (SELECT ST_Centroid(geometry)
+                     FROM silver.dim_territory
+                     WHERE level = 'district'
+                       AND ibge_geocode = (:ibge_geocode || '05')
+                     LIMIT 1),
+                    (SELECT
                         CASE
                             WHEN geometry IS NULL THEN NULL
-                            ELSE ST_PointOnSurface(geometry)
+                            ELSE ST_Centroid(geometry)
                         END
                     FROM silver.dim_territory
                     WHERE territory_id = CAST(:parent_territory_id AS uuid)
-                    LIMIT 1
+                    LIMIT 1)
                 ),
                 CAST(:metadata AS jsonb)
             )

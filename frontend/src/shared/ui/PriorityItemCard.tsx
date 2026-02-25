@@ -19,8 +19,6 @@ function statusClass(status: string) {
 
 export function PriorityItemCard({ item }: PriorityItemCardProps) {
   const mapQuery = new URLSearchParams({
-    metric: item.indicator_code,
-    period: item.evidence.reference_period,
     territory_id: item.territory_id,
   });
 

@@ -1,0 +1,1579 @@
+{
+  "generated_at_utc": "2026-02-24T12:30:31.166088+00:00",
+  "config": {
+    "dry_run": false,
+    "force": false,
+    "include_partial": false,
+    "stale_after_hours": 168,
+    "skip_dbt": true,
+    "skip_quality": false,
+    "allow_blocked": false,
+    "timeout_seconds": 45,
+    "max_retries": 3
+  },
+  "selected_jobs": [
+    "urban_roads_fetch",
+    "urban_pois_fetch",
+    "urban_transport_fetch"
+  ],
+  "reprocess": {
+    "jobs": [
+      "urban_pois_fetch",
+      "urban_roads_fetch",
+      "urban_transport_fetch"
+    ],
+    "periods": []
+  },
+  "plan": [
+    {
+      "job": "urban_roads_fetch",
+      "reference_period": "2025",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": null,
+      "latest_started_at_utc": null
+    },
+    {
+      "job": "urban_pois_fetch",
+      "reference_period": "2025",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": null,
+      "latest_started_at_utc": null
+    },
+    {
+      "job": "urban_transport_fetch",
+      "reference_period": "2025",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": null,
+      "latest_started_at_utc": null
+    }
+  ],
+  "executions": [
+    {
+      "job": "urban_roads_fetch",
+      "phase": "incremental",
+      "reference_period": "2025",
+      "status": "success",
+      "rows_loaded": 6550,
+      "started_at_utc": "2026-02-24T12:30:31.423859+00:00",
+      "finished_at_utc": "2026-02-24T12:30:38.224962+00:00",
+      "error": null,
+      "result": {
+        "job": "urban_roads_fetch",
+        "status": "success",
+        "run_id": "35db42ad-6be7-4f22-830a-d24252ccf205",
+        "duration_seconds": 6.79,
+        "rows_extracted": 6550,
+        "rows_written": 6550,
+        "warnings": [],
+        "errors": [],
+        "bronze": {
+          "source": "OSM",
+          "dataset": "urban_roads_catalog",
+          "reference_period": "2025",
+          "extracted_at_utc": "2026-02-24T12:30:38Z",
+          "local_path": "data/bronze/osm/urban_roads_catalog/2025/extracted_at=2026-02-24T12-30-38Z/raw.json",
+          "manifest_path": "data/manifests/osm/urban_roads_catalog/2025/extracted_at=2026-02-24T12-30-38Z.yml",
+          "size_bytes": 8739370,
+          "checksum_sha256": "d03ac9aedae80f81be98a9770ce07d4af61641359e04fed7c3a298f5a07456b2",
+          "uri": "https://overpass-api.de/api/interpreter"
+        }
+      }
+    },
+    {
+      "job": "urban_pois_fetch",
+      "phase": "incremental",
+      "reference_period": "2025",
+      "status": "success",
+      "rows_loaded": 321,
+      "started_at_utc": "2026-02-24T12:30:38.224988+00:00",
+      "finished_at_utc": "2026-02-24T12:30:39.784151+00:00",
+      "error": null,
+      "result": {
+        "job": "urban_pois_fetch",
+        "status": "success",
+        "run_id": "44671c2b-8725-4bfe-9935-6df30850be80",
+        "duration_seconds": 1.56,
+        "rows_extracted": 321,
+        "rows_written": 321,
+        "warnings": [],
+        "errors": [],
+        "bronze": {
+          "source": "OSM",
+          "dataset": "urban_pois_catalog",
+          "reference_period": "2025",
+          "extracted_at_utc": "2026-02-24T12:30:39Z",
+          "local_path": "data/bronze/osm/urban_pois_catalog/2025/extracted_at=2026-02-24T12-30-39Z/raw.json",
+          "manifest_path": "data/manifests/osm/urban_pois_catalog/2025/extracted_at=2026-02-24T12-30-39Z.yml",
+          "size_bytes": 82356,
+          "checksum_sha256": "6424e9b1beb710412b6f4dad5449d5777b289f5bb6a924eb20714119610eef6b",
+          "uri": "https://overpass-api.de/api/interpreter"
+        }
+      }
+    },
+    {
+      "job": "urban_transport_fetch",
+      "phase": "incremental",
+      "reference_period": "2025",
+      "status": "success",
+      "rows_loaded": 22,
+      "started_at_utc": "2026-02-24T12:30:39.784169+00:00",
+      "finished_at_utc": "2026-02-24T12:31:05.923153+00:00",
+      "error": null,
+      "result": {
+        "job": "urban_transport_fetch",
+        "status": "success",
+        "run_id": "2043f6e8-cb49-466e-a16c-1b870a629cfd",
+        "duration_seconds": 26.14,
+        "rows_extracted": 22,
+        "rows_written": 22,
+        "warnings": [],
+        "errors": [],
+        "bronze": {
+          "source": "OSM",
+          "dataset": "urban_transport_catalog",
+          "reference_period": "2025",
+          "extracted_at_utc": "2026-02-24T12:31:05Z",
+          "local_path": "data/bronze/osm/urban_transport_catalog/2025/extracted_at=2026-02-24T12-31-05Z/raw.json",
+          "manifest_path": "data/manifests/osm/urban_transport_catalog/2025/extracted_at=2026-02-24T12-31-05Z.yml",
+          "size_bytes": 5188,
+          "checksum_sha256": "594de366943320958c5cc462262ac8d946564078b838d7ca698d4052c770d377",
+          "uri": "https://overpass-api.de/api/interpreter"
+        }
+      }
+    },
+    {
+      "job": "quality_suite",
+      "phase": "post_load",
+      "reference_period": "2025",
+      "status": "success",
+      "rows_loaded": 0,
+      "started_at_utc": "2026-02-24T12:31:05.923200+00:00",
+      "finished_at_utc": "2026-02-24T12:31:11.415952+00:00",
+      "error": null,
+      "result": {
+        "job": "quality_suite",
+        "run_id": "fa9307e3-5bbd-4152-975c-0b906a09c0c0",
+        "status": "success",
+        "results": [
+          {
+            "name": "municipality_exists",
+            "status": "pass",
+            "details": "Expected municipality 3121605 to exist.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "districts_count",
+            "status": "pass",
+            "details": "Expected at least one district for municipality scope.",
+            "observed_value": 11,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "geometry_missing_ratio",
+            "status": "pass",
+            "details": "Geometry should be populated for municipality/district/census_sector levels.",
+            "observed_value": 0.0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "geometry_empty_rows",
+            "status": "pass",
+            "details": "Geometry must not be empty.",
+            "observed_value": 0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "geometry_invalid_rows",
+            "status": "pass",
+            "details": "Geometry must be valid when present.",
+            "observed_value": 0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "electoral_zone_count",
+            "status": "pass",
+            "details": "Expected electoral zones for municipality scope.",
+            "observed_value": 1,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "electoral_zone_orphans",
+            "status": "pass",
+            "details": "Electoral zones must have municipality parent_territory_id.",
+            "observed_value": 0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "electoral_zone_missing_canonical_key",
+            "status": "pass",
+            "details": "Electoral zones must have canonical_key.",
+            "observed_value": 0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "map_layer_rows_municipality",
+            "status": "pass",
+            "details": "Expected minimum territorial rows for municipal layer.",
+            "observed_value": 1,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "map_layer_geometry_ratio_municipality",
+            "status": "pass",
+            "details": "Expected minimum geometry coverage ratio for municipal layer.",
+            "observed_value": 1.0,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "map_layer_rows_district",
+            "status": "pass",
+            "details": "Expected minimum territorial rows for distrital layer.",
+            "observed_value": 11,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "map_layer_geometry_ratio_district",
+            "status": "pass",
+            "details": "Expected minimum geometry coverage ratio for distrital layer.",
+            "observed_value": 1.0,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "map_layer_rows_census_sector",
+            "status": "pass",
+            "details": "Expected minimum territorial rows for setorial layer.",
+            "observed_value": 109,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "map_layer_geometry_ratio_census_sector",
+            "status": "pass",
+            "details": "Expected minimum geometry coverage ratio for setorial layer.",
+            "observed_value": 1.0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "map_layer_rows_electoral_zone",
+            "status": "pass",
+            "details": "Expected minimum territorial rows for zona eleitoral layer.",
+            "observed_value": 1,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "map_layer_geometry_ratio_electoral_zone",
+            "status": "pass",
+            "details": "Expected minimum geometry coverage ratio for zona eleitoral layer.",
+            "observed_value": 1.0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "map_layer_rows_electoral_section",
+            "status": "pass",
+            "details": "Expected minimum territorial rows for secao eleitoral layer.",
+            "observed_value": 144,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "map_layer_geometry_ratio_electoral_section",
+            "status": "pass",
+            "details": "Expected minimum geometry coverage ratio for secao eleitoral layer.",
+            "observed_value": 1.0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "voters_non_negative",
+            "status": "pass",
+            "details": "voters must be >= 0.",
+            "observed_value": 0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "reference_year_missing_ratio",
+            "status": "pass",
+            "details": "reference_year must be populated.",
+            "observed_value": 0.0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "rows_after_municipality_filter",
+            "status": "pass",
+            "details": "Rows after municipality filter should be greater than configured minimum.",
+            "observed_value": 72648,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "electorate_distinct_years",
+            "status": "pass",
+            "details": "Electorate should keep historical coverage with at least 2 distinct year(s).",
+            "observed_value": 5,
+            "threshold_value": 2
+          },
+          {
+            "name": "electorate_electoral_zone_rows",
+            "status": "pass",
+            "details": "Electorate zone-level coverage should satisfy minimum expected rows.",
+            "observed_value": 1781,
+            "threshold_value": 1
+          },
+          {
+            "name": "electorate_max_year_gap",
+            "status": "pass",
+            "details": "Electorate temporal series should avoid large year gaps.",
+            "observed_value": 2,
+            "threshold_value": 2
+          },
+          {
+            "name": "result_non_negative",
+            "status": "pass",
+            "details": "result value must be >= 0.",
+            "observed_value": 0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "election_year_missing_ratio",
+            "status": "pass",
+            "details": "election_year must be populated.",
+            "observed_value": 0.0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "territory_id_missing_ratio",
+            "status": "pass",
+            "details": "territory_id must be resolved.",
+            "observed_value": 0.0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "election_result_distinct_years",
+            "status": "pass",
+            "details": "Election results should keep historical coverage with at least 2 distinct year(s).",
+            "observed_value": 5,
+            "threshold_value": 2
+          },
+          {
+            "name": "election_result_electoral_zone_rows",
+            "status": "pass",
+            "details": "Election results zone-level coverage should satisfy minimum expected rows.",
+            "observed_value": 90,
+            "threshold_value": 1
+          },
+          {
+            "name": "election_result_max_year_gap",
+            "status": "pass",
+            "details": "Election result temporal series should avoid large year gaps.",
+            "observed_value": 2,
+            "threshold_value": 2
+          },
+          {
+            "name": "indicator_code_missing_ratio",
+            "status": "pass",
+            "details": "indicator_code must be populated.",
+            "observed_value": 0.0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "reference_period_missing_ratio",
+            "status": "pass",
+            "details": "reference_period must be populated.",
+            "observed_value": 0.0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "value_missing_ratio",
+            "status": "pass",
+            "details": "value must be populated.",
+            "observed_value": 0.0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "territory_id_missing_ratio",
+            "status": "pass",
+            "details": "territory_id must be resolved.",
+            "observed_value": 0.0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "source_probe_rows",
+            "status": "pass",
+            "details": "Legacy SOURCE_PROBE indicators should be zero after real connectors are stabilized.",
+            "observed_value": 0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "indicator_distinct_periods",
+            "status": "pass",
+            "details": "Indicators should keep historical coverage with at least 3 distinct period(s).",
+            "observed_value": 4,
+            "threshold_value": 3
+          },
+          {
+            "name": "indicator_rows_level_municipality",
+            "status": "pass",
+            "details": "Indicator coverage for level 'municipality' should satisfy minimum rows.",
+            "observed_value": 628,
+            "threshold_value": 1
+          },
+          {
+            "name": "indicator_rows_level_district",
+            "status": "warn",
+            "details": "Indicator coverage for level 'district' should satisfy minimum rows.",
+            "observed_value": 0,
+            "threshold_value": 1
+          },
+          {
+            "name": "indicator_rows_level_census_sector",
+            "status": "warn",
+            "details": "Indicator coverage for level 'census_sector' should satisfy minimum rows.",
+            "observed_value": 0,
+            "threshold_value": 1
+          },
+          {
+            "name": "source_rows_datasus",
+            "status": "pass",
+            "details": "Expected at least 1.0 row(s) for source DATASUS in reference period 2025.",
+            "observed_value": 4,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "source_rows_inep",
+            "status": "warn",
+            "details": "Expected at least 1.0 row(s) for source INEP in reference period 2025.",
+            "observed_value": 0,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "source_rows_siconfi",
+            "status": "warn",
+            "details": "Expected at least 1.0 row(s) for source SICONFI in reference period 2025.",
+            "observed_value": 0,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "source_rows_mte",
+            "status": "pass",
+            "details": "Expected at least 1.0 row(s) for source MTE in reference period 2025.",
+            "observed_value": 4,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "source_rows_tse",
+            "status": "warn",
+            "details": "Expected at least 1.0 row(s) for source TSE in reference period 2025.",
+            "observed_value": 0,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "source_rows_sidra",
+            "status": "pass",
+            "details": "Expected at least 1.0 row(s) for source SIDRA in reference period 2025.",
+            "observed_value": 1,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "source_rows_senatran",
+            "status": "pass",
+            "details": "Expected at least 1.0 row(s) for source SENATRAN in reference period 2025.",
+            "observed_value": 4,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "source_rows_sejusp_mg",
+            "status": "pass",
+            "details": "Expected at least 1.0 row(s) for source SEJUSP_MG in reference period 2025.",
+            "observed_value": 4,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "source_rows_siops",
+            "status": "pass",
+            "details": "Expected at least 1.0 row(s) for source SIOPS in reference period 2025.",
+            "observed_value": 3,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "source_rows_snis",
+            "status": "pass",
+            "details": "Expected at least 1.0 row(s) for source SNIS in reference period 2025.",
+            "observed_value": 4,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "source_rows_inmet",
+            "status": "pass",
+            "details": "Expected at least 1.0 row(s) for source INMET in reference period 2025.",
+            "observed_value": 3,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "source_rows_inpe_queimadas",
+            "status": "pass",
+            "details": "Expected at least 1.0 row(s) for source INPE_QUEIMADAS in reference period 2025.",
+            "observed_value": 1,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "source_rows_ana",
+            "status": "pass",
+            "details": "Expected at least 1.0 row(s) for source ANA in reference period 2025.",
+            "observed_value": 1,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "source_rows_anatel",
+            "status": "pass",
+            "details": "Expected at least 1.0 row(s) for source ANATEL in reference period 2025.",
+            "observed_value": 3,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "source_rows_aneel",
+            "status": "pass",
+            "details": "Expected at least 1.0 row(s) for source ANEEL in reference period 2025.",
+            "observed_value": 1,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "source_rows_suasweb",
+            "status": "pass",
+            "details": "Expected at least 0 row(s) for source SUASWEB in reference period 2025.",
+            "observed_value": 5,
+            "threshold_value": 0
+          },
+          {
+            "name": "source_rows_cneas",
+            "status": "pass",
+            "details": "Expected at least 0 row(s) for source CNEAS in reference period 2025.",
+            "observed_value": 4,
+            "threshold_value": 0
+          },
+          {
+            "name": "source_rows_portal_transparencia",
+            "status": "pass",
+            "details": "Expected at least 1.0 row(s) for source PORTAL_TRANSPARENCIA in reference period 2025.",
+            "observed_value": 19,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "source_rows_cecad",
+            "status": "pass",
+            "details": "Expected at least 0.0 row(s) for source CECAD in reference period 2025.",
+            "observed_value": 0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "source_rows_censo_suas",
+            "status": "pass",
+            "details": "Expected at least 0.0 row(s) for source CENSO_SUAS in reference period 2025.",
+            "observed_value": 0,
+            "threshold_value": 0.0
+          },
+          {
+            "name": "source_periods_datasus",
+            "status": "warn",
+            "details": "Expected at least 2 distinct period(s) for source DATASUS.",
+            "observed_value": 1,
+            "threshold_value": 2
+          },
+          {
+            "name": "source_periods_inep",
+            "status": "warn",
+            "details": "Expected at least 2 distinct period(s) for source INEP.",
+            "observed_value": 1,
+            "threshold_value": 2
+          },
+          {
+            "name": "source_periods_siconfi",
+            "status": "warn",
+            "details": "Expected at least 2 distinct period(s) for source SICONFI.",
+            "observed_value": 1,
+            "threshold_value": 2
+          },
+          {
+            "name": "source_periods_mte",
+            "status": "warn",
+            "details": "Expected at least 2 distinct period(s) for source MTE.",
+            "observed_value": 1,
+            "threshold_value": 2
+          },
+          {
+            "name": "source_periods_tse",
+            "status": "warn",
+            "details": "Expected at least 2 distinct period(s) for source TSE.",
+            "observed_value": 0,
+            "threshold_value": 2
+          },
+          {
+            "name": "source_periods_sidra",
+            "status": "pass",
+            "details": "Expected at least 2 distinct period(s) for source SIDRA.",
+            "observed_value": 2,
+            "threshold_value": 2
+          },
+          {
+            "name": "source_periods_senatran",
+            "status": "warn",
+            "details": "Expected at least 2 distinct period(s) for source SENATRAN.",
+            "observed_value": 1,
+            "threshold_value": 2
+          },
+          {
+            "name": "source_periods_sejusp_mg",
+            "status": "warn",
+            "details": "Expected at least 2 distinct period(s) for source SEJUSP_MG.",
+            "observed_value": 1,
+            "threshold_value": 2
+          },
+          {
+            "name": "source_periods_siops",
+            "status": "warn",
+            "details": "Expected at least 2 distinct period(s) for source SIOPS.",
+            "observed_value": 1,
+            "threshold_value": 2
+          },
+          {
+            "name": "source_periods_snis",
+            "status": "warn",
+            "details": "Expected at least 2 distinct period(s) for source SNIS.",
+            "observed_value": 1,
+            "threshold_value": 2
+          },
+          {
+            "name": "source_periods_inmet",
+            "status": "warn",
+            "details": "Expected at least 5 distinct period(s) for source INMET.",
+            "observed_value": 1,
+            "threshold_value": 5
+          },
+          {
+            "name": "source_periods_inpe_queimadas",
+            "status": "warn",
+            "details": "Expected at least 5 distinct period(s) for source INPE_QUEIMADAS.",
+            "observed_value": 1,
+            "threshold_value": 5
+          },
+          {
+            "name": "source_periods_ana",
+            "status": "warn",
+            "details": "Expected at least 5 distinct period(s) for source ANA.",
+            "observed_value": 1,
+            "threshold_value": 5
+          },
+          {
+            "name": "source_periods_anatel",
+            "status": "warn",
+            "details": "Expected at least 2 distinct period(s) for source ANATEL.",
+            "observed_value": 1,
+            "threshold_value": 2
+          },
+          {
+            "name": "source_periods_aneel",
+            "status": "warn",
+            "details": "Expected at least 2 distinct period(s) for source ANEEL.",
+            "observed_value": 1,
+            "threshold_value": 2
+          },
+          {
+            "name": "source_periods_suasweb",
+            "status": "warn",
+            "details": "Expected at least 2 distinct period(s) for source SUASWEB.",
+            "observed_value": 1,
+            "threshold_value": 2
+          },
+          {
+            "name": "source_periods_cneas",
+            "status": "warn",
+            "details": "Expected at least 2 distinct period(s) for source CNEAS.",
+            "observed_value": 1,
+            "threshold_value": 2
+          },
+          {
+            "name": "source_periods_portal_transparencia",
+            "status": "warn",
+            "details": "Expected at least 2 distinct period(s) for source PORTAL_TRANSPARENCIA.",
+            "observed_value": 1,
+            "threshold_value": 2
+          },
+          {
+            "name": "source_periods_cecad",
+            "status": "pass",
+            "details": "Expected at least 0 distinct period(s) for source CECAD.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "source_periods_censo_suas",
+            "status": "pass",
+            "details": "Expected at least 0 distinct period(s) for source CENSO_SUAS.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "social_protection_rows_after_filter",
+            "status": "pass",
+            "details": "Social protection fact should contain at least one municipality row.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "social_protection_negative_rows",
+            "status": "pass",
+            "details": "Social protection metrics should not have negative values.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "social_protection_empty_metric_rows",
+            "status": "pass",
+            "details": "Rows in social protection fact should have at least one populated metric.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "social_assistance_network_rows_after_filter",
+            "status": "pass",
+            "details": "Social assistance network fact should contain at least one municipality row.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "social_assistance_network_negative_rows",
+            "status": "pass",
+            "details": "Social assistance network metrics should not have negative values.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "social_assistance_network_empty_metric_rows",
+            "status": "pass",
+            "details": "Rows in social assistance network fact should have at least one populated metric.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "urban_roads_rows_after_filter",
+            "status": "pass",
+            "details": "Urban roads layer should have rows loaded in map.urban_road_segment.",
+            "observed_value": 6550,
+            "threshold_value": 1
+          },
+          {
+            "name": "urban_roads_invalid_geometry_rows",
+            "status": "pass",
+            "details": "Urban roads geometries must be valid.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "urban_pois_rows_after_filter",
+            "status": "pass",
+            "details": "Urban POIs layer should have rows loaded in map.urban_poi.",
+            "observed_value": 321,
+            "threshold_value": 1
+          },
+          {
+            "name": "urban_pois_invalid_geometry_rows",
+            "status": "pass",
+            "details": "Urban POIs geometries must be valid.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "urban_transport_stops_rows_after_filter",
+            "status": "pass",
+            "details": "Urban transport layer should have rows loaded in map.urban_transport_stop.",
+            "observed_value": 22,
+            "threshold_value": 0
+          },
+          {
+            "name": "urban_transport_stops_invalid_geometry_rows",
+            "status": "pass",
+            "details": "Urban transport geometries must be valid.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "environment_risk_rows_district",
+            "status": "pass",
+            "details": "Environment risk aggregation should cover district level.",
+            "observed_value": 11,
+            "threshold_value": 1
+          },
+          {
+            "name": "environment_risk_rows_census_sector",
+            "status": "pass",
+            "details": "Environment risk aggregation should cover census sector level.",
+            "observed_value": 109,
+            "threshold_value": 1
+          },
+          {
+            "name": "environment_risk_distinct_periods",
+            "status": "pass",
+            "details": "Environment risk aggregation should preserve temporal coverage.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "environment_risk_null_score_rows",
+            "status": "pass",
+            "details": "Environment risk score must be populated.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "environment_risk_null_hazard_rows",
+            "status": "pass",
+            "details": "Environment hazard score must be populated.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "environment_risk_null_exposure_rows",
+            "status": "pass",
+            "details": "Environment exposure score must be populated.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "environment_risk_mart_rows_municipality",
+            "status": "pass",
+            "details": "Environment risk mart should cover municipality level.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "environment_risk_mart_rows_district",
+            "status": "pass",
+            "details": "Environment risk mart should cover district level.",
+            "observed_value": 11,
+            "threshold_value": 1
+          },
+          {
+            "name": "environment_risk_mart_rows_census_sector",
+            "status": "pass",
+            "details": "Environment risk mart should cover census sector level.",
+            "observed_value": 109,
+            "threshold_value": 1
+          },
+          {
+            "name": "environment_risk_mart_distinct_periods",
+            "status": "pass",
+            "details": "Environment risk mart should preserve temporal coverage.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "environment_risk_mart_null_score_rows",
+            "status": "pass",
+            "details": "Environment risk mart score must be populated.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_contracts_active_coverage_pct",
+            "status": "pass",
+            "details": "Active schema contracts should cover all implemented/partial non-internal connectors.",
+            "observed_value": 100.0,
+            "threshold_value": 100.0
+          },
+          {
+            "name": "schema_contracts_missing_connectors",
+            "status": "pass",
+            "details": "Missing active schema contracts for connectors should be zero.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_ana_hydrology_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_indicator' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_ana_hydrology_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_ana_hydrology_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_anatel_connectivity_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_indicator' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_anatel_connectivity_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_anatel_connectivity_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_aneel_energy_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_indicator' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_aneel_energy_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_aneel_energy_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_cecad_social_protection_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_social_protection' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_cecad_social_protection_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_cecad_social_protection_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_censo_suas_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_social_assistance_network' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_censo_suas_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_censo_suas_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_cneas_social_assistance_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_indicator' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_cneas_social_assistance_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_cneas_social_assistance_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_education_inep_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_indicator' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_education_inep_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_education_inep_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_finance_siconfi_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_indicator' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_finance_siconfi_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_finance_siconfi_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_health_datasus_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_indicator' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_health_datasus_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_health_datasus_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_ibge_admin_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.dim_territory' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_ibge_admin_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_ibge_admin_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_ibge_geometries_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.dim_territory' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_ibge_geometries_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_ibge_geometries_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_ibge_indicators_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_indicator' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_ibge_indicators_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_ibge_indicators_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_inmet_climate_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_indicator' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_inmet_climate_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_inmet_climate_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_inpe_queimadas_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_indicator' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_inpe_queimadas_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_inpe_queimadas_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_labor_mte_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_indicator' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_labor_mte_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_labor_mte_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_sejusp_public_safety_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_indicator' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_sejusp_public_safety_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_sejusp_public_safety_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_senatran_fleet_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_indicator' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_senatran_fleet_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_senatran_fleet_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_sidra_indicators_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_indicator' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_sidra_indicators_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_sidra_indicators_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_siops_health_finance_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_indicator' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_siops_health_finance_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_siops_health_finance_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_snis_sanitation_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_indicator' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_snis_sanitation_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_snis_sanitation_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_suasweb_social_assistance_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_indicator' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_suasweb_social_assistance_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_suasweb_social_assistance_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_tse_electorate_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_electorate' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_tse_electorate_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_tse_electorate_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_tse_results_fetch",
+            "status": "pass",
+            "details": "Target table 'silver.fact_election_result' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_tse_results_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_tse_results_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_urban_pois_fetch",
+            "status": "pass",
+            "details": "Target table 'map.urban_poi' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_urban_pois_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_urban_pois_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_urban_roads_fetch",
+            "status": "pass",
+            "details": "Target table 'map.urban_road_segment' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_urban_roads_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_urban_roads_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_table_exists_urban_transport_fetch",
+            "status": "pass",
+            "details": "Target table 'map.urban_transport_stop' exists.",
+            "observed_value": 1,
+            "threshold_value": 1
+          },
+          {
+            "name": "schema_drift_missing_required_columns_urban_transport_fetch",
+            "status": "pass",
+            "details": "All required columns are present.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_type_mismatch_columns_urban_transport_fetch",
+            "status": "pass",
+            "details": "Column types are compatible with contract.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "schema_drift_connectors_with_issues",
+            "status": "pass",
+            "details": "Connectors with schema drift should stay within configured threshold.",
+            "observed_value": 0,
+            "threshold_value": 0
+          },
+          {
+            "name": "mvp3_pipeline_run_education_inep_fetch",
+            "status": "warn",
+            "details": "Expected at least 1.0 successful run(s) for education_inep_fetch in reference period 2025.",
+            "observed_value": 0,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "mvp3_pipeline_run_health_datasus_fetch",
+            "status": "pass",
+            "details": "Expected at least 1.0 successful run(s) for health_datasus_fetch in reference period 2025.",
+            "observed_value": 1,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "mvp3_pipeline_run_finance_siconfi_fetch",
+            "status": "pass",
+            "details": "Expected at least 1.0 successful run(s) for finance_siconfi_fetch in reference period 2025.",
+            "observed_value": 1,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "mvp3_pipeline_run_labor_mte_fetch",
+            "status": "pass",
+            "details": "Expected at least 1.0 successful run(s) for labor_mte_fetch in reference period 2025.",
+            "observed_value": 2,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "mvp4_pipeline_run_sidra_indicators_fetch",
+            "status": "pass",
+            "details": "Expected at least 1.0 successful run(s) for sidra_indicators_fetch in reference period 2025.",
+            "observed_value": 4,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "mvp4_pipeline_run_senatran_fleet_fetch",
+            "status": "pass",
+            "details": "Expected at least 1.0 successful run(s) for senatran_fleet_fetch in reference period 2025.",
+            "observed_value": 2,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "mvp4_pipeline_run_sejusp_public_safety_fetch",
+            "status": "pass",
+            "details": "Expected at least 1.0 successful run(s) for sejusp_public_safety_fetch in reference period 2025.",
+            "observed_value": 2,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "mvp4_pipeline_run_siops_health_finance_fetch",
+            "status": "pass",
+            "details": "Expected at least 1.0 successful run(s) for siops_health_finance_fetch in reference period 2025.",
+            "observed_value": 2,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "mvp4_pipeline_run_snis_sanitation_fetch",
+            "status": "pass",
+            "details": "Expected at least 1.0 successful run(s) for snis_sanitation_fetch in reference period 2025.",
+            "observed_value": 1,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "mvp5_pipeline_run_inmet_climate_fetch",
+            "status": "pass",
+            "details": "Expected at least 1.0 successful run(s) for inmet_climate_fetch in reference period 2025.",
+            "observed_value": 2,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "mvp5_pipeline_run_inpe_queimadas_fetch",
+            "status": "pass",
+            "details": "Expected at least 1.0 successful run(s) for inpe_queimadas_fetch in reference period 2025.",
+            "observed_value": 2,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "mvp5_pipeline_run_ana_hydrology_fetch",
+            "status": "pass",
+            "details": "Expected at least 1.0 successful run(s) for ana_hydrology_fetch in reference period 2025.",
+            "observed_value": 2,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "mvp5_pipeline_run_anatel_connectivity_fetch",
+            "status": "pass",
+            "details": "Expected at least 1.0 successful run(s) for anatel_connectivity_fetch in reference period 2025.",
+            "observed_value": 2,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "mvp5_pipeline_run_aneel_energy_fetch",
+            "status": "pass",
+            "details": "Expected at least 1.0 successful run(s) for aneel_energy_fetch in reference period 2025.",
+            "observed_value": 2,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "mvp7_pipeline_run_urban_roads_fetch",
+            "status": "pass",
+            "details": "Expected at least 1.0 successful run(s) for urban_roads_fetch in reference period 2025.",
+            "observed_value": 1,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "mvp7_pipeline_run_urban_pois_fetch",
+            "status": "pass",
+            "details": "Expected at least 1.0 successful run(s) for urban_pois_fetch in reference period 2025.",
+            "observed_value": 1,
+            "threshold_value": 1.0
+          },
+          {
+            "name": "mvp7_pipeline_run_urban_transport_fetch",
+            "status": "pass",
+            "details": "Expected at least 1.0 successful run(s) for urban_transport_fetch in reference period 2025.",
+            "observed_value": 1,
+            "threshold_value": 1.0
+          }
+        ],
+        "warnings": [],
+        "errors": []
+      }
+    }
+  ],
+  "summary": {
+    "planned_pairs": 3,
+    "executed_pairs": 3,
+    "skipped_pairs": 0,
+    "post_load_runs": 1,
+    "execution_status": {
+      "success": 4
+    }
+  }
+}

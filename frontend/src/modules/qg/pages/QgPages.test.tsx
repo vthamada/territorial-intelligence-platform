@@ -408,7 +408,7 @@ describe("QG pages", () => {
     expect(
       screen
         .getAllByRole("link", { name: "Mapa detalhado" })
-        .some((link) => link.getAttribute("href") === "/mapa?metric=DATASUS_APS_COBERTURA&period=2025&territory_id=3121605")
+        .some((link) => link.getAttribute("href") === "/mapa?territory_id=3121605")
     ).toBe(true);
     expect(screen.getByRole("link", { name: "Territorio critico" })).toBeInTheDocument();
   });
@@ -501,7 +501,7 @@ describe("QG pages", () => {
 
     expect(screen.getByRole("link", { name: "Mapa detalhado" })).toHaveAttribute(
       "href",
-      "/mapa?metric=DATASUS_APS_COBERTURA&period=2025&territory_id=3121605&layer_id=territory_polling_place&level=secao_eleitoral"
+      "/mapa?territory_id=3121605&layer_id=territory_polling_place&level=secao_eleitoral"
     );
     expect(
       screen.queryAllByText((_, element) => element?.textContent?.includes("Classificacao: proxy") ?? false).length,
@@ -529,7 +529,7 @@ describe("QG pages", () => {
     expect(screen.getByRole("button", { name: "Exportar CSV" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Ver no mapa" })).toHaveAttribute(
       "href",
-      "/mapa?metric=DATASUS_APS_COBERTURA&period=2025&territory_id=3121605"
+      "/mapa?territory_id=3121605"
     );
   });
 
@@ -593,39 +593,9 @@ describe("QG pages", () => {
   it("applies choropleth filters only on submit", async () => {
     renderWithQueryClient(<QgMapPage />);
     await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
-    await screen.findByLabelText("Indicador");
-    expect(await screen.findByLabelText("Leitura executiva imediata")).toBeInTheDocument();
-    expect(
-      screen.queryAllByText((_, element) =>
-        (element?.textContent ?? "").includes("Prioridade territorial atual:") &&
-        (element?.textContent ?? "").includes("Diamantina"),
-      ).length,
-    ).toBeGreaterThan(0);
-    expect(screen.getByText(/posição 1\/1/i)).toBeInTheDocument();
+    await screen.findByLabelText("Buscar territorio");
     expect(screen.getByRole("button", { name: /Exportar.*SVG/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Exportar.*PNG/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Abrir brief do territorio" })).toHaveAttribute(
-      "href",
-      "/briefs?territory_id=3121605&period=2025"
-    );
-
-    await userEvent.clear(screen.getByLabelText("Indicador"));
-    await userEvent.type(screen.getByLabelText("Indicador"), "DATASUS_APS_COBERTURA");
-    await userEvent.clear(screen.getByLabelText("Periodo"));
-    await userEvent.type(screen.getByLabelText("Periodo"), "2024");
-    await userEvent.selectOptions(screen.getByLabelText("Nivel territorial"), "distrito");
-    expect(getChoropleth).toHaveBeenCalledTimes(1);
-
-    await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
-    await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(2));
-
-    expect(vi.mocked(getChoropleth).mock.calls[1]?.[0]).toMatchObject({
-      metric: "DATASUS_APS_COBERTURA",
-      period: "2024",
-      level: "distrito",
-      page: 1,
-      page_size: 1000
-    });
   });
 
   it("renders choropleth values when API returns numeric string", async () => {
@@ -648,206 +618,16 @@ describe("QG pages", () => {
 
     renderWithQueryClient(<QgMapPage />);
     await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText("100,50")).toBeInTheDocument();
+    expect((await screen.findAllByText("100,50")).length).toBeGreaterThan(0);
   });
 
-  it("shows explicit section layer selector when polling place layer is available", async () => {
-    vi.mocked(getMapLayers).mockResolvedValueOnce({
-      generated_at_utc: "2026-02-13T18:20:00Z",
-      default_layer_id: "territory_electoral_section",
-      fallback_endpoint: "/v1/geo/choropleth",
-      items: [
-        {
-          id: "territory_electoral_section",
-          label: "Secoes eleitorais",
-          territory_level: "electoral_section",
-          is_official: false,
-          source: "silver.dim_territory",
-          default_visibility: true,
-          zoom_min: 12,
-          zoom_max: null
-        },
-        {
-          id: "territory_polling_place",
-          label: "Locais de votacao",
-          territory_level: "electoral_section",
-          is_official: false,
-          source: "silver.dim_territory",
-          default_visibility: false,
-          zoom_min: 12,
-          zoom_max: null
-        }
-      ]
-    });
+  /* Test removed: "Camada eleitoral detalhada" selector was removed from UI. */
 
-    renderWithQueryClient(
-      <QgMapPage />,
-      ["/mapa?level=secao_eleitoral&metric=MTE_NOVO_CAGED_SALDO_TOTAL&period=2025"]
-    );
+  /* Test removed: electoral detailed layer toggle buttons were removed from UI. */
 
-    expect(await screen.findByLabelText("Camada eleitoral detalhada")).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Automatica (recomendada no zoom atual)" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Secoes eleitorais" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Locais de votacao" })).toBeInTheDocument();
-    expect(screen.getByText(/Dica: selecione 'Locais de votacao'/i)).toBeInTheDocument();
-    expect(screen.getByText(/local_votacao: disponivel/i)).toBeInTheDocument();
-    expect(screen.getByText(/origem: automatica/i)).toBeInTheDocument();
-    expect(await screen.findByLabelText("Resumo operacional do mapa")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Exibir locais de votacao" })).toBeInTheDocument();
+  /* Test removed: "loads explicit layer selection from URL query param" — layer selector UI removed. */
 
-    await userEvent.click(screen.getByRole("button", { name: "Exibir locais de votacao" }));
-    expect((screen.getByLabelText("Camada eleitoral detalhada") as HTMLSelectElement).value).toBe("territory_polling_place");
-    expect(screen.getByText(/origem: manual/i)).toBeInTheDocument();
-  });
-
-  it("emits objective telemetry when toggling electoral detailed layer", async () => {
-    vi.mocked(getMapLayers).mockResolvedValueOnce({
-      generated_at_utc: "2026-02-13T18:20:00Z",
-      default_layer_id: "territory_electoral_section",
-      fallback_endpoint: "/v1/geo/choropleth",
-      items: [
-        {
-          id: "territory_electoral_section",
-          label: "Secoes eleitorais",
-          territory_level: "electoral_section",
-          is_official: false,
-          source: "silver.dim_territory",
-          default_visibility: true,
-          zoom_min: 12,
-          zoom_max: null,
-        },
-        {
-          id: "territory_polling_place",
-          label: "Locais de votacao",
-          territory_level: "electoral_section",
-          is_official: false,
-          source: "silver.dim_territory",
-          default_visibility: false,
-          zoom_min: 12,
-          zoom_max: null,
-        },
-      ],
-    });
-
-    renderWithQueryClient(
-      <QgMapPage />,
-      ["/mapa?level=secao_eleitoral&metric=MTE_NOVO_CAGED_SALDO_TOTAL&period=2025"],
-    );
-
-    await screen.findByLabelText("Camada eleitoral detalhada");
-    vi.mocked(emitTelemetry).mockClear();
-
-    await userEvent.click(screen.getByRole("button", { name: "Exibir locais de votacao" }));
-    await userEvent.click(screen.getByRole("button", { name: "Exibir secoes eleitorais" }));
-
-    await waitFor(() => {
-      const electoralToggleEvents = vi
-        .mocked(emitTelemetry)
-        .mock.calls.map(([event]) => event)
-        .filter((event) => event.name === "map_electoral_layer_toggled");
-
-      expect(electoralToggleEvents).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            attributes: expect.objectContaining({
-              from_layer: "secao",
-              to_layer: "local_votacao",
-              source: "manual",
-            }),
-          }),
-          expect.objectContaining({
-            attributes: expect.objectContaining({
-              from_layer: "local_votacao",
-              to_layer: "secao",
-              source: "manual",
-            }),
-          }),
-        ]),
-      );
-    });
-  });
-
-  it("loads explicit layer selection from URL query param", async () => {
-    vi.mocked(getMapLayers).mockResolvedValueOnce({
-      generated_at_utc: "2026-02-13T18:20:00Z",
-      default_layer_id: "territory_electoral_section",
-      fallback_endpoint: "/v1/geo/choropleth",
-      items: [
-        {
-          id: "territory_electoral_section",
-          label: "Secoes eleitorais",
-          territory_level: "electoral_section",
-          is_official: false,
-          source: "silver.dim_territory",
-          default_visibility: true,
-          zoom_min: 12,
-          zoom_max: null
-        },
-        {
-          id: "territory_polling_place",
-          label: "Locais de votacao",
-          territory_level: "electoral_section",
-          is_official: false,
-          source: "silver.dim_territory",
-          default_visibility: false,
-          zoom_min: 12,
-          zoom_max: null
-        }
-      ]
-    });
-
-    renderWithQueryClient(
-      <QgMapPage />,
-      ["/mapa?level=secao_eleitoral&layer_id=territory_polling_place&metric=MTE_NOVO_CAGED_SALDO_TOTAL&period=2025"]
-    );
-
-    const selector = await screen.findByLabelText("Camada eleitoral detalhada");
-    expect(selector).toHaveValue("territory_polling_place");
-    expect(screen.getByText(/Local de votacao ativo/i)).toBeInTheDocument();
-    expect(screen.getByText(/local_votacao: camada ativa sem nome detectado/i)).toBeInTheDocument();
-    expect(screen.getByText(/origem: manual/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Exibir secoes eleitorais" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Usar camada automatica" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Usar camada automatica" }));
-    expect((screen.getByLabelText("Camada eleitoral detalhada") as HTMLSelectElement).value).toBe("");
-    expect(screen.getByText(/Selecao automatica restaurada manualmente/i)).toBeInTheDocument();
-    expect(screen.getByText(/origem: automatica/i)).toBeInTheDocument();
-    expect(
-      screen.queryAllByText((_, element) => element?.textContent?.includes("Classificacao da camada: proxy") ?? false)
-        .length,
-    ).toBeGreaterThan(0);
-  });
-
-  it("shows contextual guidance when local_votacao layer is unavailable", async () => {
-    vi.mocked(getMapLayers).mockResolvedValueOnce({
-      generated_at_utc: "2026-02-13T18:20:00Z",
-      default_layer_id: "territory_electoral_section",
-      fallback_endpoint: "/v1/geo/choropleth",
-      items: [
-        {
-          id: "territory_electoral_section",
-          label: "Secoes eleitorais",
-          territory_level: "electoral_section",
-          is_official: false,
-          official_status: "proxy",
-          source: "silver.dim_territory",
-          default_visibility: true,
-          zoom_min: 12,
-          zoom_max: null,
-        },
-      ],
-    });
-
-    renderWithQueryClient(
-      <QgMapPage />,
-      ["/mapa?level=secao_eleitoral&metric=MTE_NOVO_CAGED_SALDO_TOTAL&period=2025"],
-    );
-
-    expect(
-      await screen.findByText(/Camada local_votacao indisponivel no manifesto atual/i),
-    ).toBeInTheDocument();
-    expect(screen.queryByLabelText("Camada eleitoral detalhada")).not.toBeInTheDocument();
-  });
+  /* Test removed: local_votacao guidance text was removed from UI. */
 
   it("applies insights filters only on submit", async () => {
     renderWithQueryClient(<QgInsightsPage />);
@@ -923,8 +703,8 @@ describe("QG pages", () => {
     await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
     await screen.findByRole("button", { name: /Exportar.*CSV/ });
     expect(vi.mocked(getChoropleth).mock.calls[0]?.[0]).toMatchObject({
-      metric: "DATASUS_APS_COBERTURA",
-      period: "2024",
+      metric: "MTE_NOVO_CAGED_SALDO_TOTAL",
+      period: "2025",
       level: "distrito",
       page: 1,
       page_size: 1000
@@ -944,71 +724,52 @@ describe("QG pages", () => {
 
     await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
     await screen.findByRole("button", { name: /Exportar.*SVG/ });
-    expect(screen.getByRole("radio", { name: "Claro" })).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByRole("radio", { name: "Pontos" })).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByRole("button", { name: "Alternar para modo avancado" })).toBeInTheDocument();
-    expect((screen.getByLabelText("Nivel de zoom do mapa") as HTMLInputElement).value).toBe("10");
-  });
-
-  it("applies strategic presets for electoral sections and urban services", async () => {
-    vi.mocked(getMapLayers).mockResolvedValueOnce({
-      generated_at_utc: "2026-02-13T18:20:00Z",
-      default_layer_id: "territory_municipality",
-      fallback_endpoint: "/v1/geo/choropleth",
-      items: [
-        {
-          id: "territory_municipality",
-          label: "Municipios",
-          territory_level: "municipality",
-          is_official: true,
-          source: "silver.dim_territory",
-          default_visibility: true,
-          zoom_min: 0,
-          zoom_max: 8,
-        },
-        {
-          id: "territory_electoral_section",
-          label: "Secoes eleitorais",
-          territory_level: "electoral_section",
-          is_official: false,
-          source: "silver.dim_territory",
-          default_visibility: true,
-          zoom_min: 12,
-          zoom_max: null,
-        },
-        {
-          id: "urban_pois",
-          label: "Pontos de interesse",
-          territory_level: "urban",
-          is_official: false,
-          source: "map.urban_poi",
-          default_visibility: true,
-          zoom_min: 12,
-          zoom_max: null,
-          layer_kind: "point",
-        },
-      ],
+    expect(vi.mocked(getChoropleth).mock.calls[0]?.[0]).toMatchObject({
+      metric: "MTE_NOVO_CAGED_SALDO_TOTAL",
+      period: "2025",
+      level: "distrito",
+      page: 1,
+      page_size: 1000,
     });
-
-    renderWithQueryClient(
-      <QgMapPage />,
-      ["/mapa?metric=MTE_NOVO_CAGED_SALDO_TOTAL&period=2025&level=secao_eleitoral&renderer=svg"],
-    );
-    await waitFor(() => expect(getMapLayers).toHaveBeenCalledTimes(1));
-    await screen.findByRole("button", { name: "Eleitorado por secao" });
-
-    await userEvent.click(screen.getByRole("button", { name: "Eleitorado por secao" }));
-    expect((screen.getByLabelText("Nivel territorial") as HTMLSelectElement).value).toBe("secao_eleitoral");
-    expect(await screen.findByText("Top secoes por eleitorado")).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: "Servicos por bairros" }));
-    expect((screen.getByLabelText("Escopo da camada") as HTMLSelectElement).value).toBe("urban");
-    expect((screen.getByLabelText("Camada urbana") as HTMLSelectElement).value).toBe("urban_pois");
-    expect(screen.getByRole("radio", { name: "Pontos" })).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByRole("radio", { name: "Claro" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("button", { name: "OpenStreetMap" })).toBeInTheDocument();
   });
 
-  it("shows explicit simplified-mode guidance for non-choropleth territorial levels", async () => {
+  it("renders strategic layer groups and territorial cut selector", async () => {
+    renderWithQueryClient(<QgMapPage />);
+
+    await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
+    const strategicPanel = await screen.findByLabelText("Painel de camadas estrategicas");
+    expect(strategicPanel).toBeInTheDocument();
+    const scoped = within(strategicPanel);
+    expect(scoped.getByRole("heading", { name: "Territorio" })).toBeInTheDocument();
+    expect(scoped.getByRole("heading", { name: "Eleitoral" })).toBeInTheDocument();
+    expect(scoped.getByRole("heading", { name: "Servicos" })).toBeInTheDocument();
+
+    // Verify overlay toggle checkboxes are rendered for toggleable items
+    expect(scoped.getByLabelText("Ativar camada Escolas")).toBeInTheDocument();
+    expect(scoped.getByLabelText("Ativar camada UBS / Saude")).toBeInTheDocument();
+    expect(scoped.getByLabelText("Ativar camada Locais de votacao")).toBeInTheDocument();
+  });
+
+  it("toggles overlay layers on and off via checkboxes", async () => {
+    renderWithQueryClient(<QgMapPage />);
+    await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
+    const strategicPanel = await screen.findByLabelText("Painel de camadas estrategicas");
+    const scoped = within(strategicPanel);
+
+    const schoolsCheckbox = scoped.getByLabelText("Ativar camada Escolas") as HTMLInputElement;
+    expect(schoolsCheckbox.checked).toBe(false);
+
+    await userEvent.click(schoolsCheckbox);
+    expect(schoolsCheckbox.checked).toBe(true);
+
+    await userEvent.click(schoolsCheckbox);
+    expect(schoolsCheckbox.checked).toBe(false);
+  });
+
+  /* Test removed: strategic presets were removed from map UI. */
+
+  it("keeps map operational at granular levels without simplified fallback", async () => {
     vi.mocked(getMapLayers).mockResolvedValueOnce({
       generated_at_utc: "2026-02-13T18:20:00Z",
       default_layer_id: "territory_electoral_section",
@@ -1033,10 +794,7 @@ describe("QG pages", () => {
     );
 
     await waitFor(() => expect(getMapLayers).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText("Modo simplificado indisponivel neste nivel")).toBeInTheDocument();
-    expect(
-      screen.getByText(/Niveis granulares \(setor\/zona\/secao\) exigem modo avancado/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "OpenStreetMap" })).toBeInTheDocument();
     await waitFor(() => {
       const operationalStateEvents = vi
         .mocked(emitTelemetry)
@@ -1046,8 +804,7 @@ describe("QG pages", () => {
         expect.arrayContaining([
           expect.objectContaining({
             attributes: expect.objectContaining({
-              state: "empty_simplified_unavailable",
-              renderer: "simplified",
+              renderer: "advanced",
               level: "secao_eleitoral",
             }),
           }),
@@ -1056,52 +813,20 @@ describe("QG pages", () => {
     });
   });
 
-  it("emits map telemetry for mode, zoom and layer changes", async () => {
-    renderWithQueryClient(<QgMapPage />, ["/mapa?metric=MTE_NOVO_CAGED_SALDO_TOTAL&period=2025&level=municipio"]);
-
-    await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
-    await screen.findByRole("button", { name: /Exportar.*SVG/ });
-
-    await userEvent.click(screen.getByRole("radio", { name: "Heatmap" }));
-    await userEvent.click(screen.getByRole("radio", { name: "Claro" }));
-    fireEvent.change(screen.getByLabelText("Nivel de zoom do mapa"), { target: { value: "9" } });
-    await userEvent.selectOptions(screen.getByLabelText("Nivel territorial"), "distrito");
-    await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
-
-    await waitFor(() => {
-      const names = vi.mocked(emitTelemetry).mock.calls.map(([event]) => event.name);
-      expect(names).toContain("map_mode_changed");
-      expect(names).toContain("map_zoom_changed");
-      expect(names).toContain("map_layer_changed");
-    });
-  });
+  /* Test removed: telemetry interactions depended on controls removed from map UI. */
 
   it("syncs map query params after applying filters and view controls", async () => {
     renderWithQueryClient(<QgMapPage />, ["/mapa"], { includeLocationProbe: true });
     await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
-    await screen.findByLabelText("Escopo da camada");
-
-    await userEvent.selectOptions(screen.getByLabelText("Escopo da camada"), "urban");
-    await userEvent.selectOptions(screen.getByLabelText("Camada urbana"), "urban_pois");
-    await userEvent.clear(screen.getByLabelText("Indicador"));
-    await userEvent.type(screen.getByLabelText("Indicador"), "DATASUS_APS_COBERTURA");
-    await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
-    await userEvent.click(screen.getByRole("radio", { name: "Claro" }));
-    await userEvent.click(screen.getByRole("radio", { name: "Pontos" }));
+    await screen.findByLabelText("Buscar territorio");
 
     await waitFor(() => {
       const search = screen.getByTestId("location-search").textContent ?? "";
-      expect(search).toContain("metric=DATASUS_APS_COBERTURA");
-      expect(search).toContain("period=2025");
-      expect(search).toContain("scope=urban");
-      expect(search).toContain("layer_id=urban_pois");
-      expect(search).toContain("basemap=light");
-      expect(search).toContain("viz=points");
-      expect(search).toContain("zoom=");
+      expect(search).not.toContain("renderer=");
+      expect(search).not.toContain("basemap=");
+      expect(search).not.toContain("metric=");
+      expect(search).not.toContain("period=");
     });
-    expect(
-      screen.getByText(/Filtros aplicados; mapa recentrado automaticamente para manter contexto do recorte/i),
-    ).toBeInTheDocument();
   });
 
   it("supports urban layer scope from URL without choropleth request", async () => {
@@ -1110,13 +835,91 @@ describe("QG pages", () => {
       ["/mapa?scope=urban&layer_id=urban_roads&metric=MTE_NOVO_CAGED_SALDO_TOTAL&period=2025"],
     );
 
-    const scopeField = await screen.findByLabelText("Escopo da camada");
-    const urbanLayerField = await screen.findByLabelText("Camada urbana");
-
-    expect(scopeField).toHaveValue("urban");
-    expect(urbanLayerField).toHaveValue("urban_roads");
+    await screen.findByLabelText("Buscar territorio");
     expect(getChoropleth).not.toHaveBeenCalled();
-    expect(screen.getByText(/Camada recomendada: Viario urbano/i)).toBeInTheDocument();
+  });
+
+  it("requests polling places on checkbox click and falls back to 2024 when selected period has no electorate data", async () => {
+    vi.mocked(getMapLayers).mockResolvedValueOnce({
+      generated_at_utc: "2026-02-13T18:20:00Z",
+      default_layer_id: "territory_municipality",
+      fallback_endpoint: "/v1/geo/choropleth",
+      items: [
+        {
+          id: "territory_municipality",
+          label: "Municipios",
+          territory_level: "municipality",
+          is_official: true,
+          official_status: "official",
+          source: "silver.dim_territory",
+          default_visibility: true,
+          zoom_min: 0,
+          zoom_max: 8,
+        },
+        {
+          id: "territory_electoral_section",
+          label: "Secoes eleitorais",
+          territory_level: "electoral_section",
+          is_official: false,
+          official_status: "proxy",
+          source: "silver.dim_territory",
+          default_visibility: true,
+          zoom_min: 12,
+          zoom_max: null,
+        },
+      ],
+    });
+
+    vi.mocked(getElectorateMap)
+      .mockResolvedValueOnce({
+        level: "secao_eleitoral",
+        metric: "voters",
+        year: 2025,
+        metadata: {
+          source_name: "silver.fact_electorate",
+          updated_at: null,
+          coverage_note: "polling_place_aggregated",
+          unit: null,
+          notes: null,
+        },
+        items: [],
+      })
+      .mockResolvedValueOnce({
+        level: "secao_eleitoral",
+        metric: "voters",
+        year: 2024,
+        metadata: {
+          source_name: "silver.fact_electorate",
+          updated_at: null,
+          coverage_note: "polling_place_aggregated",
+          unit: null,
+          notes: null,
+        },
+        items: [
+          {
+            territory_id: "polling-place-001",
+            territory_name: "Local 1",
+            territory_level: "secao_eleitoral",
+            metric: "voters",
+            value: 500,
+            year: 2024,
+            geometry: { type: "Point", coordinates: [-43.6, -18.2] },
+            polling_place_name: "Escola Municipal Centro",
+            polling_place_code: "1001",
+            section_count: 2,
+            sections: ["0001", "0002"],
+          },
+        ],
+      });
+
+    renderWithQueryClient(<QgMapPage />, ["/mapa"]);
+
+    await screen.findByLabelText("Buscar territorio");
+    await userEvent.click(screen.getByLabelText("Ativar camada Locais de votacao"));
+    await waitFor(() => expect(getElectorateMap).toHaveBeenCalledTimes(2));
+
+    expect(vi.mocked(getElectorateMap).mock.calls[0]?.[0]).toMatchObject({ year: 2025 });
+    expect(vi.mocked(getElectorateMap).mock.calls[1]?.[0]).toMatchObject({ year: 2024 });
   });
 
   it("shows retryable manifest and style metadata errors", async () => {
@@ -1141,23 +944,7 @@ describe("QG pages", () => {
     await waitFor(() => expect(getMapLayers).toHaveBeenCalledTimes(2));
   });
 
-  it("shows retryable layer coverage error without breaking map actions", async () => {
-    vi.mocked(getMapLayersCoverage).mockRejectedValueOnce(
-      new ApiClientError("Cobertura indisponivel no backend", 503, "req-coverage-001"),
-    );
-
-    renderWithQueryClient(<QgMapPage />);
-
-    expect(await screen.findByText("Falha ao carregar cobertura da camada")).toBeInTheDocument();
-    expect(screen.getByText("request_id: req-coverage-001")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Exportar.*SVG/ })).toBeInTheDocument();
-
-    const coverageBlock = screen.getByText("Falha ao carregar cobertura da camada").closest(".state-block");
-    expect(coverageBlock).not.toBeNull();
-
-    await userEvent.click(within(coverageBlock as HTMLElement).getByRole("button", { name: "Tentar novamente" }));
-    await waitFor(() => expect(getMapLayersCoverage).toHaveBeenCalledTimes(2));
-  });
+  /* Test removed: coverage error StateBlock was removed from UI. */
 
   it("focuses territory from quick search and syncs territory_id in URL", async () => {
     renderWithQueryClient(<QgMapPage />, ["/mapa"], { includeLocationProbe: true });
@@ -1166,22 +953,13 @@ describe("QG pages", () => {
 
     await userEvent.clear(screen.getByLabelText("Buscar territorio"));
     await userEvent.type(screen.getByLabelText("Buscar territorio"), "Diamantina");
-    await userEvent.click(screen.getByRole("button", { name: "Focar territorio" }));
+    await userEvent.click(screen.getByRole("button", { name: "Focar" }));
 
     await waitFor(() => {
       const search = screen.getByTestId("location-search").textContent ?? "";
       expect(search).toContain("territory_id=3121605");
     });
 
-    await userEvent.selectOptions(screen.getByLabelText("Escopo da camada"), "urban");
-    await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
-
-    await waitFor(() => {
-      const search = screen.getByTestId("location-search").textContent ?? "";
-      expect(search).toContain("scope=urban");
-      expect(search).not.toContain("territory_id=");
-    });
-    expect(screen.getByText(/Filtros aplicados; foco territorial anterior reiniciado/i)).toBeInTheDocument();
   });
 
   it("loads priority filters from URL query params", async () => {

@@ -36,6 +36,8 @@ class Settings(BaseSettings):
 
     ibge_api_base_url: str = "https://servicodados.ibge.gov.br/api/v1/localidades"
     tse_ckan_base_url: str = "https://dadosabertos.tse.jus.br/api/3/action"
+    portal_transparencia_api_base_url: str = "https://api.portaldatransparencia.gov.br/api-de-dados"
+    portal_transparencia_api_key: str | None = None
     mte_ftp_host: str = "ftp.mtps.gov.br"
     mte_ftp_port: int = 21
     mte_ftp_root_candidates: str = "/pdet/microdados/NOVO CAGED,/pdet/microdados/NOVO_CAGED"

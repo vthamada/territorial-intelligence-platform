@@ -35,7 +35,13 @@ SENATRAN_PAGE_TEMPLATE = (
     "https://www.gov.br/transportes/pt-br/assuntos/transito/"
     "conteudo-Senatran/frota-de-veiculos-{reference_period}"
 )
-SENATRAN_REMOTE_CSV_TOKEN = "frotapormunicipioetipo"
+SENATRAN_REMOTE_LINK_KEYWORDS = (
+    "frota",
+    "municipio",
+    "municpio",
+    "veiculo",
+)
+SENATRAN_REMOTE_ALLOWED_EXTENSIONS = {".csv", ".txt", ".xlsx", ".xls", ".zip"}
 SENATRAN_FALLBACK_2025_CSV = (
     "https://www.gov.br/transportes/pt-br/assuntos/transito/"
     "conteudo-Senatran/FrotaporMunicipioetipoJulho2025.csv"
@@ -383,23 +389,27 @@ def _discover_remote_resources(*, reference_period: str, client: HttpClient) -> 
         page_html = payload.decode("latin1", errors="ignore")
 
     links = re.findall(r'href="([^"]+)"', page_html, flags=re.IGNORECASE)
-    discovered_uris: set[str] = set()
+    discovered_resources: dict[str, str] = {}
     for raw_link in links:
         absolute = urljoin(page_url, raw_link)
         normalized_link = _normalize_text(unquote(absolute))
-        if SENATRAN_REMOTE_CSV_TOKEN not in normalized_link:
+        if not any(keyword in normalized_link for keyword in SENATRAN_REMOTE_LINK_KEYWORDS):
             continue
-        if not absolute.casefold().endswith(".csv"):
+        suffix = Path(unquote(absolute).split("?")[0]).suffix.casefold()
+        if suffix not in SENATRAN_REMOTE_ALLOWED_EXTENSIONS:
             continue
         years = _extract_year_tokens(absolute)
         if years and reference_period not in years:
             continue
-        discovered_uris.add(absolute)
+        discovered_resources[absolute] = suffix
 
     if reference_period == "2025":
-        discovered_uris.add(SENATRAN_FALLBACK_2025_CSV)
+        discovered_resources[SENATRAN_FALLBACK_2025_CSV] = ".csv"
 
-    return [{"uri": uri, "extension": ".csv"} for uri in sorted(discovered_uris)]
+    return [
+        {"uri": uri, "extension": discovered_resources[uri]}
+        for uri in sorted(discovered_resources)
+    ]
 
 
 def _resolve_dataset(

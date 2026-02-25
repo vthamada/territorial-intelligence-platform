@@ -1,6 +1,6 @@
 # Territorial Intelligence Platform - Handoff
 
-Data de referência: 2026-02-23
+Data de referência: 2026-02-25
 Planejamento principal: `docs/PLANO_IMPLEMENTACAO_QG.md`
 North star de produto: `docs/VISION.md`
 Contrato técnico principal: `CONTRATO.md`
@@ -13,6 +13,24 @@ Contrato técnico principal: `CONTRATO.md`
    - `D7` concluido tecnicamente (`BD-070`, `BD-071`, `BD-072`).
    - `D8` concluido tecnicamente (`BD-080`, `BD-081`, `BD-082`).
    - `D4-mobilidade/frota` encerrada com entregas `BD-040`, `BD-041` e `BD-042`.
+   - Mapa estratégico reestruturado (visão estratégica, círculos proporcionais, contorno municipal).
+  - Refatoração completa do mapa executivo conforme `docs/UI_MAPA.md` (layout 2-col, bottom panel collapsible, remoção de clutter técnico).
+  - Ajuste final do mapa para aderência ao mock de referência: topo com apenas base map + export, busca acima do mapa, sem controles fantasmas e sem modo simplificado.
+  - Entrega concluída: mapa executivo consolidado em OSM-only com remoção do fluxo simplificado e payload eleitoral agregado por local de votação (com lista/contagem de seções no tooltip e drawer).
+  - Ajuste de usabilidade no painel de camadas: toggles alinhados horizontalmente e todos desmarcados por padrão.
+  - Diagnóstico técnico convertido em implementação: endpoint `/v1/electorate/map` agora suporta `aggregate_by=polling_place` para retornar agregação de local de votação.
+    - Contrato de URL do mapa consolidado: `/mapa` não propaga mais `metric`/`period` legados em sync interno e deep-links de overview/prioridades.
+  - Varredura backend concluída em `/v1/map/tiles/*`: removido branch legado que aplicava `metric/period` em tiles territoriais.
+    - Varredura frontend concluída: `VectorMap` não envia mais `metric/period/domain` em URL de tiles e `QgMapPage` não consome mais `metric/period` da URL no bootstrap.
+  - Locais de votação estabilizados no mapa: fallback automático para ano eleitoral com dados (`2024`) quando o período estratégico ativo retorna vazio no agregado por local.
+  - **Correção de geolocalização**: locais de votação agora usam centroide do distrito-sede (IBGE geocode+05) em vez de `ST_PointOnSurface` do polígono municipal. Distância ao centro urbano: 1.7km (antes ~37.6km). Registros existentes de zonas e seções eleitorais atualizados in-place.
+  - **Distribuição espacial por local**: query de polling places gera coordenada única por local via hash determinístico (`md5`) dentro do polígono do distrito-sede, eliminando cluster único. `clusterMaxZoom` ajustado para z=12 conforme spec UI_MAPA.md §5.3.
+  - **Geocodificação real (INEP + Nominatim)**: locais de votação agora têm coordenadas reais geocodificadas. Pipeline cruza nomes com Censo Escolar INEP 2024 (endereços) + Nominatim, complementado por estimativas manuais por distrito. Seed em `data/seed/polling_places_diamantina.csv` (36/36 locais). Query CTE atualizada para usar `dt.geometry` real quando disponível, com fallback hash para municípios sem geocodificação.
+2. Status de validação (2026-02-25):
+  - `npm --prefix frontend run test -- --run` -> `85 passed` (21 test files).
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `37 passed`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_api_contract.py tests/unit/test_mvt_tiles.py -q` -> `39 passed`.
+   - `npm --prefix frontend run build` -> `OK`.
 2. Status da trilha anterior (D3-hardening, encerrada em 2026-02-21):
    - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
    - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
@@ -44,6 +62,293 @@ Contrato técnico principal: `CONTRATO.md`
 7. Regra de leitura:
    - apenas esta secao define "próximo passo executável" no momento;
    - secoes de "próximos passos" antigas abaixo devem ser lidas como histórico.
+
+## Atualizacao operacional (2026-02-25) - Contrato de URL do mapa sem métrica legada
+
+1. Problema de UX/contrato corrigido:
+  - a rota `/mapa` estava recebendo e persistindo `metric`/`period` de contexto anterior (ex.: MTE), sem utilidade para o fluxo operacional atual.
+2. Ajuste aplicado:
+  - sincronização de URL no `QgMapPage` removendo persistência de `metric`/`period`;
+  - deep-links para `/mapa` em overview e prioridades simplificados para `territory_id`/`level`.
+3. Validação da rodada:
+  - frontend tests -> `84 passed`;
+  - frontend build -> `OK`.
+4. Próximo passo imediato (WIP=1):
+  - homologar navegação real (`overview`/`prioridades` -> `/mapa`) confirmando URL limpa e comportamento estável dos overlays eleitorais por local.
+
+## Atualizacao operacional (2026-02-25) - Varredura backend de tiles (`/v1/map/tiles/*`)
+
+1. Diagnóstico backend confirmado:
+  - endpoint de tiles territoriais ainda possuía branch legado condicionado por `metric`+`period` para `JOIN` em `silver.fact_indicator`.
+2. Correção aplicada:
+  - branch legado removido em `routes_map.get_mvt_tile`;
+  - tiles territoriais renderizam somente via recorte geométrico da camada (sem dependência de `metric/period/domain`).
+3. Evidência técnica:
+  - `tests/unit/test_api_contract.py` recebeu teste específico para garantir que query legada é ignorada no SQL;
+  - `pytest tests/unit/test_api_contract.py tests/unit/test_mvt_tiles.py -q` -> `39 passed`.
+4. Próximo passo imediato (WIP=1):
+  - executar homologação funcional no mapa com servidor local ativo e verificar logs de acesso após hard-refresh para confirmar redução de chamadas com query legada no fluxo atual.
+
+## Atualizacao operacional (2026-02-25) - Varredura frontend de tiles e bootstrap da rota `/mapa`
+
+1. Legado removido na geração de URL de tiles:
+  - `VectorMap` deixa de anexar `metric/period/domain` em `/v1/map/tiles/*`.
+2. Legado removido no bootstrap de rota:
+  - `QgMapPage` deixa de ler `metric/period` da query string no carregamento inicial.
+3. Ajustes de consistência:
+  - `QgOverviewPage` deixa de repassar `metric/period` ao mapa vetorial;
+  - testes de páginas QG atualizados para refletir o novo contrato.
+4. Evidência técnica:
+  - `npm --prefix frontend run test -- --run` -> `84 passed`;
+  - `npm --prefix frontend run build` -> `OK`.
+5. Próximo passo imediato (WIP=1):
+  - validar em homologação com hard-refresh que os logs de tiles não exibem mais query legada no fluxo padrão de navegação.
+
+## Atualizacao operacional (2026-02-25) - Exibição de locais de votação no mapa (fallback de ano)
+
+1. Problema tratado:
+  - no período estratégico padrão (`2025`), a consulta de eleitorado por local podia retornar vazia, impedindo renderização dos pontos de locais de votação.
+2. Correção aplicada:
+  - ao ativar `Locais de votacao`, o mapa muda automaticamente para `secao_eleitoral` para garantir elegibilidade da camada;
+  - trigger de fetch foi desacoplado do timing da troca de nível e passa a responder diretamente ao estado do checkbox;
+  - `QgMapPage` passa a consultar locais de votação sob demanda ao ativar o checkbox `Locais de votacao` (nível `secao_eleitoral`);
+  - após o fetch inicial do período ativo, consulta automaticamente `2024` quando `2025` não retorna itens para `aggregate_by=polling_place`.
+3. Resultado esperado:
+  - ao ativar `Locais de votação`, os pontos voltam a aparecer com dados válidos mesmo quando o período estratégico não possui base eleitoral consolidada.
+4. Evidência técnica:
+  - novo teste de regressão no `QgPages.test.tsx` garantindo a sequência `2025 -> 2024`.
+  - frontend suite/build em `pass`.
+
+## Atualizacao operacional (2026-02-25) - OSM-only + agregação eleitoral por local de votação
+
+1. Backend/API eleitoral evoluído para comportamento de local de votação:
+  - `GET /v1/electorate/map` passou a aceitar `aggregate_by` (`none|polling_place`);
+  - para `level=electoral_section` + `metric=voters`, a resposta agregada por local retorna:
+    - total de eleitores por local;
+    - quantidade de seções (`section_count`);
+    - lista de seções (`sections`);
+    - metadados de identificação do local (`polling_place_name`, `polling_place_code`).
+2. Frontend do mapa consolidado no modo operacional único:
+  - removido fluxo de modo simplificado;
+  - removidas expectativas de alternância de basemap legado na experiência principal;
+  - comportamento alinhado para OSM-only com foco em leitura territorial sem modos paralelos.
+3. UX eleitoral refinada no mapa:
+  - tooltip e drawer do ponto eleitoral passam a exibir dados de local agregado e seções associadas.
+4. Estabilização técnica:
+  - `VectorMap` recebeu guarda para `areTilesLoaded` ausente em mocks, eliminando erro de runtime em testes.
+5. Evidência da rodada:
+  - `npm --prefix frontend run test -- --run` -> `84 passed`;
+  - `npm --prefix frontend run build` -> `OK`;
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `37 passed`.
+6. Próximo passo imediato (WIP=1):
+  - validar em homologação o comportamento visual de clusters eleitorais agregados por local em múltiplos níveis de zoom, garantindo legibilidade executiva com dados reais.
+
+## Atualizacao operacional (2026-02-25) - RCA + hotfix locais de votação sem retorno
+
+1. Sintoma em produção local:
+  - chamada de mapa eleitoral agregado por local retornando `500` em `/v1/electorate/map` com `aggregate_by=polling_place`.
+2. Diagnóstico completo:
+  - banco com dados válidos para agregação:
+    - `electoral_section=144` territórios;
+    - `polling_place_name=144/144` e `polling_place_code=144/144` preenchidos em `silver.dim_territory.metadata`;
+    - `36` locais distintos agregáveis.
+  - causa raiz no backend SQL:
+    - `GroupingError` (PostgreSQL): coluna `dt.metadata` usada em expressão do `SELECT` não compatível com `GROUP BY` original.
+3. Correção aplicada:
+  - query reestruturada com CTE `grouped` para agregar por local primeiro;
+  - cálculo de `territory_id` hash movido para select externo sobre os campos já agregados.
+4. Evidência pós-fix:
+  - `GET /v1/electorate/map?level=secao_eleitoral&metric=voters&aggregate_by=polling_place&year=2024&include_geometry=true&limit=500` -> `200`, `items=36`.
+  - `metadata.coverage_note=polling_place_aggregated`.
+  - backend unit tests alvo -> `37 passed`.
+5. Próximo passo imediato:
+  - validar UX em homologação com toggles eleitorais e zoom (cluster/tooltip/drawer) agora que o payload agregado está estável.
+
+## Atualizacao operacional (2026-02-25) - Correção overlays UBS/Escola + sidebar de camadas
+
+1. Bug corrigido: checkboxes de UBS e Escola não exibiam pontos no mapa.
+   - causa raiz: condição `enabled` dos overlays estava bloqueada por `strategicView === "services" || strategicView === "both"` — na visão padrão "sections", os pontos nunca apareciam.
+   - correção: `enabled` agora depende exclusivamente do estado do checkbox (`activeOverlayIds.has(id)`).
+2. Painel de camadas reestruturado como sidebar lateral:
+   - novo layout: `map-with-sidebar` flex container com map canvas + aside sidebar + footer bar.
+   - sidebar e footer sempre visíveis independentemente do modo de mapa (vector/choropleth/fallback).
+   - removido grupo "Risco / Estrategia" (fase 2).
+   - 3 grupos ativos: Território, Eleitoral, Serviços.
+3. Validação:
+   - `npm --prefix frontend run test -- --run` -> `91 passed`.
+   - `npm --prefix frontend run build` -> `OK`.
+
+## Atualizacao operacional (2026-02-25) - Reestruturação completa do mapa estratégico
+
+1. Reestruturação fundamental do mapa executivo para entrega estratégica:
+   - barra superior reorganizada em 3 grupos: Visualização (Seções eleitorais / Serviços / Seções + Serviços), Mapa base (Ruas / Claro / Sem base), Ações (Simplificado/Avançado + SVG + PNG).
+   - painel de camadas limpo com checkboxes alinhados por grupo: Território (Limite municipal + Distritos), Eleitoral (Seções + Locais de votação), Serviços (Escolas + UBS), Risco (Hotspots + Índice - fase 2).
+2. Seções eleitorais agora são círculos proporcionais via GeoJSON:
+   - fonte: endpoint `/electorate/map?include_geometry=true` que retorna geometria + contagem de eleitores.
+   - raio proporcional: `max(4, min(18, 0.35 * sqrt(voters)))` em pixels.
+   - clustering nativo do MapLibre GL com `clusterRadius=50`, `clusterMaxZoom=14`, `clusterProperties: { sum_voters: ['+', ['get', 'voters']] }`.
+   - tooltip: Seção (nome), Eleitores (contagem), % do município, Fonte (TSE | Eleitorado).
+   - cluster tooltip: N seções agrupadas, Total de eleitores.
+3. Modo contorno municipal (boundary-only):
+   - quando visão estratégica é "Seções" ou "Seções + Serviços", polígono municipal renderizado apenas como contorno (sem preenchimento).
+   - implementado como `line` layer no VectorMap com estilo sutil.
+4. Remoções da UI:
+   - zonas eleitorais removidas do painel de camadas.
+   - modos Coroplético/Heatmap/Apenas críticos/Gap removidos do radiogroup.
+   - `vizMode` mantido internamente mas não exposto ao usuário.
+   - seção "Resumo operacional do mapa" removida.
+   - texto "Camada recomendada:" removido.
+5. Arquitetura expandida no VectorMap:
+   - novo tipo `GeoJsonClusterConfig` com suporte completo a clustering, radius expression, tooltip functions.
+   - prop `geoJsonLayers?: GeoJsonClusterConfig[]` para adicionar camadas GeoJSON com clustering.
+   - prop `boundaryOnly?: boolean` para modo contorno.
+   - cleanup automático de sources/layers GeoJSON em detach/update cycles.
+6. Evidência técnica:
+   - `npm --prefix frontend run test -- --run` -> `91 passed`.
+   - `npm --prefix frontend run build` -> `OK`.
+7. Próximo passo imediato:
+   - validar em homologação com dados reais de operação os cenários de clustering em zoom alto e contorno municipal.
+
+## Atualizacao operacional (2026-02-24) - Opção (a) concluída com zeragem de warnings
+
+1. Implementação operacional da opção (a) concluída:
+  - materialização de indicadores submunicipais em `silver.fact_indicator` executada pelo pipeline existente `ibge_geometries_fetch` (`reference_period=2025`, `force=true`).
+2. Evidência da execução:
+  - `ibge_geometries_fetch` -> `success`, `rows_extracted=121`, `rows_written=121`.
+3. Resultado de qualidade pós-execução:
+  - `quality_suite(reference_period='2025')` -> `success`;
+  - `failed_checks=0`, `warning_checks=0`.
+4. Delta objetivo dos checks alvo:
+  - `indicator_rows_level_district` passou para `pass` (`11` linhas observadas);
+  - `indicator_rows_level_census_sector` passou para `pass` (`109` linhas observadas).
+5. Estado atual (WIP=1):
+  - baseline operacional sem warnings e sem hard-fail no gate de qualidade.
+6. Próximo passo imediato:
+  - manter rotina de validação recorrente e garantir execução periódica do `ibge_geometries_fetch` na janela operacional para preservar cobertura submunicipal.
+7. Comando único recomendado (execução recorrente):
+  - `$env:PYTHONPATH='src'; .\.venv\Scripts\python.exe -c "from pipelines.ibge_geometries import run as run_geo; from pipelines.quality_suite import run as run_quality; import json; print(json.dumps({'ibge_geometries_fetch': run_geo(reference_period='2025', force=True), 'quality_suite': run_quality(reference_period='2025')}, ensure_ascii=False))"`
+8. Atalho operacional preferencial:
+  - `make ops-routine` (executa materialização submunicipal + validação de qualidade em sequência).
+9. Atalho operacional Windows (sem `make`):
+  - `powershell -ExecutionPolicy Bypass -File scripts/ops-routine.ps1 -ReferencePeriod 2025 -Force`.
+
+## Atualizacao operacional (2026-02-24) - Mapa estratégico multicamadas (foco executivo)
+
+1. Reestruturação do mapa executada para leitura territorial de decisão:
+  - operação explícita em macro e granularidade interna (município, distritos/setores, pontos estratégicos);
+  - recorte territorial com alternância direta entre município completo e área urbana (proxy).
+2. Modos de visualização consolidados no frontend:
+  - `Coropletico`, `Pontos`, `Heatmap`, `Apenas criticos`, `Gap (eleitores/servicos)`.
+3. Organização estratégica de camadas implementada em grupos:
+  - `Territorio`, `Eleitoral`, `Servicos`, `Risco / Estrategia`.
+4. Interações executivas reforçadas:
+  - tooltip de hover com nome, indicador, tendência, fonte e atualização;
+  - drawer com score/contexto/evidências e ações `Perfil 360`, `Cenarios`, `Adicionar ao Brief`.
+5. Sistema de overlays interativos implementado (2026-02-24):
+  - VectorMap.tsx: novo prop `overlays` com tipo `OverlayLayerConfig[]` suportando vizTypes `circle`, `fill` e `heatmap`;
+  - cada overlay tem source MVT independente, layer visual dedicada e interação isolada (click/hover/tooltip);
+  - 5 overlays configurados no QgMapPage: Escolas (urbano/educação), UBS/Saúde (urbano/saúde), Seções eleitorais (pontos), Heatmap eleitoral, Zonas eleitorais (polígonos);
+  - Escolas e UBS usam filtro client-side no tile `urban_pois` via propriedade `category` (OSM sourced);
+  - Zonas/Seções eleitorais usam tiles `territory_electoral_zone` e `territory_electoral_section`;
+  - painel de camadas estratégicas com checkboxes para ativar/desativar cada overlay independentemente;
+  - summary note mostra overlays ativos no rodapé do painel.
+6. Evidência técnica da rodada:
+  - `npm --prefix frontend run test -- --run` -> `91 passed`;
+  - `npm --prefix frontend run build` -> `OK`;
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `37 passed`;
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `29 passed`.
+6. Estado atual:
+  - mapa alinhado ao objetivo de núcleo estratégico territorial, com leitura multicamadas e interações orientadas à priorização executiva.
+7. Próximo passo imediato (WIP=1):
+  - validar em homologação com dados reais de operação os cenários `apenas criticos` e `gap`, ajustando thresholds de severidade/legenda se necessário.
+
+## Atualizacao operacional (2026-02-24) - Backfill temporal ANA/INMET/INPE concluido
+
+1. Execução temporal concluída para fechamento de lacunas de período em fontes ambientais:
+  - `ana_hydrology_fetch`, `inmet_climate_fetch`, `inpe_queimadas_fetch`;
+  - períodos executados: `2021,2022,2023,2024,2025` com `reprocess=true`.
+2. Evidência operacional da rodada:
+  - incremental -> `planned=15`, `executed=15`, `success=15`, `failed=0`;
+  - relatório consolidado em `data/reports/backfill_ana_inmet_inpe_2021_2025.json`.
+3. Resultado de gate pós-backfill:
+  - `quality_suite(reference_period='2025')` -> `success`;
+  - `failed_checks=0`, `warning_checks=2` (redução de `5` para `2`).
+4. Delta de qualidade confirmado:
+  - `source_periods_ana`, `source_periods_inmet` e `source_periods_inpe_queimadas` passaram para `pass` com `5` períodos observados.
+5. Estado atual (WIP=1):
+  - backend/readiness segue estável, sem hard-fail;
+  - warnings remanescentes são não bloqueantes e restritos a cobertura de indicadores submunicipais (`district` e `census_sector`).
+6. Próximo passo imediato:
+  - decidir entre (a) materializar indicadores submunicipais no `fact_indicator` para eliminar os 2 warnings restantes, ou (b) manter esses checks como sinalização de roadmap sem impacto de gate.
+
+## Atualizacao operacional (2026-02-24) - Conector Portal da Transparência municipal
+
+1. Backend de ingestão ampliado com fonte federal municipal:
+  - novo pipeline `portal_transparencia_fetch` implementado em `src/pipelines/portal_transparencia.py` com agregação anual para Diamantina (`codigoIbge=3121605`);
+  - indicadores publicados em `silver.fact_indicator` para benefícios sociais, recursos recebidos, convênios, renúncias e transferências COVID.
+2. Integração de execução consolidada:
+  - job registrado em `configs/connectors.yml` e `configs/jobs.yml` (onda `MVP-6`, referência padrão `2025`);
+  - job integrado no fluxo incremental (`scripts/run_incremental_backfill.py`) e nas flows Prefect (`run_mvp_all` e `run_mvp_wave_6`).
+3. Configuração obrigatória de segredo por ambiente:
+  - variáveis adicionadas em `settings/.env.example`:
+    - `PORTAL_TRANSPARENCIA_API_BASE_URL`;
+    - `PORTAL_TRANSPARENCIA_API_KEY`.
+  - sem chave configurada o job retorna `blocked` (sem escrita em Silver), preservando previsibilidade operacional.
+4. Governança de qualidade atualizada:
+  - `quality.py` e `quality_thresholds.yml` ajustados para cobertura de `PORTAL_TRANSPARENCIA` em `check_fact_indicator_source_rows`.
+5. Evidência técnica da rodada:
+  - `\.venv\Scripts\python.exe -m pytest tests/unit/test_portal_transparencia.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_onda_b_connectors.py -q` -> `26 passed`.
+6. Próximo passo imediato (WIP=1):
+  - configurar `PORTAL_TRANSPARENCIA_API_KEY` no `.env` de cada ambiente e executar `portal_transparencia_fetch` (ou incremental) para materializar indicadores reais na base operacional.
+
+## Atualizacao operacional (2026-02-24) - Desbloqueio SENATRAN 2024 e fechamento de gate
+
+1. Causa raiz do `blocked` em `senatran_fleet_fetch(2024)` identificada e tratada:
+  - discovery remoto não cobria padrões atuais de arquivos do portal SENATRAN 2024 (`xlsx/xls` e nomes fora do token antigo);
+  - ambiente sem parser de Excel disponível para leitura dos artefatos remotos.
+2. Correções aplicadas:
+  - `src/pipelines/senatran_fleet.py` com discovery remoto ampliado (keywords + extensões suportadas);
+  - validação do ambiente Python com `openpyxl` para leitura de planilhas SENATRAN.
+3. Evidência operacional da rodada:
+  - `senatran_fleet_fetch(reference_period='2024')` -> `success` (`rows_extracted=41025`, `rows_written=1`);
+  - `quality_suite(reference_period='2025')` -> `success` (`failed_checks=0`, `warning_checks=12`, queda de 13 -> 12);
+  - warning `source_periods_senatran` passou para `pass` (2 períodos).
+4. Estado atual:
+  - backend/readiness permanece `READY` e sem hard-fail;
+  - warnings remanescentes são não bloqueantes e ligados a cobertura temporal/submunicipal de fontes específicas.
+5. Próximo passo imediato (WIP=1):
+  - reduzir warnings remanescentes focando em `INEP`, `SICONFI` e `TSE` (linhas 2025) e plano de ampliação temporal para `INMET`, `INPE_QUEIMADAS` e `ANA`.
+
+## Atualizacao operacional (2026-02-24) - Rodada focal INEP/SICONFI/TSE (resultado)
+
+1. Rodada de execução dirigida concluída:
+  - `education_inep_fetch` e `finance_siconfi_fetch` reprocessados para `2025`;
+  - `tse_catalog_discovery`, `tse_electorate_fetch` e `tse_results_fetch` reprocessados para `2025`.
+2. Resultado operacional objetivo:
+  - pipelines executaram com sucesso, porém `INEP` e `SICONFI` continuaram materializando `fact_indicator` com `reference_period=2024`;
+  - `TSE` em `2025` segue sem pacote CKAN publicado (`fallback` para 2024 nas rotinas eleitorais), sem reflexo em `source_rows_tse` no `fact_indicator`.
+3. Evidência de gate pós-rodada:
+  - `quality_suite(reference_period='2025')` -> `success`, `failed_checks=0`, `warning_checks=12`.
+4. Interpretação para continuidade:
+  - warnings remanescentes de `INEP/SICONFI/TSE` nesta métrica específica não são falha de execução local, e sim limitação de disponibilidade/período da origem + modelagem atual dos checks.
+5. Próximo passo imediato (WIP=1):
+  - decidir entre (a) manter regra rígida aguardando publicação 2025 das fontes, ou (b) ajustar thresholds/checks para refletir disponibilidade real de período por fonte.
+
+## Atualizacao operacional (2026-02-24) - Calibragem de checks por disponibilidade real (opcao b)
+
+1. Ajuste implementado na camada de qualidade:
+  - `quality.py` passou a suportar lag controlado por fonte em `source_rows_*` e por job em `ops_pipeline_runs` (via thresholds), preservando `warn` quando não há dado elegível.
+2. Thresholds calibrados para cenário real de publicação:
+  - `INEP`/`SICONFI` com metas de período ajustadas para `1` e lag anual explícito;
+  - `TSE` removido de cobrança indevida em `fact_indicator` (`min_rows_tse=0`, `min_periods_tse=0`), mantendo cobertura eleitoral nos checks próprios de `fact_electorate`/`fact_election_result`.
+3. Evidência pós-ajuste:
+  - `quality_suite(reference_period='2025')` -> `success`, `failed_checks=0`;
+  - warnings reduzidos para `5` (`198 pass`, `5 warn`).
+4. Warnings remanescentes (não bloqueantes):
+  - `indicator_rows_level_district` e `indicator_rows_level_census_sector`;
+  - `source_periods_ana`, `source_periods_inmet`, `source_periods_inpe_queimadas` (target de 5 períodos ainda não atingido).
+5. Próximo passo imediato (WIP=1):
+  - decidir entre ampliar backfill temporal em `ANA/INMET/INPE_QUEIMADAS` ou ajustar meta de período para janela operacional atual.
 
 ## Atualizacao operacional (2026-02-23) - Ícones SVG, renomeação e fix drawer
 

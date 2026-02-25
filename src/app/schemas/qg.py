@@ -282,6 +282,10 @@ class ElectorateMapItem(BaseModel):
     value: float | None = None
     year: int | None = None
     geometry: dict | None = None
+    polling_place_name: str | None = None
+    polling_place_code: str | None = None
+    section_count: int | None = None
+    sections: list[str] | None = None
 
 
 class ElectorateMapResponse(BaseModel):

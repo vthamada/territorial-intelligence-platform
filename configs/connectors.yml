@@ -109,6 +109,11 @@ connectors:
     wave: MVP-6
     status: implemented
     notes: Open municipal CNEAS entities/offers ingestion via MISocial (CSV) with Bronze snapshot and Silver indicator upsert.
+  - connector_name: portal_transparencia_fetch
+    source: PORTAL_TRANSPARENCIA
+    wave: MVP-6
+    status: implemented
+    notes: Municipal indicators from Portal da Transparência API (benefícios, convênios, recursos recebidos, renúncias) with API key header and Silver indicator upsert.
   - connector_name: cecad_social_protection_fetch
     source: CECAD
     wave: MVP-6

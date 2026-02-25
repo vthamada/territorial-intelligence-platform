@@ -418,7 +418,7 @@ describe("Router smoke", () => {
     await screen.findByText("Prioridades estrategicas");
 
     await user.click(screen.getByRole("link", { name: "Mapa" }));
-    await screen.findByText("Mapa estrategico");
+    await screen.findByLabelText("Buscar territorio");
     await user.click(screen.getAllByRole("link", { name: "Abrir perfil" })[0]);
     await screen.findByText("Belo Horizonte");
 

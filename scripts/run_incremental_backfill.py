@@ -37,6 +37,7 @@ from pipelines.quality_suite import run as run_quality_suite  # noqa: E402
 from pipelines.sejusp_public_safety import run as run_sejusp_public_safety  # noqa: E402
 from pipelines.senatran_fleet import run as run_senatran_fleet  # noqa: E402
 from pipelines.siconfi_finance import run as run_siconfi_finance  # noqa: E402
+from pipelines.portal_transparencia import run as run_portal_transparencia  # noqa: E402
 from pipelines.sidra_indicators import run as run_sidra_indicators  # noqa: E402
 from pipelines.siops_health_finance import run as run_siops_health_finance  # noqa: E402
 from pipelines.snis_sanitation import run as run_snis_sanitation  # noqa: E402
@@ -60,6 +61,7 @@ JOB_RUNNERS: dict[str, Runner] = {
     "education_inep_fetch": run_inep_education,
     "health_datasus_fetch": run_datasus_health,
     "finance_siconfi_fetch": run_siconfi_finance,
+    "portal_transparencia_fetch": run_portal_transparencia,
     "labor_mte_fetch": run_mte_labor,
     "sidra_indicators_fetch": run_sidra_indicators,
     "senatran_fleet_fetch": run_senatran_fleet,
@@ -113,6 +115,7 @@ JOB_ORDER: tuple[str, ...] = (
     "urban_roads_fetch",
     "urban_pois_fetch",
     "urban_transport_fetch",
+    "portal_transparencia_fetch",
 )
 
 GOVERNED_CONNECTORS: frozenset[str] = frozenset(

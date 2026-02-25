@@ -12,6 +12,15 @@ Atualização de consistência documental (2026-02-23):
    - foco principal pode seguir para frontend;
    - backend permanece em regime de monitoramento recorrente e hardening de confiabilidade.
 
+Atualização de status do ciclo (2026-02-25):
+1. mapa executivo consolidado no modo operacional único (OSM-only), sem fluxo simplificado paralelo;
+2. camada eleitoral evoluída para agregação por local de votação no contrato `/v1/electorate/map` via `aggregate_by=polling_place`;
+3. contrato de URL do mapa consolidado para navegação operacional (remoção de `metric`/`period` legados em `/mapa`);
+4. backend de tiles territoriais consolidado sem branch legado de `metric/period` em `/v1/map/tiles/*`;
+5. frontend de tiles consolidado sem emissão de `metric/period/domain` e sem bootstrap de `metric/period` por query em `/mapa`;
+6. exibição de locais de votação passa a fetch on-demand por interação do checkbox no mapa (com trigger robusto independente do timing da troca de nível) e com fallback automático para ano eleitoral com dados quando o período estratégico ativo estiver vazio;
+7. foco P0 mantém-se em legibilidade/estabilidade do mapa em dados reais (homologação de cluster e UX de leitura em zoom).
+
 ## 0) Regra de foco operacional (WIP=1)
 
 1. Fila ativa unica de implementação:

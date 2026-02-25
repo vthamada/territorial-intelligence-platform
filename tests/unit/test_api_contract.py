@@ -320,6 +320,40 @@ def test_map_tiles_supports_conditional_etag() -> None:
     app.dependency_overrides.clear()
 
 
+def test_map_tiles_legacy_metric_period_query_is_ignored() -> None:
+    class _CaptureTileSession:
+        def __init__(self) -> None:
+            self.sql: str | None = None
+            self.params: dict[str, Any] | None = None
+
+        def execute(self, statement: Any, params: dict[str, Any] | None = None, **_kwargs: Any) -> _TileResult:
+            self.sql = str(statement)
+            self.params = params or {}
+            return _TileResult(b"\x1a\x02")
+
+    session = _CaptureTileSession()
+
+    def _capture_tile_db() -> Generator[object, None, None]:
+        yield session
+
+    app.dependency_overrides[get_db] = _capture_tile_db
+    client = TestClient(app)
+
+    response = client.get(
+        "/v1/map/tiles/territory_municipality/8/73/97.mvt"
+        "?metric=MTE_NOVO_CAGED_SALDO_TOTAL&period=2025&domain=trabalho"
+    )
+
+    assert response.status_code == 200
+    assert session.sql is not None
+    assert "JOIN silver.fact_indicator" not in session.sql
+    assert session.params is not None
+    assert "metric" not in session.params
+    assert "period" not in session.params
+    assert "domain" not in session.params
+    app.dependency_overrides.clear()
+
+
 def test_map_tiles_unknown_layer_returns_404() -> None:
     app.dependency_overrides[get_db] = _tile_db
     client = TestClient(app)

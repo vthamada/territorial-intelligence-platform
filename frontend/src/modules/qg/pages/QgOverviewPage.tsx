@@ -281,9 +281,7 @@ export function QgOverviewPage() {
   }
   const mapQuickLink = topPriority
     ? appendDetailedLayer(
-        `/mapa?metric=${encodeURIComponent(topPriority.indicator_code)}&period=${encodeURIComponent(
-          topPriority.evidence.reference_period,
-        )}&territory_id=${encodeURIComponent(topPriority.territory_id)}`,
+        `/mapa?territory_id=${encodeURIComponent(topPriority.territory_id)}`,
       )
     : appendDetailedLayer("/mapa");
   const resolvedPeriod = appliedPeriod || kpis.period || "2025";
@@ -367,8 +365,6 @@ export function QgOverviewPage() {
                       >
                         <LazyVectorMap
                           tileBaseUrl={TILE_BASE_URL}
-                          metric={OVERVIEW_MAP_METRIC}
-                          period={appliedPeriod || "2025"}
                           layers={levelScopedLayers}
                           defaultLayerId={effectiveDefaultLayerId}
                           zoom={mapZoom}
@@ -693,9 +689,7 @@ export function QgOverviewPage() {
                   resolvedPeriod,
                 )}&level=${encodeURIComponent(appliedLevel)}`;
                 const mapLink = appendDetailedLayer(
-                  `/mapa?metric=${encodeURIComponent(item.defaultMetric)}&period=${encodeURIComponent(
-                    resolvedPeriod,
-                  )}&level=${encodeURIComponent(resolvedMapLevel)}`,
+                  `/mapa?level=${encodeURIComponent(resolvedMapLevel)}`,
                 );
                 return (
                   <tr key={item.domain}>

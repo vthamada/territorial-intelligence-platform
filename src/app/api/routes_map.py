@@ -1327,9 +1327,6 @@ def get_mvt_tile(
     x: int,
     y: int,
     request: Request,
-    metric: str | None = Query(default=None),
-    period: str | None = Query(default=None),
-    domain: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> Response:
     t0 = time.monotonic()
@@ -1340,7 +1337,6 @@ def get_mvt_tile(
         raise HTTPException(status_code=404, detail={"reason": "Unknown layer", "layer": layer})
 
     tolerance_meters = _tolerance_for_zoom(z)
-    use_indicator_join = metric is not None and period is not None
     layer_filter = _LAYER_EXTRA_WHERE.get(layer, "")
     name_expr = _LAYER_NAME_EXPR.get(layer, "dt.name")
     territory_geom_expr = "CASE WHEN ST_IsValid(dt.geometry) THEN dt.geometry ELSE ST_MakeValid(dt.geometry) END"
@@ -1373,52 +1369,6 @@ def get_mvt_tile(
                     base.val,
                     base.metric,
                     {feature_extra_sql}
-                    ST_AsMVTGeom(
-                        ST_SimplifyPreserveTopology(base.geom_3857, :tolerance_meters),
-                        te.envelope,
-                        4096,
-                        64,
-                        true
-                    ) AS geom
-                FROM base
-                CROSS JOIN tile_extent te
-            )
-            SELECT ST_AsMVT(features.*, :layer_name) AS mvt
-            FROM features
-            WHERE features.geom IS NOT NULL
-            """
-        )
-    elif use_indicator_join:
-        domain_filter = "AND fi.domain = :domain" if domain else ""
-        sql = text(
-            f"""
-            WITH tile_extent AS (
-                SELECT ST_TileEnvelope(:z, :x, :y) AS envelope
-            ),
-            base AS (
-                SELECT
-                    dt.territory_id::text AS tid,
-                    {name_expr} AS tname,
-                    fi.value::double precision AS val,
-                    fi.indicator_code AS metric,
-                    ST_Transform({territory_geom_expr}, 3857) AS geom_3857
-                FROM silver.dim_territory dt
-                JOIN silver.fact_indicator fi ON fi.territory_id = dt.territory_id
-                CROSS JOIN tile_extent te
-                WHERE dt.level::text = :level
-                  AND dt.geometry IS NOT NULL
-                  {layer_filter}
-                  AND ST_Intersects(ST_Transform({territory_geom_expr}, 3857), te.envelope)
-                  AND fi.indicator_code = :metric
-                  AND fi.reference_period = :period
-                  {domain_filter}
-            ),
-            features AS (
-                SELECT
-                    base.tid,
-                    base.tname,
-                    base.val,
-                    base.metric,
                     ST_AsMVTGeom(
                         ST_SimplifyPreserveTopology(base.geom_3857, :tolerance_meters),
                         te.envelope,
@@ -1480,11 +1430,6 @@ def get_mvt_tile(
         "tolerance_meters": tolerance_meters,
         "layer_name": layer,
     }
-    if use_indicator_join and urban_layer is None:
-        params["metric"] = metric
-        params["period"] = period
-        if domain:
-            params["domain"] = domain
 
     try:
         execution = db.execute(sql, params)

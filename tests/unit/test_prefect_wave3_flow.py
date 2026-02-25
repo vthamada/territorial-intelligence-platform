@@ -103,6 +103,7 @@ def test_run_mvp_all_propagates_common_kwargs_to_all_jobs(monkeypatch) -> None:
     monkeypatch.setattr(prefect_flows, "run_inep_education", _stub("education_inep_fetch"))
     monkeypatch.setattr(prefect_flows, "run_datasus_health", _stub("health_datasus_fetch"))
     monkeypatch.setattr(prefect_flows, "run_siconfi_finance", _stub("finance_siconfi_fetch"))
+    monkeypatch.setattr(prefect_flows, "run_portal_transparencia", _stub("portal_transparencia_fetch"))
     monkeypatch.setattr(prefect_flows, "run_mte_labor", _stub("labor_mte_fetch"))
     monkeypatch.setattr(prefect_flows, "run_sidra_indicators", _stub("sidra_indicators_fetch"))
     monkeypatch.setattr(prefect_flows, "run_senatran_fleet", _stub("senatran_fleet_fetch"))
@@ -162,6 +163,7 @@ def test_run_mvp_all_propagates_common_kwargs_to_all_jobs(monkeypatch) -> None:
         "education_inep_fetch",
         "health_datasus_fetch",
         "finance_siconfi_fetch",
+        "portal_transparencia_fetch",
         "labor_mte_fetch",
         "sidra_indicators_fetch",
         "senatran_fleet_fetch",
@@ -240,6 +242,11 @@ def test_run_mvp_all_returns_each_job_result_payload(monkeypatch) -> None:
     monkeypatch.setattr(prefect_flows, "run_inep_education", _run_inep)
     monkeypatch.setattr(prefect_flows, "run_datasus_health", _run_datasus)
     monkeypatch.setattr(prefect_flows, "run_siconfi_finance", _run_siconfi)
+
+    def _run_portal_transparencia(**_kwargs: Any) -> dict[str, Any]:
+        return {"job": "portal_transparencia_fetch", "status": "success", "rows_written": 10}
+
+    monkeypatch.setattr(prefect_flows, "run_portal_transparencia", _run_portal_transparencia)
     monkeypatch.setattr(prefect_flows, "run_mte_labor", _run_mte)
 
     def _run_sidra(**_kwargs: Any) -> dict[str, Any]:
@@ -324,6 +331,7 @@ def test_run_mvp_all_returns_each_job_result_payload(monkeypatch) -> None:
     assert result["education_inep_fetch"]["rows_written"] == 7
     assert result["health_datasus_fetch"]["rows_written"] == 8
     assert result["finance_siconfi_fetch"]["rows_written"] == 9
+    assert result["portal_transparencia_fetch"]["rows_written"] == 10
     assert result["labor_mte_fetch"]["status"] == "blocked"
     assert result["sidra_indicators_fetch"]["rows_written"] == 10
     assert result["senatran_fleet_fetch"]["rows_written"] == 11
@@ -468,6 +476,11 @@ def test_run_mvp_wave_6_propagates_common_kwargs_to_all_jobs(monkeypatch) -> Non
         "run_cneas_social_assistance",
         _stub("cneas_social_assistance_fetch"),
     )
+    monkeypatch.setattr(
+        prefect_flows,
+        "run_portal_transparencia",
+        _stub("portal_transparencia_fetch"),
+    )
     monkeypatch.setattr(prefect_flows, "run_quality_suite", _stub("quality_suite"))
 
     result = prefect_flows.run_mvp_wave_6.fn(
@@ -481,6 +494,7 @@ def test_run_mvp_wave_6_propagates_common_kwargs_to_all_jobs(monkeypatch) -> Non
     assert set(result.keys()) == {
         "suasweb_social_assistance_fetch",
         "cneas_social_assistance_fetch",
+        "portal_transparencia_fetch",
         "cecad_social_protection_fetch",
         "censo_suas_fetch",
         "quality_suite",

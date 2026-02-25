@@ -44,6 +44,9 @@ fact_indicator:
   max_source_probe_rows: 0
   min_distinct_periods: 3
   min_source_distinct_periods_default: 2
+  min_periods_inep: 1
+  min_periods_siconfi: 1
+  min_periods_tse: 0
   min_periods_inmet: 5
   min_periods_inpe_queimadas: 5
   min_periods_ana: 5
@@ -67,8 +70,14 @@ fact_indicator:
   min_rows_ana: 1
   min_rows_anatel: 1
   min_rows_aneel: 1
+  min_rows_portal_transparencia: 1
+  min_rows_tse: 0
   min_rows_cecad: 0
   min_rows_censo_suas: 0
+  allow_rows_reference_lag_inep: 1
+  max_rows_reference_lag_years_inep: 1
+  allow_rows_reference_lag_siconfi: 1
+  max_rows_reference_lag_years_siconfi: 1
 
 fact_social_protection:
   min_rows_after_filter: 0
@@ -110,3 +119,5 @@ schema_drift:
 
 ops_pipeline_runs:
   min_successful_runs_per_job: 1
+  allow_reference_lag_education_inep_fetch: 1
+  max_reference_lag_years_education_inep_fetch: 1

@@ -490,6 +490,10 @@ export type ElectorateMapItem = {
   value: number | null;
   year: number | null;
   geometry: Record<string, unknown> | null;
+  polling_place_name?: string | null;
+  polling_place_code?: string | null;
+  section_count?: number | null;
+  sections?: string[] | null;
 };
 
 export type ElectorateMapResponse = {

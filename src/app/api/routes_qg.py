@@ -1980,6 +1980,7 @@ def get_electorate_summary(
 def get_electorate_map(
     level: str = Query(default="municipality"),
     metric: str = Query(default="voters", pattern="^(voters|turnout|abstention_rate|blank_rate|null_rate)$"),
+    aggregate_by: str = Query(default="none", pattern="^(none|polling_place)$"),
     year: int | None = Query(default=None, ge=1900, le=2100),
     include_geometry: bool = Query(default=True),
     limit: int = Query(default=1000, ge=1, le=5000),
@@ -2009,6 +2010,130 @@ def get_electorate_map(
                     config_version=load_strategic_engine_config().version,
                 ),
                 items=[],
+            )
+
+        if level_en == "electoral_section" and aggregate_by == "polling_place":
+            # Each polling place needs a unique coordinate so MapLibre can
+            # spread individual points on the map.
+            #
+            # Strategy (with geocoded coordinates):
+            #   1. grouped CTE aggregates sections per polling place and
+            #      picks any representative geometry from dim_territory
+            #      (all sections of the same polling place share the same
+            #      geocoded point after seed application).
+            #   2. sede CTE fetches the distrito-sede polygon as fallback
+            #      for municipalities that haven't been geocoded yet.
+            #   3. Final SELECT uses the real geocoded geometry when it
+            #      differs from the distrito centroid; falls back to
+            #      hash-based distribution within the sede polygon otherwise.
+
+            if include_geometry:
+                geometry_final = """
+                    CASE
+                        WHEN g.real_geom IS NOT NULL THEN
+                            ST_AsGeoJSON(g.real_geom)::jsonb
+                        WHEN sede.geometry IS NOT NULL THEN
+                            ST_AsGeoJSON(
+                                ST_ClosestPoint(
+                                    sede.geometry,
+                                    ST_Translate(
+                                        ST_Centroid(sede.geometry),
+                                        (('x' || substring(md5(COALESCE(NULLIF(g.polling_place_code,''), g.polling_place_name)), 1, 8))::bit(32)::int::double precision / 2147483647.0)
+                                            * (ST_XMax(ST_Envelope(sede.geometry)) - ST_XMin(ST_Envelope(sede.geometry))) * 0.35,
+                                        (('x' || substring(md5(COALESCE(NULLIF(g.polling_place_code,''), g.polling_place_name)), 9, 8))::bit(32)::int::double precision / 2147483647.0)
+                                            * (ST_YMax(ST_Envelope(sede.geometry)) - ST_YMin(ST_Envelope(sede.geometry))) * 0.35
+                                    )
+                                )
+                            )::jsonb
+                        ELSE NULL::jsonb
+                    END AS geometry
+                """
+            else:
+                geometry_final = "NULL::jsonb AS geometry"
+
+            rows = db.execute(
+                text(
+                    f"""
+                    WITH sede AS (
+                        SELECT geometry
+                        FROM silver.dim_territory
+                        WHERE level = 'district'
+                          AND ibge_geocode = (
+                              SELECT DISTINCT (es.municipality_ibge_code || '05')
+                              FROM silver.dim_territory es
+                              WHERE es.level::text = :level
+                              LIMIT 1
+                          )
+                        LIMIT 1
+                    ),
+                    grouped AS (
+                        SELECT
+                            COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name) AS polling_place_name,
+                            NULLIF(dt.metadata->>'polling_place_code', '') AS polling_place_code,
+                            COUNT(DISTINCT dt.tse_section)::int AS section_count,
+                            ARRAY_AGG(DISTINCT dt.tse_section ORDER BY dt.tse_section)
+                                FILTER (WHERE dt.tse_section IS NOT NULL) AS sections,
+                            SUM(fe.voters)::double precision AS value,
+                            (array_agg(dt.geometry) FILTER (WHERE dt.geometry IS NOT NULL))[1] AS real_geom
+                        FROM silver.fact_electorate fe
+                        JOIN silver.dim_territory dt ON dt.territory_id = fe.territory_id
+                        WHERE dt.level::text = :level
+                          AND fe.reference_year = :year
+                        GROUP BY
+                            COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name),
+                            NULLIF(dt.metadata->>'polling_place_code', '')
+                        ORDER BY polling_place_name ASC
+                        LIMIT :limit
+                    )
+                    SELECT
+                        md5(COALESCE(NULLIF(g.polling_place_code, ''), g.polling_place_name))::text AS territory_id,
+                        g.polling_place_name AS territory_name,
+                        'polling_place'::text AS territory_level,
+                        g.polling_place_name,
+                        g.polling_place_code,
+                        g.section_count,
+                        g.sections,
+                        g.value,
+                        {geometry_final}
+                    FROM grouped g
+                    CROSS JOIN sede
+                    ORDER BY g.polling_place_name ASC
+                    """
+                ),
+                {"level": level_en, "year": electorate_storage_year, "limit": limit},
+            ).mappings().all()
+
+            items = [
+                ElectorateMapItem(
+                    territory_id=row["territory_id"],
+                    territory_name=row["territory_name"],
+                    territory_level=row["territory_level"],
+                    metric=metric,
+                    value=float(row["value"]) if row["value"] is not None else None,
+                    year=effective_year,
+                    geometry=row["geometry"],
+                    polling_place_name=row["polling_place_name"],
+                    polling_place_code=row["polling_place_code"],
+                    section_count=row["section_count"],
+                    sections=[str(section) for section in (row["sections"] or [])],
+                )
+                for row in rows
+            ]
+
+            return ElectorateMapResponse(
+                level=to_external_level(level_en),
+                metric=metric,
+                year=effective_year,
+                metadata=QgMetadata(
+                    source_name="silver.fact_electorate + silver.dim_territory(metadata.polling_place_*)",
+                    updated_at=None,
+                    coverage_note="polling_place_aggregated",
+                    unit="voters",
+                    notes=electorate_year_note or "electorate_map_polling_place_v1",
+                    source_classification="oficial",
+                    config_version=load_strategic_engine_config().version,
+                ),
+                items=items,
             )
 
         rows = db.execute(

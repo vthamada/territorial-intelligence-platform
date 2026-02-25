@@ -1,0 +1,167 @@
+{
+  "generated_at_utc": "2026-02-24T12:54:57.067021+00:00",
+  "config": {
+    "dry_run": false,
+    "force": false,
+    "include_partial": false,
+    "stale_after_hours": 168,
+    "skip_dbt": true,
+    "skip_quality": true,
+    "allow_blocked": true,
+    "timeout_seconds": 45,
+    "max_retries": 3
+  },
+  "selected_jobs": [
+    "tse_catalog_discovery",
+    "tse_electorate_fetch",
+    "tse_results_fetch"
+  ],
+  "reprocess": {
+    "jobs": [
+      "tse_catalog_discovery",
+      "tse_electorate_fetch",
+      "tse_results_fetch"
+    ],
+    "periods": []
+  },
+  "plan": [
+    {
+      "job": "tse_catalog_discovery",
+      "reference_period": "2025",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": "success",
+      "latest_started_at_utc": "2026-02-11T16:41:26.121442-03:00"
+    },
+    {
+      "job": "tse_electorate_fetch",
+      "reference_period": "2025",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": "success",
+      "latest_started_at_utc": "2026-02-12T14:48:39.840329-03:00"
+    },
+    {
+      "job": "tse_results_fetch",
+      "reference_period": "2025",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": "success",
+      "latest_started_at_utc": "2026-02-11T16:41:52.623214-03:00"
+    }
+  ],
+  "executions": [
+    {
+      "job": "tse_catalog_discovery",
+      "phase": "incremental",
+      "reference_period": "2025",
+      "status": "success",
+      "rows_loaded": 0,
+      "started_at_utc": "2026-02-24T12:54:57.313917+00:00",
+      "finished_at_utc": "2026-02-24T12:54:57.982416+00:00",
+      "error": null,
+      "result": {
+        "job": "tse_catalog_discovery",
+        "status": "success",
+        "run_id": "10c6596c-a33c-4bd2-9c61-93810a3b9290",
+        "duration_seconds": 0.67,
+        "rows_extracted": 1,
+        "rows_written": 0,
+        "warnings": [
+          "No catalog entries returned for query 'resultados 2025'."
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "TSE",
+          "dataset": "tse_catalog_discovery",
+          "reference_period": "2025",
+          "extracted_at_utc": "2026-02-24T12:54:57Z",
+          "local_path": "data/bronze/tse/tse_catalog_discovery/2025/extracted_at=2026-02-24T12-54-57Z/raw.json",
+          "manifest_path": "data/manifests/tse/tse_catalog_discovery/2025/extracted_at=2026-02-24T12-54-57Z.yml",
+          "size_bytes": 15597,
+          "checksum_sha256": "ac7479a7a2537f4d58d42efb65cd70cc384ba415366ebcd2969bc581971e0847",
+          "uri": "ckan://package_search?period=2025"
+        }
+      }
+    },
+    {
+      "job": "tse_electorate_fetch",
+      "phase": "incremental",
+      "reference_period": "2025",
+      "status": "success",
+      "rows_loaded": 15248,
+      "started_at_utc": "2026-02-24T12:54:57.982433+00:00",
+      "finished_at_utc": "2026-02-24T12:58:41.994111+00:00",
+      "error": null,
+      "result": {
+        "job": "tse_electorate_fetch",
+        "status": "success",
+        "run_id": "6f4ca9ba-eae4-4d93-be8b-5892ce3725b7",
+        "duration_seconds": 223.99,
+        "rows_extracted": 15248,
+        "rows_written": 15248,
+        "warnings": [
+          "CKAN package 'eleitorado-2025' not found; fallback to 'eleitorado-2024'.",
+          "Requested reference_year=2025, but extracted election years are 2024."
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "TSE",
+          "dataset": "tse_perfil_eleitorado",
+          "reference_period": "2025",
+          "extracted_at_utc": "2026-02-24T12:58:41Z",
+          "local_path": "data/bronze/tse/tse_perfil_eleitorado/2025/extracted_at=2026-02-24T12-58-41Z/raw.zip",
+          "manifest_path": "data/manifests/tse/tse_perfil_eleitorado/2025/extracted_at=2026-02-24T12-58-41Z.yml",
+          "size_bytes": 187510912,
+          "checksum_sha256": "cc33b76106b53c7139158947fa7fd074e9761c23ccd092452ffac9485b5e98a6",
+          "uri": "https://cdn.tse.jus.br/estatistica/sead/odsele/perfil_eleitorado/perfil_eleitorado_2024.zip"
+        }
+      }
+    },
+    {
+      "job": "tse_results_fetch",
+      "phase": "incremental",
+      "reference_period": "2025",
+      "status": "success",
+      "rows_loaded": 12,
+      "started_at_utc": "2026-02-24T12:58:41.994137+00:00",
+      "finished_at_utc": "2026-02-24T12:58:54.219082+00:00",
+      "error": null,
+      "result": {
+        "job": "tse_results_fetch",
+        "status": "success",
+        "run_id": "f84aa90b-0606-45a5-9c5a-ca23478b7b30",
+        "duration_seconds": 12.22,
+        "rows_extracted": 12,
+        "rows_written": 12,
+        "warnings": [
+          "CKAN package 'resultados-2025' not found; fallback to 'resultados-2024'."
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "TSE",
+          "dataset": "tse_detalhe_votacao_munzona",
+          "reference_period": "2025",
+          "extracted_at_utc": "2026-02-24T12:58:54Z",
+          "local_path": "data/bronze/tse/tse_detalhe_votacao_munzona/2025/extracted_at=2026-02-24T12-58-54Z/raw.zip",
+          "manifest_path": "data/manifests/tse/tse_detalhe_votacao_munzona/2025/extracted_at=2026-02-24T12-58-54Z.yml",
+          "size_bytes": 1492465,
+          "checksum_sha256": "3409dbb13e013930909af6bd507beea3352d545c887bd9c56be16c89b84f1095",
+          "uri": "https://cdn.tse.jus.br/estatistica/sead/odsele/detalhe_votacao_munzona/detalhe_votacao_munzona_2024.zip"
+        }
+      }
+    }
+  ],
+  "summary": {
+    "planned_pairs": 3,
+    "executed_pairs": 3,
+    "skipped_pairs": 0,
+    "post_load_runs": 0,
+    "execution_status": {
+      "success": 3
+    }
+  }
+}

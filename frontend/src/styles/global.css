@@ -964,6 +964,49 @@ label {
   line-height: 1.35;
 }
 
+.overlay-toggle-label {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.55rem;
+  row-gap: 0.12rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.overlay-toggle-label input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+
+.overlay-toggle-text {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1rem;
+}
+
+.overlay-toggle-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink-soft);
+  opacity: 0.35;
+  flex-shrink: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.overlay-toggle-indicator.overlay-active {
+  background: var(--brand);
+  opacity: 1;
+}
+
 .territory-detail-actions {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1175,26 +1218,397 @@ label {
   min-width: 200px;
 }
 
+/* ── Map executive layout ── */
+
+.page-map-executive {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 100%;
+  padding: 0.5rem;
+}
+
+.map-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+}
+
+.map-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+}
+
+.map-search-bar input {
+  flex: 1;
+  min-width: 240px;
+  height: 40px;
+  font-size: 0.9rem;
+  padding: 0 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--bg-panel);
+  color: var(--ink);
+}
+
+.map-search-bar .button-secondary {
+  height: 40px;
+  min-width: 90px;
+}
+
+/* ── Filter bar (single-line) ── */
+
+.map-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.map-filter-bar-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.map-filter-bar-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  min-width: 0;
+}
+
+.map-filter-bar-form input,
+.map-filter-bar-form select {
+  height: 36px;
+  font-size: 0.82rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
+  background: var(--bg-panel);
+  color: var(--ink);
+  min-width: 80px;
+  max-width: 200px;
+}
+
+.map-filter-bar-actions {
+  display: flex;
+  gap: 0.35rem;
+  align-items: flex-end;
+}
+
+.map-filter-bar-actions button {
+  height: 36px;
+  padding: 0 0.75rem;
+  font-size: 0.8rem;
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.map-filter-bar-presets {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.map-filter-bar-presets .button-secondary {
+  height: 36px;
+  padding: 0 0.6rem;
+  font-size: 0.78rem;
+}
+
+/* ── Toolbar ── */
+
 .map-toolbar {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 0.6rem;
-  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.4rem 0.75rem;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
 }
 
 .map-toolbar-block {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   min-width: 0;
-  display: grid;
-  gap: 0.3rem;
 }
 
 .map-toolbar-label {
   margin: 0;
   color: var(--ink-soft);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  white-space: nowrap;
 }
+
+.map-toolbar-actions-row {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.map-toolbar-actions-row .button-secondary {
+  padding: 0 0.7rem;
+  font-size: 0.8rem;
+  height: 36px;
+}
+
+.map-toolbar-zoom {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.map-toolbar-zoom input[type="range"] {
+  width: 80px;
+  height: 4px;
+  cursor: pointer;
+}
+
+.map-toolbar-zoom .zoom-value {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink);
+  min-width: 1.2rem;
+  text-align: center;
+}
+
+/* ── Map + sidebar body ── */
+
+.map-with-sidebar {
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+}
+
+.map-with-sidebar .map-canvas-shell {
+  flex: 1;
+  min-width: 0;
+  height: clamp(520px, 74vh, 940px);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-right: none;
+  border-radius: 0.75rem 0 0 0.75rem;
+}
+
+.map-layers-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  border-radius: 0 0.75rem 0.75rem 0;
+  background: var(--surface);
+  padding: 0.9rem;
+  overflow-y: auto;
+  max-height: clamp(520px, 74vh, 940px);
+}
+
+.map-layers-sidebar h3 {
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin: 0 0 0.6rem;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+.map-layers-sidebar-group {
+  margin-bottom: 0.75rem;
+}
+
+.map-layers-sidebar-group:last-child {
+  margin-bottom: 0;
+}
+
+.map-layers-sidebar-group h4 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin: 0 0 0.3rem;
+  color: var(--ink);
+}
+
+.map-layers-sidebar-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.map-layers-sidebar-group li {
+  margin: 0;
+}
+
+.map-layers-sidebar-search {
+  margin-top: 0.75rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--line);
+}
+
+.map-layers-sidebar-search input {
+  width: 100%;
+  height: 32px;
+  font-size: 0.78rem;
+  padding: 0 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+  background: var(--bg-panel);
+  color: var(--ink);
+  margin-bottom: 0.35rem;
+}
+
+.map-layers-sidebar-search-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+.map-layers-sidebar-search-actions .button-secondary {
+  flex: 1;
+  height: 36px;
+  padding: 0 0.5rem;
+  font-size: 0.8rem;
+}
+
+.overlay-toggle-subtitle {
+  display: block;
+  grid-column: 2;
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+  margin-left: 0;
+  line-height: 1.2;
+}
+
+/* ── Footer bar ── */
+
+.map-footer-bar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: none;
+}
+
+.map-footer-bar span {
+  white-space: nowrap;
+}
+
+.map-footer-bar strong {
+  color: var(--ink);
+}
+
+.map-footer-error {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* ── Bottom panel (collapsible Ranking / Details) ── */
+
+.map-bottom-panel {
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.map-bottom-panel-summary {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.map-bottom-panel-summary:hover {
+  background: var(--surface);
+}
+
+.map-bottom-tab {
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.3rem;
+  background: var(--line);
+  font-size: 0.75rem;
+}
+
+.map-bottom-panel-content {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.map-bottom-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.map-bottom-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.map-bottom-section-header h3 {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.map-bottom-section-subtitle {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.map-bottom-section-header .button-secondary {
+  margin-left: auto;
+  height: 28px;
+  padding: 0 0.5rem;
+  font-size: 0.72rem;
+}
+
+/* ── Standalone map-canvas-shell (fallback when not in sidebar layout) ── */
 
 .map-canvas-shell {
   height: clamp(460px, 68vh, 860px);

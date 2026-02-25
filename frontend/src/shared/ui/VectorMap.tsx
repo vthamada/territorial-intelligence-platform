@@ -4,8 +4,15 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { MapLayerItem } from "../api/types";
 import { resolveLayerForZoom } from "../hooks/useAutoLayerSwitch";
 
-export type VizMode = "choropleth" | "points" | "heatmap" | "hotspots";
+export type VizMode = "choropleth" | "points" | "heatmap" | "critical" | "gap";
 export type BasemapMode = "none" | "streets" | "light";
+
+type TooltipContext = {
+  indicatorName?: string;
+  trend?: string | null;
+  source?: string;
+  updatedAt?: string | null;
+};
 
 export type VectorMapFeatureSelection = {
   tid: string;
@@ -17,6 +24,7 @@ export type VectorMapFeatureSelection = {
   lat?: number;
   layerKind?: MapLayerItem["layer_kind"];
   rawProperties?: Record<string, unknown>;
+  overlayId?: string;
 };
 
 type BasemapTileUrls = {
@@ -24,11 +32,63 @@ type BasemapTileUrls = {
   light?: string;
 };
 
+export type OverlayLayerConfig = {
+  /** Unique identifier for the overlay */
+  id: string;
+  /** Label for tooltip display */
+  label: string;
+  /** Layer ID used to build the tile URL (e.g. "urban_pois") */
+  tileLayerId: string;
+  /** How to render: circle points, fill polygons, or heatmap */
+  vizType: "circle" | "fill" | "heatmap";
+  /** Primary color for the overlay */
+  color: string;
+  /** Optional MapLibre filter expression applied client-side */
+  filter?: maplibregl.ExpressionSpecification;
+  /** Whether this overlay is currently visible */
+  enabled: boolean;
+  /** Opacity (0..1) */
+  opacity?: number;
+  /** Min zoom to show this overlay */
+  minZoom?: number;
+};
+
+/** GeoJSON source with MapLibre native clustering for proportional circles */
+export type GeoJsonClusterConfig = {
+  /** Unique identifier for this GeoJSON layer */
+  id: string;
+  /** GeoJSON FeatureCollection data */
+  data: GeoJSON.FeatureCollection;
+  /** Primary color for unclustered points and clusters */
+  color: string;
+  /** Opacity for unclustered points (0..1) */
+  opacity?: number;
+  /** Stroke color for points */
+  strokeColor?: string;
+  /** Stroke width for points */
+  strokeWidth?: number;
+  /** MapLibre expression for unclustered point radius (proportional sizing) */
+  radiusExpression?: maplibregl.ExpressionSpecification | number;
+  /** Cluster radius in pixels (default: 50) */
+  clusterRadius?: number;
+  /** Max zoom for clustering (default: 14) */
+  clusterMaxZoom?: number;
+  /** Cluster aggregation properties */
+  clusterProperties?: Record<string, unknown>;
+  /** Expression for cluster label text */
+  clusterLabelExpression?: maplibregl.ExpressionSpecification;
+  /** Function to build tooltip HTML for unclustered points */
+  tooltipFn?: (props: Record<string, unknown>) => string;
+  /** Function to build tooltip HTML for cluster points */
+  clusterTooltipFn?: (props: Record<string, unknown>) => string;
+  /** Min zoom to show this layer */
+  minZoom?: number;
+  /** Whether this layer is currently enabled */
+  enabled?: boolean;
+};
+
 export type VectorMapProps = {
   tileBaseUrl: string;
-  metric?: string;
-  period?: string;
-  domain?: string;
   layers?: MapLayerItem[];
   defaultLayerId?: string;
   vizMode?: VizMode;
@@ -44,6 +104,12 @@ export type VectorMapProps = {
   resetViewSignal?: number;
   focusTerritorySignal?: number;
   showContextLabels?: boolean;
+  tooltipContext?: TooltipContext;
+  overlays?: OverlayLayerConfig[];
+  /** GeoJSON cluster layers (e.g. proportional electoral section circles) */
+  geoJsonLayers?: GeoJsonClusterConfig[];
+  /** Render primary MVT layer as contour only (line, no fill) */
+  boundaryOnly?: boolean;
 };
 
 const DEFAULT_CENTER: [number, number] = [-43.62, -18.09];
@@ -97,13 +163,8 @@ function buildHasLabelFilter(): maplibregl.ExpressionSpecification {
   return ["all", ["!=", labelExpression, null], ["!=", labelExpression, ""]] as maplibregl.ExpressionSpecification;
 }
 
-function buildTileUrl(baseUrl: string, layerId: string, metric?: string, period?: string, domain?: string): string {
-  const params = new URLSearchParams();
-  if (metric) params.set("metric", metric);
-  if (period) params.set("period", period);
-  if (domain) params.set("domain", domain);
-  const qs = params.toString();
-  return `${baseUrl}/map/tiles/${layerId}/{z}/{x}/{y}.mvt${qs ? `?${qs}` : ""}`;
+function buildTileUrl(baseUrl: string, layerId: string): string {
+  return `${baseUrl}/map/tiles/${layerId}/{z}/{x}/{y}.mvt`;
 }
 
 function buildFillColor(stops: Array<{ value: number; color: string }>): maplibregl.ExpressionSpecification {
@@ -258,9 +319,6 @@ function buildBoundsFromGeometry(
 
 export function VectorMap({
   tileBaseUrl,
-  metric,
-  period,
-  domain,
   layers,
   defaultLayerId,
   vizMode = "choropleth",
@@ -276,6 +334,10 @@ export function VectorMap({
   resetViewSignal = 0,
   focusTerritorySignal = 0,
   showContextLabels = true,
+  tooltipContext,
+  overlays,
+  geoJsonLayers,
+  boundaryOnly = false,
 }: VectorMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -285,23 +347,78 @@ export function VectorMap({
   const clickHandlerRef = useRef<((event: maplibregl.MapLayerMouseEvent) => void) | null>(null);
   const enterHandlerRef = useRef<(() => void) | null>(null);
   const leaveHandlerRef = useRef<(() => void) | null>(null);
+  const moveHandlerRef = useRef<((event: maplibregl.MapLayerMouseEvent) => void) | null>(null);
+  const hoverPopupRef = useRef<maplibregl.Popup | null>(null);
+  const overlayInteractionLayersRef = useRef<string[]>([]);
+  const overlayClickHandlersRef = useRef<Map<string, (event: maplibregl.MapLayerMouseEvent) => void>>(new Map());
+  const overlayEnterHandlersRef = useRef<Map<string, () => void>>(new Map());
+  const overlayLeaveHandlersRef = useRef<Map<string, () => void>>(new Map());
+  const overlayMoveHandlersRef = useRef<Map<string, (event: maplibregl.MapLayerMouseEvent) => void>>(new Map());
+  const geoJsonInteractionLayersRef = useRef<string[]>([]);
+  const geoJsonClickHandlersRef = useRef<Map<string, (event: maplibregl.MapLayerMouseEvent) => void>>(new Map());
+  const geoJsonEnterHandlersRef = useRef<Map<string, () => void>>(new Map());
+  const geoJsonLeaveHandlersRef = useRef<Map<string, () => void>>(new Map());
+  const geoJsonMoveHandlersRef = useRef<Map<string, (event: maplibregl.MapLayerMouseEvent) => void>>(new Map());
 
   function detachInteractions(map: maplibregl.Map) {
-    if (!interactionLayerRef.current) return;
-    const activeLayer = interactionLayerRef.current;
-    if (clickHandlerRef.current) {
-      map.off("click", activeLayer, clickHandlerRef.current);
-      clickHandlerRef.current = null;
+    if (!interactionLayerRef.current) {
+      // still clean overlays even if primary is null
+    } else {
+      const activeLayer = interactionLayerRef.current;
+      if (clickHandlerRef.current) {
+        map.off("click", activeLayer, clickHandlerRef.current);
+        clickHandlerRef.current = null;
+      }
+      if (enterHandlerRef.current) {
+        map.off("mouseenter", activeLayer, enterHandlerRef.current);
+        enterHandlerRef.current = null;
+      }
+      if (leaveHandlerRef.current) {
+        map.off("mouseleave", activeLayer, leaveHandlerRef.current);
+        leaveHandlerRef.current = null;
+      }
+      if (moveHandlerRef.current) {
+        map.off("mousemove", activeLayer, moveHandlerRef.current);
+        moveHandlerRef.current = null;
+      }
+      interactionLayerRef.current = null;
     }
-    if (enterHandlerRef.current) {
-      map.off("mouseenter", activeLayer, enterHandlerRef.current);
-      enterHandlerRef.current = null;
+    if (hoverPopupRef.current) {
+      hoverPopupRef.current.remove();
+      hoverPopupRef.current = null;
     }
-    if (leaveHandlerRef.current) {
-      map.off("mouseleave", activeLayer, leaveHandlerRef.current);
-      leaveHandlerRef.current = null;
+    // Detach overlay interactions
+    for (const olLayerId of overlayInteractionLayersRef.current) {
+      const clickH = overlayClickHandlersRef.current.get(olLayerId);
+      if (clickH) map.off("click", olLayerId, clickH);
+      const enterH = overlayEnterHandlersRef.current.get(olLayerId);
+      if (enterH) map.off("mouseenter", olLayerId, enterH);
+      const leaveH = overlayLeaveHandlersRef.current.get(olLayerId);
+      if (leaveH) map.off("mouseleave", olLayerId, leaveH);
+      const moveH = overlayMoveHandlersRef.current.get(olLayerId);
+      if (moveH) map.off("mousemove", olLayerId, moveH);
     }
-    interactionLayerRef.current = null;
+    overlayInteractionLayersRef.current = [];
+    overlayClickHandlersRef.current.clear();
+    overlayEnterHandlersRef.current.clear();
+    overlayLeaveHandlersRef.current.clear();
+    overlayMoveHandlersRef.current.clear();
+    // Detach GeoJSON layer interactions
+    for (const gjLayerId of geoJsonInteractionLayersRef.current) {
+      const clickH = geoJsonClickHandlersRef.current.get(gjLayerId);
+      if (clickH) map.off("click", gjLayerId, clickH);
+      const enterH = geoJsonEnterHandlersRef.current.get(gjLayerId);
+      if (enterH) map.off("mouseenter", gjLayerId, enterH);
+      const leaveH = geoJsonLeaveHandlersRef.current.get(gjLayerId);
+      if (leaveH) map.off("mouseleave", gjLayerId, leaveH);
+      const moveH = geoJsonMoveHandlersRef.current.get(gjLayerId);
+      if (moveH) map.off("mousemove", gjLayerId, moveH);
+    }
+    geoJsonInteractionLayersRef.current = [];
+    geoJsonClickHandlersRef.current.clear();
+    geoJsonEnterHandlersRef.current.clear();
+    geoJsonLeaveHandlersRef.current.clear();
+    geoJsonMoveHandlersRef.current.clear();
   }
 
   const emptyStyle: maplibregl.StyleSpecification = {
@@ -403,7 +520,7 @@ export function VectorMap({
       const effectiveVizMode = layerKind === "point" && vizMode === "choropleth" ? "points" : vizMode;
       setCurrentLayerId(layerId);
 
-      const tileUrl = buildTileUrl(tileBaseUrl, layerId, metric, period, domain);
+      const tileUrl = buildTileUrl(tileBaseUrl, layerId);
       const basemapTileUrl = resolveBasemapTileUrl(basemapMode, basemapTileUrls);
       const basemapAttribution = resolveBasemapAttribution(basemapMode);
       const polygonFillOpacity = resolvePolygonFillOpacity(basemapMode);
@@ -417,6 +534,20 @@ export function VectorMap({
       if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
       if (map.getLayer(BASEMAP_LAYER_ID)) map.removeLayer(BASEMAP_LAYER_ID);
       if (map.getSource(BASEMAP_SOURCE_ID)) map.removeSource(BASEMAP_SOURCE_ID);
+
+      // Cleanup previous overlay layers and sources
+      const allMapLayers = map.getStyle()?.layers ?? [];
+      for (const lyr of allMapLayers) {
+        if (lyr.id.startsWith("overlay-layer-") || lyr.id.startsWith("overlay-border-") || lyr.id.startsWith("geojson-")) {
+          map.removeLayer(lyr.id);
+        }
+      }
+      const allSources = Object.keys(map.getStyle()?.sources ?? {});
+      for (const srcId of allSources) {
+        if (srcId.startsWith("overlay-source-") || srcId.startsWith("geojson-source-")) {
+          map.removeSource(srcId);
+        }
+      }
 
       try {
         if (basemapTileUrl) {
@@ -463,6 +594,26 @@ export function VectorMap({
                 2.2,
               ] as maplibregl.ExpressionSpecification,
               "line-opacity": 0.9,
+            },
+          });
+        } else if (boundaryOnly) {
+          // Boundary-only mode: subtle contour line, no fill
+          map.addLayer({
+            id: "line-layer",
+            type: "line",
+            source: SOURCE_ID,
+            "source-layer": layerId,
+            paint: {
+              "line-color": "rgba(15, 23, 42, 0.45)",
+              "line-width": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                8, 0.6,
+                12, 1.2,
+                16, 1.8,
+              ] as maplibregl.ExpressionSpecification,
+              "line-opacity": 0.7,
             },
           });
         } else if (effectiveVizMode === "choropleth" || effectiveVizMode === undefined) {
@@ -533,22 +684,32 @@ export function VectorMap({
             },
           });
         } else {
+          const gapExpression: maplibregl.ExpressionSpecification = [
+            "interpolate",
+            ["linear"],
+            buildNumericValueExpression(),
+            0,
+            "#0f766e",
+            40,
+            "#f59e0b",
+            80,
+            "#b91c1c",
+          ] as maplibregl.ExpressionSpecification;
+          const criticalExpression: maplibregl.ExpressionSpecification = [
+            "case",
+            ["!", buildHasValueFilter()],
+            "rgba(0,0,0,0.10)",
+            [">=", buildNumericValueExpression(), 80],
+            "#b91c1c",
+            "rgba(15, 23, 42, 0.08)",
+          ] as maplibregl.ExpressionSpecification;
           map.addLayer({
             id: "fill-layer",
             type: "fill",
             source: SOURCE_ID,
             "source-layer": layerId,
             paint: {
-              "fill-color": [
-                "case",
-                ["!", buildHasValueFilter()],
-                "#d1d5db",
-                [">=", buildNumericValueExpression(), 80],
-                "#b91c1c",
-                [">=", buildNumericValueExpression(), 50],
-                "#d97706",
-                "rgba(0,0,0,0.12)",
-              ] as maplibregl.ExpressionSpecification,
+              "fill-color": effectiveVizMode === "gap" ? gapExpression : criticalExpression,
               "fill-opacity": polygonFillOpacity,
             },
           });
@@ -656,18 +817,416 @@ export function VectorMap({
         const enterHandler = () => {
           map.getCanvas().style.cursor = "pointer";
         };
+        const moveHandler = (event: maplibregl.MapLayerMouseEvent) => {
+          const feature = event.features?.[0];
+          if (!feature?.properties) {
+            if (hoverPopupRef.current) {
+              hoverPopupRef.current.remove();
+              hoverPopupRef.current = null;
+            }
+            return;
+          }
+          const properties = feature.properties as Record<string, unknown>;
+          const rawValue = properties.val ?? properties.value;
+          const nameToken = String(
+            properties.tname ?? properties.territory_name ?? properties.name ?? properties.label ?? "n/d",
+          );
+          const valueToken = rawValue == null || rawValue === "" ? "n/d" : String(rawValue);
+          const trendToken = tooltipContext?.trend ?? String(properties.trend ?? "n/d");
+          const sourceToken = tooltipContext?.source ?? String(properties.source ?? "n/d");
+          const updatedToken = tooltipContext?.updatedAt ?? String(properties.updated_at ?? "n/d");
+          const indicatorToken = tooltipContext?.indicatorName ?? String(properties.metric ?? "indicador");
+
+          const content = [
+            `<strong>${nameToken}</strong>`,
+            `${indicatorToken}: ${valueToken}`,
+            `Tendencia: ${trendToken}`,
+            `Fonte: ${sourceToken}`,
+            `Atualizacao: ${updatedToken}`,
+          ].join("<br/>");
+
+          if (!hoverPopupRef.current) {
+            hoverPopupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12 });
+          }
+
+          hoverPopupRef.current.setLngLat(event.lngLat).setHTML(content).addTo(map);
+        };
         const leaveHandler = () => {
           map.getCanvas().style.cursor = "";
+          if (hoverPopupRef.current) {
+            hoverPopupRef.current.remove();
+            hoverPopupRef.current = null;
+          }
         };
 
         map.on("click", interactionLayer, clickHandler);
         map.on("mouseenter", interactionLayer, enterHandler);
+        map.on("mousemove", interactionLayer, moveHandler);
         map.on("mouseleave", interactionLayer, leaveHandler);
 
         interactionLayerRef.current = interactionLayer;
         clickHandlerRef.current = clickHandler;
         enterHandlerRef.current = enterHandler;
+        moveHandlerRef.current = moveHandler;
         leaveHandlerRef.current = leaveHandler;
+      }
+
+      // --- Overlay layers ---
+      const enabledOverlays = (overlays ?? []).filter((ol) => ol.enabled);
+      for (const overlay of enabledOverlays) {
+        const olSourceId = `overlay-source-${overlay.id}`;
+        const olLayerId = `overlay-layer-${overlay.id}`;
+        const olTileUrl = buildTileUrl(tileBaseUrl, overlay.tileLayerId);
+
+        try {
+          map.addSource(olSourceId, {
+            type: "vector",
+            tiles: [olTileUrl],
+            maxzoom: 18,
+          });
+
+          if (overlay.vizType === "circle") {
+            const paintOpts: Record<string, unknown> = {
+              "circle-radius": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                10, 3,
+                14, 6,
+                18, 10,
+              ],
+              "circle-color": overlay.color,
+              "circle-opacity": overlay.opacity ?? 0.8,
+              "circle-stroke-width": 1.2,
+              "circle-stroke-color": "#fff",
+            };
+            const layerDef: Record<string, unknown> = {
+              id: olLayerId,
+              type: "circle",
+              source: olSourceId,
+              "source-layer": overlay.tileLayerId,
+              paint: paintOpts,
+            };
+            if (overlay.filter) {
+              layerDef.filter = overlay.filter;
+            }
+            if (overlay.minZoom != null) {
+              layerDef.minzoom = overlay.minZoom;
+            }
+            map.addLayer(layerDef as maplibregl.LayerSpecification);
+          } else if (overlay.vizType === "fill") {
+            const paintOpts: Record<string, unknown> = {
+              "fill-color": overlay.color,
+              "fill-opacity": overlay.opacity ?? 0.25,
+            };
+            const layerDef: Record<string, unknown> = {
+              id: olLayerId,
+              type: "fill",
+              source: olSourceId,
+              "source-layer": overlay.tileLayerId,
+              paint: paintOpts,
+            };
+            if (overlay.filter) {
+              layerDef.filter = overlay.filter;
+            }
+            if (overlay.minZoom != null) {
+              layerDef.minzoom = overlay.minZoom;
+            }
+            map.addLayer(layerDef as maplibregl.LayerSpecification);
+            // Also add border for fill overlays
+            const olBorderId = `overlay-border-${overlay.id}`;
+            map.addLayer({
+              id: olBorderId,
+              type: "line",
+              source: olSourceId,
+              "source-layer": overlay.tileLayerId,
+              paint: {
+                "line-color": overlay.color,
+                "line-width": 1.5,
+                "line-opacity": 0.6,
+              },
+              ...(overlay.filter ? { filter: overlay.filter } : {}),
+              ...(overlay.minZoom != null ? { minzoom: overlay.minZoom } : {}),
+            } as maplibregl.LayerSpecification);
+          } else if (overlay.vizType === "heatmap") {
+            const layerDef: Record<string, unknown> = {
+              id: olLayerId,
+              type: "heatmap",
+              source: olSourceId,
+              "source-layer": overlay.tileLayerId,
+              paint: {
+                "heatmap-weight": 1,
+                "heatmap-intensity": 1,
+                "heatmap-radius": 25,
+                "heatmap-opacity": overlay.opacity ?? 0.6,
+                "heatmap-color": [
+                  "interpolate",
+                  ["linear"],
+                  ["heatmap-density"],
+                  0, "rgba(33,102,172,0)",
+                  0.2, "rgb(103,169,207)",
+                  0.4, "rgb(209,229,240)",
+                  0.6, "rgb(253,219,199)",
+                  0.8, "rgb(239,138,98)",
+                  1, "rgb(178,24,43)",
+                ],
+              },
+            };
+            if (overlay.filter) {
+              layerDef.filter = overlay.filter;
+            }
+            if (overlay.minZoom != null) {
+              layerDef.minzoom = overlay.minZoom;
+            }
+            map.addLayer(layerDef as maplibregl.LayerSpecification);
+          }
+
+          // Overlay interactions (for circle and fill types - heatmap has no feature interaction)
+          if (overlay.vizType !== "heatmap" && map.getLayer(olLayerId)) {
+            const olClickHandler = (event: maplibregl.MapLayerMouseEvent) => {
+              const feature = event.features?.[0];
+              if (!feature?.properties) return;
+              const props = feature.properties as Record<string, unknown>;
+              const tidSource = props.tid ?? props.territory_id ?? props.id ?? props.poi_id ?? "";
+              const tnameSource = props.tname ?? props.territory_name ?? props.name ?? props.label ?? "";
+              const rawVal = props.val ?? props.value;
+              const numVal = typeof rawVal === "number" ? rawVal : typeof rawVal === "string" && rawVal.trim() !== "" ? Number(rawVal) : undefined;
+              onFeatureClick?.({
+                tid: String(tidSource ?? ""),
+                tname: String(tnameSource ?? ""),
+                val: typeof numVal === "number" && Number.isFinite(numVal) ? numVal : undefined,
+                label: props.label == null ? undefined : String(props.label),
+                category: props.category == null ? undefined : String(props.category),
+                lon: Number.isFinite(event.lngLat.lng) ? event.lngLat.lng : undefined,
+                lat: Number.isFinite(event.lngLat.lat) ? event.lngLat.lat : undefined,
+                layerKind: overlay.vizType === "circle" ? "point" : "polygon",
+                rawProperties: props,
+                overlayId: overlay.id,
+              });
+            };
+            const olEnterHandler = () => { map.getCanvas().style.cursor = "pointer"; };
+            const olLeaveHandler = () => {
+              map.getCanvas().style.cursor = "";
+              if (hoverPopupRef.current) { hoverPopupRef.current.remove(); hoverPopupRef.current = null; }
+            };
+            const olMoveHandler = (event: maplibregl.MapLayerMouseEvent) => {
+              const feature = event.features?.[0];
+              if (!feature?.properties) {
+                if (hoverPopupRef.current) { hoverPopupRef.current.remove(); hoverPopupRef.current = null; }
+                return;
+              }
+              const props = feature.properties as Record<string, unknown>;
+              const nameToken = String(props.tname ?? props.name ?? props.label ?? "n/d");
+              const catToken = props.category ? String(props.category) : null;
+              const subcatToken = props.subcategory ? String(props.subcategory) : null;
+              const lines = [`<strong>${nameToken}</strong>`, `Camada: ${overlay.label}`];
+              if (catToken) lines.push(`Categoria: ${catToken}`);
+              if (subcatToken) lines.push(`Subcategoria: ${subcatToken}`);
+              const content = lines.join("<br/>");
+              if (!hoverPopupRef.current) {
+                hoverPopupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12 });
+              }
+              hoverPopupRef.current.setLngLat(event.lngLat).setHTML(content).addTo(map);
+            };
+            map.on("click", olLayerId, olClickHandler);
+            map.on("mouseenter", olLayerId, olEnterHandler);
+            map.on("mousemove", olLayerId, olMoveHandler);
+            map.on("mouseleave", olLayerId, olLeaveHandler);
+            overlayInteractionLayersRef.current.push(olLayerId);
+            overlayClickHandlersRef.current.set(olLayerId, olClickHandler);
+            overlayEnterHandlersRef.current.set(olLayerId, olEnterHandler);
+            overlayLeaveHandlersRef.current.set(olLayerId, olLeaveHandler);
+            overlayMoveHandlersRef.current.set(olLayerId, olMoveHandler);
+          }
+        } catch (overlayError) {
+          const reason = overlayError instanceof Error ? overlayError.message : `falha ao montar overlay ${overlay.id}`;
+          onError?.(reason);
+        }
+      }
+
+      // --- GeoJSON cluster layers ---
+      const enabledGeoJsonLayers = (geoJsonLayers ?? []).filter((gl) => gl.enabled !== false);
+      for (const gjLayer of enabledGeoJsonLayers) {
+        const gjSourceId = `geojson-source-${gjLayer.id}`;
+        const gjClusterCircleId = `geojson-clusters-${gjLayer.id}`;
+        const gjClusterLabelId = `geojson-cluster-label-${gjLayer.id}`;
+        const gjUnclusteredId = `geojson-unclustered-${gjLayer.id}`;
+
+        try {
+          const sourceConfig: Record<string, unknown> = {
+            type: "geojson",
+            data: gjLayer.data,
+            cluster: true,
+            clusterMaxZoom: gjLayer.clusterMaxZoom ?? 14,
+            clusterRadius: gjLayer.clusterRadius ?? 50,
+          };
+          if (gjLayer.clusterProperties) {
+            sourceConfig.clusterProperties = gjLayer.clusterProperties;
+          }
+          map.addSource(gjSourceId, sourceConfig as maplibregl.SourceSpecification);
+
+          // Cluster circles
+          map.addLayer({
+            id: gjClusterCircleId,
+            type: "circle",
+            source: gjSourceId,
+            filter: ["has", "point_count"],
+            paint: {
+              "circle-color": gjLayer.color,
+              "circle-radius": [
+                "step",
+                ["get", "point_count"],
+                16, 5, 20, 10, 26, 30, 34, 60, 42,
+              ] as maplibregl.ExpressionSpecification,
+              "circle-opacity": 0.7,
+              "circle-stroke-width": 2,
+              "circle-stroke-color": "#fff",
+            },
+            ...(gjLayer.minZoom != null ? { minzoom: gjLayer.minZoom } : {}),
+          } as maplibregl.LayerSpecification);
+
+          // Cluster label
+          const clusterLabel = gjLayer.clusterLabelExpression ?? [
+            "to-string", ["get", "point_count"],
+          ] as maplibregl.ExpressionSpecification;
+          map.addLayer({
+            id: gjClusterLabelId,
+            type: "symbol",
+            source: gjSourceId,
+            filter: ["has", "point_count"],
+            layout: {
+              "text-field": clusterLabel,
+              "text-size": 11,
+              "text-allow-overlap": true,
+              "text-font": ["Open Sans Semibold", "Arial Unicode MS Regular"],
+            },
+            paint: {
+              "text-color": "#fff",
+            },
+            ...(gjLayer.minZoom != null ? { minzoom: gjLayer.minZoom } : {}),
+          } as maplibregl.LayerSpecification);
+
+          // Unclustered proportional points
+          const defaultRadius = ["max", 4, ["min", 18, ["*", 0.35, ["sqrt", ["coalesce", ["get", "voters"], 1]]]]] as maplibregl.ExpressionSpecification;
+          map.addLayer({
+            id: gjUnclusteredId,
+            type: "circle",
+            source: gjSourceId,
+            filter: ["!", ["has", "point_count"]],
+            paint: {
+              "circle-radius": gjLayer.radiusExpression ?? defaultRadius,
+              "circle-color": gjLayer.color,
+              "circle-opacity": gjLayer.opacity ?? 0.65,
+              "circle-stroke-width": gjLayer.strokeWidth ?? 1.5,
+              "circle-stroke-color": gjLayer.strokeColor ?? "#fff",
+            },
+            ...(gjLayer.minZoom != null ? { minzoom: gjLayer.minZoom } : {}),
+          } as maplibregl.LayerSpecification);
+
+          // GeoJSON layer interactions
+          const gjClickHandler = (event: maplibregl.MapLayerMouseEvent) => {
+            const feature = event.features?.[0];
+            if (!feature?.properties) return;
+            const props = feature.properties as Record<string, unknown>;
+            const tidSource = props.tid ?? props.territory_id ?? props.id ?? "";
+            const tnameSource = props.tname ?? props.territory_name ?? props.name ?? "";
+            const rawVal = props.voters ?? props.val ?? props.value;
+            const numVal = typeof rawVal === "number" ? rawVal : typeof rawVal === "string" && rawVal.trim() !== "" ? Number(rawVal) : undefined;
+            onFeatureClick?.({
+              tid: String(tidSource ?? ""),
+              tname: String(tnameSource ?? ""),
+              val: typeof numVal === "number" && Number.isFinite(numVal) ? numVal : undefined,
+              label: props.label == null ? undefined : String(props.label ?? tnameSource),
+              category: props.category == null ? undefined : String(props.category),
+              lon: Number.isFinite(event.lngLat.lng) ? event.lngLat.lng : undefined,
+              lat: Number.isFinite(event.lngLat.lat) ? event.lngLat.lat : undefined,
+              layerKind: "point",
+              rawProperties: props,
+              overlayId: gjLayer.id,
+            });
+          };
+          const gjEnterHandler = () => { map.getCanvas().style.cursor = "pointer"; };
+          const gjLeaveHandler = () => {
+            map.getCanvas().style.cursor = "";
+            if (hoverPopupRef.current) { hoverPopupRef.current.remove(); hoverPopupRef.current = null; }
+          };
+          const gjMoveHandler = (event: maplibregl.MapLayerMouseEvent) => {
+            const feature = event.features?.[0];
+            if (!feature?.properties) {
+              if (hoverPopupRef.current) { hoverPopupRef.current.remove(); hoverPopupRef.current = null; }
+              return;
+            }
+            const props = feature.properties as Record<string, unknown>;
+            const content = gjLayer.tooltipFn
+              ? gjLayer.tooltipFn(props)
+              : `<strong>${String(props.tname ?? props.name ?? "n/d")}</strong>`;
+            if (!hoverPopupRef.current) {
+              hoverPopupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12 });
+            }
+            hoverPopupRef.current.setLngLat(event.lngLat).setHTML(content).addTo(map);
+          };
+          // Interactions on unclustered points
+          map.on("click", gjUnclusteredId, gjClickHandler);
+          map.on("mouseenter", gjUnclusteredId, gjEnterHandler);
+          map.on("mousemove", gjUnclusteredId, gjMoveHandler);
+          map.on("mouseleave", gjUnclusteredId, gjLeaveHandler);
+          geoJsonInteractionLayersRef.current.push(gjUnclusteredId);
+          geoJsonClickHandlersRef.current.set(gjUnclusteredId, gjClickHandler);
+          geoJsonEnterHandlersRef.current.set(gjUnclusteredId, gjEnterHandler);
+          geoJsonLeaveHandlersRef.current.set(gjUnclusteredId, gjLeaveHandler);
+          geoJsonMoveHandlersRef.current.set(gjUnclusteredId, gjMoveHandler);
+
+          // Cluster click — pointer and optional tooltip
+          const gjClusterEnter = () => { map.getCanvas().style.cursor = "pointer"; };
+          const gjClusterLeave = () => {
+            map.getCanvas().style.cursor = "";
+            if (hoverPopupRef.current) { hoverPopupRef.current.remove(); hoverPopupRef.current = null; }
+          };
+          const gjClusterMove = (event: maplibregl.MapLayerMouseEvent) => {
+            const feature = event.features?.[0];
+            if (!feature?.properties) return;
+            const props = feature.properties as Record<string, unknown>;
+            const content = gjLayer.clusterTooltipFn
+              ? gjLayer.clusterTooltipFn(props)
+              : `<strong>${String(props.point_count ?? "?")} pontos agrupados</strong>`;
+            if (!hoverPopupRef.current) {
+              hoverPopupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12 });
+            }
+            hoverPopupRef.current.setLngLat(event.lngLat).setHTML(content).addTo(map);
+          };
+          const gjClusterClick = (event: maplibregl.MapLayerMouseEvent) => {
+            const feature = event.features?.[0];
+            if (!feature) return;
+            const clusterId = feature.properties?.cluster_id;
+            if (clusterId == null) return;
+            const src = map.getSource(gjSourceId);
+            if (src && "getClusterExpansionZoom" in src) {
+              (src as maplibregl.GeoJSONSource).getClusterExpansionZoom(clusterId as number).then((expZoom) => {
+                const geo = feature.geometry;
+                if (geo.type === "Point") {
+                  safeEaseTo(map, {
+                    center: geo.coordinates as [number, number],
+                    zoom: Math.min(expZoom, 18),
+                    duration: 400,
+                    essential: true,
+                  });
+                }
+              });
+            }
+          };
+          map.on("click", gjClusterCircleId, gjClusterClick);
+          map.on("mouseenter", gjClusterCircleId, gjClusterEnter);
+          map.on("mousemove", gjClusterCircleId, gjClusterMove);
+          map.on("mouseleave", gjClusterCircleId, gjClusterLeave);
+          geoJsonInteractionLayersRef.current.push(gjClusterCircleId);
+          geoJsonClickHandlersRef.current.set(gjClusterCircleId, gjClusterClick);
+          geoJsonEnterHandlersRef.current.set(gjClusterCircleId, gjClusterEnter);
+          geoJsonLeaveHandlersRef.current.set(gjClusterCircleId, gjClusterLeave);
+          geoJsonMoveHandlersRef.current.set(gjClusterCircleId, gjClusterMove);
+        } catch (gjError) {
+          const reason = gjError instanceof Error ? gjError.message : `falha ao montar GeoJSON layer ${gjLayer.id}`;
+          onError?.(reason);
+        }
       }
     };
 
@@ -679,9 +1238,6 @@ export function VectorMap({
     updateLayers();
   }, [
     tileBaseUrl,
-    metric,
-    period,
-    domain,
     layers,
     defaultLayerId,
     vizMode,
@@ -691,6 +1247,10 @@ export function VectorMap({
     basemapMode,
     basemapTileUrls,
     showContextLabels,
+    tooltipContext,
+    overlays,
+    geoJsonLayers,
+    boundaryOnly,
   ]);
 
   useEffect(() => {
@@ -787,7 +1347,8 @@ export function VectorMap({
       safeFitBounds(map, bounds as [[number, number], [number, number]]);
     };
 
-    if (map.isStyleLoaded() && map.areTilesLoaded()) {
+    const tilesReady = typeof map.areTilesLoaded === "function" ? map.areTilesLoaded() : true;
+    if (map.isStyleLoaded() && tilesReady) {
       focusTerritory();
       return;
     }

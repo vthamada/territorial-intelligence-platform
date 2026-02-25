@@ -1,6 +1,6 @@
 PYTHON ?= python
 
-.PHONY: install up down db-init sync-connectors validate-mte-p0 frontend-install frontend-test frontend-build test lint run-api
+.PHONY: install up down db-init sync-connectors validate-mte-p0 frontend-install frontend-test frontend-build test lint run-api ops-routine
 
 install:
 	$(PYTHON) -m pip install -e .[dev]
@@ -37,3 +37,7 @@ lint:
 
 run-api:
 	$(PYTHON) -m uvicorn app.api.main:app --reload --host 0.0.0.0 --port 8000
+
+ops-routine:
+	PYTHONPATH=src $(PYTHON) -c "from pipelines.ibge_geometries import run; import json; print(json.dumps(run(reference_period='2025', force=True), ensure_ascii=False))"
+	PYTHONPATH=src $(PYTHON) -c "from pipelines.quality_suite import run; import json; print(json.dumps(run(reference_period='2025'), ensure_ascii=False))"

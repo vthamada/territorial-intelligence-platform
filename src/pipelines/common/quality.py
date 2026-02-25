@@ -26,6 +26,7 @@ _INDICATOR_SOURCE_MAP: tuple[tuple[str, str], ...] = (
     ("aneel", "ANEEL"),
     ("suasweb", "SUASWEB"),
     ("cneas", "CNEAS"),
+    ("portal_transparencia", "PORTAL_TRANSPARENCIA"),
     ("cecad", "CECAD"),
     ("censo_suas", "CENSO_SUAS"),
 )
@@ -50,6 +51,13 @@ def _missing_ratio(session: Session, table_name: str, condition_sql: str) -> flo
         return 0.0
     missing = _scalar(session, f"SELECT COUNT(*) FROM {table_name} WHERE {condition_sql}")
     return as_float(missing) / as_float(total)
+
+
+def _parse_reference_year_token(value: str | None) -> int | None:
+    token = str(value or "").strip()
+    if len(token) >= 4 and token[:4].isdigit():
+        return int(token[:4])
+    return None
 
 
 def _normalize_type_name(value: str) -> str:
@@ -592,34 +600,90 @@ def check_fact_indicator_source_rows(
     thresholds: QualityThresholds,
 ) -> list[CheckResult]:
     results: list[CheckResult] = []
+    requested_year = _parse_reference_year_token(reference_period)
     for source_key, source_name in _INDICATOR_SOURCE_MAP:
         min_rows = thresholds.get(
             "fact_indicator",
             f"min_rows_{source_key}",
             fallback=0,
         )
-        rows = _scalar(
-            session,
-            """
-            SELECT COUNT(*)
-            FROM silver.fact_indicator
-            WHERE source = :source
-              AND (
-                    CAST(:reference_period AS TEXT) IS NULL
-                    OR reference_period = CAST(:reference_period AS TEXT)
-                  )
-            """,
-            {"source": source_name, "reference_period": reference_period},
+        rows = int(
+            _scalar(
+                session,
+                """
+                SELECT COUNT(*)
+                FROM silver.fact_indicator
+                WHERE source = :source
+                  AND (
+                        CAST(:reference_period AS TEXT) IS NULL
+                        OR reference_period = CAST(:reference_period AS TEXT)
+                      )
+                """,
+                {"source": source_name, "reference_period": reference_period},
+            )
+            or 0
         )
+
+        effective_rows = rows
+        details = (
+            f"Expected at least {min_rows} row(s) for source {source_name} "
+            f"in reference period {reference_period}."
+        )
+
+        allow_lag = int(
+            thresholds.get(
+                "fact_indicator",
+                f"allow_rows_reference_lag_{source_key}",
+                fallback=0,
+            )
+        )
+        max_lag_years = int(
+            thresholds.get(
+                "fact_indicator",
+                f"max_rows_reference_lag_years_{source_key}",
+                fallback=0,
+            )
+        )
+
+        if rows < min_rows and requested_year is not None and allow_lag > 0 and max_lag_years >= 0:
+            latest_year_stats = session.execute(
+                text(
+                    """
+                    WITH yearly AS (
+                        SELECT
+                            CAST(reference_period AS INTEGER) AS ref_year,
+                            COUNT(*) AS rows
+                        FROM silver.fact_indicator
+                        WHERE source = :source
+                          AND reference_period ~ '^\\d{4}$'
+                        GROUP BY CAST(reference_period AS INTEGER)
+                    )
+                    SELECT ref_year, rows
+                    FROM yearly
+                    WHERE ref_year <= :requested_year
+                    ORDER BY ref_year DESC
+                    LIMIT 1
+                    """
+                ),
+                {"source": source_name, "requested_year": requested_year},
+            ).mappings().first()
+            if latest_year_stats is not None:
+                latest_year = int(latest_year_stats["ref_year"])
+                latest_rows = int(latest_year_stats["rows"])
+                if requested_year - latest_year <= max_lag_years:
+                    effective_rows = latest_rows
+                    details = (
+                        f"Expected at least {min_rows} row(s) for source {source_name} "
+                        f"in reference period {reference_period}. "
+                        f"Using latest available year {latest_year} within lag {max_lag_years}."
+                    )
+
         results.append(
             CheckResult(
                 name=f"source_rows_{source_key}",
-                status="pass" if rows >= min_rows else "warn",
-                details=(
-                    f"Expected at least {min_rows} row(s) for source {source_name} "
-                    f"in reference period {reference_period}."
-                ),
-                observed_value=rows,
+                status="pass" if effective_rows >= min_rows else "warn",
+                details=details,
+                observed_value=effective_rows,
                 threshold_value=min_rows,
             )
         )
@@ -1689,6 +1753,7 @@ def check_ops_pipeline_runs(
     thresholds: QualityThresholds,
 ) -> list[CheckResult]:
     results: list[CheckResult] = []
+    requested_year = _parse_reference_year_token(reference_period)
     min_successful_runs = thresholds.get(
         "ops_pipeline_runs",
         "min_successful_runs_per_job",
@@ -1715,6 +1780,26 @@ def check_ops_pipeline_runs(
     )
 
     for job_name, wave in jobs:
+        min_successful_runs_job = thresholds.get(
+            "ops_pipeline_runs",
+            f"min_successful_runs_{job_name}",
+            fallback=min_successful_runs,
+        )
+        allow_lag = int(
+            thresholds.get(
+                "ops_pipeline_runs",
+                f"allow_reference_lag_{job_name}",
+                fallback=0,
+            )
+        )
+        max_lag_years = int(
+            thresholds.get(
+                "ops_pipeline_runs",
+                f"max_reference_lag_years_{job_name}",
+                fallback=0,
+            )
+        )
+
         sql = """
             SELECT COUNT(*)
             FROM ops.pipeline_runs
@@ -1723,23 +1808,68 @@ def check_ops_pipeline_runs(
               AND status = 'success'
         """
 
-        successful_runs = _scalar(
-            session,
-            sql,
-            {"job_name": job_name, "reference_period": reference_period},
+        successful_runs = int(
+            _scalar(
+                session,
+                sql,
+                {"job_name": job_name, "reference_period": reference_period},
+            )
+            or 0
         )
-        status = "pass" if successful_runs >= min_successful_runs else "warn"
+        effective_successful_runs = successful_runs
+        details = (
+            f"Expected at least {min_successful_runs_job} successful run(s) for "
+            f"{job_name} in reference period {reference_period}."
+        )
+
+        if (
+            successful_runs < min_successful_runs_job
+            and requested_year is not None
+            and allow_lag > 0
+            and max_lag_years >= 0
+        ):
+            latest_year_stats = session.execute(
+                text(
+                    """
+                    WITH yearly AS (
+                        SELECT
+                            CAST(reference_period AS INTEGER) AS ref_year,
+                            COUNT(*) AS successful_runs
+                        FROM ops.pipeline_runs
+                        WHERE job_name = :job_name
+                          AND status = 'success'
+                          AND reference_period ~ '^\\d{4}$'
+                        GROUP BY CAST(reference_period AS INTEGER)
+                    )
+                    SELECT ref_year, successful_runs
+                    FROM yearly
+                    WHERE ref_year <= :requested_year
+                    ORDER BY ref_year DESC
+                    LIMIT 1
+                    """
+                ),
+                {"job_name": job_name, "requested_year": requested_year},
+            ).mappings().first()
+            if latest_year_stats is not None:
+                latest_year = int(latest_year_stats["ref_year"])
+                latest_successful_runs = int(latest_year_stats["successful_runs"])
+                if requested_year - latest_year <= max_lag_years:
+                    effective_successful_runs = latest_successful_runs
+                    details = (
+                        f"Expected at least {min_successful_runs_job} successful run(s) for "
+                        f"{job_name} in reference period {reference_period}. "
+                        f"Using latest available year {latest_year} within lag {max_lag_years}."
+                    )
+
+        status = "pass" if effective_successful_runs >= min_successful_runs_job else "warn"
         wave_token = wave.lower().replace("-", "")
         results.append(
             CheckResult(
                 name=f"{wave_token}_pipeline_run_{job_name}",
                 status=status,
-                details=(
-                    f"Expected at least {min_successful_runs} successful run(s) for "
-                    f"{job_name} in reference period {reference_period}."
-                ),
-                observed_value=successful_runs,
-                threshold_value=min_successful_runs,
+                details=details,
+                observed_value=effective_successful_runs,
+                threshold_value=min_successful_runs_job,
             )
         )
 

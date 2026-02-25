@@ -1,0 +1,695 @@
+{
+  "generated_at_utc": "2026-02-24T13:07:52.402206+00:00",
+  "config": {
+    "dry_run": false,
+    "force": false,
+    "include_partial": false,
+    "stale_after_hours": 168,
+    "skip_dbt": true,
+    "skip_quality": true,
+    "allow_blocked": true,
+    "timeout_seconds": 45,
+    "max_retries": 3
+  },
+  "selected_jobs": [
+    "inmet_climate_fetch",
+    "inpe_queimadas_fetch",
+    "ana_hydrology_fetch"
+  ],
+  "reprocess": {
+    "jobs": [
+      "ana_hydrology_fetch",
+      "inmet_climate_fetch",
+      "inpe_queimadas_fetch"
+    ],
+    "periods": []
+  },
+  "plan": [
+    {
+      "job": "inmet_climate_fetch",
+      "reference_period": "2021",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": null,
+      "latest_started_at_utc": null
+    },
+    {
+      "job": "inmet_climate_fetch",
+      "reference_period": "2022",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": null,
+      "latest_started_at_utc": null
+    },
+    {
+      "job": "inmet_climate_fetch",
+      "reference_period": "2023",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": null,
+      "latest_started_at_utc": null
+    },
+    {
+      "job": "inmet_climate_fetch",
+      "reference_period": "2024",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": null,
+      "latest_started_at_utc": null
+    },
+    {
+      "job": "inmet_climate_fetch",
+      "reference_period": "2025",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": "success",
+      "latest_started_at_utc": "2026-02-12T14:36:42.352854-03:00"
+    },
+    {
+      "job": "inpe_queimadas_fetch",
+      "reference_period": "2021",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": null,
+      "latest_started_at_utc": null
+    },
+    {
+      "job": "inpe_queimadas_fetch",
+      "reference_period": "2022",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": null,
+      "latest_started_at_utc": null
+    },
+    {
+      "job": "inpe_queimadas_fetch",
+      "reference_period": "2023",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": null,
+      "latest_started_at_utc": null
+    },
+    {
+      "job": "inpe_queimadas_fetch",
+      "reference_period": "2024",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": null,
+      "latest_started_at_utc": null
+    },
+    {
+      "job": "inpe_queimadas_fetch",
+      "reference_period": "2025",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": "success",
+      "latest_started_at_utc": "2026-02-12T14:36:54.209044-03:00"
+    },
+    {
+      "job": "ana_hydrology_fetch",
+      "reference_period": "2021",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": null,
+      "latest_started_at_utc": null
+    },
+    {
+      "job": "ana_hydrology_fetch",
+      "reference_period": "2022",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": null,
+      "latest_started_at_utc": null
+    },
+    {
+      "job": "ana_hydrology_fetch",
+      "reference_period": "2023",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": null,
+      "latest_started_at_utc": null
+    },
+    {
+      "job": "ana_hydrology_fetch",
+      "reference_period": "2024",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": null,
+      "latest_started_at_utc": null
+    },
+    {
+      "job": "ana_hydrology_fetch",
+      "reference_period": "2025",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": "success",
+      "latest_started_at_utc": "2026-02-12T14:48:39.950498-03:00"
+    }
+  ],
+  "executions": [
+    {
+      "job": "inmet_climate_fetch",
+      "phase": "incremental",
+      "reference_period": "2021",
+      "status": "success",
+      "rows_loaded": 3,
+      "started_at_utc": "2026-02-24T13:07:52.653483+00:00",
+      "finished_at_utc": "2026-02-24T13:08:04.397875+00:00",
+      "error": null,
+      "result": {
+        "job": "inmet_climate_fetch",
+        "status": "success",
+        "run_id": "cd03f8bf-fd57-4bd0-99bd-bf7e8b99a288",
+        "duration_seconds": 11.74,
+        "rows_extracted": 1,
+        "rows_written": 3,
+        "warnings": [
+          "INMET remote source failed for 'https://portal.inmet.gov.br/uploads/dadoshistoricos/2021.zip': Request failed after retries for URL: https://portal.inmet.gov.br/uploads/dadoshistoricos/2021.zip"
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "INMET",
+          "dataset": "inmet_climate_catalog",
+          "reference_period": "2021",
+          "extracted_at_utc": "2026-02-24T13:08:04Z",
+          "local_path": "data/bronze/inmet/inmet_climate_catalog/2021/extracted_at=2026-02-24T13-08-04Z/raw.csv",
+          "manifest_path": "data/manifests/inmet/inmet_climate_catalog/2021/extracted_at=2026-02-24T13-08-04Z.yml",
+          "size_bytes": 164,
+          "checksum_sha256": "d0ee4ec32486f446cdef8252f8396d0c7e3ebb382529b76b6763606629eef5ee",
+          "uri": "file:///C:/Users/DTI/Desktop/territorial-intelligence-platform/data/manual/inmet/inmet_diamantina_2025.csv"
+        }
+      }
+    },
+    {
+      "job": "inmet_climate_fetch",
+      "phase": "incremental",
+      "reference_period": "2022",
+      "status": "success",
+      "rows_loaded": 3,
+      "started_at_utc": "2026-02-24T13:08:04.397892+00:00",
+      "finished_at_utc": "2026-02-24T13:08:15.939544+00:00",
+      "error": null,
+      "result": {
+        "job": "inmet_climate_fetch",
+        "status": "success",
+        "run_id": "6eb30694-291c-4db2-9014-87fcad0bc77b",
+        "duration_seconds": 11.54,
+        "rows_extracted": 1,
+        "rows_written": 3,
+        "warnings": [
+          "INMET remote source failed for 'https://portal.inmet.gov.br/uploads/dadoshistoricos/2022.zip': Request failed after retries for URL: https://portal.inmet.gov.br/uploads/dadoshistoricos/2022.zip"
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "INMET",
+          "dataset": "inmet_climate_catalog",
+          "reference_period": "2022",
+          "extracted_at_utc": "2026-02-24T13:08:15Z",
+          "local_path": "data/bronze/inmet/inmet_climate_catalog/2022/extracted_at=2026-02-24T13-08-15Z/raw.csv",
+          "manifest_path": "data/manifests/inmet/inmet_climate_catalog/2022/extracted_at=2026-02-24T13-08-15Z.yml",
+          "size_bytes": 164,
+          "checksum_sha256": "d0ee4ec32486f446cdef8252f8396d0c7e3ebb382529b76b6763606629eef5ee",
+          "uri": "file:///C:/Users/DTI/Desktop/territorial-intelligence-platform/data/manual/inmet/inmet_diamantina_2025.csv"
+        }
+      }
+    },
+    {
+      "job": "inmet_climate_fetch",
+      "phase": "incremental",
+      "reference_period": "2023",
+      "status": "success",
+      "rows_loaded": 3,
+      "started_at_utc": "2026-02-24T13:08:15.939557+00:00",
+      "finished_at_utc": "2026-02-24T13:08:27.485506+00:00",
+      "error": null,
+      "result": {
+        "job": "inmet_climate_fetch",
+        "status": "success",
+        "run_id": "59fb1aa5-1b4f-4425-bf80-f2f25d77878d",
+        "duration_seconds": 11.55,
+        "rows_extracted": 1,
+        "rows_written": 3,
+        "warnings": [
+          "INMET remote source failed for 'https://portal.inmet.gov.br/uploads/dadoshistoricos/2023.zip': Request failed after retries for URL: https://portal.inmet.gov.br/uploads/dadoshistoricos/2023.zip"
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "INMET",
+          "dataset": "inmet_climate_catalog",
+          "reference_period": "2023",
+          "extracted_at_utc": "2026-02-24T13:08:27Z",
+          "local_path": "data/bronze/inmet/inmet_climate_catalog/2023/extracted_at=2026-02-24T13-08-27Z/raw.csv",
+          "manifest_path": "data/manifests/inmet/inmet_climate_catalog/2023/extracted_at=2026-02-24T13-08-27Z.yml",
+          "size_bytes": 164,
+          "checksum_sha256": "d0ee4ec32486f446cdef8252f8396d0c7e3ebb382529b76b6763606629eef5ee",
+          "uri": "file:///C:/Users/DTI/Desktop/territorial-intelligence-platform/data/manual/inmet/inmet_diamantina_2025.csv"
+        }
+      }
+    },
+    {
+      "job": "inmet_climate_fetch",
+      "phase": "incremental",
+      "reference_period": "2024",
+      "status": "success",
+      "rows_loaded": 3,
+      "started_at_utc": "2026-02-24T13:08:27.485518+00:00",
+      "finished_at_utc": "2026-02-24T13:08:39.025271+00:00",
+      "error": null,
+      "result": {
+        "job": "inmet_climate_fetch",
+        "status": "success",
+        "run_id": "0b21f9be-0c48-49fc-aa0e-4cc3db1947e4",
+        "duration_seconds": 11.54,
+        "rows_extracted": 1,
+        "rows_written": 3,
+        "warnings": [
+          "INMET remote source failed for 'https://portal.inmet.gov.br/uploads/dadoshistoricos/2024.zip': Request failed after retries for URL: https://portal.inmet.gov.br/uploads/dadoshistoricos/2024.zip"
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "INMET",
+          "dataset": "inmet_climate_catalog",
+          "reference_period": "2024",
+          "extracted_at_utc": "2026-02-24T13:08:39Z",
+          "local_path": "data/bronze/inmet/inmet_climate_catalog/2024/extracted_at=2026-02-24T13-08-39Z/raw.csv",
+          "manifest_path": "data/manifests/inmet/inmet_climate_catalog/2024/extracted_at=2026-02-24T13-08-39Z.yml",
+          "size_bytes": 164,
+          "checksum_sha256": "d0ee4ec32486f446cdef8252f8396d0c7e3ebb382529b76b6763606629eef5ee",
+          "uri": "file:///C:/Users/DTI/Desktop/territorial-intelligence-platform/data/manual/inmet/inmet_diamantina_2025.csv"
+        }
+      }
+    },
+    {
+      "job": "inmet_climate_fetch",
+      "phase": "incremental",
+      "reference_period": "2025",
+      "status": "success",
+      "rows_loaded": 3,
+      "started_at_utc": "2026-02-24T13:08:39.025287+00:00",
+      "finished_at_utc": "2026-02-24T13:08:50.565698+00:00",
+      "error": null,
+      "result": {
+        "job": "inmet_climate_fetch",
+        "status": "success",
+        "run_id": "1b52457a-9c55-499b-8691-7bfc50452385",
+        "duration_seconds": 11.54,
+        "rows_extracted": 1,
+        "rows_written": 3,
+        "warnings": [
+          "INMET remote source failed for 'https://portal.inmet.gov.br/uploads/dadoshistoricos/2025.zip': Request failed after retries for URL: https://portal.inmet.gov.br/uploads/dadoshistoricos/2025.zip"
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "INMET",
+          "dataset": "inmet_climate_catalog",
+          "reference_period": "2025",
+          "extracted_at_utc": "2026-02-24T13:08:50Z",
+          "local_path": "data/bronze/inmet/inmet_climate_catalog/2025/extracted_at=2026-02-24T13-08-50Z/raw.csv",
+          "manifest_path": "data/manifests/inmet/inmet_climate_catalog/2025/extracted_at=2026-02-24T13-08-50Z.yml",
+          "size_bytes": 164,
+          "checksum_sha256": "d0ee4ec32486f446cdef8252f8396d0c7e3ebb382529b76b6763606629eef5ee",
+          "uri": "file:///C:/Users/DTI/Desktop/territorial-intelligence-platform/data/manual/inmet/inmet_diamantina_2025.csv"
+        }
+      }
+    },
+    {
+      "job": "inpe_queimadas_fetch",
+      "phase": "incremental",
+      "reference_period": "2021",
+      "status": "success",
+      "rows_loaded": 1,
+      "started_at_utc": "2026-02-24T13:08:50.565710+00:00",
+      "finished_at_utc": "2026-02-24T13:09:14.521591+00:00",
+      "error": null,
+      "result": {
+        "job": "inpe_queimadas_fetch",
+        "status": "success",
+        "run_id": "edbf997b-e296-4ee4-b4d6-825f3e26c08b",
+        "duration_seconds": 23.95,
+        "rows_extracted": 1,
+        "rows_written": 1,
+        "warnings": [
+          "INPE_QUEIMADAS remote payload produced no indicator rows; using manual fallback 'inpe_queimadas_diamantina_2025.csv'."
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "INPE_QUEIMADAS",
+          "dataset": "inpe_queimadas_catalog",
+          "reference_period": "2021",
+          "extracted_at_utc": "2026-02-24T13:09:14Z",
+          "local_path": "data/bronze/inpe_queimadas/inpe_queimadas_catalog/2021/extracted_at=2026-02-24T13-09-14Z/raw.csv",
+          "manifest_path": "data/manifests/inpe_queimadas/inpe_queimadas_catalog/2021/extracted_at=2026-02-24T13-09-14Z.yml",
+          "size_bytes": 65,
+          "checksum_sha256": "33a25667290a43cb467cbb42937ff0a20092dc51403b71ccd5ffb638bbaef4aa",
+          "uri": "file:///C:/Users/DTI/Desktop/territorial-intelligence-platform/data/manual/inpe_queimadas/inpe_queimadas_diamantina_2025.csv"
+        }
+      }
+    },
+    {
+      "job": "inpe_queimadas_fetch",
+      "phase": "incremental",
+      "reference_period": "2022",
+      "status": "success",
+      "rows_loaded": 1,
+      "started_at_utc": "2026-02-24T13:09:14.521616+00:00",
+      "finished_at_utc": "2026-02-24T13:09:40.704626+00:00",
+      "error": null,
+      "result": {
+        "job": "inpe_queimadas_fetch",
+        "status": "success",
+        "run_id": "26474c6c-2219-4b55-892d-e88ccac6dd5c",
+        "duration_seconds": 26.17,
+        "rows_extracted": 1,
+        "rows_written": 1,
+        "warnings": [
+          "INPE_QUEIMADAS remote payload produced no indicator rows; using manual fallback 'inpe_queimadas_diamantina_2025.csv'."
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "INPE_QUEIMADAS",
+          "dataset": "inpe_queimadas_catalog",
+          "reference_period": "2022",
+          "extracted_at_utc": "2026-02-24T13:09:40Z",
+          "local_path": "data/bronze/inpe_queimadas/inpe_queimadas_catalog/2022/extracted_at=2026-02-24T13-09-40Z/raw.csv",
+          "manifest_path": "data/manifests/inpe_queimadas/inpe_queimadas_catalog/2022/extracted_at=2026-02-24T13-09-40Z.yml",
+          "size_bytes": 65,
+          "checksum_sha256": "33a25667290a43cb467cbb42937ff0a20092dc51403b71ccd5ffb638bbaef4aa",
+          "uri": "file:///C:/Users/DTI/Desktop/territorial-intelligence-platform/data/manual/inpe_queimadas/inpe_queimadas_diamantina_2025.csv"
+        }
+      }
+    },
+    {
+      "job": "inpe_queimadas_fetch",
+      "phase": "incremental",
+      "reference_period": "2023",
+      "status": "success",
+      "rows_loaded": 1,
+      "started_at_utc": "2026-02-24T13:09:40.704647+00:00",
+      "finished_at_utc": "2026-02-24T13:10:05.195536+00:00",
+      "error": null,
+      "result": {
+        "job": "inpe_queimadas_fetch",
+        "status": "success",
+        "run_id": "ad5a638e-663a-49cf-a428-a14bde6eb5f0",
+        "duration_seconds": 24.48,
+        "rows_extracted": 1,
+        "rows_written": 1,
+        "warnings": [
+          "INPE_QUEIMADAS remote payload produced no indicator rows; using manual fallback 'inpe_queimadas_diamantina_2025.csv'."
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "INPE_QUEIMADAS",
+          "dataset": "inpe_queimadas_catalog",
+          "reference_period": "2023",
+          "extracted_at_utc": "2026-02-24T13:10:05Z",
+          "local_path": "data/bronze/inpe_queimadas/inpe_queimadas_catalog/2023/extracted_at=2026-02-24T13-10-05Z/raw.csv",
+          "manifest_path": "data/manifests/inpe_queimadas/inpe_queimadas_catalog/2023/extracted_at=2026-02-24T13-10-05Z.yml",
+          "size_bytes": 65,
+          "checksum_sha256": "33a25667290a43cb467cbb42937ff0a20092dc51403b71ccd5ffb638bbaef4aa",
+          "uri": "file:///C:/Users/DTI/Desktop/territorial-intelligence-platform/data/manual/inpe_queimadas/inpe_queimadas_diamantina_2025.csv"
+        }
+      }
+    },
+    {
+      "job": "inpe_queimadas_fetch",
+      "phase": "incremental",
+      "reference_period": "2024",
+      "status": "success",
+      "rows_loaded": 1,
+      "started_at_utc": "2026-02-24T13:10:05.195583+00:00",
+      "finished_at_utc": "2026-02-24T13:10:44.046535+00:00",
+      "error": null,
+      "result": {
+        "job": "inpe_queimadas_fetch",
+        "status": "success",
+        "run_id": "0155a414-37a6-4c4a-9488-601c5f3ec955",
+        "duration_seconds": 38.84,
+        "rows_extracted": 1,
+        "rows_written": 1,
+        "warnings": [
+          "INPE_QUEIMADAS remote payload produced no indicator rows; using manual fallback 'inpe_queimadas_diamantina_2025.csv'."
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "INPE_QUEIMADAS",
+          "dataset": "inpe_queimadas_catalog",
+          "reference_period": "2024",
+          "extracted_at_utc": "2026-02-24T13:10:44Z",
+          "local_path": "data/bronze/inpe_queimadas/inpe_queimadas_catalog/2024/extracted_at=2026-02-24T13-10-44Z/raw.csv",
+          "manifest_path": "data/manifests/inpe_queimadas/inpe_queimadas_catalog/2024/extracted_at=2026-02-24T13-10-44Z.yml",
+          "size_bytes": 65,
+          "checksum_sha256": "33a25667290a43cb467cbb42937ff0a20092dc51403b71ccd5ffb638bbaef4aa",
+          "uri": "file:///C:/Users/DTI/Desktop/territorial-intelligence-platform/data/manual/inpe_queimadas/inpe_queimadas_diamantina_2025.csv"
+        }
+      }
+    },
+    {
+      "job": "inpe_queimadas_fetch",
+      "phase": "incremental",
+      "reference_period": "2025",
+      "status": "success",
+      "rows_loaded": 1,
+      "started_at_utc": "2026-02-24T13:10:44.046578+00:00",
+      "finished_at_utc": "2026-02-24T13:11:02.144875+00:00",
+      "error": null,
+      "result": {
+        "job": "inpe_queimadas_fetch",
+        "status": "success",
+        "run_id": "e11e9647-858d-4d62-85b3-da1f8b57cd4f",
+        "duration_seconds": 18.09,
+        "rows_extracted": 1,
+        "rows_written": 1,
+        "warnings": [
+          "INPE_QUEIMADAS remote payload produced no indicator rows; using manual fallback 'inpe_queimadas_diamantina_2025.csv'."
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "INPE_QUEIMADAS",
+          "dataset": "inpe_queimadas_catalog",
+          "reference_period": "2025",
+          "extracted_at_utc": "2026-02-24T13:11:02Z",
+          "local_path": "data/bronze/inpe_queimadas/inpe_queimadas_catalog/2025/extracted_at=2026-02-24T13-11-02Z/raw.csv",
+          "manifest_path": "data/manifests/inpe_queimadas/inpe_queimadas_catalog/2025/extracted_at=2026-02-24T13-11-02Z.yml",
+          "size_bytes": 65,
+          "checksum_sha256": "33a25667290a43cb467cbb42937ff0a20092dc51403b71ccd5ffb638bbaef4aa",
+          "uri": "file:///C:/Users/DTI/Desktop/territorial-intelligence-platform/data/manual/inpe_queimadas/inpe_queimadas_diamantina_2025.csv"
+        }
+      }
+    },
+    {
+      "job": "ana_hydrology_fetch",
+      "phase": "incremental",
+      "reference_period": "2021",
+      "status": "success",
+      "rows_loaded": 1,
+      "started_at_utc": "2026-02-24T13:11:02.144899+00:00",
+      "finished_at_utc": "2026-02-24T13:11:33.553516+00:00",
+      "error": null,
+      "result": {
+        "job": "ana_hydrology_fetch",
+        "status": "success",
+        "run_id": "b297dbfd-4b9f-41ca-b5f3-33fa96400512",
+        "duration_seconds": 31.41,
+        "rows_extracted": 1,
+        "rows_written": 1,
+        "warnings": [
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'csv?layers=18'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=CD_MUN%3D3121605&outFields=*&f=json'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=COD_MUNICIPIO%3D3121605&outFields=*&f=json'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=CODMUNRES%3D312160&outFields=*&f=json'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=CD_MUN%3D3121605&outFields=*&f=json'.",
+          "ANA remote payload produced no indicator rows; using manual fallback 'ana_diamantina_2025.csv'."
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "ANA",
+          "dataset": "ana_hydrology_catalog",
+          "reference_period": "2021",
+          "extracted_at_utc": "2026-02-24T13:11:33Z",
+          "local_path": "data/bronze/ana/ana_hydrology_catalog/2021/extracted_at=2026-02-24T13-11-33Z/raw.csv",
+          "manifest_path": "data/manifests/ana/ana_hydrology_catalog/2021/extracted_at=2026-02-24T13-11-33Z.yml",
+          "size_bytes": 134,
+          "checksum_sha256": "8bf3d6fa8fa13d852d4205ec5e6feb835026c7c6acee318cd62b51673e55eeb9",
+          "uri": "file:///C:/Users/DTI/Desktop/territorial-intelligence-platform/data/manual/ana/ana_diamantina_2025.csv"
+        }
+      }
+    },
+    {
+      "job": "ana_hydrology_fetch",
+      "phase": "incremental",
+      "reference_period": "2022",
+      "status": "success",
+      "rows_loaded": 1,
+      "started_at_utc": "2026-02-24T13:11:33.553530+00:00",
+      "finished_at_utc": "2026-02-24T13:11:39.773832+00:00",
+      "error": null,
+      "result": {
+        "job": "ana_hydrology_fetch",
+        "status": "success",
+        "run_id": "80c8ef79-69a9-4e4c-a784-c7a0ef3fbf34",
+        "duration_seconds": 6.22,
+        "rows_extracted": 1,
+        "rows_written": 1,
+        "warnings": [
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'csv?layers=18'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=CD_MUN%3D3121605&outFields=*&f=json'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=COD_MUNICIPIO%3D3121605&outFields=*&f=json'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=CODMUNRES%3D312160&outFields=*&f=json'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=CD_MUN%3D3121605&outFields=*&f=json'.",
+          "ANA remote payload produced no indicator rows; using manual fallback 'ana_diamantina_2025.csv'."
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "ANA",
+          "dataset": "ana_hydrology_catalog",
+          "reference_period": "2022",
+          "extracted_at_utc": "2026-02-24T13:11:39Z",
+          "local_path": "data/bronze/ana/ana_hydrology_catalog/2022/extracted_at=2026-02-24T13-11-39Z/raw.csv",
+          "manifest_path": "data/manifests/ana/ana_hydrology_catalog/2022/extracted_at=2026-02-24T13-11-39Z.yml",
+          "size_bytes": 134,
+          "checksum_sha256": "8bf3d6fa8fa13d852d4205ec5e6feb835026c7c6acee318cd62b51673e55eeb9",
+          "uri": "file:///C:/Users/DTI/Desktop/territorial-intelligence-platform/data/manual/ana/ana_diamantina_2025.csv"
+        }
+      }
+    },
+    {
+      "job": "ana_hydrology_fetch",
+      "phase": "incremental",
+      "reference_period": "2023",
+      "status": "success",
+      "rows_loaded": 1,
+      "started_at_utc": "2026-02-24T13:11:39.773844+00:00",
+      "finished_at_utc": "2026-02-24T13:11:45.770986+00:00",
+      "error": null,
+      "result": {
+        "job": "ana_hydrology_fetch",
+        "status": "success",
+        "run_id": "1fba3d28-79b7-4650-a3a3-a25f1871fe95",
+        "duration_seconds": 6.0,
+        "rows_extracted": 1,
+        "rows_written": 1,
+        "warnings": [
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'csv?layers=18'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=CD_MUN%3D3121605&outFields=*&f=json'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=COD_MUNICIPIO%3D3121605&outFields=*&f=json'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=CODMUNRES%3D312160&outFields=*&f=json'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=CD_MUN%3D3121605&outFields=*&f=json'.",
+          "ANA remote payload produced no indicator rows; using manual fallback 'ana_diamantina_2025.csv'."
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "ANA",
+          "dataset": "ana_hydrology_catalog",
+          "reference_period": "2023",
+          "extracted_at_utc": "2026-02-24T13:11:45Z",
+          "local_path": "data/bronze/ana/ana_hydrology_catalog/2023/extracted_at=2026-02-24T13-11-45Z/raw.csv",
+          "manifest_path": "data/manifests/ana/ana_hydrology_catalog/2023/extracted_at=2026-02-24T13-11-45Z.yml",
+          "size_bytes": 134,
+          "checksum_sha256": "8bf3d6fa8fa13d852d4205ec5e6feb835026c7c6acee318cd62b51673e55eeb9",
+          "uri": "file:///C:/Users/DTI/Desktop/territorial-intelligence-platform/data/manual/ana/ana_diamantina_2025.csv"
+        }
+      }
+    },
+    {
+      "job": "ana_hydrology_fetch",
+      "phase": "incremental",
+      "reference_period": "2024",
+      "status": "success",
+      "rows_loaded": 1,
+      "started_at_utc": "2026-02-24T13:11:45.770999+00:00",
+      "finished_at_utc": "2026-02-24T13:11:51.774180+00:00",
+      "error": null,
+      "result": {
+        "job": "ana_hydrology_fetch",
+        "status": "success",
+        "run_id": "ec73cfcd-66df-4805-bce8-2830da09f2e8",
+        "duration_seconds": 6.0,
+        "rows_extracted": 1,
+        "rows_written": 1,
+        "warnings": [
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'csv?layers=18'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=CD_MUN%3D3121605&outFields=*&f=json'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=COD_MUNICIPIO%3D3121605&outFields=*&f=json'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=CODMUNRES%3D312160&outFields=*&f=json'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=CD_MUN%3D3121605&outFields=*&f=json'.",
+          "ANA remote payload produced no indicator rows; using manual fallback 'ana_diamantina_2025.csv'."
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "ANA",
+          "dataset": "ana_hydrology_catalog",
+          "reference_period": "2024",
+          "extracted_at_utc": "2026-02-24T13:11:51Z",
+          "local_path": "data/bronze/ana/ana_hydrology_catalog/2024/extracted_at=2026-02-24T13-11-51Z/raw.csv",
+          "manifest_path": "data/manifests/ana/ana_hydrology_catalog/2024/extracted_at=2026-02-24T13-11-51Z.yml",
+          "size_bytes": 134,
+          "checksum_sha256": "8bf3d6fa8fa13d852d4205ec5e6feb835026c7c6acee318cd62b51673e55eeb9",
+          "uri": "file:///C:/Users/DTI/Desktop/territorial-intelligence-platform/data/manual/ana/ana_diamantina_2025.csv"
+        }
+      }
+    },
+    {
+      "job": "ana_hydrology_fetch",
+      "phase": "incremental",
+      "reference_period": "2025",
+      "status": "success",
+      "rows_loaded": 1,
+      "started_at_utc": "2026-02-24T13:11:51.774197+00:00",
+      "finished_at_utc": "2026-02-24T13:11:57.675338+00:00",
+      "error": null,
+      "result": {
+        "job": "ana_hydrology_fetch",
+        "status": "success",
+        "run_id": "fa93ac25-4e29-4dd8-8705-c514fe6a1ff0",
+        "duration_seconds": 5.9,
+        "rows_extracted": 1,
+        "rows_written": 1,
+        "warnings": [
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'csv?layers=18'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=CD_MUN%3D3121605&outFields=*&f=json'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=COD_MUNICIPIO%3D3121605&outFields=*&f=json'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=CODMUNRES%3D312160&outFields=*&f=json'.",
+          "ANA row not found for municipality code/name (3121605/Diamantina) in 'query?where=CD_MUN%3D3121605&outFields=*&f=json'.",
+          "ANA remote payload produced no indicator rows; using manual fallback 'ana_diamantina_2025.csv'."
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "ANA",
+          "dataset": "ana_hydrology_catalog",
+          "reference_period": "2025",
+          "extracted_at_utc": "2026-02-24T13:11:57Z",
+          "local_path": "data/bronze/ana/ana_hydrology_catalog/2025/extracted_at=2026-02-24T13-11-57Z/raw.csv",
+          "manifest_path": "data/manifests/ana/ana_hydrology_catalog/2025/extracted_at=2026-02-24T13-11-57Z.yml",
+          "size_bytes": 134,
+          "checksum_sha256": "8bf3d6fa8fa13d852d4205ec5e6feb835026c7c6acee318cd62b51673e55eeb9",
+          "uri": "file:///C:/Users/DTI/Desktop/territorial-intelligence-platform/data/manual/ana/ana_diamantina_2025.csv"
+        }
+      }
+    }
+  ],
+  "summary": {
+    "planned_pairs": 15,
+    "executed_pairs": 15,
+    "skipped_pairs": 0,
+    "post_load_runs": 0,
+    "execution_status": {
+      "success": 15
+    }
+  }
+}

@@ -37,7 +37,7 @@ describe("PriorityItemCard", () => {
     expect(screen.getByRole("link", { name: "Abrir perfil" })).toHaveAttribute("href", "/territorio/3121605");
     expect(screen.getByRole("link", { name: "Ver no mapa" })).toHaveAttribute(
       "href",
-      "/mapa?metric=DATASUS_APS_COBERTURA&period=2025&territory_id=3121605"
+      "/mapa?territory_id=3121605"
     );
   });
 });

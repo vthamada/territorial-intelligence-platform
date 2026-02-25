@@ -39,6 +39,7 @@ waves:
   MVP-6:
     - suasweb_social_assistance_fetch
     - cneas_social_assistance_fetch
+    - portal_transparencia_fetch
     - cecad_social_protection_fetch
     - censo_suas_fetch
     - quality_suite
@@ -91,6 +92,8 @@ jobs:
   suasweb_social_assistance_fetch:
     reference_period: "2025"
   cneas_social_assistance_fetch:
+    reference_period: "2025"
+  portal_transparencia_fetch:
     reference_period: "2025"
   cecad_social_protection_fetch:
     reference_period: "2025"

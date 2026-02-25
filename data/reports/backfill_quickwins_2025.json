@@ -1,0 +1,122 @@
+{
+  "generated_at_utc": "2026-02-24T12:36:43.017093+00:00",
+  "config": {
+    "dry_run": false,
+    "force": false,
+    "include_partial": false,
+    "stale_after_hours": 168,
+    "skip_dbt": true,
+    "skip_quality": true,
+    "allow_blocked": false,
+    "timeout_seconds": 45,
+    "max_retries": 3
+  },
+  "selected_jobs": [
+    "education_inep_fetch",
+    "finance_siconfi_fetch"
+  ],
+  "reprocess": {
+    "jobs": [
+      "education_inep_fetch",
+      "finance_siconfi_fetch"
+    ],
+    "periods": []
+  },
+  "plan": [
+    {
+      "job": "education_inep_fetch",
+      "reference_period": "2025",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": null,
+      "latest_started_at_utc": null
+    },
+    {
+      "job": "finance_siconfi_fetch",
+      "reference_period": "2025",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": "success",
+      "latest_started_at_utc": "2026-02-11T16:42:38.130820-03:00"
+    }
+  ],
+  "executions": [
+    {
+      "job": "education_inep_fetch",
+      "phase": "incremental",
+      "reference_period": "2025",
+      "status": "success",
+      "rows_loaded": 1,
+      "started_at_utc": "2026-02-24T12:36:43.257007+00:00",
+      "finished_at_utc": "2026-02-24T12:37:02.266928+00:00",
+      "error": null,
+      "result": {
+        "job": "education_inep_fetch",
+        "status": "success",
+        "run_id": "d5dbd03e-e604-46ae-aeba-8372c1d53969",
+        "duration_seconds": 19.0,
+        "rows_extracted": 5635,
+        "rows_written": 1,
+        "warnings": [
+          "Requested year 2025 not found; using nearest available year 2024."
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "INEP",
+          "dataset": "inep_sinopse_educacao_basica",
+          "reference_period": "2024",
+          "extracted_at_utc": "2026-02-24T12:37:01Z",
+          "local_path": "data/bronze/inep/inep_sinopse_educacao_basica/2024/extracted_at=2026-02-24T12-37-01Z/raw.zip",
+          "manifest_path": "data/manifests/inep/inep_sinopse_educacao_basica/2024/extracted_at=2026-02-24T12-37-01Z.yml",
+          "size_bytes": 144409489,
+          "checksum_sha256": "2e74fb3d7db4d7b37dd3a14947bd0944dd4db529618c6cc5e72792a538436c81",
+          "uri": "https://download.inep.gov.br/dados_abertos/sinopses_estatisticas/sinopses_estatisticas_censo_escolar_2024.zip"
+        }
+      }
+    },
+    {
+      "job": "finance_siconfi_fetch",
+      "phase": "incremental",
+      "reference_period": "2025",
+      "status": "success",
+      "rows_loaded": 685,
+      "started_at_utc": "2026-02-24T12:37:02.266988+00:00",
+      "finished_at_utc": "2026-02-24T12:37:22.192575+00:00",
+      "error": null,
+      "result": {
+        "job": "finance_siconfi_fetch",
+        "status": "success",
+        "run_id": "08e47eee-d12e-4b15-ae5e-66f59cb50a1b",
+        "duration_seconds": 19.92,
+        "rows_extracted": 1538,
+        "rows_written": 685,
+        "warnings": [
+          "Requested year 2025 has no usable data for the municipality; fallback to 2024."
+        ],
+        "errors": [],
+        "bronze": {
+          "source": "SICONFI",
+          "dataset": "siconfi_dca_finance",
+          "reference_period": "2025",
+          "extracted_at_utc": "2026-02-24T12:37:22Z",
+          "local_path": "data/bronze/siconfi/siconfi_dca_finance/2025/extracted_at=2026-02-24T12-37-22Z/raw.json",
+          "manifest_path": "data/manifests/siconfi/siconfi_dca_finance/2025/extracted_at=2026-02-24T12-37-22Z.yml",
+          "size_bytes": 3884,
+          "checksum_sha256": "2a40fde2bc13a116a80ae3935d619ce1949d4b9e642493918a3e46cb5e9053b8",
+          "uri": "https://apidatalake.tesouro.gov.br/ords/siconfi/tt/dca"
+        }
+      }
+    }
+  ],
+  "summary": {
+    "planned_pairs": 2,
+    "executed_pairs": 2,
+    "skipped_pairs": 0,
+    "post_load_runs": 0,
+    "execution_status": {
+      "success": 2
+    }
+  }
+}
