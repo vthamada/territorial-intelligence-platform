@@ -8,25 +8,25 @@ describe("App shell", () => {
     render(
       <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <App>
-          <div>Conteudo de teste</div>
+          <div>Conteúdo de teste</div>
         </App>
       </MemoryRouter>
     );
 
-    expect(screen.getByText("Painel de Inteligencia Territorial")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Visao Geral" })).toBeInTheDocument();
+    expect(screen.getByText("Painel de Inteligência Territorial")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Visão Geral" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Prioridades" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Mapa" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Insights" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Cenarios" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Cenários" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Briefs" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Territorio 360" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Território 360" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Eleitorado" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Admin" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Pular para o conteudo principal" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Pular para o conteúdo principal" })).toBeInTheDocument();
     const main = screen.getByRole("main");
     expect(main).toHaveAttribute("id", "main-content");
     expect(main).toHaveFocus();
-    expect(screen.getByText("Conteudo de teste")).toBeInTheDocument();
+    expect(screen.getByText("Conteúdo de teste")).toBeInTheDocument();
   });
 });

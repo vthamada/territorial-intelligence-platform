@@ -93,7 +93,7 @@ function buildLayerClassificationHint(layer?: MapLayerItem | null) {
     );
   }
   if (classification === "hybrid") {
-    return layer?.notes ?? "Camada hibrida com composicao de fontes oficiais e auxiliares.";
+    return layer?.notes ?? "Camada hibrida com composição de fontes oficiais e auxiliares.";
   }
   if (classification === "official") {
     return layer?.notes ?? "Camada oficial baseada em recorte territorial institucional.";
@@ -108,7 +108,7 @@ function formatVectorMapError(rawMessage: string) {
   }
   const normalized = token.toLowerCase();
   if (normalized.includes("service unavailable") || normalized.includes("503")) {
-    return "Camada vetorial temporariamente indisponivel (503). Tente novamente em instantes.";
+    return "Camada vetorial temporariamente indisponível (503). Tente novamente em instantes.";
   }
   return `Falha temporaria no modo vetorial: ${token}`;
 }
@@ -338,7 +338,7 @@ export function QgOverviewPage() {
                 <StateBlock
                   tone="loading"
                   title="Carregando mapa rapido"
-                  message="Consultando distribuicao territorial do recorte aplicado."
+                  message="Consultando distribuição territorial do recorte aplicado."
                 />
               ) : mapError ? (
                 <StateBlock
@@ -349,7 +349,7 @@ export function QgOverviewPage() {
                   onRetry={() => void choroplethQuery.refetch()}
                 />
               ) : choroplethItems.length === 0 ? (
-                <StateBlock tone="empty" title="Sem dados no mapa" message="Nao ha geometrias para o recorte atual." />
+                <StateBlock tone="empty" title="Sem dados no mapa" message="Não ha geometrias para o recorte atual." />
               ) : (
                 <>
                   {useVectorMap && canUseVectorMap ? (
@@ -405,7 +405,7 @@ export function QgOverviewPage() {
                   )}
                   <div className="map-floating-stats">
                     <span className="map-floating-stat">
-                      <strong>{summary.by_status.critical ?? 0}</strong> criticos
+                      <strong>{summary.by_status.critical ?? 0}</strong> críticos
                     </span>
                     <span className="map-floating-stat">
                       <strong>{summary.by_status.attention ?? 0}</strong> atencao
@@ -423,7 +423,7 @@ export function QgOverviewPage() {
             <aside id="overview-map-sidebar" className="map-sidebar-content" aria-label="Painel executivo do mapa">
               <section className="map-sidebar-section">
                 <h3>Filtros</h3>
-                <p className="panel-subtitle">Periodo e nivel</p>
+                <p className="panel-subtitle">Período e nivel</p>
                 <form
                   className="filter-grid compact"
                   onSubmit={(event) => {
@@ -432,11 +432,11 @@ export function QgOverviewPage() {
                   }}
                 >
                   <label>
-                    Periodo
+                    Período
                     <input value={period} onChange={(event) => setPeriod(event.target.value)} placeholder="2025" />
                   </label>
                   <label>
-                    Nivel territorial
+                    Nível territorial
                     <select
                       value={level}
                       onChange={(event) => {
@@ -487,7 +487,7 @@ export function QgOverviewPage() {
               </section>
 
               <section className="map-sidebar-section">
-                <h3>Navegacao do mapa</h3>
+                <h3>Navegação do mapa</h3>
                 <div className="zoom-control compact" aria-label="Controle de zoom">
                   <label>
                     Zoom
@@ -502,7 +502,7 @@ export function QgOverviewPage() {
                         setMapZoom(nextZoom);
                         globalFilters.setZoom(nextZoom);
                       }}
-                      aria-label="Nivel de zoom do mapa rapido"
+                      aria-label="Nível de zoom do mapa rapido"
                     />
                     <span className="zoom-value">{mapZoom}</span>
                   </label>
@@ -544,7 +544,7 @@ export function QgOverviewPage() {
                   disabled={!canUseVectorMap}
                   onClick={() => setUseVectorMap((value) => !value)}
                 >
-                  {useVectorMap ? "Modo simplificado" : canUseVectorMap ? "Modo avancado" : "Somente simplificado"}
+                  {useVectorMap ? "Modo simplificado" : canUseVectorMap ? "Modo avançado" : "Somente simplificado"}
                 </button>
               </section>
 
@@ -552,7 +552,7 @@ export function QgOverviewPage() {
                 <h3>Situacao geral</h3>
                 <div className="kpi-grid">
                   <StrategicIndexCard
-                    label="Criticos"
+                    label="Críticos"
                     value={String(summary.by_status.critical ?? 0)}
                     status="critical"
                     helper="resposta imediata"
@@ -570,7 +570,7 @@ export function QgOverviewPage() {
                     helper="sob controle"
                   />
                   <StrategicIndexCard
-                    label="Dominios"
+                    label="Domínios"
                     value={String(Object.keys(summary.by_domain).length)}
                     status="info"
                     helper="fontes ativas"
@@ -579,7 +579,7 @@ export function QgOverviewPage() {
               </section>
 
               <section className="map-sidebar-section">
-                <h3>Acoes rapidas</h3>
+                <h3>Acoes rápidas</h3>
                 <nav aria-label="Atalhos de decisao" className="quick-actions">
                   <Link className="quick-action-link" to="/prioridades">
                     Prioridades
@@ -589,13 +589,13 @@ export function QgOverviewPage() {
                   </Link>
                   {mostCriticalTerritory ? (
                     <Link className="quick-action-link" to={`/territorio/${mostCriticalTerritory}`}>
-                      Territorio critico
+                      Território crítico
                     </Link>
                   ) : null}
                 </nav>
                 {selectedTerritory ? (
                   <p className="map-selected-note">
-                    Selecionado: <strong>Territorio: {selectedTerritoryLabel ?? "n/d"}</strong>
+                    Selecionado: <strong>Território: {selectedTerritoryLabel ?? "n/d"}</strong>
                     {" | "}
                     valor: {formatValueWithUnit(selectedTerritory.value, null)}
                   </p>
@@ -667,16 +667,16 @@ export function QgOverviewPage() {
       </CollapsiblePanel>
 
       <CollapsiblePanel
-        title="Dominios Onda B/C"
+        title="Domínios Onda B/C"
         subtitle="Atalhos para fontes novas com recorte aplicado"
         defaultOpen={false}
         badgeCount={QG_ONDA_BC_SPOTLIGHT.length}
       >
         <div className="table-wrap">
-          <table aria-label="Dominios Onda B/C">
+          <table aria-label="Domínios Onda B/C">
             <thead>
               <tr>
-                <th>Dominio</th>
+                <th>Domínio</th>
                 <th>Fonte</th>
                 <th>Itens no recorte</th>
                 <th>Acoes</th>
@@ -715,7 +715,7 @@ export function QgOverviewPage() {
 
       <CollapsiblePanel
         title="KPIs executivos"
-        subtitle="Indicadores agregados para leitura rapida"
+        subtitle="Indicadores agregados para leitura rápida"
         defaultOpen={false}
         badgeCount={kpis.items.length}
       >
@@ -726,10 +726,10 @@ export function QgOverviewPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Dominio</th>
+                  <th>Domínio</th>
                   <th>Indicador</th>
                   <th>Valor</th>
-                  <th>Nivel</th>
+                  <th>Nível</th>
                 </tr>
               </thead>
               <tbody>

@@ -21,20 +21,20 @@ type AdminRouteLink = {
 const adminLinks: AdminRouteLink[] = [
   {
     to: "/ops/health",
-    label: "Saude Ops",
-    description: "Saude da API, banco e volume operacional.",
+    label: "Saúde Ops",
+    description: "Saúde da API, banco e volume operacional.",
     icon: "🩺"
   },
   {
     to: "/ops/runs",
-    label: "Execucoes",
-    description: "Historico de runs de pipeline com filtros e paginacao.",
+    label: "Execuções",
+    description: "Histórico de runs de pipeline com filtros e paginação.",
     icon: "▶️"
   },
   {
     to: "/ops/checks",
     label: "Checks",
-    description: "Resultados dos checks de qualidade e operacao.",
+    description: "Resultados dos checks de qualidade e operação.",
     icon: "✅"
   },
   {
@@ -63,8 +63,8 @@ const adminLinks: AdminRouteLink[] = [
   },
   {
     to: "/territory/indicators",
-    label: "Territorios e Indicadores",
-    description: "Consulta tecnica para depuracao de dados territoriais.",
+    label: "Territórios e Indicadores",
+    description: "Consulta técnica para depuracao de dados territoriais.",
     icon: "📍"
   }
 ];
@@ -202,7 +202,7 @@ function LayerCoverageBanner() {
         <thead>
           <tr>
             <th>Camada</th>
-            <th>Nivel</th>
+            <th>Nível</th>
             <th>Total</th>
             <th>Com geometria</th>
             <th>Com indicador</th>
@@ -235,9 +235,9 @@ function LayerCoverageBanner() {
 export function AdminHubPage() {
   return (
     <div className="page-grid">
-      <Panel title="Admin tecnico" subtitle="Camada operacional separada do fluxo executivo do QG">
+      <Panel title="Admin técnico" subtitle="Camada operacional separada do fluxo executivo do QG">
         <p className="panel-subtitle">
-          Use esta area para operacao de dados, validacao de execucoes e troubleshooting tecnico.
+          Use esta area para operação de dados, validação de execuções e troubleshooting técnico.
         </p>
       </Panel>
 
@@ -249,7 +249,7 @@ export function AdminHubPage() {
         <LayerCoverageBanner />
       </Panel>
 
-      <Panel title="Ferramentas operacionais" subtitle="Atalhos para monitoramento e suporte tecnico">
+      <Panel title="Ferramentas operacionais" subtitle="Atalhos para monitoramento e suporte técnico">
         <div className="admin-link-grid">
           {adminLinks.map((item) => (
             <article key={item.to} className="admin-link-card">

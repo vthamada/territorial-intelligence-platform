@@ -2,7 +2,7 @@
 
 Data de referência: 2026-02-19  
 Status: ativo  
-Escopo: plano técnico para levar a base de dados ao nível máximo de robustez para inteligencia territorial de Diamantina/MG.
+Escopo: plano técnico para levar a base de dados ao nível máximo de robustez para inteligência territorial de Diamantina/MG.
 
 Atualização de estado (2026-02-23):
 1. trilhas `D4`, `D5`, `D6`, `D7` e `D8` concluídas tecnicamente.

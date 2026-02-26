@@ -107,7 +107,7 @@ export function formatLevelLabel(level: string | null | undefined): string {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  critical: "critico",
+  critical: "crítico",
   attention: "atencao",
   stable: "estavel",
   info: "informativo",

@@ -134,10 +134,10 @@ export function QgPrioritiesPage() {
   }, [appliedSortBy, filteredItems]);
   const activeFilterSummary = useMemo(() => {
     const tokens: string[] = [];
-    if (appliedPeriod) tokens.push(`Periodo ${appliedPeriod}`);
-    if (appliedDomain) tokens.push(`Dominio ${getQgDomainLabel(appliedDomain)}`);
-    if (appliedOnlyCritical) tokens.push("Somente criticos");
-    if (appliedLevel) tokens.push(`Nivel ${formatLevelLabel(appliedLevel)}`);
+    if (appliedPeriod) tokens.push(`Período ${appliedPeriod}`);
+    if (appliedDomain) tokens.push(`Domínio ${getQgDomainLabel(appliedDomain)}`);
+    if (appliedOnlyCritical) tokens.push("Somente críticos");
+    if (appliedLevel) tokens.push(`Nível ${formatLevelLabel(appliedLevel)}`);
     return tokens;
   }, [appliedDomain, appliedLevel, appliedOnlyCritical, appliedPeriod]);
   const normalizedPageSize = Math.max(1, Number(pageSize) || 24);
@@ -237,11 +237,11 @@ export function QgPrioritiesPage() {
           }}
         >
           <label>
-            Periodo
+            Período
             <input value={period} onChange={(event) => setPeriod(event.target.value)} placeholder="2025" />
           </label>
           <label>
-            Nivel territorial
+            Nível territorial
             <select value={level} onChange={(event) => setLevel(event.target.value)}>
               <option value="municipality">{formatLevelLabel("municipality")}</option>
               <option value="district">{formatLevelLabel("district")}</option>
@@ -251,7 +251,7 @@ export function QgPrioritiesPage() {
             </select>
           </label>
           <label>
-            Dominio
+            Domínio
             <select value={domain} onChange={(event) => setDomain(event.target.value)}>
               <option value="">Todos</option>
               {QG_DOMAIN_OPTIONS.map((option) => (
@@ -262,9 +262,9 @@ export function QgPrioritiesPage() {
             </select>
           </label>
           <label>
-            Somente criticos
+            Somente críticos
             <select value={String(onlyCritical)} onChange={(event) => setOnlyCritical(event.target.value === "true")}>
-              <option value="false">Nao</option>
+              <option value="false">Não</option>
               <option value="true">Sim</option>
             </select>
           </label>
@@ -273,7 +273,7 @@ export function QgPrioritiesPage() {
             <select value={sortBy} onChange={(event) => setSortBy(event.target.value as PrioritySort)}>
               <option value="criticality_desc">criticidade (maior score)</option>
               <option value="criticality_asc">criticidade (menor score)</option>
-              <option value="trend_desc">tendencia (pior primeiro)</option>
+              <option value="trend_desc">tendência (pior primeiro)</option>
               <option value="territory_asc">territorio (A-Z)</option>
             </select>
           </label>

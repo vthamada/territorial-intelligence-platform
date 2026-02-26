@@ -329,7 +329,7 @@ function buildLayerClassificationHint(layer?: MapLayerItem | null): string {
     );
   }
   if (classification === "hybrid") {
-    return layer?.notes ?? "Camada hibrida com composicao de fontes oficiais e auxiliares.";
+    return layer?.notes ?? "Camada hibrida com composição de fontes oficiais e auxiliares.";
   }
   if (classification === "official") {
     return layer?.notes ?? "Camada oficial baseada em recorte territorial institucional.";
@@ -353,7 +353,7 @@ function formatVectorMapError(rawMessage: string) {
   }
   const normalized = token.toLowerCase();
   if (normalized.includes("service unavailable") || normalized.includes("503")) {
-    return "Camada vetorial temporariamente indisponivel (503). O mapa continua ativo; tente novamente em instantes.";
+    return "Camada vetorial temporariamente indisponível (503). O mapa continua ativo; tente novamente em instantes.";
   }
   return `Falha temporaria no modo vetorial: ${token}`;
 }
@@ -642,7 +642,7 @@ export function QgMapPage() {
     }
     if (!availableLevelLayerIds.has(selectedVectorLayerId)) {
       setSelectedVectorLayerId(null);
-      setLayerSelectionNotice("Camada detalhada anterior indisponivel para o nivel atual; selecao automatica restaurada.");
+      setLayerSelectionNotice("Camada detalhada anterior indisponível para o nivel atual; seleção automatica restaurada.");
     }
   }, [appliedMapScope, availableLevelLayerIds, levelScopedLayers.length, selectedVectorLayerId]);
 
@@ -652,7 +652,7 @@ export function QgMapPage() {
     }
     if (previousAppliedLevelRef.current !== appliedLevel) {
       if (selectedVectorLayerId) {
-        setLayerSelectionNotice("Nivel territorial alterado; camada detalhada reiniciada para recomendacao automatica.");
+        setLayerSelectionNotice("Nível territorial alterado; camada detalhada reiniciada para recomendacao automatica.");
       }
       setSelectedVectorLayerId(null);
     }
@@ -850,20 +850,27 @@ export function QgMapPage() {
     const totalVoters = validItems.reduce((sum, item) => sum + (item.value ?? 0), 0);
     return {
       type: "FeatureCollection" as const,
-      features: validItems.map((item) => ({
-        type: "Feature" as const,
-        properties: {
-          tid: item.territory_id,
-          tname: item.territory_name,
-          polling_place_name: item.polling_place_name ?? item.territory_name,
-          polling_place_code: item.polling_place_code ?? null,
-          section_count: item.section_count ?? 0,
-          sections: item.sections ?? [],
-          voters: item.value ?? 0,
-          voters_pct: totalVoters > 0 ? Number(((item.value ?? 0) / totalVoters * 100).toFixed(2)) : 0,
-        },
-        geometry: item.geometry as unknown as GeoJSON.Geometry,
-      })),
+      features: validItems.map((item) => {
+        const sections = Array.isArray(item.sections)
+          ? item.sections.map((section) => String(section)).filter(Boolean)
+          : [];
+
+        return {
+          type: "Feature" as const,
+          properties: {
+            tid: item.territory_id,
+            tname: item.territory_name,
+            polling_place_name: item.polling_place_name ?? item.territory_name,
+            polling_place_code: item.polling_place_code ?? null,
+            section_count: item.section_count ?? 0,
+            sections,
+            sections_csv: sections.join(", "),
+            voters: item.value ?? 0,
+            voters_pct: totalVoters > 0 ? Number(((item.value ?? 0) / totalVoters * 100).toFixed(2)) : 0,
+          },
+          geometry: item.geometry as unknown as GeoJSON.Geometry,
+        };
+      }),
     };
   }, [effectiveElectorateSectionData?.items]);
 
@@ -904,14 +911,23 @@ export function QgMapPage() {
         const name = String(props.polling_place_name ?? props.tname ?? "n/d");
         const voters = Number(props.voters ?? 0);
         const pct = Number(props.voters_pct ?? 0);
-        const sectionCount = Number(props.section_count ?? 0);
-        const sectionsRaw = Array.isArray(props.sections) ? props.sections : [];
-        const sections = sectionsRaw.slice(0, 6).map((item) => String(item));
+        const sectionCount =
+          typeof props.section_count === "number"
+            ? props.section_count
+            : Number(props.section_count ?? 0);
+        const sectionsRaw = Array.isArray(props.sections)
+          ? props.sections.map((item) => String(item)).filter(Boolean)
+          : [];
+        const sectionsCsv = typeof props.sections_csv === "string"
+          ? props.sections_csv.split(",").map((item) => item.trim()).filter(Boolean)
+          : [];
+        const sectionsResolved = sectionsRaw.length > 0 ? sectionsRaw : sectionsCsv;
+        const sections = sectionsResolved.slice(0, 6);
         return [
           `<strong>Local: ${name}</strong>`,
           `Eleitores: ${voters.toLocaleString("pt-BR")}`,
           `Qtd seções: ${sectionCount}`,
-          sections.length > 0 ? `Seções: ${sections.join(", ")}${sectionsRaw.length > sections.length ? " ..." : ""}` : "Seções: n/d",
+          sections.length > 0 ? `Seções: ${sections.join(", ")}${sectionsResolved.length > sections.length ? " ..." : ""}` : "Seções: n/d",
           `% do município: ${pct.toFixed(1)}%`,
           `Fonte: TSE | Eleitorado`,
         ].join("<br/>");
@@ -1034,7 +1050,7 @@ export function QgMapPage() {
       const nextZoom = Math.max(currentZoom, 14);
       setCurrentZoom(nextZoom);
       globalFilters.setZoom(nextZoom);
-      setMapRecenterNotice("Preset aplicado: secoes eleitorais com foco no volume de eleitores por secao.");
+      setMapRecenterNotice("Preset aplicado: seções eleitorais com foco no volume de eleitores por secao.");
       recenterMap(false);
       return;
     }
@@ -1129,7 +1145,7 @@ export function QgMapPage() {
     setExportError(null);
     const serialized = serializeMapSvg();
     if (!serialized) {
-      setExportError("Nao foi possivel localizar o mapa para exportacao.");
+      setExportError("Não foi possível localizar o mapa para exportacao.");
       return;
     }
     const metricPart = sanitizeFilePart(appliedMetric);
@@ -1143,7 +1159,7 @@ export function QgMapPage() {
     setExportError(null);
     const serialized = serializeMapSvg();
     if (!serialized) {
-      setExportError("Nao foi possivel localizar o mapa para exportacao.");
+      setExportError("Não foi possível localizar o mapa para exportacao.");
       return;
     }
 
@@ -1163,7 +1179,7 @@ export function QgMapPage() {
         canvas.height = height;
         const context = canvas.getContext("2d");
         if (!context) {
-          setExportError("Nao foi possivel preparar o canvas para exportacao.");
+          setExportError("Não foi possível preparar o canvas para exportacao.");
           URL.revokeObjectURL(svgUrl);
           return;
         }
@@ -1196,7 +1212,7 @@ export function QgMapPage() {
   }
 
   if (shouldFetchChoropleth && choroplethQuery.isPending) {
-    return <StateBlock tone="loading" title="Carregando mapa" message="Consultando distribuicao territorial do indicador." />;
+    return <StateBlock tone="loading" title="Carregando mapa" message="Consultando distribuição territorial do indicador." />;
   }
 
   if (shouldFetchChoropleth && choroplethQuery.error) {
@@ -1256,12 +1272,12 @@ export function QgMapPage() {
   const pollingPlaceAvailabilityNote = !isElectoralSectionLevel
     ? null
     : !hasPollingPlaceLayer
-      ? "local_votacao: indisponivel no manifesto atual"
+      ? "local_votacao: indisponível no manifesto atual"
       : isPollingPlaceActive
         ? selectedPollingPlaceName
           ? `local_votacao: detectado (${selectedPollingPlaceName})`
-          : "local_votacao: camada ativa sem nome detectado na feicao selecionada"
-        : "local_votacao: disponivel (altere para Locais de votacao para detalhar o ponto)";
+          : "local_votacao: camada ativa sem nome detectado na feição selecionada"
+        : "local_votacao: disponível (altere para Locais de votação para detalhar o ponto)";
   const topTerritory = sortedItems[0] ?? null;
   const bottomTerritory = sortedItems.length > 1 ? sortedItems[sortedItems.length - 1] ?? null : null;
   const selectedTerritoryRank =
@@ -1285,9 +1301,15 @@ export function QgMapPage() {
     .slice(0, 6);
   const selectedFeatureSections = Array.isArray(selectedFeature?.rawProperties?.sections)
     ? (selectedFeature?.rawProperties?.sections as unknown[]).map((section) => String(section)).filter(Boolean)
-    : [];
+    : typeof selectedFeature?.rawProperties?.sections_csv === "string"
+      ? selectedFeature.rawProperties.sections_csv
+          .split(",")
+          .map((section) => section.trim())
+          .filter(Boolean)
+      : [];
   const selectedFeatureSectionCount =
-    typeof selectedFeature?.rawProperties?.section_count === "number"
+    typeof selectedFeature?.rawProperties?.section_count === "number" ||
+    typeof selectedFeature?.rawProperties?.section_count === "string"
       ? Number(selectedFeature.rawProperties.section_count)
       : selectedFeatureSections.length;
   const drawerTerritoryItem =
@@ -1369,7 +1391,7 @@ export function QgMapPage() {
   const strategicLayerGroups: LayerGroup[] = [
     {
       key: "territorio",
-      title: "Territorio",
+      title: "Território",
       items: [
         {
           id: "boundary_municipal",
@@ -1384,7 +1406,7 @@ export function QgMapPage() {
       items: [
         {
           id: "overlay_polling_places",
-          label: "Locais de votacao",
+          label: "Locais de votação",
           active: activeOverlayIds.has("overlay_polling_places"),
           toggleable: true,
         },
@@ -1392,7 +1414,7 @@ export function QgMapPage() {
     },
     {
       key: "servicos",
-      title: "Servicos",
+      title: "Serviços",
       items: [
         {
           id: "overlay_schools",
@@ -1402,7 +1424,7 @@ export function QgMapPage() {
         },
         {
           id: "overlay_ubs",
-          label: "UBS / Saude",
+          label: "UBS / Saúde",
           active: activeOverlayIds.has("overlay_ubs"),
           toggleable: true,
         },
@@ -1463,7 +1485,7 @@ export function QgMapPage() {
     },
     {
       id: "overlay_ubs",
-      label: "UBS / Saude",
+      label: "UBS / Saúde",
       tileLayerId: "urban_pois",
       vizType: "circle",
       color: "#ef4444",
@@ -1525,12 +1547,12 @@ export function QgMapPage() {
         <StateBlock
           tone="loading"
           title="Carregando manifesto de camadas"
-          message="Buscando catalogo territorial e urbano para configuracao do mapa."
+          message="Buscando catálogo territorial e urbano para configuração do mapa."
         />
       ) : mapLayersError ? (
         <StateBlock
           tone="error"
-          title="Manifesto de camadas indisponivel"
+          title="Manifesto de camadas indisponível"
           message={`${mapLayersError.message}`}
           requestId={mapLayersError.requestId}
           onRetry={() => void mapLayersQuery.refetch()}
@@ -1546,7 +1568,7 @@ export function QgMapPage() {
         <StateBlock
           tone="error"
           title="Falha ao carregar metadados de estilo"
-          message={`${mapStyleError.message} Legenda padrao mantida.`}
+          message={`${mapStyleError.message} Legenda padrão mantida.`}
           requestId={mapStyleError.requestId}
           onRetry={() => void mapStyleQuery.refetch()}
         />
@@ -1560,8 +1582,8 @@ export function QgMapPage() {
               fallback={
                 <StateBlock
                   tone="loading"
-                  title="Carregando mapa avancado"
-                  message="Preparando camadas vetoriais e base cartografica."
+                  title="Carregando mapa avançado"
+                  message="Preparando camadas vetoriais e base cartográfica."
                 />
               }
             >
@@ -1602,14 +1624,14 @@ export function QgMapPage() {
                 overlays={overlayConfigs}
                 geoJsonLayers={activeGeoJsonLayers}
                 boundaryOnly={isBoundaryOnly}
-                showContextLabels={!isPollingPlacesOverlayEnabled}
+                showContextLabels={!isPollingPlacesOverlayEnabled && appliedLevel !== "secao_eleitoral"}
               />
             </Suspense>
           ) : (
             <StateBlock
               tone="empty"
-              title="Camada indisponivel"
-              message="Nenhuma camada vetorial disponivel para o recorte atual."
+              title="Camada indisponível"
+              message="Nenhuma camada vetorial disponível para o recorte atual."
             />
           )}
         </div>
@@ -1670,9 +1692,9 @@ export function QgMapPage() {
               </button>
             </div>
             {appliedMapScope === "urban" ? (
-              <StateBlock tone="empty" title="Ranking indisponivel para camada urbana" message="Use o modo avancado para explorar camadas urbanas." />
+              <StateBlock tone="empty" title="Ranking indisponível para camada urbana" message="Use o modo avançado para explorar camadas urbanas." />
             ) : !isChoroplethLevel ? (
-              <StateBlock tone="empty" title="Ranking indisponivel neste nivel" message="Use o nivel municipio ou distrito para ranking tabular." />
+              <StateBlock tone="empty" title="Ranking indisponível neste nivel" message="Use o nivel municipio ou distrito para ranking tabular." />
             ) : sortedItems.length === 0 ? (
               <StateBlock tone="empty" title="Sem dados" message="Nenhum territorio encontrado para o recorte informado." />
             ) : (
@@ -1680,9 +1702,9 @@ export function QgMapPage() {
                 <table aria-label="Ranking territorial">
                   <thead>
                     <tr>
-                      <th>Territorio</th>
-                      <th>Nivel</th>
-                      <th>Periodo</th>
+                      <th>Território</th>
+                      <th>Nível</th>
+                      <th>Período</th>
                       <th>Valor</th>
                       <th>Acao</th>
                     </tr>
@@ -1763,9 +1785,9 @@ export function QgMapPage() {
                   <p>Valor</p>
                   <strong>{drawerScoreDisplay}</strong>
                 </div>
-                <div className="territory-detail-stats" role="list" aria-label="Metricas rapidas do territorio">
+                <div className="territory-detail-stats" role="list" aria-label="Metricas rápidas do territorio">
                   <article role="listitem">
-                    <span>Periodo</span>
+                    <span>Período</span>
                     <strong>{appliedPeriod}</strong>
                   </article>
                   <article role="listitem">
@@ -1790,7 +1812,7 @@ export function QgMapPage() {
               ) : null}
 
               {selectedFeatureSectionCount > 0 ? (
-                <div className="territory-detail-section-list" aria-label="Secoes do local de votacao">
+                <div className="territory-detail-section-list" aria-label="Seções do local de votacao">
                   <p className="territory-detail-section-title">Seções no local</p>
                   <p>{selectedFeatureSectionCount} seções</p>
                   {selectedFeatureSections.length > 0 ? <p>{selectedFeatureSections.join(", ")}</p> : null}

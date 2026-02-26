@@ -718,7 +718,11 @@ def _upsert_electoral_zone(
                 name = EXCLUDED.name,
                 normalized_name = EXCLUDED.normalized_name,
                 uf = EXCLUDED.uf,
-                geometry = COALESCE(EXCLUDED.geometry, silver.dim_territory.geometry),
+                geometry = CASE
+                    WHEN COALESCE(silver.dim_territory.metadata, '{}'::jsonb) ? 'geocode_source'
+                        THEN silver.dim_territory.geometry
+                    ELSE COALESCE(EXCLUDED.geometry, silver.dim_territory.geometry)
+                END,
                 metadata = COALESCE(silver.dim_territory.metadata, '{}'::jsonb) || EXCLUDED.metadata,
                 updated_at = NOW()
             RETURNING territory_id::text
@@ -837,7 +841,11 @@ def _upsert_electoral_section(
                 name = EXCLUDED.name,
                 normalized_name = EXCLUDED.normalized_name,
                 uf = EXCLUDED.uf,
-                geometry = COALESCE(EXCLUDED.geometry, silver.dim_territory.geometry),
+                geometry = CASE
+                    WHEN COALESCE(silver.dim_territory.metadata, '{}'::jsonb) ? 'geocode_source'
+                        THEN silver.dim_territory.geometry
+                    ELSE COALESCE(EXCLUDED.geometry, silver.dim_territory.geometry)
+                END,
                 metadata = COALESCE(silver.dim_territory.metadata, '{}'::jsonb) || EXCLUDED.metadata,
                 updated_at = NOW()
             RETURNING territory_id::text

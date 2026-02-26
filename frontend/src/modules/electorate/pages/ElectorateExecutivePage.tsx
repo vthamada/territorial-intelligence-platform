@@ -187,8 +187,8 @@ export function ElectorateExecutivePage() {
             title={`Ano ${appliedYear} sem dados consolidados`}
             message={
               fallbackYear
-                ? `Mostrando automaticamente o ultimo recorte com dados (${fallbackYear}) para manter a leitura executiva.`
-                : "Mostrando automaticamente o ultimo recorte com dados disponivel."
+                ? `Mostrando automaticamente o último recorte com dados (${fallbackYear}) para manter a leitura executiva.`
+                : "Mostrando automaticamente o último recorte com dados disponível."
             }
           />
         ) : null}
@@ -198,8 +198,8 @@ export function ElectorateExecutivePage() {
             title="Sem dados para o ano informado"
             message={
               fallbackYear
-                ? `Nao ha dados consolidados para ${appliedYear}. Use ${fallbackYear} para visualizar o recorte mais recente.`
-                : `Nao ha dados consolidados para ${appliedYear}. Limpe o filtro de ano para tentar o ultimo recorte disponivel.`
+                ? `Não ha dados consolidados para ${appliedYear}. Use ${fallbackYear} para visualizar o recorte mais recente.`
+                : `Não ha dados consolidados para ${appliedYear}. Limpe o filtro de ano para tentar o último recorte disponível.`
             }
           />
         ) : null}
@@ -209,8 +209,8 @@ export function ElectorateExecutivePage() {
             title="Sem dados de eleitorado no recorte atual"
             message={
               fallbackYear
-                ? `Nao ha dados consolidados no recorte padrao. Use ${fallbackYear} para visualizar o ultimo ano com dados.`
-                : "Nao ha dados consolidados no recorte padrao. Informe um ano e aplique filtros para consultar disponibilidade."
+                ? `Não ha dados consolidados no recorte padrão. Use ${fallbackYear} para visualizar o último ano com dados.`
+                : "Não ha dados consolidados no recorte padrão. Informe um ano e aplique filtros para consultar disponibilidade."
             }
           />
         ) : null}
@@ -224,7 +224,7 @@ export function ElectorateExecutivePage() {
                 setAppliedYear(undefined);
               }}
             >
-              Usar ultimo ano disponivel
+              Usar último ano disponível
             </button>
           </div>
         ) : null}
@@ -261,7 +261,7 @@ export function ElectorateExecutivePage() {
 
       <Panel title="Composicao do eleitorado" subtitle="Distribuicao por sexo, faixa etaria e escolaridade">
         {effectiveSummary.by_sex.length === 0 && effectiveSummary.by_age.length === 0 && effectiveSummary.by_education.length === 0 ? (
-          <StateBlock tone="empty" title="Sem composicao" message="Nao ha dados de composicao para o recorte atual." />
+          <StateBlock tone="empty" title="Sem composição" message="Não ha dados de composição para o recorte atual." />
         ) : (
           <div className="table-wrap">
             <table>
@@ -312,8 +312,8 @@ export function ElectorateExecutivePage() {
             <table>
               <thead>
                 <tr>
-                  <th>Territorio</th>
-                  <th>Nivel</th>
+                  <th>Território</th>
+                  <th>Nível</th>
                   <th>Ano</th>
                   <th>Metrica</th>
                   <th>Valor</th>

@@ -19,7 +19,7 @@ export function StrategicIndexCard({ label, value, status = "info", trend, helpe
         <small aria-label={`status: ${formatStatusLabel(status)}`}>{formatStatusLabel(status)}</small>
       </div>
       <strong>{value}</strong>
-      {trend ? <p className="strategic-index-trend">tendencia: {formatTrendLabel(trend)}</p> : null}
+      {trend ? <p className="strategic-index-trend">tendência: {formatTrendLabel(trend)}</p> : null}
       {helper ? <p className="strategic-index-helper">{helper}</p> : null}
     </article>
   );

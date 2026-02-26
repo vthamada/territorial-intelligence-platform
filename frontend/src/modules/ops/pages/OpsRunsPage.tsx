@@ -128,14 +128,14 @@ export function OpsRunsPage() {
         </form>
 
         {runsQuery.isPending ? (
-          <StateBlock tone="loading" title="Carregando execucoes" message="Consultando /v1/ops/pipeline-runs." />
+          <StateBlock tone="loading" title="Carregando execuções" message="Consultando /v1/ops/pipeline-runs." />
         ) : runsQuery.error ? (
           (() => {
             const { message, requestId } = formatApiError(runsQuery.error);
             return (
               <StateBlock
                 tone="error"
-                title="Falha ao carregar execucoes"
+                title="Falha ao carregar execuções"
                 message={message}
                 requestId={requestId}
                 onRetry={() => void runsQuery.refetch()}
@@ -143,7 +143,7 @@ export function OpsRunsPage() {
             );
           })()
         ) : runsQuery.data && runsQuery.data.items.length === 0 ? (
-          <StateBlock tone="empty" title="Sem execucoes" message="Nenhum registro encontrado para os filtros aplicados." />
+          <StateBlock tone="empty" title="Sem execuções" message="Nenhum registro encontrado para os filtros aplicados." />
         ) : (
           <>
             <div className="table-wrap">

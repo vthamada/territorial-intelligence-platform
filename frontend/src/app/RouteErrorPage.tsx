@@ -30,7 +30,7 @@ export function RouteErrorPage() {
       />
       <div className="quick-actions">
         <Link className="quick-action-link" to="/">
-          Voltar para Visao Geral
+          Voltar para Visão Geral
         </Link>
         <Link className="quick-action-link" to="/admin">
           Ir para Admin

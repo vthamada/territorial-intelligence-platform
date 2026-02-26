@@ -255,7 +255,7 @@ describe("ElectorateExecutivePage", () => {
 
     await screen.findByText("Ano 2022 sem dados consolidados");
     expect(screen.getAllByText("12.000").length).toBeGreaterThan(0);
-    expect(screen.getByText("Mostrando automaticamente o ultimo recorte com dados (2024) para manter a leitura executiva.")).toBeInTheDocument();
+    expect(screen.getByText("Mostrando automaticamente o último recorte com dados (2024) para manter a leitura executiva.")).toBeInTheDocument();
     expect(screen.queryByText("Sem dados para o ano informado")).not.toBeInTheDocument();
     expect(screen.getByText("MASCULINO")).toBeInTheDocument();
   });

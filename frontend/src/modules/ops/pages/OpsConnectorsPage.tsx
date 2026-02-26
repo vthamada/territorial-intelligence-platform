@@ -67,7 +67,7 @@ export function OpsConnectorsPage() {
 
   return (
     <div className="page-grid">
-      <Panel title="Registry de conectores" subtitle="Filtros por conector, fonte, wave, status e atualizacao">
+      <Panel title="Registry de conectores" subtitle="Filtros por conector, fonte, wave, status e atualização">
         <form
           className="filter-grid"
           onSubmit={(event) => {

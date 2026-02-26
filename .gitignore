@@ -43,6 +43,13 @@ frontend/dist/
 frontend/.vite/
 .npm-cache/
 .tmp/
+.tmp_*.txt
 .piptmp/
 dbt_project/target/
 dbt_project/logs/
+
+# local environment reconciliation reports
+data/reports/*.current_env.json
+data/reports/reprocess_tse_*.json
+data/reports/robustness_backfill_sync_env*.json
+data/reports/incremental_backfill_dryrun_*.json

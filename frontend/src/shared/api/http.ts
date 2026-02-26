@@ -63,7 +63,7 @@ export function formatApiError(error: unknown): { message: string; requestId?: s
   }
   if (error instanceof Error) {
     if (error.message === "Failed to fetch") {
-      return { message: "Nao foi possivel conectar com a API. Verifique se o backend esta ativo." };
+      return { message: "Não foi possível conectar com a API. Verifique se o backend esta ativo." };
     }
     return { message: error.message };
   }

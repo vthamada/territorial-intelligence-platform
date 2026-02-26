@@ -143,7 +143,7 @@ export function OpsHealthPage() {
     <div className="page-grid">
       <Panel
         title="Status geral"
-        subtitle="Saude da API e volume operacional"
+        subtitle="Saúde da API e volume operacional"
         actions={
           <button type="button" className="button-secondary" onClick={refetchAll} aria-label="Atualizar painel de saude">
             Atualizar painel
@@ -203,7 +203,7 @@ export function OpsHealthPage() {
         {readiness.warnings.length > 0 ? <p className="panel-subtitle">Warnings: {readiness.warnings.join(" | ")}</p> : null}
       </Panel>
 
-      <Panel title="SLA por job" subtitle="Taxa de sucesso e duracao media">
+      <Panel title="SLA por job" subtitle="Taxa de sucesso e duração média">
         {sla.items.length === 0 ? (
           <StateBlock tone="empty" title="Sem dados de SLA" message="Nenhum job encontrado para os filtros atuais." />
         ) : (
@@ -252,7 +252,7 @@ export function OpsHealthPage() {
         )}
       </Panel>
 
-      <CollapsiblePanel title="Quality checks" subtitle="Resultados dos ultimos checks de qualidade" defaultOpen={false} badgeCount={checks?.items?.length ?? 0}>
+      <CollapsiblePanel title="Quality checks" subtitle="Resultados dos últimos checks de qualidade" defaultOpen={false} badgeCount={checks?.items?.length ?? 0}>
         {!checks?.items?.length ? (
           <StateBlock tone="empty" title="Sem checks" message="Nenhum check de qualidade encontrado." />
         ) : (
@@ -291,7 +291,7 @@ export function OpsHealthPage() {
                 <tr>
                   <th>Fonte</th>
                   <th>Total linhas</th>
-                  <th>Ultima atualizacao</th>
+                  <th>Última atualização</th>
                 </tr>
               </thead>
               <tbody>

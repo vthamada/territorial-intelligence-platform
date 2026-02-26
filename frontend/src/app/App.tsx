@@ -31,7 +31,7 @@ export function App({ children }: AppProps) {
   }, [location.pathname, location.search]);
 
   const mainNavigation = [
-    { to: "/", label: "Visao Geral", icon: "home" as const, end: true },
+    { to: "/", label: "Visão Geral", icon: "home" as const, end: true },
     { to: "/mapa", label: "Mapa", icon: "map" as const },
     { to: "/prioridades", label: "Prioridades", icon: "priorities" as const },
     { to: "/insights", label: "Insights", icon: "insights" as const },
@@ -48,7 +48,7 @@ export function App({ children }: AppProps) {
       <div className="shape shape-right" />
       <div className="app-frame">
         <aside className="app-sidebar slide-up" aria-label="Painel lateral de navegacao">
-          <nav className="app-nav app-nav-primary" aria-label="Navegacao principal">
+          <nav className="app-nav app-nav-primary" aria-label="Navegação principal">
             {mainNavigation.map((item) => (
               <NavLink key={item.to} to={item.to} end={item.end}>
                 <NavIcon name={item.icon} className="nav-icon" />
@@ -57,11 +57,11 @@ export function App({ children }: AppProps) {
             ))}
           </nav>
 
-          <nav className="app-nav app-nav-admin" aria-label="Navegacao tecnica">
+          <nav className="app-nav app-nav-admin" aria-label="Navegação técnica">
             <span className="nav-section-label">Complementar</span>
             <NavLink to="/territorio/perfil">
               <NavIcon name="territory" className="nav-icon" />
-              Territorio 360
+              Território 360
             </NavLink>
             <NavLink to="/briefs">
               <NavIcon name="briefs" className="nav-icon" />
@@ -77,8 +77,8 @@ export function App({ children }: AppProps) {
         <div className="app-main">
           <header className="app-header fade-in">
             <div className="app-header-left">
-              <p className="eyebrow">Inteligencia Territorial</p>
-              <h1>Painel de Inteligencia Territorial</h1>
+              <p className="eyebrow">Inteligência Territorial</p>
+              <h1>Painel de Inteligência Territorial</h1>
             </div>
             <div className="app-header-right">
               <p className="header-note">Diamantina/MG</p>

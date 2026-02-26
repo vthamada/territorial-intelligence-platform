@@ -196,7 +196,7 @@ export function QgScenariosPage() {
           }}
         >
           <label>
-            Territorio
+            Território
             <select value={territoryId} onChange={(event) => setTerritoryId(event.target.value)}>
               {territoryOptions.map((territory) => (
                 <option key={territory.territory_id} value={territory.territory_id}>
@@ -206,18 +206,18 @@ export function QgScenariosPage() {
             </select>
           </label>
           <label>
-            Periodo
+            Período
             <input value={period} onChange={(event) => setPeriod(event.target.value)} placeholder="2025" />
           </label>
           <label>
-            Nivel
+            Nível
             <select value={level} onChange={(event) => setLevel(event.target.value)}>
               <option value="municipality">{formatLevelLabel("municipality")}</option>
               <option value="district">{formatLevelLabel("district")}</option>
             </select>
           </label>
           <label>
-            Dominio (opcional)
+            Domínio (opcional)
             <select value={domain} onChange={(event) => setDomain(event.target.value)}>
               <option value="">Todos</option>
               {QG_DOMAIN_OPTIONS.map((option) => (
@@ -275,7 +275,7 @@ export function QgScenariosPage() {
             <StateBlock
               tone="empty"
               title="Filtros alterados apos a simulacao"
-              message="Os resultados abaixo refletem o ultimo envio. Clique em Simular para atualizar com os filtros atuais."
+              message="Os resultados abaixo refletem o último envio. Clique em Simular para atualizar com os filtros atuais."
             />
           ) : null}
 

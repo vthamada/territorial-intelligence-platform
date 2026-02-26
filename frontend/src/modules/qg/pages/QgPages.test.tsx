@@ -424,7 +424,7 @@ describe("QG pages", () => {
     renderWithQueryClient(<QgOverviewPage />);
     await waitFor(() => expect(getKpisOverview).toHaveBeenCalledTimes(1));
 
-    expect(await screen.findByText("Situacao geral")).toBeInTheDocument();
+    expect(await screen.findByText("Situação geral")).toBeInTheDocument();
     expect(await screen.findByText("Falha ao carregar top prioridades")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /Destaques/i }));
     expect(await screen.findByText("Falha ao carregar destaques")).toBeInTheDocument();
@@ -455,7 +455,7 @@ describe("QG pages", () => {
       items: [
         {
           id: "territory_municipality",
-          label: "Municipios",
+          label: "Municípios",
           territory_level: "municipality",
           is_official: true,
           source: "silver.dim_territory",
@@ -465,7 +465,7 @@ describe("QG pages", () => {
         },
         {
           id: "territory_electoral_section",
-          label: "Secoes eleitorais",
+          label: "Seções eleitorais",
           territory_level: "electoral_section",
           is_official: false,
           official_status: "proxy",
@@ -476,7 +476,7 @@ describe("QG pages", () => {
         },
         {
           id: "territory_polling_place",
-          label: "Locais de votacao",
+          label: "Locais de votação",
           territory_level: "electoral_section",
           is_official: false,
           official_status: "proxy",
@@ -777,7 +777,7 @@ describe("QG pages", () => {
       items: [
         {
           id: "territory_electoral_section",
-          label: "Secoes eleitorais",
+          label: "Seções eleitorais",
           territory_level: "electoral_section",
           is_official: false,
           source: "silver.dim_territory",
@@ -858,7 +858,7 @@ describe("QG pages", () => {
         },
         {
           id: "territory_electoral_section",
-          label: "Secoes eleitorais",
+          label: "Seções eleitorais",
           territory_level: "electoral_section",
           is_official: false,
           official_status: "proxy",

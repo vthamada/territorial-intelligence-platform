@@ -127,7 +127,7 @@ export function OpsLayersPage() {
             />
           </label>
           <label>
-            Periodo
+            Período
             <input
               value={draftFilters.period}
               onChange={(event) => setDraftFilters((old) => ({ ...old, period: event.target.value }))}
@@ -257,7 +257,7 @@ export function OpsLayersPage() {
                 <thead>
                   <tr>
                     <th>Camada</th>
-                    <th>Nivel</th>
+                    <th>Nível</th>
                     <th>Classificacao</th>
                     <th>Cobertura</th>
                     <th>Rows check</th>

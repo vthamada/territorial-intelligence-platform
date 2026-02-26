@@ -40,7 +40,7 @@ function classificationLabel(classification: string | null | undefined): string 
 export function SourceFreshnessBadge({ metadata }: SourceFreshnessBadgeProps) {
   const classLabel = classificationLabel(metadata.source_classification);
   return (
-    <div className="source-freshness-badge" role="status" aria-label="Metadados de fonte e atualizacao">
+    <div className="source-freshness-badge" role="status" aria-label="Metadados de fonte e atualização">
       <span>Fonte: {humanizeSourceName(metadata.source_name)}</span>
       {classLabel ? <span className={`source-classification source-classification-${metadata.source_classification}`}>{classLabel}</span> : null}
       <span>Atualizacao: {formatUpdatedAt(metadata.updated_at)}</span>

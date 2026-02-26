@@ -56,7 +56,7 @@ export const QG_DOMAIN_OPTIONS = [
 ];
 
 const QG_DOMAIN_LABELS: Record<string, string> = {
-  saude: "Saude",
+  saude: "Saúde",
   educacao: "Educacao",
   trabalho: "Trabalho",
   financas: "Financas",

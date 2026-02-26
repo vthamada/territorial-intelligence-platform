@@ -31,7 +31,7 @@ export function PriorityItemCard({ item }: PriorityItemCardProps) {
             {getQgDomainLabel(item.domain)} | {item.indicator_name}
           </p>
           <small className="priority-item-meta">
-            Nivel {formatLevelLabel(item.territory_level)} | Periodo {item.evidence.reference_period}
+            Nível {formatLevelLabel(item.territory_level)} | Período {item.evidence.reference_period}
           </small>
         </div>
         <span className={statusClass(item.status)}>{formatStatusLabel(item.status)}</span>
@@ -53,7 +53,7 @@ export function PriorityItemCard({ item }: PriorityItemCardProps) {
       </div>
 
       <ul className="priority-item-rationale">
-        {(item.rationale.length > 0 ? item.rationale : ["Sem racional disponivel."]).slice(0, 3).map((entry, index) => (
+        {(item.rationale.length > 0 ? item.rationale : ["Sem racional disponível."]).slice(0, 3).map((entry, index) => (
           <li key={`${item.indicator_code}-${index}`}>{entry}</li>
         ))}
       </ul>

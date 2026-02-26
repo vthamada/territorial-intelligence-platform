@@ -127,7 +127,7 @@ _BASE_LAYER_ITEMS: list[MapLayerItem] = [
     ),
     MapLayerItem(
         id="territory_polling_place",
-        label="Locais de votacao",
+        label="Locais de votação",
         territory_level="electoral_section",
         is_official=False,
         official_status="proxy",
@@ -137,13 +137,13 @@ _BASE_LAYER_ITEMS: list[MapLayerItem] = [
         zoom_min=12,
         zoom_max=None,
         proxy_method="Pontos derivados da secao eleitoral com nome de local detectado no payload oficial.",
-        notes="Camada de apoio para base eleitoral; geocodificacao fina de endereco segue como evolucao futura.",
+        notes="Camada de apoio para base eleitoral; geocodificação fina de endereço segue como evolução futura.",
     ),
 ]
 _URBAN_LAYER_ITEMS: list[MapLayerItem] = [
     MapLayerItem(
         id="urban_roads",
-        label="Viario urbano",
+        label="Viário urbano",
         territory_level="urban",
         is_official=False,
         official_status="hybrid",
@@ -152,7 +152,7 @@ _URBAN_LAYER_ITEMS: list[MapLayerItem] = [
         default_visibility=False,
         zoom_min=12,
         zoom_max=None,
-        notes="Rede viaria urbana para navegacao operacional e contexto de mobilidade.",
+        notes="Rede viária urbana para navegação operacional e contexto de mobilidade.",
     ),
     MapLayerItem(
         id="urban_pois",
@@ -165,11 +165,11 @@ _URBAN_LAYER_ITEMS: list[MapLayerItem] = [
         default_visibility=False,
         zoom_min=12,
         zoom_max=None,
-        notes="POIs operacionais para leitura territorial de servicos e equipamentos.",
+        notes="POIs operacionais para leitura territorial de serviços e equipamentos.",
     ),
     MapLayerItem(
         id="urban_transport_stops",
-        label="Paradas e estacoes de transporte",
+        label="Paradas e estações de transporte",
         territory_level="urban",
         is_official=False,
         official_status="hybrid",
@@ -178,7 +178,7 @@ _URBAN_LAYER_ITEMS: list[MapLayerItem] = [
         default_visibility=False,
         zoom_min=12,
         zoom_max=None,
-        notes="Camada de paradas e estacoes para leitura de acesso e mobilidade urbana.",
+        notes="Camada de paradas e estações para leitura de acesso e mobilidade urbana.",
     ),
 ]
 _ALL_LAYER_ITEMS: list[MapLayerItem] = [*_BASE_LAYER_ITEMS, *_URBAN_LAYER_ITEMS]

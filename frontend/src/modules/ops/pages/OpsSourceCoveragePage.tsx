@@ -105,7 +105,7 @@ export function OpsSourceCoveragePage() {
             </select>
           </label>
           <label>
-            Periodo
+            Período
             <input
               value={draftFilters.referencePeriod}
               onChange={(event) => setDraftFilters((old) => ({ ...old, referencePeriod: event.target.value }))}

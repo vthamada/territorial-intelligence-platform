@@ -111,11 +111,11 @@ export function QgInsightsPage() {
           }}
         >
           <label>
-            Periodo
+            Período
             <input value={period} onChange={(event) => setPeriod(event.target.value)} placeholder="2025" />
           </label>
           <label>
-            Dominio
+            Domínio
             <select value={domain} onChange={(event) => setDomain(event.target.value)}>
               <option value="">Todos</option>
               {QG_DOMAIN_OPTIONS.map((option) => (

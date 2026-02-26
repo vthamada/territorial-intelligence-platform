@@ -1,6 +1,6 @@
-# Plataforma de Inteligencia Territorial
+# Plataforma de Inteligência Territorial
 
-Plataforma de inteligencia territorial para Diamantina/MG, alinhada ao contrato tecnico em `docs/CONTRATO.md`, ao plano de execucao em `docs/PLANO_IMPLEMENTACAO_QG.md` e ao north star de produto em `docs/VISION.md`.
+Plataforma de inteligência territorial para Diamantina/MG, alinhada ao contrato tecnico em `docs/CONTRATO.md`, ao plano de execucao em `docs/PLANO_IMPLEMENTACAO_QG.md` e ao north star de produto em `docs/VISION.md`.
 
 ## Estado atual (20/02/2026)
 

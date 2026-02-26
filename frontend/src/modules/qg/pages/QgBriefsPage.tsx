@@ -73,7 +73,7 @@ function buildBriefHtml(brief: BriefGenerateResponse) {
   <body>
     <h1>${escapeHtml(brief.title)}</h1>
     <p class="meta">Gerado em: ${escapeHtml(brief.generated_at)}</p>
-    <p class="meta">Periodo: ${escapeHtml(brief.period ?? "-")} | Nivel: ${escapeHtml(formatLevelLabel(brief.level))} | Dominio: ${escapeHtml(getQgDomainLabel(brief.domain))}</p>
+    <p class="meta">Período: ${escapeHtml(brief.period ?? "-")} | Nível: ${escapeHtml(formatLevelLabel(brief.level))} | Domínio: ${escapeHtml(getQgDomainLabel(brief.domain))}</p>
 
     <h2>Resumo executivo</h2>
     <ul>${summaryItems}</ul>
@@ -85,14 +85,14 @@ function buildBriefHtml(brief: BriefGenerateResponse) {
     <table>
       <thead>
         <tr>
-          <th>Territorio</th>
-          <th>Dominio</th>
+          <th>Território</th>
+          <th>Domínio</th>
           <th>Indicador</th>
           <th>Valor</th>
           <th>Score</th>
           <th>Status</th>
           <th>Fonte</th>
-          <th>Periodo</th>
+          <th>Período</th>
         </tr>
       </thead>
       <tbody>${evidenceRows}</tbody>
@@ -204,7 +204,7 @@ export function QgBriefsPage() {
     setExportError(null);
     const popup = window.open("", "_blank", "noopener,noreferrer,width=980,height=820");
     if (!popup) {
-      setExportError("Nao foi possivel abrir janela de impressao. Verifique bloqueio de pop-up.");
+      setExportError("Não foi possível abrir janela de impressao. Verifique bloqueio de pop-up.");
       return;
     }
     const html = buildBriefHtml(brief);
@@ -222,7 +222,7 @@ export function QgBriefsPage() {
       <StateBlock
         tone="loading"
         title="Carregando briefs"
-        message="Preparando selecao de territorios para gerar o brief executivo."
+        message="Preparando seleção de territorios para gerar o brief executivo."
       />
     );
   }
@@ -253,18 +253,18 @@ export function QgBriefsPage() {
           }}
         >
           <label>
-            Periodo
+            Período
             <input value={period} onChange={(event) => setPeriod(event.target.value)} placeholder="2025" />
           </label>
           <label>
-            Nivel
+            Nível
             <select value={level} onChange={(event) => setLevel(event.target.value)}>
               <option value="municipality">{formatLevelLabel("municipality")}</option>
               <option value="district">{formatLevelLabel("district")}</option>
             </select>
           </label>
           <label>
-            Territorio
+            Território
             <select value={territoryId} onChange={(event) => setTerritoryId(event.target.value)}>
               {territoryOptions.map((territory) => (
                 <option key={territory.territory_id} value={territory.territory_id}>
@@ -274,7 +274,7 @@ export function QgBriefsPage() {
             </select>
           </label>
           <label>
-            Dominio (opcional)
+            Domínio (opcional)
             <select value={domain} onChange={(event) => setDomain(event.target.value)}>
               <option value="">Todos</option>
               {QG_DOMAIN_OPTIONS.map((option) => (
@@ -352,14 +352,14 @@ export function QgBriefsPage() {
               <table aria-label="Evidencias do brief">
                 <thead>
                   <tr>
-                    <th>Territorio</th>
-                    <th>Dominio</th>
+                    <th>Território</th>
+                    <th>Domínio</th>
                     <th>Indicador</th>
                     <th>Valor</th>
                     <th>Score</th>
                     <th>Status</th>
                     <th>Fonte</th>
-                    <th>Periodo</th>
+                    <th>Período</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -104,7 +104,7 @@ export function TerritoryIndicatorsPage() {
 
   return (
     <div className="page-grid">
-      <Panel title="Territorios" subtitle="Consulta por nivel territorial com selecao para filtrar indicadores">
+      <Panel title="Territórios" subtitle="Consulta por nivel territorial com seleção para filtrar indicadores">
         <form
           className="filter-grid compact"
           onSubmit={(event) => {
@@ -113,7 +113,7 @@ export function TerritoryIndicatorsPage() {
           }}
         >
           <label>
-            Nivel
+            Nível
             <select value={territoryDraftLevel} onChange={(event) => setTerritoryDraftLevel(event.target.value)}>
               <option value="municipality">municipality</option>
               <option value="district">district</option>
@@ -154,7 +154,7 @@ export function TerritoryIndicatorsPage() {
                 <thead>
                   <tr>
                     <th>Nome</th>
-                    <th>Nivel</th>
+                    <th>Nível</th>
                     <th>UF</th>
                     <th>IBGE municipio</th>
                     <th>Acao</th>
@@ -215,16 +215,16 @@ export function TerritoryIndicatorsPage() {
           }}
         >
           <label>
-            Territorio selecionado
+            Território selecionado
             <input
               value={selectedTerritoryName || ""}
               readOnly
               placeholder="Selecione na tabela de territorios"
-              aria-label="Territorio selecionado"
+              aria-label="Território selecionado"
             />
           </label>
           <label>
-            Periodo
+            Período
             <input
               value={indicatorDraftFilters.period}
               onChange={(event) => setIndicatorDraftFilters((old) => ({ ...old, period: event.target.value }))}
@@ -286,7 +286,7 @@ export function TerritoryIndicatorsPage() {
               <table>
                 <thead>
                   <tr>
-                    <th>Periodo</th>
+                    <th>Período</th>
                     <th>Codigo</th>
                     <th>Nome</th>
                     <th>Fonte</th>

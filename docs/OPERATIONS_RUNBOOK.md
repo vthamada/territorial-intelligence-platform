@@ -1,4 +1,4 @@
-﻿# Runbook de Operações - Plataforma de Inteligencia Territorial
+﻿# Runbook de Operações - Plataforma de Inteligência Territorial
 
 Data de referência: 2026-02-13  
 Versão: v1.0
@@ -569,6 +569,33 @@ Leitura minima do relatório `ops_robustness_window_30d.json`:
 5. `incident_window.failed_checks` e `incident_window.failed_runs` sao contexto histórico; triagem operacional usa `unresolved_failed_checks_window` e `unresolved_failed_runs_window`.
 6. `warnings_summary.actionable` deve estar `0`; warnings históricos de SLO com janela de saude estavel ficam em `warnings_summary.informational`.
 7. acompanhar tendência pelo endpoint `GET /v1/ops/robustness-history` (filtro por janela/status/severidade), priorizando snapshots com `drift.status_transition=regressed`, `drift.severity_transition=regressed` ou `drift.delta_actionable_warnings > 0`.
+
+### 11.10 Equalizacao completa de banco entre ambientes
+
+Objetivo operacional:
+1. reproduzir rapidamente, em outra maquina, o mesmo baseline de dados/contratos/validacao.
+2. reduzir erro manual em execucao de multiplos comandos longos.
+
+Execucao recomendada (com tolerancia a fontes externas bloqueadas):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/equalize_database_env.ps1 -IncludeWave7 -AllowBackfillBlocked
+```
+
+Observacao:
+1. o script ja executa varredura incremental completa das fontes registradas (`include-partial` + `allow-governed-sources`).
+
+Parametros uteis:
+1. `-TseYears` (default `2024,2022,2020,2018,2016`).
+2. `-IndicatorPeriods` (default `2024,2025`).
+3. `-SkipFullIncremental` para pular apenas a etapa incremental completa.
+4. `-OutputDir` para consolidar relatorios em outro caminho.
+
+Relatorios gerados por padrao:
+1. `data/reports/reprocess_tse_2024.current_env.json`
+2. `data/reports/robustness_backfill_sync_env.current_env.json`
+3. `data/reports/incremental_full_sources.current_env.json`
+4. `data/reports/data_coverage_scorecard.current_env.json`
 
 ## 12) Procedimento de deploy
 

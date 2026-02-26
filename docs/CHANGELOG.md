@@ -2,6 +2,119 @@
 
 Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-26 - Correção de serialização de seções no mapa eleitoral
+
+### Changed
+- `frontend/src/modules/qg/pages/QgMapPage.tsx`:
+  - `sectionGeoJson` agora sempre publica `sections_csv` em `properties`, derivado de `sections`.
+  - objetivo: garantir exibição de seções no tooltip/painel mesmo quando o cliente de mapa não preserva arrays no `properties` do evento.
+
+### Verified
+- `npm --prefix frontend run build` -> `OK`.
+- `npm --prefix frontend run test -- --run` -> falha local conhecida de ambiente (`spawn EPERM` em `esbuild`).
+
+## 2026-02-26 - Validação completa de geolocalização eleitoral + normalização de acentuação da UI
+
+### Changed
+- `data/seed/polling_places_diamantina.csv`:
+  - restaurado a partir do banco após execução de geocoder sem rede (evitando coordenadas vazias);
+  - seed reaplicado no banco com `scripts/apply_seed.py`.
+- `scripts/build_seed.py`:
+  - reescrito para usar o seed atual como fonte de verdade de coordenadas;
+  - agora recalcula apenas `sections`/`voters` no banco e não sobrescreve latitude/longitude com dicionários hardcoded antigos.
+- frontend (normalização textual):
+  - correção ampla de textos com caracteres quebrados (`?`) em páginas executivas e operacionais;
+  - ajustes de acentuação em labels, subtítulos e mensagens de estado;
+  - mantidos contratos técnicos de rota/chaves/enums.
+- `frontend/src/modules/qg/pages/QgMapPage.tsx`:
+  - mantido fallback robusto de seções por `sections_csv`;
+  - mantida ocultação de labels contextuais no nível `secao_eleitoral`.
+
+### Verified
+- validação geoespacial eleitoral (query SQL):
+  - `polling_places_total=36`;
+  - `unique_codes=36`;
+  - `unique_points=36`;
+  - `outside_district=[]` (todos os pontos dentro do distrito correspondente).
+- `.\.venv\Scripts\python.exe scripts/build_seed.py` -> `Rows: 36`, `Rows missing coordinates: 0`.
+- `.\.venv\Scripts\python.exe scripts/apply_seed.py` -> `Total sections updated: 144`, `Verification: 36 unique geometry points`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `37 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+- `npm --prefix frontend run test -- --run` -> falha de ambiente local (`spawn EPERM` no `esbuild`).
+
+## 2026-02-25 - Correção geoespacial adicional de locais de votação + acentuação ampla de UI
+
+### Changed
+- `data/seed/polling_places_diamantina.csv`:
+  - refinadas coordenadas de locais que ainda estavam com inconsistência distrital/posicional:
+    - `1244` (`E. E. PROF.ª AYNA TORRES`) -> `inep_road:Rua Prof. Paulino Guimaraes Junior`;
+    - `1252` (`E. E. D. JOAQUIM SILVÉRIO DE SOUZA`) -> `osm_school:EE Dom Joaquim Silverio de Souza`;
+    - `1333` (`E. E. DURVAL CÂNDIDO CRUZ`) -> `osm_school:EE Durval Candido Cruz`;
+    - `1341` (`E. E. GOV. JUSCELINO KUBITSCHEK`) -> `nominatim:Conselheiro Mata`;
+    - `1384` (`E. M. PEDRARIA`) -> `district_centroid:senador_mourao`.
+- `scripts/build_seed.py`:
+  - alinhado com os ajustes acima para evitar regressão futura em rebuild da seed.
+- `frontend/src/modules/qg/pages/QgMapPage.tsx`:
+  - tooltip de local de votação agora usa fallback `sections_csv` quando `sections` não está disponível;
+  - drawer de detalhe também usa fallback `sections_csv` e aceita `section_count` numérico ou string;
+  - labels contextuais ficam ocultos no nível `secao_eleitoral` mesmo com overlay de locais desligado (`showContextLabels` condicionado por nível);
+  - revisão adicional de acentuação em textos visíveis do mapa.
+- revisão de acentuação em textos visíveis de UI em páginas executivas/operacionais (sem alterar contratos técnicos de rotas, chaves e enums).
+
+### Verified
+- `.\.venv\Scripts\python.exe scripts/apply_seed.py` -> `Total sections updated: 144`, `36 unique geometry points`.
+- validação espacial após seed:
+  - `1252` e `1341` posicionados em `conselheiro mata`;
+  - `1333` posicionado em `planalto de minas`;
+  - `1384` posicionado em `senador mourão`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `37 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+- `npm --prefix frontend run test -- --run` -> falha de ambiente local (`spawn EPERM` no `esbuild`).
+
+## 2026-02-26 - Ajustes de UX do mapa eleitoral (seções, labels e acentuação)
+
+### Changed
+- `frontend/src/modules/qg/pages/QgMapPage.tsx`:
+  - tooltip de local de votação agora usa fallback `sections_csv` quando o array `sections` não vem preservado pela serialização do GeoJSON no cliente;
+  - painel de detalhe também passou a ler `sections_csv` e interpretar `section_count` como número mesmo quando chega como string;
+  - labels contextuais da camada base agora ficam ocultas em `secao_eleitoral` (inclusive com checkbox de locais desligado), eliminando sobreposição de labels de seção no mapa;
+  - revisão textual com acentuação em rótulos e mensagens do mapa.
+- `frontend/src/shared/ui/presentation.ts`:
+  - normalização de acentuação em labels de nível/status/tendência e nomes de datasets no idioma PT-BR.
+
+### Verified
+- `npm --prefix frontend run build` -> `OK`.
+- `npm --prefix frontend test -- --run` -> falha de ambiente local (`spawn EPERM` no `esbuild` ao carregar `vite.config.ts`).
+
+## 2026-02-26 - Script unico para equalizacao de banco entre ambientes
+
+### Changed
+- `scripts/equalize_database_env.ps1` adicionado para executar, em sequencia unica:
+  - `sync_connector_registry`;
+  - `sync_schema_contracts`;
+  - reprocesso TSE 2024 (`run_incremental_backfill.py` com `reprocess`);
+  - aplicacao de seed de locais de votacao (`apply_seed.py`);
+  - backfill robusto (`backfill_robust_database.py`);
+  - varredura incremental de todas as fontes registradas (`run_incremental_backfill.py --include-partial --allow-governed-sources`);
+  - export do scorecard atual (`export_data_coverage_scorecard.py`);
+  - validacao final de prontidao (`backend_readiness.py --output-json`).
+- suporte a tratamento controlado de fontes externas bloqueadas no backfill:
+  - flag `-AllowBackfillBlocked` permite continuar somente quando os nao-success do relatorio forem exclusivamente `blocked`.
+- parametros de operacao no script:
+  - `-TseYears` (default `2024,2022,2020,2018,2016`);
+  - `-IndicatorPeriods` (default `2024,2025`);
+  - `-IncludeWave7`;
+  - `-SkipFullIncremental` para pular apenas a etapa de varredura incremental completa;
+  - `-OutputDir` para consolidar artefatos de relatorio.
+
+### Verified
+- execucao real de equalizacao no ambiente atual:
+  - reprocesso TSE 2024 concluido com sucesso;
+  - `apply_seed.py`: `Total sections updated: 144`, `36 unique geometry points`;
+  - sync de contratos: `prepared=27 upserted=27`;
+  - scorecard reexportado: `pass=29`, `warn=3`;
+  - `backend_readiness.py --output-json`: `READY`, `hard_failures=0`, `warnings=0`.
+
 ## 2026-02-25 - Correção de labels e coordenadas no mapa de locais de votação
 
 ### Root cause
