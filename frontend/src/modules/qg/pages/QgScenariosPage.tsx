@@ -6,6 +6,7 @@ import { formatApiError } from "../../../shared/api/http";
 import { postScenarioSimulate } from "../../../shared/api/qg";
 import { getQgDomainLabel, normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
 import { usePersistedFormState } from "../../../shared/hooks/usePersistedFormState";
+import { CollapsiblePanel } from "../../../shared/ui/CollapsiblePanel";
 import { Panel } from "../../../shared/ui/Panel";
 import { formatDecimal, formatInteger, formatLevelLabel, formatStatusLabel, toNumber } from "../../../shared/ui/presentation";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
@@ -288,57 +289,47 @@ export function QgScenariosPage() {
           ) : null}
 
           <div className="kpi-grid">
-            <StrategicIndexCard label="Score base" value={formatDecimal(normalizeNumber(simulation.base_score))} status="info" />
             <StrategicIndexCard
-              label="Score simulado"
-              value={formatDecimal(normalizeNumber(simulation.simulated_score))}
+              label="Score antes/depois"
+              value={`${formatDecimal(normalizeNumber(simulation.base_score))} -> ${formatDecimal(normalizeNumber(simulation.simulated_score))}`}
               status={impactStatus(simulation.impact)}
             />
             <StrategicIndexCard
-              label="Ranking antes"
-              value={`${simulation.base_rank}/${simulation.peer_count}`}
-              status="info"
-            />
-            <StrategicIndexCard
-              label="Ranking apos"
-              value={`${simulation.simulated_rank}/${simulation.peer_count}`}
+              label="Status antes/depois"
+              value={`${formatStatusLabel(simulation.status_before)} -> ${formatStatusLabel(simulation.status_after)}`}
               status={impactStatus(simulation.impact)}
             />
             <StrategicIndexCard
-              label="Delta de ranking"
+              label="Variacao ranking"
               value={formatSignedInteger(simulation.rank_delta)}
               status={impactStatus(simulation.impact)}
-              helper="valor positivo indica melhora de posicao"
-            />
-            <StrategicIndexCard label="Status antes" value={formatStatusLabel(simulation.status_before)} status="info" />
-            <StrategicIndexCard
-              label="Status apos"
-              value={formatStatusLabel(simulation.status_after)}
-              status={impactStatus(simulation.impact)}
+              helper={`posicao ${simulation.base_rank}/${simulation.peer_count} -> ${simulation.simulated_rank}/${simulation.peer_count}`}
             />
             <StrategicIndexCard
-              label="Delta de valor"
-              value={formatSigned(simulation.delta_value)}
-              status={impactStatus(simulation.impact)}
-            />
-            <StrategicIndexCard
-              label="Impacto"
+              label="Impacto resumido"
               value={formatStatusLabel(simulation.impact)}
               status={impactStatus(simulation.impact)}
-              helper="estimativa simplificada baseada em variacao percentual"
+              helper={`delta de valor ${formatSigned(simulation.delta_value)}`}
             />
           </div>
 
-          <ul className="trend-list" aria-label="Detalhes do cenario simulado">
-            {simulation.explanation.map((entry, index) => (
-              <li key={`${simulation.indicator_code}-${index}`}>
-                <div>
-                  <strong>Analise {index + 1}</strong>
-                  <p>{entry}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <CollapsiblePanel
+            title="Analises detalhadas"
+            subtitle="Leituras tecnicas de apoio ao resultado"
+            defaultOpen={false}
+            badgeCount={simulation.explanation.length}
+          >
+            <ul className="trend-list" aria-label="Detalhes do cenario simulado">
+              {simulation.explanation.map((entry, index) => (
+                <li key={`${simulation.indicator_code}-${index}`}>
+                  <div>
+                    <strong>Leitura {index + 1}</strong>
+                    <p>{entry}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </CollapsiblePanel>
 
           <SourceFreshnessBadge metadata={simulation.metadata} />
         </Panel>

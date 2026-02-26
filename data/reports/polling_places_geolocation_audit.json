@@ -3,7 +3,9 @@
   "polling_places_total": 36,
   "unique_codes": 36,
   "unique_points": 36,
-  "outside_district": [],
+  "outside_any_district": [],
+  "outside_expected_district": [],
+  "override_distance_violations": [],
   "status": "pass",
   "items": [
     {
@@ -142,12 +144,14 @@
       "code": "1252",
       "name": "E. E. D. JOAQUIM SILVÉRIO DE SOUZA",
       "district": "Conselheiro Mata",
-      "source": "osm_school:EE Dom Joaquim Silverio de Souza",
+      "source": "user_google:homologado",
       "sections": 1,
       "voters": 237,
-      "lat": -18.288146,
-      "lon": -43.982384,
-      "within_district": true
+      "lat": -18.287868,
+      "lon": -43.982343,
+      "within_district": true,
+      "override_distance_m": 0.0,
+      "override_match": true
     },
     {
       "code": "1260",
@@ -219,12 +223,14 @@
       "code": "1325",
       "name": "E. M. PROF.ª ANA CÉLIA DE O. SOUZA",
       "district": "Mendanha",
-      "source": "nominatim:Mendanha",
+      "source": "user_google:homologado",
       "sections": 2,
       "voters": 508,
-      "lat": -18.121686,
-      "lon": -43.549112,
-      "within_district": true
+      "lat": -18.106846,
+      "lon": -43.52775,
+      "within_district": true,
+      "override_distance_m": 0.0,
+      "override_match": true
     },
     {
       "code": "1333",
@@ -241,12 +247,14 @@
       "code": "1341",
       "name": "E. E. GOV. JUSCELINO KUBITSCHEK",
       "district": "Conselheiro Mata",
-      "source": "nominatim:Conselheiro Mata",
+      "source": "nominatim_addr:Rua Principal Conselheiro Mata",
       "sections": 6,
       "voters": 1274,
-      "lat": -18.2165,
-      "lon": -43.906394,
-      "within_district": true
+      "lat": -18.287522,
+      "lon": -43.9819,
+      "within_district": true,
+      "override_distance_m": 0.0,
+      "override_match": true
     },
     {
       "code": "1350",
@@ -274,12 +282,14 @@
       "code": "1376",
       "name": "E. M. SOPA",
       "district": "Sopa",
-      "source": "nominatim:Distrito Sopa",
+      "source": "user_google:homologado",
       "sections": 2,
       "voters": 544,
-      "lat": -18.181579,
-      "lon": -43.694889,
-      "within_district": true
+      "lat": -18.224691,
+      "lon": -43.696214,
+      "within_district": true,
+      "override_distance_m": 0.0,
+      "override_match": true
     },
     {
       "code": "1384",
@@ -306,46 +316,54 @@
     {
       "code": "1406",
       "name": "E. M. BAIXADÃO",
-      "district": "Extração",
-      "source": "manual:povoado_baixadao",
+      "district": "Planalto de Minas",
+      "source": "nominatim:Baixadao_Diamantina",
       "sections": 2,
       "voters": 178,
-      "lat": -18.35,
-      "lon": -43.5,
-      "within_district": true
+      "lat": -17.47843,
+      "lon": -43.269049,
+      "within_district": true,
+      "override_distance_m": 0.0,
+      "override_match": true
     },
     {
       "code": "1414",
       "name": "E. M. ROGÉRIO FIRMINO LOPES",
-      "district": "Extração",
-      "source": "nominatim:Extracao",
+      "district": "Desembargador Otoni",
+      "source": "district_pointonsurface:desembargador_otoni",
       "sections": 1,
       "voters": 308,
-      "lat": -18.31002,
-      "lon": -43.523591,
-      "within_district": true
+      "lat": -17.647633,
+      "lon": -43.403651,
+      "within_district": true,
+      "override_distance_m": 0.0,
+      "override_match": true
     },
     {
       "code": "1422",
       "name": "E. M. MÃO TORTA",
-      "district": "Sopa",
-      "source": "manual:povoado_mao_torta",
+      "district": "Desembargador Otoni",
+      "source": "district_centroid:desembargador_otoni",
       "sections": 1,
       "voters": 200,
-      "lat": -18.15,
-      "lon": -43.66,
-      "within_district": true
+      "lat": -17.657048,
+      "lon": -43.395739,
+      "within_district": true,
+      "override_distance_m": 0.0,
+      "override_match": true
     },
     {
       "code": "1457",
       "name": "E. M. BATATAL",
-      "district": "Diamantina",
-      "source": "manual:povoado_batatal",
+      "district": "Conselheiro Mata",
+      "source": "nominatim:settlement_conselheiro_mata",
       "sections": 1,
       "voters": 197,
-      "lat": -18.19,
-      "lon": -43.56,
-      "within_district": true
+      "lat": -18.288633,
+      "lon": -43.981851,
+      "within_district": true,
+      "override_distance_m": 0.0,
+      "override_match": true
     },
     {
       "code": "1465",

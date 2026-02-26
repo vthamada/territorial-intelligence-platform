@@ -74,7 +74,7 @@ describe("TerritoryIndicatorsPage", () => {
     renderWithQueryClient(<TerritoryIndicatorsPage />);
     await waitFor(() => expect(getTerritories).toHaveBeenCalledTimes(1));
 
-    await userEvent.selectOptions(screen.getByLabelText("Nivel"), "district");
+    await userEvent.selectOptions(screen.getByLabelText(/N[ií]vel/i), "district");
     expect(getTerritories).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getAllByRole("button", { name: "Aplicar filtros" })[0]!);

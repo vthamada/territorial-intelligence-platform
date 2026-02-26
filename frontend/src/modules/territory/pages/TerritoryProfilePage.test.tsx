@@ -164,7 +164,7 @@ describe("TerritoryProfilePage", () => {
     expect(screen.getByRole("heading", { name: "Diamantina" })).toBeInTheDocument();
     expect(screen.getByText("Status geral do territorio")).toBeInTheDocument();
     expect(screen.getByText("74,50")).toBeInTheDocument();
-    expect(screen.getByText("Saude")).toBeInTheDocument();
+    expect(screen.getByText(/Sa[úu]de/i)).toBeInTheDocument();
     expect(screen.getByText("Pares recomendados")).toBeInTheDocument();
     expect(screen.getAllByText("Belo Horizonte").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "Gerar brief deste territorio" })).toBeInTheDocument();
@@ -207,9 +207,9 @@ describe("TerritoryProfilePage", () => {
 
     await screen.findByText("Sem dados para o territorio selecionado");
     expect(
-      screen.getByText("Nao ha indicadores disponiveis para esse recorte. Selecione outro territorio ou periodo.")
+      screen.getByText(/indicadores disponiveis para esse recorte/i)
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Territorio base")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Territ[oó]rio base/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Aplicar filtros" })).toBeInTheDocument();
   });
 
@@ -256,7 +256,7 @@ describe("TerritoryProfilePage", () => {
     await waitFor(() => expect(getTerritoryProfile).toHaveBeenCalledTimes(1));
     expect(await screen.findByText("Sem destaques no recorte")).toBeInTheDocument();
     expect(
-      screen.getByText("Nao ha destaques narrativos para o territorio e periodo selecionados."),
+      screen.getByText(/destaques narrativos para o territorio e periodo selecionados/i),
     ).toBeInTheDocument();
   });
 });

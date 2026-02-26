@@ -70,6 +70,10 @@ CASE
     WHEN fi.source = 'ANA' THEN 'recursos_hidricos'
     WHEN fi.source = 'ANATEL' THEN 'conectividade'
     WHEN fi.source = 'ANEEL' THEN 'energia'
+    WHEN fi.source = 'PORTAL_TRANSPARENCIA' AND fi.category = 'assistencia_social' THEN 'assistencia_social'
+    WHEN fi.source = 'PORTAL_TRANSPARENCIA' AND fi.category = 'financas_publicas' THEN 'financas'
+    WHEN fi.source = 'SUASWEB' THEN 'assistencia_social'
+    WHEN fi.source = 'CNEAS' THEN 'assistencia_social'
     WHEN fi.source = 'CECAD' THEN 'assistencia_social'
     WHEN fi.source = 'CENSO_SUAS' THEN 'assistencia_social'
     WHEN fi.source = 'IBGE' THEN 'socioeconomico'
@@ -104,6 +108,39 @@ def _classify_source(source_name: str) -> str:
     if source_name in _PROXY_SOURCES:
         return "proxy"
     return "misto"
+
+
+def _normalize_domain(
+    raw_domain: str | None,
+    *,
+    source: str | None = None,
+    indicator_code: str | None = None,
+    category: str | None = None,
+) -> str:
+    """Normalize domain taxonomy for sources with mixed domain semantics."""
+    normalized_domain = str(raw_domain or "").strip().lower()
+    normalized_source = str(source or "").strip().upper()
+    normalized_code = str(indicator_code or "").strip().upper()
+    normalized_category = str(category or "").strip().lower()
+
+    if normalized_source == "PORTAL_TRANSPARENCIA":
+        if normalized_category == "assistencia_social":
+            return "assistencia_social"
+        if normalized_category == "financas_publicas":
+            return "financas"
+        if (
+            normalized_code.startswith("PT_CONVENIOS_")
+            or normalized_code.startswith("PT_RECURSOS_")
+            or normalized_code.startswith("PT_RENUNCIAS_")
+            or normalized_code.startswith("PT_COVID_")
+        ):
+            return "financas"
+        return "assistencia_social"
+
+    if normalized_source in {"SUASWEB", "CNEAS", "CECAD", "CENSO_SUAS"}:
+        return "assistencia_social"
+
+    return normalized_domain or "geral"
 
 
 def _format_highlight_value(value: float, unit: str | None) -> str:
@@ -365,7 +402,14 @@ def _fetch_priority_rows(
         LIMIT :limit
         """
     )
-    return [dict(row) for row in db.execute(query, {"period": period, "level": level, "domain": domain, "limit": limit}).mappings().all()]
+    rows = [dict(row) for row in db.execute(query, {"period": period, "level": level, "domain": domain, "limit": limit}).mappings().all()]
+    for row in rows:
+        row["domain"] = _normalize_domain(
+            row.get("domain"),
+            source=row.get("source"),
+            indicator_code=row.get("indicator_code"),
+        )
+    return rows
 
 
 def _get_territory_context(db: Session, territory_id: str) -> dict[str, Any] | None:
@@ -1136,7 +1180,11 @@ def get_kpis_overview(
 
     payload_items = [
         KpiOverviewItem(
-            domain=row["domain"],
+            domain=_normalize_domain(
+                row.get("domain"),
+                source=row.get("source"),
+                indicator_code=row.get("indicator_code"),
+            ),
             source=row.get("source"),
             dataset=row.get("dataset"),
             indicator_code=row["indicator_code"],

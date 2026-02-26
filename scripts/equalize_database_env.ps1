@@ -24,17 +24,18 @@ $tseReprocessReport = Join-Path $OutputDir "reprocess_tse_2024.current_env.json"
 $robustBackfillReport = Join-Path $OutputDir "robustness_backfill_sync_env.current_env.json"
 $incrementalFullReport = Join-Path $OutputDir "incremental_full_sources.current_env.json"
 $scorecardReport = Join-Path $OutputDir "data_coverage_scorecard.current_env.json"
+$pollingAuditReport = Join-Path $OutputDir "polling_places_geolocation_audit.current_env.json"
 
 function Invoke-Step {
     param(
         [string]$StepName,
-        [string[]]$Args,
+        [string[]]$ScriptArgs,
         [switch]$AllowNonZero
     )
 
     Write-Host ""
     Write-Host "==> $StepName"
-    & $pythonExe @Args
+    & $pythonExe @ScriptArgs
     $exitCode = $LASTEXITCODE
 
     if ($exitCode -ne 0 -and -not $AllowNonZero.IsPresent) {
@@ -69,14 +70,30 @@ function Test-OnlyBlockedStatuses {
     return (@($nonSuccess | Where-Object { $_.status -ne "blocked" }).Count -eq 0)
 }
 
+function Test-PollingAuditPass {
+    param([string]$ReportPath)
+
+    if (-not (Test-Path $ReportPath)) {
+        return $false
+    }
+
+    $content = Get-Content $ReportPath -Raw -Encoding UTF8
+    if ([string]::IsNullOrWhiteSpace($content)) {
+        return $false
+    }
+
+    $json = $content | ConvertFrom-Json
+    return ($json.status -eq "pass")
+}
+
 Push-Location $repoRoot
 try {
     $env:PYTHONPATH = "src"
 
-    Invoke-Step -StepName "sync_connector_registry" -Args @("scripts/sync_connector_registry.py")
-    Invoke-Step -StepName "sync_schema_contracts" -Args @("scripts/sync_schema_contracts.py")
+    Invoke-Step -StepName "sync_connector_registry" -ScriptArgs @("scripts/sync_connector_registry.py")
+    Invoke-Step -StepName "sync_schema_contracts" -ScriptArgs @("scripts/sync_schema_contracts.py")
 
-    Invoke-Step -StepName "reprocess_tse_2024" -Args @(
+    Invoke-Step -StepName "reprocess_tse_2024" -ScriptArgs @(
         "scripts/run_incremental_backfill.py",
         "--jobs", "tse_catalog_discovery,tse_electorate_fetch,tse_results_fetch",
         "--reprocess-jobs", "tse_electorate_fetch,tse_results_fetch",
@@ -95,7 +112,7 @@ try {
         $backfillArgs += "--include-wave7"
     }
 
-    $backfillExit = Invoke-Step -StepName "backfill_robust_database" -Args $backfillArgs -AllowNonZero
+    $backfillExit = Invoke-Step -StepName "backfill_robust_database" -ScriptArgs $backfillArgs -AllowNonZero
     if ($backfillExit -ne 0) {
         if ($AllowBackfillBlocked.IsPresent -and (Test-OnlyBlockedStatuses -ReportPath $robustBackfillReport)) {
             Write-Warning "backfill_robust_database retornou codigo nao-zero, mas apenas status=blocked foram detectados. Continuando por politica AllowBackfillBlocked."
@@ -116,7 +133,7 @@ try {
             $incrementalArgs += "--allow-blocked"
         }
 
-        $incrementalExit = Invoke-Step -StepName "run_incremental_backfill_full_sources" -Args $incrementalArgs -AllowNonZero
+        $incrementalExit = Invoke-Step -StepName "run_incremental_backfill_full_sources" -ScriptArgs $incrementalArgs -AllowNonZero
         if ($incrementalExit -ne 0) {
             throw "run_incremental_backfill_full_sources falhou com exit code $incrementalExit"
         }
@@ -127,14 +144,22 @@ try {
         Write-Warning "Etapa ignorada por parametro -SkipFullIncremental."
     }
 
-    Invoke-Step -StepName "apply_polling_places_seed" -Args @("scripts/apply_seed.py")
+    Invoke-Step -StepName "build_polling_places_seed" -ScriptArgs @("scripts/build_seed.py")
+    Invoke-Step -StepName "apply_polling_places_seed" -ScriptArgs @("scripts/apply_seed.py")
+    Invoke-Step -StepName "audit_polling_places_geolocation" -ScriptArgs @(
+        "scripts/audit_polling_places_geolocation.py",
+        "--output-json", $pollingAuditReport
+    )
+    if (-not (Test-PollingAuditPass -ReportPath $pollingAuditReport)) {
+        throw "audit_polling_places_geolocation retornou status diferente de pass. Verifique '$pollingAuditReport'."
+    }
 
-    Invoke-Step -StepName "export_data_coverage_scorecard" -Args @(
+    Invoke-Step -StepName "export_data_coverage_scorecard" -ScriptArgs @(
         "scripts/export_data_coverage_scorecard.py",
         "--output-json", $scorecardReport
     )
 
-    Invoke-Step -StepName "backend_readiness" -Args @(
+    Invoke-Step -StepName "backend_readiness" -ScriptArgs @(
         "scripts/backend_readiness.py",
         "--output-json"
     )
@@ -146,6 +171,7 @@ try {
     Write-Host " - $robustBackfillReport"
     Write-Host " - $incrementalFullReport"
     Write-Host " - $scorecardReport"
+    Write-Host " - $pollingAuditReport"
 }
 finally {
     Pop-Location

@@ -378,11 +378,11 @@ describe("QG pages", () => {
     renderWithQueryClient(<QgOverviewPage />);
     await waitFor(() => expect(getKpisOverview).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(getPriorityList).toHaveBeenCalledTimes(1));
-    await screen.findByLabelText("Periodo");
+    await screen.findByLabelText(/Per[ií]odo/i);
 
-    await userEvent.clear(screen.getByLabelText("Periodo"));
-    await userEvent.type(screen.getByLabelText("Periodo"), "2024");
-    await userEvent.selectOptions(screen.getByLabelText("Nivel territorial"), "district");
+    await userEvent.clear(screen.getByLabelText(/Per[ií]odo/i));
+    await userEvent.type(screen.getByLabelText(/Per[ií]odo/i), "2024");
+    await userEvent.selectOptions(screen.getByLabelText(/N[ií]vel territorial/i), "district");
     expect(getKpisOverview).toHaveBeenCalledTimes(1);
     expect(getPriorityList).toHaveBeenCalledTimes(1);
 
@@ -490,10 +490,10 @@ describe("QG pages", () => {
 
     renderWithQueryClient(<QgOverviewPage />);
     await waitFor(() => expect(getKpisOverview).toHaveBeenCalledTimes(1));
-    await screen.findByLabelText("Periodo");
+    await screen.findByLabelText(/Per[ií]odo/i);
     expect(screen.queryByLabelText("Camada detalhada (Mapa)")).not.toBeInTheDocument();
 
-    await userEvent.selectOptions(screen.getByLabelText("Nivel territorial"), "electoral_section");
+    await userEvent.selectOptions(screen.getByLabelText(/N[ií]vel territorial/i), "electoral_section");
     await screen.findByLabelText("Camada detalhada (Mapa)");
 
     await userEvent.selectOptions(screen.getByLabelText("Camada detalhada (Mapa)"), "territory_polling_place");
@@ -511,10 +511,10 @@ describe("QG pages", () => {
   it("applies priority filters only on submit", async () => {
     renderWithQueryClient(<QgPrioritiesPage />);
     await waitFor(() => expect(getPriorityList).toHaveBeenCalledTimes(1));
-    await screen.findByLabelText("Dominio");
+    await screen.findByLabelText(/Dom[ií]nio/i);
 
-    await userEvent.selectOptions(screen.getByLabelText("Dominio"), "saude");
-    await userEvent.selectOptions(screen.getByLabelText("Somente criticos"), "true");
+    await userEvent.selectOptions(screen.getByLabelText(/Dom[ií]nio/i), "saude");
+    await userEvent.selectOptions(screen.getByLabelText(/Somente criticos|Somente críticos/i), "true");
     expect(getPriorityList).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
@@ -632,9 +632,9 @@ describe("QG pages", () => {
   it("applies insights filters only on submit", async () => {
     renderWithQueryClient(<QgInsightsPage />);
     await waitFor(() => expect(getInsightsHighlights).toHaveBeenCalledTimes(1));
-    await screen.findByLabelText("Dominio");
+    await screen.findByLabelText(/Dom[ií]nio/i);
 
-    await userEvent.selectOptions(screen.getByLabelText("Dominio"), "saude");
+    await userEvent.selectOptions(screen.getByLabelText(/Dom[ií]nio/i), "saude");
     await userEvent.selectOptions(screen.getByLabelText("Severidade"), "critical");
     expect(getInsightsHighlights).toHaveBeenCalledTimes(1);
 
@@ -969,7 +969,7 @@ describe("QG pages", () => {
     );
 
     await waitFor(() => expect(getPriorityList).toHaveBeenCalledTimes(1));
-    await screen.findByLabelText("Periodo");
+    await screen.findByLabelText(/Per[ií]odo/i);
     expect(vi.mocked(getPriorityList).mock.calls[0]?.[0]).toMatchObject({
       period: "2024",
       level: "district",
@@ -977,10 +977,10 @@ describe("QG pages", () => {
       limit: 24,
     });
 
-    expect((screen.getByLabelText("Periodo") as HTMLInputElement).value).toBe("2024");
-    expect((screen.getByLabelText("Nivel territorial") as HTMLSelectElement).value).toBe("district");
-    expect((screen.getByLabelText("Dominio") as HTMLSelectElement).value).toBe("saude");
-    expect((screen.getByLabelText("Somente criticos") as HTMLSelectElement).value).toBe("true");
+    expect((screen.getByLabelText(/Per[ií]odo/i) as HTMLInputElement).value).toBe("2024");
+    expect((screen.getByLabelText(/N[ií]vel territorial/i) as HTMLSelectElement).value).toBe("district");
+    expect((screen.getByLabelText(/Dom[ií]nio/i) as HTMLSelectElement).value).toBe("saude");
+    expect((screen.getByLabelText(/Somente criticos|Somente críticos/i) as HTMLSelectElement).value).toBe("true");
     expect((screen.getByLabelText("Ordenar por") as HTMLSelectElement).value).toBe("trend_desc");
   });
 
@@ -991,7 +991,7 @@ describe("QG pages", () => {
     );
 
     await waitFor(() => expect(getInsightsHighlights).toHaveBeenCalledTimes(1));
-    await screen.findByLabelText("Periodo");
+    await screen.findByLabelText(/Per[ií]odo/i);
     expect(vi.mocked(getInsightsHighlights).mock.calls[0]?.[0]).toMatchObject({
       period: "2024",
       domain: "saude",
@@ -999,8 +999,8 @@ describe("QG pages", () => {
       limit: 50,
     });
 
-    expect((screen.getByLabelText("Periodo") as HTMLInputElement).value).toBe("2024");
-    expect((screen.getByLabelText("Dominio") as HTMLSelectElement).value).toBe("saude");
+    expect((screen.getByLabelText(/Per[ií]odo/i) as HTMLInputElement).value).toBe("2024");
+    expect((screen.getByLabelText(/Dom[ií]nio/i) as HTMLSelectElement).value).toBe("saude");
     expect((screen.getByLabelText("Severidade") as HTMLSelectElement).value).toBe("critical");
   });
 });

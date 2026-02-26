@@ -443,7 +443,7 @@ describe("Ops pages filters", () => {
     await waitFor(() => expect(getMapLayersReadiness).toHaveBeenCalledTimes(1));
 
     await userEvent.type(screen.getByLabelText("Codigo do indicador"), "DATASUS_APS_COBERTURA");
-    await userEvent.type(screen.getByLabelText("Periodo"), "2025");
+    await userEvent.type(screen.getByLabelText(/Per[ií]odo/i), "2025");
     expect(getMapLayersReadiness).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));

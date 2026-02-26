@@ -16,8 +16,8 @@ describe("StrategicIndexCard", () => {
 
     expect(screen.getByText("Criticos")).toBeInTheDocument();
     expect(screen.getByText("4")).toBeInTheDocument();
-    expect(screen.getByText("critico")).toBeInTheDocument();
-    expect(screen.getByText("tendencia: subindo")).toBeInTheDocument();
+    expect(screen.getByLabelText(/status: cr[ií]tico/i)).toBeInTheDocument();
+    expect(screen.getByText(/tend[êe]ncia: subindo/i)).toBeInTheDocument();
     expect(screen.getByText("itens de maior prioridade")).toBeInTheDocument();
   });
 });

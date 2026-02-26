@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { formatApiError } from "../../../shared/api/http";
 import { getInsightsHighlights } from "../../../shared/api/qg";
 import { getQgDomainLabel, normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
+import { CollapsiblePanel } from "../../../shared/ui/CollapsiblePanel";
 import { Panel } from "../../../shared/ui/Panel";
 import { formatStatusLabel, humanizeDatasetSource } from "../../../shared/ui/presentation";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
@@ -53,6 +54,17 @@ export function QgInsightsPage() {
     const start = (currentPage - 1) * normalizedPageSize;
     return insightItems.slice(start, start + normalizedPageSize);
   }, [currentPage, insightItems, normalizedPageSize]);
+  const groupedVisibleItems = useMemo(() => {
+    const groups = {
+      critical: [] as typeof visibleItems,
+      attention: [] as typeof visibleItems,
+      info: [] as typeof visibleItems,
+    };
+    for (const item of visibleItems) {
+      groups[item.severity].push(item);
+    }
+    return groups;
+  }, [visibleItems]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -162,19 +174,119 @@ export function QgInsightsPage() {
         {insightItems.length === 0 ? (
           <StateBlock tone="empty" title="Sem insights" message="Nenhum insight encontrado para os filtros aplicados." />
         ) : (
-          <ul className="trend-list" aria-label="Lista de insights">
-            {visibleItems.map((item) => (
-              <li key={`${item.territory_id}-${item.evidence.indicator_code}-${item.severity}`}>
-                <div>
-                  <strong>{item.title}</strong>
-                  <p>{item.explanation[0] ?? "Sem explicacao."}</p>
-                </div>
-                <small>
-                  {getQgDomainLabel(item.domain)} | {formatStatusLabel(item.severity)} | {humanizeDatasetSource(item.evidence.source, item.evidence.dataset)}
-                </small>
-              </li>
-            ))}
-          </ul>
+          <>
+            <CollapsiblePanel
+              title={`Criticos (${groupedVisibleItems.critical.length})`}
+              subtitle="Leituras de resposta imediata"
+              defaultOpen={true}
+            >
+              {groupedVisibleItems.critical.length === 0 ? (
+                <StateBlock tone="empty" title="Sem itens criticos" message="Nenhum insight critico na pagina atual." />
+              ) : (
+                <ul className="trend-list" aria-label="Insights criticos">
+                  {groupedVisibleItems.critical.map((item) => (
+                    <li key={`${item.territory_id}-${item.evidence.indicator_code}-${item.severity}`}>
+                      <div>
+                        <strong>{item.title}</strong>
+                        <p>{item.explanation[0] ?? "Sem explicacao."}</p>
+                      </div>
+                      <small>
+                        {getQgDomainLabel(item.domain)} | {formatStatusLabel(item.severity)} |{" "}
+                        {humanizeDatasetSource(item.evidence.source, item.evidence.dataset)}
+                      </small>
+                      <div className="panel-actions-row">
+                        <Link className="inline-link" to={`/mapa?territory_id=${encodeURIComponent(item.territory_id)}`}>
+                          Ver no mapa
+                        </Link>
+                        <Link
+                          className="inline-link"
+                          to={`/briefs?territory_id=${encodeURIComponent(item.territory_id)}&period=${encodeURIComponent(
+                            item.evidence.reference_period,
+                          )}&domain=${encodeURIComponent(item.domain)}`}
+                        >
+                          Adicionar ao brief
+                        </Link>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CollapsiblePanel>
+            <CollapsiblePanel
+              title={`Atencao (${groupedVisibleItems.attention.length})`}
+              subtitle="Itens para monitoramento proximo"
+              defaultOpen={false}
+            >
+              {groupedVisibleItems.attention.length === 0 ? (
+                <StateBlock tone="empty" title="Sem itens em atencao" message="Nenhum insight em atencao na pagina atual." />
+              ) : (
+                <ul className="trend-list" aria-label="Insights atencao">
+                  {groupedVisibleItems.attention.map((item) => (
+                    <li key={`${item.territory_id}-${item.evidence.indicator_code}-${item.severity}`}>
+                      <div>
+                        <strong>{item.title}</strong>
+                        <p>{item.explanation[0] ?? "Sem explicacao."}</p>
+                      </div>
+                      <small>
+                        {getQgDomainLabel(item.domain)} | {formatStatusLabel(item.severity)} |{" "}
+                        {humanizeDatasetSource(item.evidence.source, item.evidence.dataset)}
+                      </small>
+                      <div className="panel-actions-row">
+                        <Link className="inline-link" to={`/mapa?territory_id=${encodeURIComponent(item.territory_id)}`}>
+                          Ver no mapa
+                        </Link>
+                        <Link
+                          className="inline-link"
+                          to={`/briefs?territory_id=${encodeURIComponent(item.territory_id)}&period=${encodeURIComponent(
+                            item.evidence.reference_period,
+                          )}&domain=${encodeURIComponent(item.domain)}`}
+                        >
+                          Adicionar ao brief
+                        </Link>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CollapsiblePanel>
+            <CollapsiblePanel
+              title={`Informativos (${groupedVisibleItems.info.length})`}
+              subtitle="Itens sem criticidade imediata"
+              defaultOpen={false}
+            >
+              {groupedVisibleItems.info.length === 0 ? (
+                <StateBlock tone="empty" title="Sem itens informativos" message="Nenhum insight informativo na pagina atual." />
+              ) : (
+                <ul className="trend-list" aria-label="Insights informativos">
+                  {groupedVisibleItems.info.map((item) => (
+                    <li key={`${item.territory_id}-${item.evidence.indicator_code}-${item.severity}`}>
+                      <div>
+                        <strong>{item.title}</strong>
+                        <p>{item.explanation[0] ?? "Sem explicacao."}</p>
+                      </div>
+                      <small>
+                        {getQgDomainLabel(item.domain)} | {formatStatusLabel(item.severity)} |{" "}
+                        {humanizeDatasetSource(item.evidence.source, item.evidence.dataset)}
+                      </small>
+                      <div className="panel-actions-row">
+                        <Link className="inline-link" to={`/mapa?territory_id=${encodeURIComponent(item.territory_id)}`}>
+                          Ver no mapa
+                        </Link>
+                        <Link
+                          className="inline-link"
+                          to={`/briefs?territory_id=${encodeURIComponent(item.territory_id)}&period=${encodeURIComponent(
+                            item.evidence.reference_period,
+                          )}&domain=${encodeURIComponent(item.domain)}`}
+                        >
+                          Adicionar ao brief
+                        </Link>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CollapsiblePanel>
+          </>
         )}
         {insightItems.length > normalizedPageSize ? (
           <div className="pagination-row" aria-label="Paginacao de insights">

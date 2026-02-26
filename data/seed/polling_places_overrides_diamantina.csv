@@ -1,0 +1,9 @@
+polling_place_code,polling_place_name,expected_district,latitude,longitude,source,reason
+1252,E. E. D. JOAQUIM SILVERIO DE SOUZA,Conselheiro Mata,-18.287868,-43.982343,user_google:homologado,Coordenada homologada pelo usuario no Google Maps
+1325,E. M. PROF. ANA CELIA DE O. SOUZA,Mendanha,-18.106846,-43.527750,user_google:homologado,Coordenada homologada pelo usuario no Google Maps
+1341,E. E. GOV. JUSCELINO KUBITSCHEK,Conselheiro Mata,-18.287522,-43.981900,nominatim_addr:Rua Principal Conselheiro Mata,Address/centro query indicates settlement core and fixes map displacement
+1376,E. M. SOPA,Sopa,-18.224691,-43.696214,user_google:homologado,Coordenada homologada pelo usuario no Google Maps
+1406,E. M. BAIXADAO,Planalto de Minas,-17.478430,-43.269049,nominatim:Baixadao_Diamantina,Internet geocode points to Baixadao in Planalto de Minas
+1414,E. M. ROGERIO FIRMINO LOPES,Desembargador Otoni,-17.647633,-43.403651,district_pointonsurface:desembargador_otoni,No precise public geocode found; moved to expected district proxy based on web evidence (Capoeirao/CEP 39113)
+1422,E. M. MAO TORTA,Desembargador Otoni,-17.657048,-43.395739,district_centroid:desembargador_otoni,No precise public geocode found; moved to expected district proxy based on web evidence (CEP 39113)
+1457,E. M. BATATAL,Conselheiro Mata,-18.288633,-43.981851,nominatim:settlement_conselheiro_mata,Web evidence indicates Batatal linked to Conselheiro Mata (CEP 39106)

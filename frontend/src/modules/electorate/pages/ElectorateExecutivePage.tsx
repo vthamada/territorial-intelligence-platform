@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { formatApiError } from "../../../shared/api/http";
 import { getElectorateMap, getElectorateSummary } from "../../../shared/api/qg";
 import type { ElectorateMapResponse } from "../../../shared/api/types";
@@ -48,33 +49,35 @@ export function ElectorateExecutivePage() {
   const [metric, setMetric] = useState<ElectorateMetric>("voters");
   const [appliedYear, setAppliedYear] = useState<number | undefined>(undefined);
   const [appliedMetric, setAppliedMetric] = useState<ElectorateMetric>("voters");
+  const [compositionTab, setCompositionTab] = useState<"sex" | "age" | "education">("sex");
 
   const baseQuery = useMemo(
     () => ({
       level: "municipality",
-      year: appliedYear
+      year: appliedYear,
     }),
-    [appliedYear]
+    [appliedYear],
   );
 
   const summaryQuery = useQuery({
     queryKey: ["qg", "electorate-summary", baseQuery],
-    queryFn: () => getElectorateSummary(baseQuery)
+    queryFn: () => getElectorateSummary(baseQuery),
   });
 
   const mapQuery = useQuery({
     queryKey: ["qg", "electorate-map", baseQuery, appliedMetric],
-    queryFn: () => getElectorateMap({ ...baseQuery, metric: appliedMetric, include_geometry: false, limit: 500 })
+    queryFn: () => getElectorateMap({ ...baseQuery, metric: appliedMetric, include_geometry: false, limit: 500 }),
   });
+
   const fallbackSummaryQuery = useQuery({
     queryKey: ["qg", "electorate-summary-fallback", { level: "municipality" }],
     queryFn: () => getElectorateSummary({ level: "municipality" }),
-    enabled: appliedYear !== undefined
+    enabled: appliedYear !== undefined,
   });
   const fallbackMapQuery = useQuery({
     queryKey: ["qg", "electorate-map-fallback", { level: "municipality", metric: appliedMetric }],
     queryFn: () => getElectorateMap({ level: "municipality", metric: appliedMetric, include_geometry: false, limit: 500 }),
-    enabled: appliedYear !== undefined
+    enabled: appliedYear !== undefined,
   });
 
   const isLoading =
@@ -139,6 +142,7 @@ export function ElectorateExecutivePage() {
       />
     );
   }
+
   const fallbackYear = fallbackSummaryQuery.data?.year ?? null;
   const hasFallbackData =
     Boolean(fallbackSummaryQuery.data?.year) &&
@@ -180,15 +184,17 @@ export function ElectorateExecutivePage() {
             </button>
           </div>
         </form>
+
         <SourceFreshnessBadge metadata={summary.metadata} />
+
         {showingFallbackData ? (
           <StateBlock
             tone="empty"
             title={`Ano ${appliedYear} sem dados consolidados`}
             message={
               fallbackYear
-                ? `Mostrando automaticamente o último recorte com dados (${fallbackYear}) para manter a leitura executiva.`
-                : "Mostrando automaticamente o último recorte com dados disponível."
+                ? `Mostrando automaticamente o ultimo recorte com dados (${fallbackYear}) para manter a leitura executiva.`
+                : "Mostrando automaticamente o ultimo recorte com dados disponivel."
             }
           />
         ) : null}
@@ -198,8 +204,8 @@ export function ElectorateExecutivePage() {
             title="Sem dados para o ano informado"
             message={
               fallbackYear
-                ? `Não ha dados consolidados para ${appliedYear}. Use ${fallbackYear} para visualizar o recorte mais recente.`
-                : `Não ha dados consolidados para ${appliedYear}. Limpe o filtro de ano para tentar o último recorte disponível.`
+                ? `Nao ha dados consolidados para ${appliedYear}. Use ${fallbackYear} para visualizar o recorte mais recente.`
+                : `Nao ha dados consolidados para ${appliedYear}. Limpe o filtro de ano para tentar o ultimo recorte disponivel.`
             }
           />
         ) : null}
@@ -209,8 +215,8 @@ export function ElectorateExecutivePage() {
             title="Sem dados de eleitorado no recorte atual"
             message={
               fallbackYear
-                ? `Não ha dados consolidados no recorte padrão. Use ${fallbackYear} para visualizar o último ano com dados.`
-                : "Não ha dados consolidados no recorte padrão. Informe um ano e aplique filtros para consultar disponibilidade."
+                ? `Nao ha dados consolidados no recorte padrao. Use ${fallbackYear} para visualizar o ultimo ano com dados.`
+                : "Nao ha dados consolidados no recorte padrao. Informe um ano e aplique filtros para consultar disponibilidade."
             }
           />
         ) : null}
@@ -224,10 +230,16 @@ export function ElectorateExecutivePage() {
                 setAppliedYear(undefined);
               }}
             >
-              Usar último ano disponível
+              Usar ultimo ano disponivel
             </button>
           </div>
         ) : null}
+
+        <div className="panel-actions-row">
+          <Link className="inline-link" to="/mapa?level=secao_eleitoral&layer_id=territory_polling_place">
+            Abrir mapa eleitoral (locais de votacao)
+          </Link>
+        </div>
       </Panel>
 
       <Panel title="Resumo executivo" subtitle="Volume eleitoral e comportamento de participacao">
@@ -261,45 +273,76 @@ export function ElectorateExecutivePage() {
 
       <Panel title="Composicao do eleitorado" subtitle="Distribuicao por sexo, faixa etaria e escolaridade">
         {effectiveSummary.by_sex.length === 0 && effectiveSummary.by_age.length === 0 && effectiveSummary.by_education.length === 0 ? (
-          <StateBlock tone="empty" title="Sem composição" message="Não ha dados de composição para o recorte atual." />
+          <StateBlock tone="empty" title="Sem composicao" message="Nao ha dados de composicao para o recorte atual." />
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Grupo</th>
-                  <th>Categoria</th>
-                  <th>Eleitores</th>
-                  <th>Participacao</th>
-                </tr>
-              </thead>
-              <tbody>
-                {effectiveSummary.by_sex.map((item) => (
-                  <tr key={`sex-${item.label}`}>
-                    <td>{breakdownGroupLabel("sex")}</td>
-                    <td>{item.label}</td>
-                    <td>{formatInteger(item.voters)}</td>
-                    <td>{formatPercent(item.share_percent)}</td>
+          <div>
+            <div className="viz-mode-selector" role="tablist" aria-label="Composicao do eleitorado">
+              <button
+                type="button"
+                className={`viz-mode-btn${compositionTab === "sex" ? " viz-mode-active" : ""}`}
+                onClick={() => setCompositionTab("sex")}
+              >
+                Sexo
+              </button>
+              <button
+                type="button"
+                className={`viz-mode-btn${compositionTab === "age" ? " viz-mode-active" : ""}`}
+                onClick={() => setCompositionTab("age")}
+              >
+                Idade
+              </button>
+              <button
+                type="button"
+                className={`viz-mode-btn${compositionTab === "education" ? " viz-mode-active" : ""}`}
+                onClick={() => setCompositionTab("education")}
+              >
+                Escolaridade
+              </button>
+            </div>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Grupo</th>
+                    <th>Categoria</th>
+                    <th>Eleitores</th>
+                    <th>Participacao</th>
                   </tr>
-                ))}
-                {effectiveSummary.by_age.map((item) => (
-                  <tr key={`age-${item.label}`}>
-                    <td>{breakdownGroupLabel("age")}</td>
-                    <td>{item.label}</td>
-                    <td>{formatInteger(item.voters)}</td>
-                    <td>{formatPercent(item.share_percent)}</td>
-                  </tr>
-                ))}
-                {effectiveSummary.by_education.map((item) => (
-                  <tr key={`education-${item.label}`}>
-                    <td>{breakdownGroupLabel("education")}</td>
-                    <td>{item.label}</td>
-                    <td>{formatInteger(item.voters)}</td>
-                    <td>{formatPercent(item.share_percent)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {compositionTab === "sex"
+                    ? effectiveSummary.by_sex.map((item) => (
+                        <tr key={`sex-${item.label}`}>
+                          <td>{breakdownGroupLabel("sex")}</td>
+                          <td>{item.label}</td>
+                          <td>{formatInteger(item.voters)}</td>
+                          <td>{formatPercent(item.share_percent)}</td>
+                        </tr>
+                      ))
+                    : null}
+                  {compositionTab === "age"
+                    ? effectiveSummary.by_age.map((item) => (
+                        <tr key={`age-${item.label}`}>
+                          <td>{breakdownGroupLabel("age")}</td>
+                          <td>{item.label}</td>
+                          <td>{formatInteger(item.voters)}</td>
+                          <td>{formatPercent(item.share_percent)}</td>
+                        </tr>
+                      ))
+                    : null}
+                  {compositionTab === "education"
+                    ? effectiveSummary.by_education.map((item) => (
+                        <tr key={`education-${item.label}`}>
+                          <td>{breakdownGroupLabel("education")}</td>
+                          <td>{item.label}</td>
+                          <td>{formatInteger(item.voters)}</td>
+                          <td>{formatPercent(item.share_percent)}</td>
+                        </tr>
+                      ))
+                    : null}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </Panel>
@@ -312,8 +355,8 @@ export function ElectorateExecutivePage() {
             <table>
               <thead>
                 <tr>
-                  <th>Território</th>
-                  <th>Nível</th>
+                  <th>Territorio</th>
+                  <th>Nivel</th>
                   <th>Ano</th>
                   <th>Metrica</th>
                   <th>Valor</th>
@@ -326,13 +369,7 @@ export function ElectorateExecutivePage() {
                     <td>{formatLevelLabel(item.territory_level)}</td>
                     <td>{item.year ?? "-"}</td>
                     <td>{metricLabel(item.metric)}</td>
-                    <td>
-                      {item.value === null
-                        ? "-"
-                        : item.metric === "voters"
-                          ? formatInteger(item.value)
-                          : formatPercent(item.value)}
-                    </td>
+                    <td>{item.value === null ? "-" : item.metric === "voters" ? formatInteger(item.value) : formatPercent(item.value)}</td>
                   </tr>
                 ))}
               </tbody>

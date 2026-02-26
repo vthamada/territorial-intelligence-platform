@@ -43,6 +43,7 @@ export const QG_DOMAIN_OPTIONS = [
   "educacao",
   "trabalho",
   "financas",
+  "assistencia_social",
   "eleitorado",
   "socioeconomico",
   "mobilidade",
@@ -53,6 +54,7 @@ export const QG_DOMAIN_OPTIONS = [
   "recursos_hidricos",
   "conectividade",
   "energia",
+  "geral",
 ];
 
 const QG_DOMAIN_LABELS: Record<string, string> = {
@@ -60,6 +62,7 @@ const QG_DOMAIN_LABELS: Record<string, string> = {
   educacao: "Educacao",
   trabalho: "Trabalho",
   financas: "Financas",
+  assistencia_social: "Assistencia social",
   eleitorado: "Eleitorado",
   socioeconomico: "Socioeconomico",
   mobilidade: "Mobilidade",
@@ -70,6 +73,7 @@ const QG_DOMAIN_LABELS: Record<string, string> = {
   recursos_hidricos: "Recursos hidricos",
   conectividade: "Conectividade",
   energia: "Energia",
+  geral: "Geral",
 };
 
 export function normalizeQgDomain(value: string | null | undefined) {

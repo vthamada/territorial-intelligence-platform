@@ -21,6 +21,18 @@ Atualização de status do ciclo (2026-02-25):
 6. exibição de locais de votação passa a fetch on-demand por interação do checkbox no mapa (com trigger robusto independente do timing da troca de nível) e com fallback automático para ano eleitoral com dados quando o período estratégico ativo estiver vazio;
 7. foco P0 mantém-se em legibilidade/estabilidade do mapa em dados reais (homologação de cluster e UX de leitura em zoom).
 
+Atualizacao de status do ciclo (2026-02-26):
+1. trilha de valor estrategico nas telas executivas avancou com refatoracao de:
+   - `QgOverviewPage`, `QgPrioritiesPage`, `QgInsightsPage`, `QgScenariosPage` e `ElectorateExecutivePage`;
+2. taxonomia de dominio foi normalizada para fontes socioassistenciais/Portal da Transparencia no backend (`routes_qg` + `mart_priority_drivers`);
+3. catalogo de dominio do frontend foi alinhado com `assistencia_social` e `geral`;
+4. validacao da rodada concluida com:
+   - backend `37 passed`;
+   - frontend build `OK`;
+   - testes dirigidos de telas/paginas alteradas `18 passed`;
+5. pendencia operacional isolada:
+   - estabilizar suite completa de frontend (assertions textuais com acentuacao/labels), sem abrir nova frente funcional.
+
 ## 0) Regra de foco operacional (WIP=1)
 
 1. Fila ativa unica de implementação:

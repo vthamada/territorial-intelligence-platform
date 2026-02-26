@@ -10,7 +10,7 @@ polling_place_code,polling_place_name,latitude,longitude,source,sections,voters
 1368,E. E. ARTHUR TIBÃES,-18.246828,-43.598947,nominatim_addr:R DAS MERCES,6,1792
 1058,E. E. PROF. LEOPOLDO MIRANDA,-18.241914,-43.598926,nominatim_addr:R MACAU DO MEIO 338,8,1768
 1040,E. E. MARIA AUGUSTA CALDEIRA BRANT,-18.238212,-43.611947,nominatim_addr:R ENOLOGIA 303,6,1371
-1341,E. E. GOV. JUSCELINO KUBITSCHEK,-18.216500,-43.906394,nominatim:Conselheiro Mata,6,1274
+1341,E. E. GOV. JUSCELINO KUBITSCHEK,-18.287522,-43.981900,nominatim_addr:Rua Principal Conselheiro Mata,6,1274
 1465,E. M. DE ED. INFANTIL PROF. CÉLIO HUGO ALVES PEREIRA (ANTIGO SESI),-18.254000,-43.592000,manual:bairro_rio_grande,5,1256
 1309,E. E. JOÃO CÉSAR DE OLIVEIRA,-17.944828,-43.623091,nominatim:Inhai district,3,991
 1260,E. E. DONA GUIDINHA,-18.248000,-43.601000,manual:praca_matriz,3,924
@@ -18,20 +18,20 @@ polling_place_code,polling_place_name,latitude,longitude,source,sections,voters
 1333,E. E. DURVAL CÂNDIDO CRUZ,-17.650642,-43.322148,osm_school:EE Durval Candido Cruz,3,780
 1163,INSS,-18.245334,-43.594527,nominatim:INSS Diamantina,2,679
 1490,E. M. JALIRA LUCCHESI DE MIRANDA,-18.227639,-43.609694,nominatim_addr:RUA CONSUELO FALCI 231,3,562
-1376,E. M. SOPA,-18.181579,-43.694889,nominatim:Distrito Sopa,2,544
-1325,E. M. PROF.ª ANA CÉLIA DE O. SOUZA,-18.121686,-43.549112,nominatim:Mendanha,2,508
+1376,E. M. SOPA,-18.224691,-43.696214,user_google:homologado,2,544
+1325,E. M. PROF.ª ANA CÉLIA DE O. SOUZA,-18.106846,-43.527750,user_google:homologado,2,508
 1503,CMEI PREFEITO IRAVAL PIRES,-18.235873,-43.634538,nominatim_addr:RUA CASACA PARDA 231,3,454
 1295,E. M. GUINDA,-18.281855,-43.728092,nominatim:Guinda,2,437
 1520,SUPERINTENDÊNCIA REGIONAL DE ENSINO,-18.245545,-43.603104,nominatim:SRE Diamantina,4,419
 1317,E. M. MARIA NUNES,-18.005000,-43.553401,nominatim:Maria Nunes,2,398
 1350,E. M. PINHEIRO,-18.080170,-43.634096,nominatim:Pinheiro,2,364
 1279,E. M. NATHÁLIA DE JESUS SILVA,-18.260997,-43.579841,nominatim_addr:RUA GRUTA DE LOURDES 4180,2,312
-1414,E. M. ROGÉRIO FIRMINO LOPES,-18.310020,-43.523591,nominatim:Extracao,1,308
-1252,E. E. D. JOAQUIM SILVÉRIO DE SOUZA,-18.288146,-43.982384,osm_school:EE Dom Joaquim Silverio de Souza,1,237
-1422,E. M. MÃO TORTA,-18.150000,-43.660000,manual:povoado_mao_torta,1,200
+1414,E. M. ROGÉRIO FIRMINO LOPES,-17.647633,-43.403651,district_pointonsurface:desembargador_otoni,1,308
+1252,E. E. D. JOAQUIM SILVÉRIO DE SOUZA,-18.287868,-43.982343,user_google:homologado,1,237
+1422,E. M. MÃO TORTA,-17.657048,-43.395739,district_centroid:desembargador_otoni,1,200
 1384,E. M. PEDRARIA,-17.734297,-43.503463,district_centroid:senador_mourao,1,199
-1457,E. M. BATATAL,-18.190000,-43.560000,manual:povoado_batatal,1,197
+1457,E. M. BATATAL,-18.288633,-43.981851,nominatim:settlement_conselheiro_mata,1,197
 1287,RECEPTIVO VILA REAL DO VAU,-18.416567,-43.525072,nominatim:Vau,1,184
-1406,E. M. BAIXADÃO,-18.350000,-43.500000,manual:povoado_baixadao,2,178
+1406,E. M. BAIXADÃO,-17.478430,-43.269049,nominatim:Baixadao_Diamantina,2,178
 1392,E. M. PEDRO BAIANO,-18.320000,-43.550000,manual:povoado_pedro_baiano,1,92
 1228,E. M. CASA DA CRIANÇA MARIA ANTONIA,-18.253042,-43.590732,nominatim_addr:RUA CRUZ DE MOISES,2,84

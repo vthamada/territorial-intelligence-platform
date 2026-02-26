@@ -9,6 +9,7 @@ import { PriorityItemCard } from "../../../shared/ui/PriorityItemCard";
 import { formatLevelLabel } from "../../../shared/ui/presentation";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
 import { StateBlock } from "../../../shared/ui/StateBlock";
+import { StrategicIndexCard } from "../../../shared/ui/StrategicIndexCard";
 
 type PrioritySort = "criticality_desc" | "criticality_asc" | "territory_asc" | "trend_desc";
 
@@ -132,6 +133,19 @@ export function QgPrioritiesPage() {
     items.sort((a, b) => b.score - a.score);
     return items;
   }, [appliedSortBy, filteredItems]);
+  const summaryByStatus = useMemo(() => {
+    const statusCounts = { critical: 0, attention: 0, stable: 0 };
+    for (const item of sortedItems) {
+      if (item.status === "critical") {
+        statusCounts.critical += 1;
+      } else if (item.status === "attention") {
+        statusCounts.attention += 1;
+      } else {
+        statusCounts.stable += 1;
+      }
+    }
+    return statusCounts;
+  }, [sortedItems]);
   const activeFilterSummary = useMemo(() => {
     const tokens: string[] = [];
     if (appliedPeriod) tokens.push(`Período ${appliedPeriod}`);
@@ -293,6 +307,32 @@ export function QgPrioritiesPage() {
           </div>
         </form>
         <SourceFreshnessBadge metadata={priorities!.metadata} />
+        <div className="kpi-grid" style={{ marginTop: "0.85rem" }}>
+          <StrategicIndexCard
+            label="Itens"
+            value={String(sortedItems.length)}
+            status="info"
+            helper="prioridades no recorte aplicado"
+          />
+          <StrategicIndexCard
+            label="Criticos"
+            value={String(summaryByStatus.critical)}
+            status="critical"
+            helper="acao imediata"
+          />
+          <StrategicIndexCard
+            label="Atencao"
+            value={String(summaryByStatus.attention)}
+            status="attention"
+            helper="monitoramento"
+          />
+          <StrategicIndexCard
+            label="Estaveis"
+            value={String(summaryByStatus.stable)}
+            status="stable"
+            helper="sob controle"
+          />
+        </div>
       </Panel>
 
       <Panel title="Lista priorizada" subtitle="Itens com justificativa e evidencia para decisao">

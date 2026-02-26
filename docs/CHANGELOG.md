@@ -2,6 +2,145 @@
 
 Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-26 - Refatoracao executiva de telas QG + normalizacao de dominio (Portal Transparencia)
+
+### Changed
+- Backend/API:
+  - `src/app/api/routes_qg.py`:
+    - ampliado mapeamento de dominio para `PORTAL_TRANSPARENCIA` (`assistencia_social` e `financas_publicas`);
+    - `SUASWEB` e `CNEAS` passam a normalizar para `assistencia_social`;
+    - adicionado `_normalize_domain(...)` para unificar resposta entre fontes com taxonomia mista;
+    - `get_kpis_overview(...)` e `_fetch_priority_rows(...)` passam a aplicar normalizacao defensiva de dominio no payload final.
+  - `db/sql/015_priority_drivers_mart.sql`:
+    - CASE de dominio atualizado com as mesmas regras de normalizacao para manter coerencia entre mart e API.
+- Frontend (QG):
+  - `frontend/src/modules/qg/domainCatalog.ts`:
+    - novos dominios no filtro: `assistencia_social` e `geral`.
+  - `frontend/src/modules/qg/pages/QgOverviewPage.tsx`:
+    - Home executiva refatorada para foco em leitura estrategica (score, prioridades, destaques, KPIs e Onda B/C), sem duplicar mapa operacional completo.
+  - `frontend/src/modules/qg/pages/QgPrioritiesPage.tsx`:
+    - adicionado resumo executivo com cards de total/criticos/atencao/estaveis.
+  - `frontend/src/modules/qg/pages/QgInsightsPage.tsx`:
+    - lista agrupada por severidade (`Criticos`, `Atencao`, `Informativos`) com CTAs (`Ver no mapa`, `Adicionar ao brief`).
+  - `frontend/src/modules/qg/pages/QgScenariosPage.tsx`:
+    - resultado executivo simplificado + bloco colapsavel de leituras detalhadas.
+  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx`:
+    - CTA para abrir mapa eleitoral por local de votacao;
+    - composicao do eleitorado em abas (`Sexo`, `Idade`, `Escolaridade`).
+- Testes ajustados ao novo contrato visual/textual:
+  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx`
+  - `frontend/src/modules/territory/pages/TerritoryProfilePage.test.tsx`
+  - `frontend/src/modules/ops/pages/OpsPages.test.tsx`
+  - `frontend/src/shared/ui/StrategicIndexCard.test.tsx`
+  - `frontend/src/shared/ui/SourceFreshnessBadge.test.tsx`
+  - `frontend/src/app/App.test.tsx`
+  - `frontend/src/modules/territory/pages/TerritoryIndicatorsPage.test.tsx`
+
+### Verified
+- Backend:
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `37 passed`.
+- Frontend:
+  - `npm --prefix frontend run build` -> `OK`.
+  - `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx src/modules/territory/pages/TerritoryProfilePage.test.tsx src/modules/ops/pages/OpsPages.test.tsx` -> `18 passed`.
+  - `npm --prefix frontend run test -- --run src/shared/ui/StrategicIndexCard.test.tsx src/shared/ui/SourceFreshnessBadge.test.tsx src/app/App.test.tsx src/modules/territory/pages/TerritoryIndicatorsPage.test.tsx` -> `5 passed`.
+- Observacao de regressao preexistente na suite completa:
+  - `npm --prefix frontend run test -- --run` ainda falha por descompasso de contrato em `frontend/src/modules/qg/pages/QgPages.test.tsx` (teste legado frente ao novo layout refatorado de Home/Mapa).
+
+## 2026-02-26 - Homologação manual (Google) de locais de votação
+
+### Changed
+- `data/seed/polling_places_overrides_diamantina.csv`:
+  - coordenadas homologadas pelo usuário no Google para:
+    - `1376` (`E. M. SOPA`) -> `(-18.224691, -43.696214)`;
+    - `1252` (`E. E. D. JOAQUIM SILVERIO DE SOUZA`) -> `(-18.287868, -43.982343)`;
+    - `1325` (`E. M. PROF. ANA CELIA DE O. SOUZA`) -> `(-18.106846, -43.527750)`.
+- `data/seed/polling_places_diamantina.csv`:
+  - atualizado via `scripts/build_seed.py` com as três novas coordenadas homologadas.
+
+### Verified
+- `.\.venv\Scripts\python.exe scripts/build_seed.py` -> `Overrides loaded: 8`.
+- `.\.venv\Scripts\python.exe scripts/apply_seed.py` -> `Total sections updated: 144`, `Skipped by district rule: 0`.
+- `.\.venv\Scripts\python.exe scripts/audit_polling_places_geolocation.py` ->
+  - `status=pass`;
+  - `outside_any_district=[]`;
+  - `outside_expected_district=[]`;
+  - `override_distance_violations=[]`.
+
+## 2026-02-26 - Busca na internet para povoados eleitorais (Mão Torta, Batatal, Baixadão, Capoeirão)
+
+### Changed
+- `data/seed/polling_places_overrides_diamantina.csv`:
+  - correções adicionais com evidência pública de internet para distritos/povoados:
+    - `1406` (E. M. BAIXADÃO) -> `Planalto de Minas` com coordenada OSM/Nominatim (`-17.478430,-43.269049`);
+    - `1457` (E. M. BATATAL) -> `Conselheiro Mata` com proxy de assentamento local (`-18.288633,-43.981851`);
+    - `1414` (E. M. ROGERIO FIRMINO LOPES) -> `Desembargador Otoni` com proxy distrital (`point_on_surface`);
+    - `1422` (E. M. MAO TORTA) -> `Desembargador Otoni` com proxy distrital (`centroid`).
+- `data/seed/polling_places_diamantina.csv`:
+  - atualizado por `scripts/build_seed.py` com os novos overrides.
+
+### Verified
+- execução sequencial (ordem obrigatória):
+  - `.\.venv\Scripts\python.exe scripts/build_seed.py`;
+  - `.\.venv\Scripts\python.exe scripts/apply_seed.py`;
+  - `.\.venv\Scripts\python.exe scripts/audit_polling_places_geolocation.py`.
+- resultado final do audit:
+  - `status=pass`;
+  - `outside_any_district=[]`;
+  - `outside_expected_district=[]`;
+  - `override_distance_violations=[]`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `37 passed`.
+
+## 2026-02-26 - Verificação dirigida de locais suspeitos no mapa (distritos) + correção pontual
+
+### Changed
+- `scripts/audit_polling_places_geolocation.py`:
+  - consulta de auditoria passou a usar ponto representativo determinístico por local (última seção atualizada), evitando leituras ambíguas quando há múltiplas seções por local.
+- `scripts/equalize_database_env.ps1`:
+  - fluxo de equalização agora executa também:
+    - `scripts/build_seed.py`;
+    - `scripts/audit_polling_places_geolocation.py` (com saída em relatório próprio);
+  - a equalização falha automaticamente se o audit de locais de votação retornar `status != pass`.
+- `data/seed/polling_places_overrides_diamantina.csv`:
+  - ampliado com regras de `expected_district` para locais suspeitos da rodada:
+    - `1376` (Sopa), `1422` (Mão Torta), `1341` (Gov. Juscelino Kubitschek),
+      `1325` (Ana Célia), `1457` (Batatal), `1414` (Rogério Firmino Lopes), `1406` (Baixadão).
+  - `1341` recebeu override de coordenada validada por consulta de endereço/centro local de Conselheiro Mata:
+    - `(-18.287522, -43.981900)`;
+    - source: `nominatim_addr:Rua Principal Conselheiro Mata`.
+- `data/seed/polling_places_diamantina.csv`:
+  - atualizado via `scripts/build_seed.py` com aplicação do override de `1341`.
+
+### Verified
+- `.\.venv\Scripts\python.exe scripts/build_seed.py` -> `Overrides loaded: 1`, `Overrides applied: 1`.
+- `.\.venv\Scripts\python.exe scripts/apply_seed.py` -> `Total sections updated: 144`, `Skipped by district rule: 0`.
+- `.\.venv\Scripts\python.exe scripts/audit_polling_places_geolocation.py` ->
+  - `status=pass`;
+  - `outside_any_district=[]`;
+  - `outside_expected_district=[]`;
+  - `override_distance_violations=[]`.
+
+## 2026-02-26 - Guardrail operacional para geolocalização de locais de votação (foco distritos)
+
+### Changed
+- `scripts/audit_polling_places_geolocation.py`:
+  - auditoria endurecida para `LEFT JOIN` espacial (detecta ponto fora de qualquer distrito);
+  - validação opcional por distrito esperado e por distância a coordenadas de override;
+  - novo resumo no relatório: `outside_any_district`, `outside_expected_district`, `override_distance_violations`.
+- `scripts/build_seed.py`:
+  - suporte a `data/seed/polling_places_overrides_diamantina.csv`;
+  - build da seed passa a aplicar overrides somente quando latitude/longitude estiverem preenchidas.
+- `scripts/apply_seed.py`:
+  - antes de atualizar geometria, valida regra de distrito esperado (quando existir no CSV de overrides);
+  - se a coordenada estiver fora do distrito esperado, o registro é bloqueado (`SKIP`) e não é aplicado no banco.
+- `data/seed/polling_places_overrides_diamantina.csv`:
+  - adicionado arquivo de governança para correção controlada;
+  - estado inicial com regras de distrito esperado para `1252` e `1341` (sem forçar coordenada sem validação de campo).
+
+### Verified
+- `.\.venv\Scripts\python.exe scripts/apply_seed.py` -> `Total sections updated: 144`, `Skipped by district rule: 0`.
+- `.\.venv\Scripts\python.exe scripts/audit_polling_places_geolocation.py` -> `status=pass`, `outside_any_district=[]`, `outside_expected_district=[]`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `37 passed`.
+
 ## 2026-02-26 - Correção de serialização de seções no mapa eleitoral
 
 ### Changed
