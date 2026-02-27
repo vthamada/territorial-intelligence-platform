@@ -1,6 +1,6 @@
 # Territorial Intelligence Platform - Handoff
 
-Data de referência: 2026-02-26
+Data de referência: 2026-02-27
 Planejamento principal: `docs/PLANO_IMPLEMENTACAO_QG.md`
 North star de produto: `docs/VISION.md`
 Contrato técnico principal: `CONTRATO.md`
@@ -62,6 +62,18 @@ Contrato técnico principal: `CONTRATO.md`
 7. Regra de leitura:
    - apenas esta secao define "próximo passo executável" no momento;
    - secoes de "próximos passos" antigas abaixo devem ser lidas como histórico.
+
+## Atualizacao tecnica (2026-02-27) - Hotfix Home/Cenarios
+
+1. Frontend/API contract alignment:
+   - `frontend/src/modules/qg/pages/QgOverviewPage.tsx`: `getKpisOverview` ajustado para `limit=20` (antes `24`) para aderir ao contrato de `/v1/kpis/overview` e eliminar `422` na Home.
+   - `frontend/src/modules/qg/pages/QgScenariosPage.tsx`: fluxo consolidado em `level=municipality` (normalizacao de estado/URL + remocao de opcao `district`) para evitar submissao inconsistente que resultava em `404` no backend.
+2. Validacao da rodada:
+   - `npm --prefix frontend run build` -> `OK`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py -q` -> `22 passed`.
+   - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> falhas preexistentes de suite legada (contrato visual/textual), sem bloqueio para o hotfix runtime.
+3. Proximo passo imediato do recorte:
+   - atualizar a suite `frontend/src/modules/qg/pages/QgPages.test.tsx` para o contrato atual das telas QG refatoradas.
 
 ## Atualizacao tecnica (2026-02-26) - Refatoracao executiva QG + dominio Portal Transparencia
 

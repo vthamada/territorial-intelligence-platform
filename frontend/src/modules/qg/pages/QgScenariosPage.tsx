@@ -64,6 +64,7 @@ function impactStatus(impact: string): "critical" | "attention" | "stable" | "in
 
 export function QgScenariosPage() {
   const [searchParams] = useSearchParams();
+  const normalizedInitialLevel = searchParams.get("level") === "municipality" ? "municipality" : "";
 
   const [formValues, setFormField] = usePersistedFormState(
     "scenarios",
@@ -78,7 +79,7 @@ export function QgScenariosPage() {
     {
       territoryId: searchParams.get("territory_id") || "",
       period: searchParams.get("period") || "",
-      level: searchParams.get("level") || "",
+      level: normalizedInitialLevel,
       domain: searchParams.get("domain") || "",
       indicatorCode: searchParams.get("indicator_code") || "",
     }
@@ -86,7 +87,7 @@ export function QgScenariosPage() {
 
   const territoryId = formValues.territoryId;
   const period = formValues.period;
-  const level = formValues.level === "district" ? "district" : "municipality";
+  const level = "municipality";
   const domain = normalizeQgDomain(formValues.domain);
   const indicatorCode = formValues.indicatorCode;
   const adjustmentPercent = formValues.adjustmentPercent;
@@ -117,6 +118,12 @@ export function QgScenariosPage() {
       setTerritoryId(territoryOptions[0].territory_id);
     }
   }, [territoryId, territoryOptions]);
+
+  useEffect(() => {
+    if (formValues.level !== "municipality") {
+      setLevel("municipality");
+    }
+  }, [formValues.level, setLevel]);
 
   const simulationMutation = useMutation({
     mutationFn: postScenarioSimulate,
@@ -214,7 +221,6 @@ export function QgScenariosPage() {
             Nível
             <select value={level} onChange={(event) => setLevel(event.target.value)}>
               <option value="municipality">{formatLevelLabel("municipality")}</option>
-              <option value="district">{formatLevelLabel("district")}</option>
             </select>
           </label>
           <label>

@@ -75,7 +75,7 @@ export function QgOverviewPage() {
 
   const kpiQuery = useQuery({
     queryKey: ["qg", "overview", "kpis", baseQuery],
-    queryFn: () => getKpisOverview({ ...baseQuery, limit: 24 }),
+    queryFn: () => getKpisOverview({ ...baseQuery, limit: 20 }),
   });
   const summaryQuery = useQuery({
     queryKey: ["qg", "overview", "priority-summary", baseQuery],

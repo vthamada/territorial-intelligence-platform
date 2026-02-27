@@ -1,7 +1,24 @@
-﻿# Changelog
+# Changelog
 
 Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
+## 2026-02-27 - Hotfix Home/Cenarios (422 e 404)
+
+### Changed
+- Frontend:
+  - `frontend/src/modules/qg/pages/QgOverviewPage.tsx`:
+    - ajuste do `limit` na consulta de KPIs de `24` para `20`, aderente ao contrato backend de `/v1/kpis/overview` (`le=20`) para eliminar `422 Unprocessable Content`.
+  - `frontend/src/modules/qg/pages/QgScenariosPage.tsx`:
+    - normalizacao defensiva do nivel inicial vindo da URL (`municipality` apenas);
+    - simulacao consolidada para nivel `municipality` no fluxo atual da tela;
+    - remocao da opcao `district` do select de nivel para evitar submissao inconsistente com o seletor territorial (que opera em municipio).
+
+### Verified
+- Backend:
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py -q` -> `22 passed`.
+- Frontend:
+  - `npm --prefix frontend run build` -> `OK`.
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> falhas preexistentes de contrato visual/textual da suite legada (nao bloqueantes para o hotfix de runtime).
 ## 2026-02-26 - Refatoracao executiva de telas QG + normalizacao de dominio (Portal Transparencia)
 
 ### Changed
