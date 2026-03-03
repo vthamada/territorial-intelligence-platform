@@ -5,6 +5,28 @@ Planejamento principal: `docs/PLANO_IMPLEMENTACAO_QG.md`
 North star de produto: `docs/VISION.md`
 Contrato técnico principal: `CONTRATO.md`
 
+## Atualizacao tecnica (2026-03-03) - Hotfix de conectividade da UI (CORS)
+
+1. Sintoma observado:
+   - todas as telas executivas exibindo erro de conexao com API no frontend.
+2. Diagnostico:
+   - backend ativo e respondendo (`/v1/health` e `/v1/kpis/overview` com `200`);
+   - bloqueio de origem no navegador por CORS para portas/origens locais fora do conjunto inicial.
+3. Correcao aplicada:
+   - `src/app/settings.py`:
+     - `cors_allow_origins` ampliado para `:5173` e `:4173` em `localhost/127.0.0.1`;
+     - adicionado `cors_allow_origin_regex` para origens locais/rede privada em ambiente de desenvolvimento.
+   - `src/app/api/main.py`:
+     - `CORSMiddleware` passou a aplicar `allow_origin_regex`.
+4. Evidencias:
+   - preflight `OPTIONS` com `Access-Control-Allow-Origin` valido para:
+     - `http://localhost:5173`, `http://127.0.0.1:5173`,
+     - `http://localhost:4173`, `http://127.0.0.1:4173`,
+     - `http://172.24.32.1:5173`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_api_contract.py -q` -> `20 passed`.
+5. Proximo passo imediato:
+   - reiniciar backend/frontend locais e revalidar navegacao completa das telas QG.
+
 ## Atualizacao tecnica (2026-03-03) - Fechamento de pendencias D7 e estabilizacao da suite QG
 
 1. Backend/API:
@@ -3106,7 +3128,6 @@ Sprint atual recomendado:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_up.ps1`
 - Encerrar API + frontend iniciados pelo launcher:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_down.ps1`
-
 
 
 

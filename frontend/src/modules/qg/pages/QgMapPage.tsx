@@ -13,7 +13,12 @@ import type { VectorMapFeatureSelection, VizMode, OverlayLayerConfig, GeoJsonClu
 import { useFilterStore } from "../../../shared/stores/filterStore";
 import { emitTelemetry } from "../../../shared/observability/telemetry";
 
-const TILE_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:8000/v1";
+function resolveTileBaseUrl(): string {
+  const configured = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://127.0.0.1:8000/v1";
+  return configured.replace(/^http:\/\/localhost:8000/i, "http://127.0.0.1:8000");
+}
+
+const TILE_BASE_URL = resolveTileBaseUrl();
 const BASEMAP_STREETS_URL =
   (import.meta.env.VITE_MAP_BASEMAP_STREETS_URL as string | undefined) ??
   "https://tile.openstreetmap.org/{z}/{x}/{y}.png";

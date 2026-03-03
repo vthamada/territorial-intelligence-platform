@@ -19,7 +19,20 @@ class Settings(BaseSettings):
     app_env: str = "local"
     log_level: str = "INFO"
     api_version_prefix: str = "/v1"
-    cors_allow_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    cors_allow_origins: str = (
+        "http://localhost:5173,"
+        "http://127.0.0.1:5173,"
+        "http://localhost:4173,"
+        "http://127.0.0.1:4173"
+    )
+    cors_allow_origin_regex: str = (
+        r"^https?://("
+        r"localhost|127\.0\.0\.1|0\.0\.0\.0|"
+        r"10\.\d+\.\d+\.\d+|"
+        r"172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+|"
+        r"192\.168\.\d+\.\d+"
+        r")(:\d+)?$"
+    )
 
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/territorial_intelligence"
     municipality_ibge_code: str = "3121605"

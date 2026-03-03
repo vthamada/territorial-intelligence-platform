@@ -2,6 +2,29 @@
 
 Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
+## 2026-03-03 - Hotfix de conectividade frontend/backend (CORS local)
+
+### Changed
+- Backend:
+  - `src/app/settings.py`:
+    - `cors_allow_origins` ampliado para incluir `localhost/127.0.0.1` também em `:4173` (além de `:5173`);
+    - adicionado `cors_allow_origin_regex` para origens locais de desenvolvimento (`localhost`, loopback e redes privadas RFC1918).
+  - `src/app/api/main.py`:
+    - `CORSMiddleware` atualizado para usar `allow_origin_regex` além de `allow_origins`.
+
+### Verified
+- API direta:
+  - `GET /v1/health` -> `200`.
+  - `GET /v1/kpis/overview?period=2025&level=municipality&limit=20` -> `200`.
+- Preflight CORS (OPTIONS) validado com `Access-Control-Allow-Origin`:
+  - `http://localhost:5173`
+  - `http://127.0.0.1:5173`
+  - `http://localhost:4173`
+  - `http://127.0.0.1:4173`
+  - `http://172.24.32.1:5173`
+- Testes:
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_api_contract.py -q` -> `20 passed`.
+
 ## 2026-03-03 - Fechamento de pendencias D7 (score/auditoria/explicabilidade) + estabilizacao de testes QG
 
 ### Changed

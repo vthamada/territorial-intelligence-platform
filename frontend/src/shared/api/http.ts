@@ -3,7 +3,15 @@ import { emitTelemetry } from "../observability/telemetry";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_RETRIES = 1;
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/v1";
+
+function resolveApiBaseUrl(): string {
+  const configured = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000/v1";
+  // Some local environments route localhost:8000 to another service (IPv6/WSL relay).
+  // Force loopback IPv4 for local API defaults to avoid CORS/404 mismatches.
+  return configured.replace(/^http:\/\/localhost:8000/i, "http://127.0.0.1:8000");
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 export class ApiClientError extends Error {
   status: number;
