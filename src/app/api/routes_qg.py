@@ -1277,6 +1277,24 @@ def get_priority_list(
     )
 
 
+@router.get("/priority/explainability", response_model=PriorityListResponse)
+def get_priority_explainability(
+    period: str | None = Query(default=None),
+    level: str | None = Query(default="municipality"),
+    domain: str | None = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=200),
+    db: Session = Depends(get_db),  # noqa: B008
+) -> PriorityListResponse:
+    """Alias explicito para consumo de trilha explicavel de prioridades."""
+    return get_priority_list(
+        period=period,
+        level=level,
+        domain=domain,
+        limit=limit,
+        db=db,
+    )
+
+
 @router.get("/priority/summary", response_model=PrioritySummaryResponse)
 def get_priority_summary(
     period: str | None = Query(default=None),

@@ -121,6 +121,7 @@ Endpoints mínimos de domínio:
 Endpoints executivos (QG estratégico):
 - `GET /v1/kpis/overview` — KPIs agregados por domínio com metadata e source_classification
 - `GET /v1/priority/list` — lista de prioridades com score, severidade, evidência, justificativa e trilha de explicabilidade
+- `GET /v1/priority/explainability` — alias explícito para trilha explicável das prioridades (rationale, evidência e trail auditável)
 - `GET /v1/priority/summary` — resumo por status e domínio
 - `GET /v1/insights/highlights` — destaques analíticos com robustez, explicação e trilha de explicabilidade
 - `GET /v1/mobility/access` — leitura territorial de acesso a mobilidade com score de déficit e método de alocação

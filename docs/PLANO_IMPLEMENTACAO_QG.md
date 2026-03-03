@@ -33,6 +33,20 @@ Atualizacao de status do ciclo (2026-02-26):
 5. pendencia operacional isolada:
    - estabilizar suite completa de frontend (assertions textuais com acentuacao/labels), sem abrir nova frente funcional.
 
+Atualizacao de status do ciclo (2026-03-03):
+1. pendencia operacional de testes frontend foi encerrada:
+   - `frontend/src/modules/qg/pages/QgPages.test.tsx` atualizado para o contrato atual (`23 passed`).
+2. trilha D7 recebeu fechamento tecnico adicional em backend/db:
+   - endpoint explicito de explicabilidade adicionado: `GET /v1/priority/explainability`;
+   - auditoria de alteracoes de pesos/versionamento adicionada em `db/sql/019_strategic_score_weights_audit.sql`.
+3. validacao da rodada:
+   - backend: `38 passed` em `tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py`;
+   - backend contrato: `20 passed` em `tests/unit/test_api_contract.py`;
+   - frontend build: `OK`.
+4. acao de governanca:
+   - encerrar no GitHub as issues `#12`, `#23` e `#24` nesta rodada;
+   - manter `#7` fora do ciclo ativo por dependencia externa (CadUnico/CECAD).
+
 ## 0) Regra de foco operacional (WIP=1)
 
 1. Fila ativa unica de implementação:

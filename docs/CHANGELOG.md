@@ -2,6 +2,33 @@
 
 Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
+## 2026-03-03 - Fechamento de pendencias D7 (score/auditoria/explicabilidade) + estabilizacao de testes QG
+
+### Changed
+- Backend/API:
+  - `src/app/api/routes_qg.py`:
+    - adicionado `GET /v1/priority/explainability` como alias explicito de trilha explicavel para prioridades.
+- Banco:
+  - `db/sql/019_strategic_score_weights_audit.sql`:
+    - criada tabela `ops.strategic_score_version_audit`;
+    - criada trigger `trg_audit_strategic_score_versions` para registrar `INSERT/UPDATE/DELETE` em `ops.strategic_score_versions`;
+    - registro de `changed_fields`, `weights_changed`, `old_row` e `new_row` para trilha auditavel de pesos/configuracao.
+- Testes:
+  - `tests/unit/test_qg_routes.py`:
+    - novo teste `test_priority_explainability_alias_returns_auditable_payload`.
+  - `frontend/src/modules/qg/pages/QgPages.test.tsx`:
+    - suite alinhada ao contrato atual das telas (labels, filtros e paginacao), eliminando falhas legadas.
+- Documentacao de contrato:
+  - `docs/CONTRATO.md` atualizado com endpoint `GET /v1/priority/explainability`.
+
+### Verified
+- Backend:
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `38 passed`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_api_contract.py -q` -> `20 passed`.
+- Frontend:
+  - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `23 passed`.
+  - `npm --prefix frontend run build` -> `OK`.
+
 ## 2026-02-27 - Hotfix Home/Cenarios (422 e 404)
 
 ### Changed

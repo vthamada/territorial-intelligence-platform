@@ -5,6 +5,26 @@ Planejamento principal: `docs/PLANO_IMPLEMENTACAO_QG.md`
 North star de produto: `docs/VISION.md`
 Contrato técnico principal: `CONTRATO.md`
 
+## Atualizacao tecnica (2026-03-03) - Fechamento de pendencias D7 e estabilizacao da suite QG
+
+1. Backend/API:
+   - `src/app/api/routes_qg.py` com novo endpoint `GET /v1/priority/explainability` (alias explicito para trilha explicavel de prioridades).
+2. Banco:
+   - `db/sql/019_strategic_score_weights_audit.sql` adicionado com:
+     - tabela `ops.strategic_score_version_audit`;
+     - trigger de auditoria em `ops.strategic_score_versions`;
+     - registro de alteracoes de pesos/configuracao com `changed_fields`, `weights_changed`, `old_row` e `new_row`.
+3. Frontend testes:
+   - `frontend/src/modules/qg/pages/QgPages.test.tsx` estabilizado para o contrato atual das paginas QG (`23/23`).
+4. Evidencias da rodada:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `38 passed`;
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_api_contract.py -q` -> `20 passed`;
+   - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `23 passed`;
+   - `npm --prefix frontend run build` -> `OK`.
+5. Proximo passo imediato:
+   - encerrar no GitHub as issues `#12`, `#23` e `#24` com referencia desta rodada;
+   - manter `#7` (`CadUnico/CECAD`) bloqueada por dependencia externa.
+
 ## Trilha ativa unica (executável no ciclo atual)
 
 1. Trilha ativa oficial (WIP=1):
@@ -3086,7 +3106,6 @@ Sprint atual recomendado:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_up.ps1`
 - Encerrar API + frontend iniciados pelo launcher:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_down.ps1`
-
 
 
 

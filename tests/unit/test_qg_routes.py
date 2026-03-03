@@ -850,6 +850,29 @@ def test_priority_list_accepts_level_alias_and_builds_rationale() -> None:
     app.dependency_overrides.clear()
 
 
+def test_priority_explainability_alias_returns_auditable_payload() -> None:
+    session = _QgSession()
+
+    def _db() -> Generator[_QgSession, None, None]:
+        yield session
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/priority/explainability?period=2025&level=municipio&limit=2")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["level"] == "municipio"
+    assert len(payload["items"]) >= 1
+    first = payload["items"][0]
+    assert isinstance(first["rationale"], list)
+    assert len(first["rationale"]) >= 1
+    assert first["evidence"]["score_version"] == "v1.0.0"
+    assert first["explainability"]["trail_id"]
+    app.dependency_overrides.clear()
+
+
 def test_priority_summary_returns_status_and_domain_counts() -> None:
     app.dependency_overrides[get_db] = _qg_db
     client = TestClient(app, raise_server_exceptions=False)
