@@ -2,6 +2,27 @@
 
 Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
+## 2026-03-05 - Sincronizacao documental do estado atual (commits x fila ativa)
+
+### Changed
+- Documentacao de estado:
+  - `docs/HANDOFF.md`:
+    - data de referencia atualizada para `2026-03-05`;
+    - topo consolidado para refletir que `D4` a `D8` ja estao concluidos tecnicamente;
+    - pendencias historicas de mapa/QG/testes removidas da fila ativa;
+    - referencia de mapa atualizada para `docs/REFATORACAO_TELAS.md` no lugar do documento removido `docs/UI_MAPA.md`.
+  - `docs/PLANO_IMPLEMENTACAO_QG.md`:
+    - status geral alinhado com os commits mais recentes (`8dc6c86`, `b2ad30f`, `6c01e12`, `56bea7b`, `eb9a4c6`);
+    - secao `0` reduzida para a fila ativa real da rodada (cadencia operacional, readiness e governanca de issues);
+    - status por onda/sprint atualizado para remover itens que ainda apareciam como "em andamento" apesar de ja concluidos tecnicamente;
+    - secao `5` reclassificada como historica para evitar reabertura indevida de pendencias ja encerradas.
+
+### Verified
+- Revisao documental cruzada com historico Git:
+  - `git log --date=short --pretty=format:'%h %ad %s' -n 5`.
+- Nenhum teste adicional executado nesta rodada:
+  - alteracao restrita a documentacao de estado e governanca.
+
 ## 2026-03-03 - Hotfix de conectividade frontend/backend (CORS local)
 
 ### Changed

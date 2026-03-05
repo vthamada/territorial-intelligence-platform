@@ -1,8 +1,21 @@
 # Plano Integrado de Implementação (Backend + Frontend QG)
 
-Data de referência: 2026-02-21  
-Status: execução ativa (trilha unica com D8 concluido tecnicamente e foco em consolidação operacional)  
+Data de referência: 2026-03-05  
+Status: execução ativa (D4-D8 concluidos tecnicamente; foco atual em consolidação operacional e governança de estado)  
 Escopo: plano executável para consolidar QG estratégico em produção com dados reais.
+
+Atualização de consistência documental (2026-03-05):
+1. revisão contra os commits mais recentes do repositório:
+   - `8dc6c86` (`2026-02-25`) consolidou geocodificação real de locais de votação e ajustes estruturais do mapa;
+   - `b2ad30f` (`2026-02-26`) consolidou ajustes do mapa e sincronização operacional;
+   - `6c01e12` (`2026-02-26`) consolidou refatoração das telas executivas QG e normalização de domínio;
+   - `56bea7b` (`2026-02-27`) fechou hotfix de Home/Cenários;
+   - `eb9a4c6` (`2026-03-03`) encerrou pendências de D7 e estabilizou `QgPages.test.tsx`.
+2. efeito prático da revisão:
+   - itens históricos de P0 ligados a mapa executivo, `local_votacao`, refatoração QG e estabilização da suíte QG não devem mais ser tratados como fila ativa;
+   - a fila ativa desta rodada fica restrita a operação recorrente, governança de issues e manutenção do estado `READY`.
+3. regra operacional reforçada:
+   - não abrir nova frente funcional antes de confirmar a cadência operacional recorrente da janela de 30 dias.
 
 Atualização de consistência documental (2026-02-23):
 1. alinhado com `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` e `docs/HANDOFF.md`:
@@ -50,23 +63,23 @@ Atualizacao de status do ciclo (2026-03-03):
 ## 0) Regra de foco operacional (WIP=1)
 
 1. Fila ativa unica de implementação:
-   - trilha oficial encerrada em 2026-02-21: `D4-mobilidade/frota`.
-   - escopo concluido da trilha: `BD-040`, `BD-041`, `BD-042`.
-2. Gate de saida obrigatorio (DoD da trilha ativa D4):
-   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_onda_a_connectors.py tests/unit/test_quality_coverage_checks.py -q` em `pass`;
-   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` em `pass`;
-   - `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` sem regressão critica de cobertura;
+   - `D4-mobilidade/frota`, `D5`, `D6`, `D7` e `D8` estao concluidos tecnicamente.
+   - nenhuma pendencia funcional historica desses blocos deve voltar para a fila ativa sem regressao comprovada.
+2. Fila ativa operacional da rodada:
+   - manter persistência recorrente da janela de 30 dias em `ops.robustness_snapshots`;
+   - acompanhar drift via `/v1/ops/robustness-history`, com foco em `drift.status_transition`, `drift.severity_transition` e `drift.delta_*`;
+   - sustentar `backend_readiness` em `READY` com `hard_failures=0`;
+   - encerrar no GitHub as issues `#12`, `#23` e `#24` com referência das evidências já registradas;
+   - manter `#7` (`CadUnico/CECAD`) bloqueada por dependência externa.
+3. Gate de saída obrigatório do ciclo atual:
+   - `.\.venv\Scripts\python.exe scripts/persist_ops_robustness_window.py` executado sem regressão operacional;
    - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` com `status=READY` e `hard_failures=0`;
-   - `npm --prefix frontend run test -- --run` e `npm --prefix frontend run build` somente se houver mudanca no frontend.
-   - trilha anterior `D3-hardening` encerrada com `PASS` em 2026-02-21 (ver `docs/HANDOFF.md`).
-3. Regra de continuidade apos fechamento dos gates D4/D5:
-   - manter `WIP=1` ao iniciar `D6` (não abrir D7+ em paralelo);
-   - executar itens de `D6` em sequencia (`BD-060` -> `BD-061` -> `BD-062`);
-   - registrar evidencias de cada item em `HANDOFF` e `CHANGELOG` antes de avancar.
+   - leitura mais recente de `/v1/ops/robustness-history` mantendo `gates.all_pass=true` ou desvio explicitamente registrado em `HANDOFF`/`CHANGELOG`;
+   - se houver mudança em backend/frontend durante a rodada, reexecutar testes e build pertinentes antes do fechamento.
 4. Próximo passo imediato:
-   - manter consolidação operacional da janela de 30 dias em `READY` e `severity=normal`, com persistência recorrente no banco e leitura de tendência via `/v1/ops/robustness-history`, priorizando `drift.status_transition`, `drift.severity_transition` e `drift.delta_*`.
+   - manter a cadência operacional recorrente e fechar a governança de issues já concluídas, sem abrir nova frente funcional.
 5. Fonte unica de sequencia de execução:
-   - este arquivo (secoes `0`, `5` e `9`).
+   - este arquivo (secoes `0` e `9`; secao `5` apenas como histórico de rodadas anteriores).
    - `docs/HANDOFF.md` registra apenas estado corrente e próximo passo imediato da mesma trilha.
 6. Demais documentos (`BACKLOG_DADOS_NIVEL_MAXIMO.md`) sao norte macro/catálogo e não devem abrir fila paralela no ciclo diario.
 7. Classificação oficial de documentos ativos/descontinuados fica em `docs/GOVERNANCA_DOCUMENTAL.md`.
@@ -85,7 +98,7 @@ Atualizacao de status do ciclo (2026-03-03):
    - validação técnica registrada em `CHANGELOG` e `HANDOFF`.
 4. Trilha unica vigente:
    - `#22` (`BD-070`) -> `#23` (`BD-071`) -> `#24` (`BD-072`).
-   - fase atual: consolidação pós-D8 (apos fechamento técnico de `BD-080`, `BD-081` e `BD-082`).
+   - fase atual: consolidação pós-D8, sem backlog funcional novo enquanto a cadência operacional não estiver estabilizada.
    - nenhuma issue fora dessa sequencia pode ficar `status:active` durante este ciclo.
 
 ## 0.1) Mapa de governança documental (fonte unica)
@@ -153,10 +166,10 @@ Entregar e estabilizar o QG estratégico municipal de Diamantina/MG, com:
 3. Onda 2: concluida.
 4. Onda 3: concluida.
 5. Onda 4: concluida.
-6. Onda 5: em andamento avancado (MP-1, MP-2 e MP-3 entregues; pendente consolidação UX final e recursos pós-v1).
-7. Onda 6: em andamento (UX imersiva com mapa dominante + ajuste de usabilidade em telas executivas).
-8. Onda 7: concluida v1 (cenarios/briefs), com refinamentos pendentes.
-9. Onda 8: em andamento (E2E fluxo critico concluido, cache HTTP ativo, MVs e GIST criados, benchmark p95 criado, edge-cases 44 testes, acessibilidade concluida).
+6. Onda 5: concluida tecnicamente; recursos entregues e mantidos em monitoramento operacional.
+7. Onda 6: concluida tecnicamente (mapa dominante + ajuste de usabilidade em telas executivas).
+8. Onda 7: concluida tecnicamente (cenarios/briefs + explicabilidade/auditoria complementar).
+9. Onda 8: concluida tecnicamente; permanece em monitoramento operacional (readiness, benchmark, robustness window).
 
 ## 3) Estado consolidado atual
 
@@ -246,10 +259,15 @@ Entregar e estabilizar o QG estratégico municipal de Diamantina/MG, com:
 3. Sprint 2 (Mapa + Território 360): concluida.
 4. Sprint 3 (Onda A parte 1 + Insights): concluida.
 5. Sprint 4 (Onda A parte 2 + Eleitorado): concluida.
-6. Sprint 5 (hardening QG v1): em andamento.
+6. Sprint 5 (hardening QG v1): concluida tecnicamente; monitoramento operacional recorrente ativo.
 7. Sprint 6 (extensoes v1.1: cenarios/briefs): concluida.
 
-## 5) Escopo de próxima execução (ciclo atual)
+## 5) Escopo historico de próxima execução (encerrado)
+
+Nota de leitura:
+1. esta secao preserva a fila historica das rodadas anteriores;
+2. o proximo passo vigente passou a ser definido pela secao `0` deste plano e pelo topo de `docs/HANDOFF.md`;
+3. itens abaixo nao devem ser reabertos como pendencia atual sem evidencia de regressao.
 
 ## 5.1 Prioridade alta
 

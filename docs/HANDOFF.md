@@ -1,9 +1,39 @@
 # Territorial Intelligence Platform - Handoff
 
-Data de referência: 2026-02-27
+Data de referência: 2026-03-05
 Planejamento principal: `docs/PLANO_IMPLEMENTACAO_QG.md`
 North star de produto: `docs/VISION.md`
 Contrato técnico principal: `CONTRATO.md`
+
+## Trilha ativa unica (executável no ciclo atual)
+
+1. Estado oficial da trilha (WIP=1):
+   - `D4-mobilidade/frota` encerrada com entregas `BD-040`, `BD-041` e `BD-042`.
+   - `D5` concluido tecnicamente (`BD-050`, `BD-051`, `BD-052`).
+   - `D6` concluido tecnicamente (`BD-060`, `BD-061`, `BD-062`).
+   - `D7` concluido tecnicamente (`BD-070`, `BD-071`, `BD-072`), incluindo fechamento adicional em `2026-03-03` para explicabilidade e auditoria de pesos.
+   - `D8` concluido tecnicamente (`BD-080`, `BD-081`, `BD-082`).
+   - pendencias historicas de mapa executivo, geocodificacao de locais de votacao, refatoracao das telas QG e estabilizacao de `QgPages.test.tsx` devem ser consideradas encerradas pelos commits `8dc6c86`, `b2ad30f`, `6c01e12`, `56bea7b` e `eb9a4c6`.
+2. Estado funcional consolidado:
+   - mapa executivo consolidado em fluxo unico (OSM-only), sem branch simplificado paralelo;
+   - `/v1/electorate/map` suporta `aggregate_by=polling_place`, com fallback automatico para ano eleitoral com dados quando necessario;
+   - geolocalizacao de locais de votacao estabilizada com seed `data/seed/polling_places_diamantina.csv` (`36/36` locais) e auditoria geoespacial dedicada;
+   - telas executivas (`Home`, `Prioridades`, `Mapa`, `Insights`, `Cenarios`, `Eleitorado`) alinhadas ao contrato atual e com suite QG estabilizada;
+   - referencia vigente da refatoracao visual/estrutural do mapa esta consolidada em `docs/REFATORACAO_TELAS.md`.
+3. Validacao consolidada mais recente:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `38 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_api_contract.py -q` -> `20 passed`.
+   - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `23 passed`.
+   - `npm --prefix frontend run build` -> `OK`.
+4. Próximo passo executável real:
+   - manter rotina recorrente da janela de 30 dias com persistência de snapshots (`scripts/persist_ops_robustness_window.py`);
+   - acompanhar drift para sustentar `status=READY`, `severity=normal` e `gates.all_pass=true`;
+   - encerrar no GitHub as issues `#12`, `#23` e `#24` com referência das evidências já registradas;
+   - manter `#7` (`CadUnico/CECAD`) fora do ciclo ativo até desbloqueio externo;
+   - não abrir nova frente funcional antes de confirmar cadência operacional estável.
+5. Regra de leitura:
+   - apenas esta secao define o "próximo passo executável" vigente;
+   - secoes abaixo preservam histórico de entregas/rodadas e não reabrem pendencias já concluídas, salvo regressao comprovada.
 
 ## Atualizacao tecnica (2026-03-03) - Hotfix de conectividade da UI (CORS)
 
@@ -46,64 +76,6 @@ Contrato técnico principal: `CONTRATO.md`
 5. Proximo passo imediato:
    - encerrar no GitHub as issues `#12`, `#23` e `#24` com referencia desta rodada;
    - manter `#7` (`CadUnico/CECAD`) bloqueada por dependencia externa.
-
-## Trilha ativa unica (executável no ciclo atual)
-
-1. Trilha ativa oficial (WIP=1):
-   - `D5` concluido tecnicamente (`BD-050`, `BD-051`, `BD-052`).
-   - `D6` concluido tecnicamente (`BD-060`, `BD-061`, `BD-062`).
-   - `D7` concluido tecnicamente (`BD-070`, `BD-071`, `BD-072`).
-   - `D8` concluido tecnicamente (`BD-080`, `BD-081`, `BD-082`).
-   - `D4-mobilidade/frota` encerrada com entregas `BD-040`, `BD-041` e `BD-042`.
-   - Mapa estratégico reestruturado (visão estratégica, círculos proporcionais, contorno municipal).
-  - Refatoração completa do mapa executivo conforme `docs/UI_MAPA.md` (layout 2-col, bottom panel collapsible, remoção de clutter técnico).
-  - Ajuste final do mapa para aderência ao mock de referência: topo com apenas base map + export, busca acima do mapa, sem controles fantasmas e sem modo simplificado.
-  - Entrega concluída: mapa executivo consolidado em OSM-only com remoção do fluxo simplificado e payload eleitoral agregado por local de votação (com lista/contagem de seções no tooltip e drawer).
-  - Ajuste de usabilidade no painel de camadas: toggles alinhados horizontalmente e todos desmarcados por padrão.
-  - Diagnóstico técnico convertido em implementação: endpoint `/v1/electorate/map` agora suporta `aggregate_by=polling_place` para retornar agregação de local de votação.
-    - Contrato de URL do mapa consolidado: `/mapa` não propaga mais `metric`/`period` legados em sync interno e deep-links de overview/prioridades.
-  - Varredura backend concluída em `/v1/map/tiles/*`: removido branch legado que aplicava `metric/period` em tiles territoriais.
-    - Varredura frontend concluída: `VectorMap` não envia mais `metric/period/domain` em URL de tiles e `QgMapPage` não consome mais `metric/period` da URL no bootstrap.
-  - Locais de votação estabilizados no mapa: fallback automático para ano eleitoral com dados (`2024`) quando o período estratégico ativo retorna vazio no agregado por local.
-  - **Correção de geolocalização**: locais de votação agora usam centroide do distrito-sede (IBGE geocode+05) em vez de `ST_PointOnSurface` do polígono municipal. Distância ao centro urbano: 1.7km (antes ~37.6km). Registros existentes de zonas e seções eleitorais atualizados in-place.
-  - **Distribuição espacial por local**: query de polling places gera coordenada única por local via hash determinístico (`md5`) dentro do polígono do distrito-sede, eliminando cluster único. `clusterMaxZoom` ajustado para z=12 conforme spec UI_MAPA.md §5.3.
-  - **Geocodificação real (INEP + Nominatim)**: locais de votação agora têm coordenadas reais geocodificadas. Pipeline cruza nomes com Censo Escolar INEP 2024 (endereços) + Nominatim, complementado por estimativas manuais por distrito. Seed em `data/seed/polling_places_diamantina.csv` (36/36 locais). Query CTE atualizada para usar `dt.geometry` real quando disponível, com fallback hash para municípios sem geocodificação.
-2. Status de validação (2026-02-25):
-  - `npm --prefix frontend run test -- --run` -> `85 passed` (21 test files).
-  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `37 passed`.
-  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_api_contract.py tests/unit/test_mvt_tiles.py -q` -> `39 passed`.
-   - `npm --prefix frontend run build` -> `OK`.
-2. Status da trilha anterior (D3-hardening, encerrada em 2026-02-21):
-   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `29 passed`.
-   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q` -> `26 passed`.
-   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_quality_suite.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_coverage_checks.py tests/unit/test_quality_ops_pipeline_runs.py -q` -> `17 passed`.
-   - `npm run test -- --run` (em `frontend/`) -> `78 passed`.
-   - `npm run build` (em `frontend/`) -> `OK`.
-   - `.\.venv\Scripts\python.exe scripts/benchmark_api.py --suite urban --rounds 30 --json-output data/reports/benchmark_urban_map.json` -> `ALL PASS`.
-   - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
-3. Validação de fechamento técnico de D4 (2026-02-21):
-   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_onda_a_connectors.py tests/unit/test_quality_coverage_checks.py -q -p no:cacheprovider` -> `27 passed`.
-   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_mvt_tiles.py tests/unit/test_cache_middleware.py -q -p no:cacheprovider` -> `47 passed`.
-   - `.\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 13 SQL scripts`.
-   - `.\.venv\Scripts\python.exe scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.json` -> `pass=13`, `warn=1`.
-   - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
-   - smoke API: `GET /v1/mobility/access?level=district&limit=5` -> `200`, `period=2025`, `items=5`.
-   - GitHub issues encerradas no mesmo ciclo:
-     - `#13` (`BD-040`) -> `closed`.
-     - `#14` (`BD-041`) -> `closed`.
-     - `#15` (`BD-042`) -> `closed`.
-4. Critério de saida (DoD do ciclo D4):
-   - suite backend/frontend em `pass`;
-   - readiness com `status=READY` e `hard_failures=0`;
-   - scorecard de cobertura sem regressão critica;
-   - evidencias registradas no proprio `HANDOFF` e em `docs/CHANGELOG.md`.
-5. Próximo passo imediato:
-   - manter rotina recorrente da janela de 30 dias com persistência de snapshots (`scripts/persist_ops_robustness_window.py`) e acompanhar drift para manter `status=READY`, `severity=normal` e `gates.all_pass=true`.
-6. Governança de issue:
-   - ao concluir item técnico, encerrar issue correspondente no GitHub na mesma rodada.
-7. Regra de leitura:
-   - apenas esta secao define "próximo passo executável" no momento;
-   - secoes de "próximos passos" antigas abaixo devem ser lidas como histórico.
 
 ## Atualizacao tecnica (2026-02-27) - Hotfix Home/Cenarios
 
@@ -3128,7 +3100,6 @@ Sprint atual recomendado:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_up.ps1`
 - Encerrar API + frontend iniciados pelo launcher:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_down.ps1`
-
 
 
 
