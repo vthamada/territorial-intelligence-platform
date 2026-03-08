@@ -626,7 +626,12 @@ class _ElectoratePollingPlacesSession:
 
         if "select max(fe.reference_year)" in sql:
             return _ScalarResult(2024)
-        if "with municipality_total as" in sql and "grouped as" in sql and "from silver.fact_electorate fe" in sql:
+        if (
+            "polling_place_registry as" in sql
+            and "municipality_total as" in sql
+            and "from silver.fact_electorate fe" in sql
+            and "from silver.fact_election_result fr" not in sql
+        ):
             return _RowsResult(
                 [
                     {
@@ -661,7 +666,7 @@ class _ElectoratePollingPlacesSession:
             return _ScalarResult(2024)
         if "group by fr.office" in sql and "sum(case when fr.metric = 'turnout'" in sql:
             return _RowsResult([{"office": "PREFEITO", "election_round": 1, "turnout": 8200.0}])
-        if "with electorate_base as" in sql and "from silver.fact_election_result fr" in sql:
+        if "polling_place_registry as" in sql and "electorate_base as" in sql and "from silver.fact_election_result fr" in sql:
             return _RowsResult(
                 [
                     {
@@ -854,7 +859,7 @@ class _ElectorateCandidateTerritoriesSession:
             return _RowsResult(
                 [{"office": "PREFEITO", "election_round": 1, "election_type": "municipal", "total_votes": 8200.0}]
             )
-        if "md5(coalesce(nullif(dt.metadata->>'polling_place_code', '')," in sql:
+        if "polling_place_registry as" in sql and "md5(ppr.pp_key)::text as territory_id" in sql:
             return _RowsResult(
                 [
                     {
@@ -879,7 +884,7 @@ class _ElectorateCandidateTerritoriesSession:
                     }
                 ]
             )
-        if "territory_level,\n                        coalesce(nullif(dt.metadata->>'polling_place_name', ''), dt.name) as polling_place_name" in sql:
+        if "polling_place_registry as" in sql and "dt.territory_id::text as territory_id" in sql and "ppr.polling_place_name as polling_place_name" in sql:
             return _RowsResult(
                 [
                     {

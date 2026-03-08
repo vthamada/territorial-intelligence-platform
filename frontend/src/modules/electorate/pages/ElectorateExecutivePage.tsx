@@ -137,13 +137,13 @@ function sourceLevelLabel(level: string | null | undefined) {
     return "zona eleitoral";
   }
   if (level === "electoral_section") {
-    return "se??o eleitoral";
+    return "seção eleitoral";
   }
   if (level === "polling_place") {
-    return "local de vota??o";
+    return "local de votação";
   }
   if (level === "municipality") {
-    return "munic?pio";
+    return "município";
   }
   return level ?? null;
 }

@@ -3,7 +3,7 @@ Apply seed CSV coordinates to dim_territory in the database.
 Reads data/seed/polling_places_diamantina.csv and updates geometry for each polling place.
 """
 from __future__ import annotations
-import csv, sys
+import csv, json, sys
 sys.path.insert(0, "src")
 
 
@@ -20,6 +20,22 @@ def _load_expected_districts(path: str) -> dict[str, str]:
     except FileNotFoundError:
         return {}
     return expected
+
+
+def _repair_mojibake(value: str) -> str:
+    cleaned = value.strip()
+    if not cleaned:
+        return cleaned
+    if not any(marker in cleaned for marker in ("Ã", "Â", "�")):
+        return cleaned
+    for source_encoding in ("latin-1", "cp1252"):
+        try:
+            repaired = cleaned.encode(source_encoding).decode("utf-8")
+        except UnicodeError:
+            continue
+        if repaired:
+            return repaired
+    return cleaned
 
 
 def main():
@@ -46,11 +62,11 @@ def main():
     with session_scope() as session:
         for e in entries:
             code = e["polling_place_code"]
-            name = e["polling_place_name"]
+            name = _repair_mojibake(e["polling_place_name"])
             lat = float(e["latitude"])
             lon = float(e["longitude"])
             source = e["source"]
-            expected_district = expected_districts.get(code)
+            expected_district = _repair_mojibake(expected_districts.get(code, "")) or None
 
             if expected_district:
                 is_inside_expected = bool(
@@ -85,24 +101,55 @@ def main():
                     )
                     continue
 
+            resolved_district = expected_district
+            if not resolved_district:
+                resolved_district = session.execute(
+                    text(
+                        """
+                        SELECT d.name
+                        FROM silver.dim_territory d
+                        WHERE d.level = 'district'
+                          AND d.municipality_ibge_code = '3121605'
+                          AND ST_Covers(
+                              d.geometry,
+                              ST_SetSRID(ST_MakePoint(CAST(:lon AS float), CAST(:lat AS float)), 4674)
+                          )
+                        ORDER BY d.name ASC
+                        LIMIT 1
+                        """
+                    ),
+                    {"lon": lon, "lat": lat},
+                ).scalar()
+
+            metadata_append = {
+                "geocode_source": source,
+                "geocode_lon": lon,
+                "geocode_lat": lat,
+                "polling_place_name": name,
+            }
+            if resolved_district:
+                metadata_append["district_name"] = resolved_district
+
             result = session.execute(
                 text("""
                     UPDATE silver.dim_territory
                     SET geometry = ST_SetSRID(ST_MakePoint(CAST(:lon AS float), CAST(:lat AS float)), 4674),
-                        metadata = metadata || jsonb_build_object(
-                            'geocode_source', CAST(:source AS text),
-                            'geocode_lon', CAST(:lon AS float),
-                            'geocode_lat', CAST(:lat AS float)
-                        ),
+                        metadata = COALESCE(metadata, '{}'::jsonb) || CAST(:metadata_append AS jsonb),
                         updated_at = NOW()
                     WHERE level = 'electoral_section'
                       AND municipality_ibge_code = '3121605'
                       AND metadata->>'polling_place_code' = :pp_code
                 """),
-                {"lon": lon, "lat": lat, "source": source, "pp_code": code},
+                {
+                    "lon": lon,
+                    "lat": lat,
+                    "pp_code": code,
+                    "metadata_append": json.dumps(metadata_append, ensure_ascii=False),
+                },
             )
             total_sections += result.rowcount
-            print(f"  {name} ({code}): {result.rowcount} sections -> ({lat:.6f}, {lon:.6f}) [{source}]")
+            district_suffix = f" | distrito={resolved_district}" if resolved_district else ""
+            print(f"  {name} ({code}): {result.rowcount} sections -> ({lat:.6f}, {lon:.6f}) [{source}]{district_suffix}")
 
     print(f"\nTotal sections updated: {total_sections}")
     print(f"Skipped by district rule: {skipped_by_district_rule}")

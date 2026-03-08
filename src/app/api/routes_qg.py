@@ -1048,6 +1048,65 @@ def _build_candidate_source_note(
     return "|".join(parts)
 
 
+def _polling_place_key_sql(alias: str = "dt") -> str:
+    return (
+        f"COALESCE(NULLIF({alias}.metadata->>'polling_place_code', ''), "
+        f"'__NAME__:' || COALESCE(NULLIF({alias}.metadata->>'polling_place_name', ''), {alias}.name))"
+    )
+
+
+def _polling_place_registry_cte_sql() -> str:
+    return f"""
+    polling_place_registry AS (
+        SELECT DISTINCT ON (pp_key)
+            pp_key,
+            polling_place_code,
+            polling_place_name,
+            district_name
+        FROM (
+            SELECT
+                {_polling_place_key_sql('dt')} AS pp_key,
+                NULLIF(dt.metadata->>'polling_place_code', '') AS polling_place_code,
+                COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name) AS polling_place_name,
+                COALESCE(NULLIF(dt.metadata->>'district_name', ''), district.name) AS district_name,
+                CASE
+                    WHEN NULLIF(dt.metadata->>'geocode_source', '') IS NOT NULL THEN 0
+                    ELSE 1
+                END AS geocode_rank,
+                CASE
+                    WHEN NULLIF(dt.metadata->>'district_name', '') IS NOT NULL THEN 0
+                    ELSE 1
+                END AS district_rank,
+                CASE
+                    WHEN NULLIF(dt.metadata->>'polling_place_name', '') IS NOT NULL THEN 0
+                    ELSE 1
+                END AS name_rank,
+                dt.updated_at,
+                dt.territory_id
+            FROM silver.dim_territory dt
+            LEFT JOIN LATERAL (
+                SELECT d.name
+                FROM silver.dim_territory d
+                WHERE d.level::text = 'district'
+                  AND d.geometry IS NOT NULL
+                  AND dt.geometry IS NOT NULL
+                  AND ST_Covers(d.geometry, dt.geometry)
+                ORDER BY d.name ASC
+                LIMIT 1
+            ) district ON TRUE
+            WHERE dt.level::text = 'electoral_section'
+        ) ranked
+        ORDER BY
+            pp_key,
+            geocode_rank ASC,
+            district_rank ASC,
+            name_rank ASC,
+            updated_at DESC NULLS LAST,
+            territory_id
+    )
+    """
+
+
 def _resolve_effective_mobility_period(db: Session, requested_period: str | None) -> str | None:
     if requested_period:
         return requested_period
@@ -2404,7 +2463,12 @@ def get_electorate_polling_places(
         rows = db.execute(
             text(
                 """
-                WITH municipality_total AS (
+                WITH
+                """
+                + _polling_place_registry_cte_sql()
+                + """
+                ,
+                municipality_total AS (
                     SELECT SUM(fe.voters)::double precision AS total_voters
                     FROM silver.fact_electorate fe
                     JOIN silver.dim_territory dt ON dt.territory_id = fe.territory_id
@@ -2413,30 +2477,37 @@ def get_electorate_polling_places(
                 ),
                 grouped AS (
                     SELECT
-                        COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name) AS polling_place_name,
-                        NULLIF(dt.metadata->>'polling_place_code', '') AS polling_place_code,
+                        ppr.pp_key,
+                        ppr.polling_place_name AS polling_place_name,
+                        ppr.polling_place_code AS polling_place_code,
+                        ppr.district_name AS district_name,
                         COUNT(DISTINCT dt.tse_section)::int AS section_count,
                         ARRAY_AGG(DISTINCT dt.tse_zone ORDER BY dt.tse_zone)
                             FILTER (WHERE dt.tse_zone IS NOT NULL) AS zone_codes,
                         ARRAY_AGG(DISTINCT dt.tse_section ORDER BY dt.tse_section)
                             FILTER (WHERE dt.tse_section IS NOT NULL) AS sections,
-                        SUM(fe.voters)::double precision AS voters_total,
-                        (array_agg(dt.geometry) FILTER (WHERE dt.geometry IS NOT NULL))[1] AS real_geom
+                        SUM(fe.voters)::double precision AS voters_total
                     FROM silver.fact_electorate fe
                     JOIN silver.dim_territory dt ON dt.territory_id = fe.territory_id
+                    JOIN polling_place_registry ppr
+                      ON ppr.pp_key = """
+                        + _polling_place_key_sql("dt")
+                        + """
                     WHERE dt.level::text = 'electoral_section'
                       AND fe.reference_year = :year
                     GROUP BY
-                        COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name),
-                        NULLIF(dt.metadata->>'polling_place_code', '')
+                        ppr.pp_key,
+                        ppr.polling_place_name,
+                        ppr.polling_place_code,
+                        ppr.district_name
                 )
                 SELECT
-                    md5(COALESCE(NULLIF(g.polling_place_code, ''), g.polling_place_name))::text AS territory_id,
+                    md5(g.pp_key)::text AS territory_id,
                     g.polling_place_name AS territory_name,
                     'polling_place'::text AS territory_level,
                     g.polling_place_name,
                     g.polling_place_code,
-                    district.name AS district_name,
+                    g.district_name,
                     g.zone_codes,
                     g.section_count,
                     g.sections,
@@ -2447,16 +2518,6 @@ def get_electorate_polling_places(
                     END::double precision AS share_percent
                 FROM grouped g
                 CROSS JOIN municipality_total mt
-                LEFT JOIN LATERAL (
-                    SELECT d.name
-                    FROM silver.dim_territory d
-                    WHERE d.level::text = 'district'
-                      AND d.geometry IS NOT NULL
-                      AND g.real_geom IS NOT NULL
-                      AND ST_Covers(d.geometry, g.real_geom)
-                    ORDER BY d.name ASC
-                    LIMIT 1
-                ) district ON TRUE
                 ORDER BY g.voters_total DESC, g.polling_place_name ASC
                 LIMIT :limit
                 """
@@ -2525,24 +2586,36 @@ def get_electorate_polling_places(
     rows = db.execute(
         text(
             """
-            WITH electorate_base AS (
+            WITH
+            """
+            + _polling_place_registry_cte_sql()
+            + """
+            ,
+            electorate_base AS (
                 SELECT
-                    COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name) AS polling_place_name,
-                    NULLIF(dt.metadata->>'polling_place_code', '') AS polling_place_code,
+                    ppr.pp_key,
+                    ppr.polling_place_name AS polling_place_name,
+                    ppr.polling_place_code AS polling_place_code,
+                    ppr.district_name AS district_name,
                     COUNT(DISTINCT dt.tse_section)::int AS section_count,
                     ARRAY_AGG(DISTINCT dt.tse_zone ORDER BY dt.tse_zone)
                         FILTER (WHERE dt.tse_zone IS NOT NULL) AS zone_codes,
                     ARRAY_AGG(DISTINCT dt.tse_section ORDER BY dt.tse_section)
                         FILTER (WHERE dt.tse_section IS NOT NULL) AS sections,
-                    SUM(fe.voters)::double precision AS voters_total,
-                    (array_agg(dt.geometry) FILTER (WHERE dt.geometry IS NOT NULL))[1] AS real_geom
+                    SUM(fe.voters)::double precision AS voters_total
                 FROM silver.fact_electorate fe
                 JOIN silver.dim_territory dt ON dt.territory_id = fe.territory_id
+                JOIN polling_place_registry ppr
+                  ON ppr.pp_key = """
+                    + _polling_place_key_sql("dt")
+                    + """
                 WHERE dt.level::text = 'electoral_section'
                   AND fe.reference_year = :year
                 GROUP BY
-                    COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name),
-                    NULLIF(dt.metadata->>'polling_place_code', '')
+                    ppr.pp_key,
+                    ppr.polling_place_name,
+                    ppr.polling_place_code,
+                    ppr.district_name
             ),
             municipality_total AS (
                 SELECT SUM(voters_total)::double precision AS total_voters
@@ -2550,8 +2623,9 @@ def get_electorate_polling_places(
             ),
             grouped AS (
                 SELECT
-                    COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name) AS polling_place_name,
-                    NULLIF(dt.metadata->>'polling_place_code', '') AS polling_place_code,
+                    ppr.pp_key,
+                    ppr.polling_place_name AS polling_place_name,
+                    ppr.polling_place_code AS polling_place_code,
                     SUM(CASE WHEN fr.metric = 'turnout' THEN fr.value ELSE 0 END)::double precision AS turnout,
                     SUM(CASE WHEN fr.metric = 'abstention' THEN fr.value ELSE 0 END)::double precision AS abstention,
                     SUM(CASE WHEN fr.metric = 'votes_blank' THEN fr.value ELSE 0 END)::double precision AS votes_blank,
@@ -2559,22 +2633,27 @@ def get_electorate_polling_places(
                     SUM(CASE WHEN fr.metric = 'votes_total' THEN fr.value ELSE 0 END)::double precision AS votes_total
                 FROM silver.fact_election_result fr
                 JOIN silver.dim_territory dt ON dt.territory_id = fr.territory_id
+                JOIN polling_place_registry ppr
+                  ON ppr.pp_key = """
+                    + _polling_place_key_sql("dt")
+                    + """
                 WHERE dt.level::text = 'electoral_section'
                   AND fr.election_year = :year
                   AND fr.office IS NOT DISTINCT FROM :office
                   AND fr.election_round IS NOT DISTINCT FROM :election_round
                   AND fr.metric IN ('turnout', 'abstention', 'votes_blank', 'votes_null', 'votes_total')
                 GROUP BY
-                    COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name),
-                    NULLIF(dt.metadata->>'polling_place_code', '')
+                    ppr.pp_key,
+                    ppr.polling_place_name,
+                    ppr.polling_place_code
             )
             SELECT
-                md5(COALESCE(NULLIF(eb.polling_place_code, ''), eb.polling_place_name))::text AS territory_id,
+                md5(eb.pp_key)::text AS territory_id,
                 eb.polling_place_name AS territory_name,
                 'polling_place'::text AS territory_level,
                 eb.polling_place_name,
                 eb.polling_place_code,
-                district.name AS district_name,
+                eb.district_name,
                 eb.zone_codes,
                 eb.section_count,
                 eb.sections,
@@ -2591,18 +2670,7 @@ def get_electorate_polling_places(
             FROM electorate_base eb
             CROSS JOIN municipality_total mt
             LEFT JOIN grouped g
-              ON g.polling_place_name = eb.polling_place_name
-             AND COALESCE(g.polling_place_code, '') = COALESCE(eb.polling_place_code, '')
-            LEFT JOIN LATERAL (
-                SELECT d.name
-                FROM silver.dim_territory d
-                WHERE d.level::text = 'district'
-                  AND d.geometry IS NOT NULL
-                  AND eb.real_geom IS NOT NULL
-                  AND ST_Covers(d.geometry, eb.real_geom)
-                ORDER BY d.name ASC
-                LIMIT 1
-            ) district ON TRUE
+              ON g.pp_key = eb.pp_key
             ORDER BY eb.polling_place_name ASC
             """
         ),
@@ -2887,13 +2955,19 @@ def get_electorate_candidate_territories(
         rows = db.execute(
             text(
                 """
-                WITH grouped AS (
+                WITH
+                """
+                + _polling_place_registry_cte_sql()
+                + """
+                ,
+                grouped AS (
                     SELECT
                         dt.territory_id::text AS territory_id,
                         dt.name AS territory_name,
                         'electoral_section'::text AS territory_level,
-                        COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name) AS polling_place_name,
-                        NULLIF(dt.metadata->>'polling_place_code', '') AS polling_place_code,
+                        ppr.polling_place_name AS polling_place_name,
+                        ppr.polling_place_code AS polling_place_code,
+                        ppr.district_name AS district_name,
                         ARRAY[dt.tse_zone]::text[] AS zone_codes,
                         1::int AS section_count,
                         ARRAY[dt.tse_section]::text[] AS sections,
@@ -2909,6 +2983,10 @@ def get_electorate_candidate_territories(
                     JOIN silver.dim_candidate dc ON dc.candidate_id = fcv.candidate_id
                     JOIN silver.dim_election de ON de.election_id = fcv.election_id
                     JOIN silver.dim_territory dt ON dt.territory_id = fcv.territory_id
+                    JOIN polling_place_registry ppr
+                      ON ppr.pp_key = """
+                        + _polling_place_key_sql("dt")
+                        + """
                     WHERE dt.level::text = 'electoral_section'
                       AND dc.candidate_id = CAST(:candidate_id AS uuid)
                       AND de.election_year = :year
@@ -2921,24 +2999,12 @@ def get_electorate_candidate_territories(
                 )
                 SELECT
                     g.*,
-                    district.name AS district_name,
                     CASE
                         WHEN t.total_votes > 0 THEN (g.votes / t.total_votes) * 100
                         ELSE NULL
                     END::double precision AS share_percent
                 FROM grouped g
                 CROSS JOIN total t
-                LEFT JOIN silver.dim_territory dt_section ON dt_section.territory_id::text = g.territory_id
-                LEFT JOIN LATERAL (
-                    SELECT d.name
-                    FROM silver.dim_territory d
-                    WHERE d.level::text = 'district'
-                      AND d.geometry IS NOT NULL
-                      AND dt_section.geometry IS NOT NULL
-                      AND ST_Covers(d.geometry, dt_section.geometry)
-                    ORDER BY d.name ASC
-                    LIMIT 1
-                ) district ON TRUE
                 ORDER BY g.votes DESC, g.territory_name ASC
                 LIMIT :limit
                 """
@@ -2955,13 +3021,19 @@ def get_electorate_candidate_territories(
         rows = db.execute(
             text(
                 """
-                WITH grouped AS (
+                WITH
+                """
+                + _polling_place_registry_cte_sql()
+                + """
+                ,
+                grouped AS (
                     SELECT
-                        md5(COALESCE(NULLIF(dt.metadata->>'polling_place_code', ''), COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name)))::text AS territory_id,
-                        COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name) AS territory_name,
+                        md5(ppr.pp_key)::text AS territory_id,
+                        ppr.polling_place_name AS territory_name,
                         'polling_place'::text AS territory_level,
-                        COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name) AS polling_place_name,
-                        NULLIF(dt.metadata->>'polling_place_code', '') AS polling_place_code,
+                        ppr.polling_place_name AS polling_place_name,
+                        ppr.polling_place_code AS polling_place_code,
+                        ppr.district_name AS district_name,
                         ARRAY_AGG(DISTINCT dt.tse_zone ORDER BY dt.tse_zone)
                             FILTER (WHERE dt.tse_zone IS NOT NULL) AS zone_codes,
                         COUNT(DISTINCT dt.tse_section)::int AS section_count,
@@ -2974,20 +3046,25 @@ def get_electorate_candidate_territories(
                         dc.party_abbr,
                         dc.party_number,
                         dc.party_name,
-                        SUM(fcv.votes)::double precision AS votes,
-                        (array_agg(dt.geometry) FILTER (WHERE dt.geometry IS NOT NULL))[1] AS real_geom
+                        SUM(fcv.votes)::double precision AS votes
                     FROM silver.fact_candidate_vote fcv
                     JOIN silver.dim_candidate dc ON dc.candidate_id = fcv.candidate_id
                     JOIN silver.dim_election de ON de.election_id = fcv.election_id
                     JOIN silver.dim_territory dt ON dt.territory_id = fcv.territory_id
+                    JOIN polling_place_registry ppr
+                      ON ppr.pp_key = """
+                        + _polling_place_key_sql("dt")
+                        + """
                     WHERE dt.level::text = 'electoral_section'
                       AND dc.candidate_id = CAST(:candidate_id AS uuid)
                       AND de.election_year = :year
                       AND de.office IS NOT DISTINCT FROM :office
                       AND de.election_round IS NOT DISTINCT FROM :election_round
                     GROUP BY
-                        COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name),
-                        NULLIF(dt.metadata->>'polling_place_code', ''),
+                        ppr.pp_key,
+                        ppr.polling_place_name,
+                        ppr.polling_place_code,
+                        ppr.district_name,
                         dc.candidate_id,
                         dc.candidate_number,
                         dc.candidate_name,
@@ -3002,23 +3079,12 @@ def get_electorate_candidate_territories(
                 )
                 SELECT
                     g.*,
-                    district.name AS district_name,
                     CASE
                         WHEN t.total_votes > 0 THEN (g.votes / t.total_votes) * 100
                         ELSE NULL
                     END::double precision AS share_percent
                 FROM grouped g
                 CROSS JOIN total t
-                LEFT JOIN LATERAL (
-                    SELECT d.name
-                    FROM silver.dim_territory d
-                    WHERE d.level::text = 'district'
-                      AND d.geometry IS NOT NULL
-                      AND g.real_geom IS NOT NULL
-                      AND ST_Covers(d.geometry, g.real_geom)
-                    ORDER BY d.name ASC
-                    LIMIT 1
-                ) district ON TRUE
                 ORDER BY g.votes DESC, g.territory_name ASC
                 LIMIT :limit
                 """

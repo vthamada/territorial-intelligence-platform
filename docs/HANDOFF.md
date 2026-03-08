@@ -42,7 +42,21 @@ Papel deste documento: memória operacional viva do projeto, preservando estado 
    - apenas esta secao define o "próximo passo executável" vigente;
    - secoes abaixo preservam histórico de entregas/rodadas e não reabrem pendencias já concluídas, salvo regressao comprovada.
 
-## Atualização técnica (2026-03-08) - Observabilidade da cobertura nominal
+## Atualização técnica (2026-03-08) - Normalização de locais/distritos na distribuição nominal
+
+1. Correção funcional na API:
+   - `src/app/api/routes_qg.py` passou a consolidar a distribuição territorial nominal por `polling_place_code`, não mais por `nome + código`;
+   - a API agora prefere `polling_place_name` e `district_name` canônicos do metadata antes de derivar distrito por geometria.
+2. Seed reaplicado com metadata canônico:
+   - `scripts/apply_seed.py` agora regrava `polling_place_name`, `district_name` e `geocode_*` para todas as seções de cada local;
+   - o seed foi reaplicado com sucesso, totalizando `286` seções atualizadas e `36` pontos únicos.
+3. Resultado validado no ambiente:
+   - `candidate-territories` deixou de repetir `DER` como local separado;
+   - `polling_place_code=1244` passou a sair consolidado como `E. E. PROF.ª AYNA TORRES`, distrito `Diamantina`, com `7` seções agregadas;
+   - a saída nominal por local voltou a ter `36` códigos únicos (`duplicate_codes=[]`).
+4. Pendência real remanescente:
+   - a dimensão `silver.dim_territory` ainda contém legado duplicado de `electoral_section`;
+   - a inconsistência funcional foi neutralizada na API, mas a limpeza física da dimensão continua como hardening posterior.
 
 1. Auditoria nominal reforçada:
    - `scripts/audit_electorate_consistency.py` agora lê ZIPs em streaming e aceita `--years` para auditoria focalizada;

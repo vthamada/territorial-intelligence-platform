@@ -2,7 +2,29 @@
 
 Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
-## 2026-03-08 - Conector nominal reorientado para `votacao_secao`
+## 2026-03-08 - Normalização de local/distrito na distribuição nominal por candidato
+
+### Changed
+- `src/app/api/routes_qg.py` passou a usar um registro canônico por `polling_place_code` para:
+  - consolidar locais duplicados na distribuição territorial do candidato;
+  - preferir `district_name` e `polling_place_name` homologados no metadata;
+  - evitar que nomes legados concorrentes, como `DER`, apareçam como local separado do código oficial.
+- `scripts/apply_seed.py` passou a reaplicar também:
+  - `metadata.polling_place_name`;
+  - `metadata.district_name`;
+  - `metadata.geocode_*` para todas as seções do mesmo local de votação.
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` teve correção de acentuação nos rótulos de granularidade.
+- `tests/unit/test_qg_routes.py` foi ajustado para o novo formato das consultas SQL de `polling_place_registry`.
+
+### Verified
+- `./.venv/Scripts/python.exe scripts/apply_seed.py` -> `Total sections updated: 286`, `36 unique geometry points`.
+- `./.venv/Scripts/python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_candidate_votes.py -q` -> `35 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+- `GET /v1/electorate/candidate-territories?...aggregate_by=polling_place&limit=50` -> `36` locais, `duplicate_codes=[]`, `1244` consolidado como `E. E. PROF.ª AYNA TORRES`, distrito `Diamantina`.
+
+### Notes
+- O problema observado não era só de frontend. A base continha seções legadas duplicadas em `silver.dim_territory`, e o agrupamento por `nome + código` permitia que o mesmo `polling_place_code` aparecesse em linhas separadas.
+- Ainda existe legado duplicado em `silver.dim_territory`; a correção desta rodada neutraliza o efeito funcional na API, mas a limpeza física da dimensão continua válida como passo posterior.
 
 ### Changed
 - `src/pipelines/tse_candidate_votes.py` deixou de apontar para `tse_votacao_candidato_munzona` e passou a consumir `tse_votacao_secao`.
