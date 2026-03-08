@@ -2,7 +2,11 @@ import { requestJson } from "./http";
 import type {
   BriefGenerateRequest,
   BriefGenerateResponse,
+  ElectorateCandidateTerritoriesResponse,
+  ElectorateElectionContextResponse,
+  ElectorateHistoryResponse,
   ElectorateMapResponse,
+  ElectoratePollingPlacesResponse,
   ElectorateSummaryResponse,
   InsightHighlightsResponse,
   KpiOverviewResponse,
@@ -54,6 +58,22 @@ export function getTerritoryPeers(
 
 export function getElectorateSummary(query?: Record<string, string | number | boolean | undefined>) {
   return requestJson<ElectorateSummaryResponse>("/electorate/summary", { query });
+}
+
+export function getElectorateHistory(query?: Record<string, string | number | boolean | undefined>) {
+  return requestJson<ElectorateHistoryResponse>("/electorate/history", { query });
+}
+
+export function getElectoratePollingPlaces(query?: Record<string, string | number | boolean | undefined>) {
+  return requestJson<ElectoratePollingPlacesResponse>("/electorate/polling-places", { query });
+}
+
+export function getElectorateElectionContext(query?: Record<string, string | number | boolean | undefined>) {
+  return requestJson<ElectorateElectionContextResponse>("/electorate/election-context", { query });
+}
+
+export function getElectorateCandidateTerritories(query: Record<string, string | number | boolean | undefined>) {
+  return requestJson<ElectorateCandidateTerritoriesResponse>("/electorate/candidate-territories", { query });
 }
 
 export function getElectorateMap(query?: Record<string, string | number | boolean | undefined>) {

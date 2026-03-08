@@ -15,6 +15,7 @@ waves:
     - tse_catalog_discovery
     - tse_electorate_fetch
     - tse_results_fetch
+    - tse_candidate_votes_fetch
     - quality_suite
   MVP-3:
     - education_inep_fetch
@@ -60,6 +61,8 @@ jobs:
   tse_electorate_fetch:
     reference_period: "2024"
   tse_results_fetch:
+    reference_period: "2024"
+  tse_candidate_votes_fetch:
     reference_period: "2024"
   education_inep_fetch:
     reference_period: "2025"

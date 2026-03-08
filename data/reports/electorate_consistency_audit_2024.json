@@ -1,0 +1,225 @@
+{
+  "generated_at_utc": "2026-03-08T15:43:32.699941+00:00",
+  "municipality_ibge_code": "3121605",
+  "municipality_name": "Diamantina",
+  "municipality_uf": "MG",
+  "api_summary_2024": {
+    "level": "municipio",
+    "year": 2024,
+    "total_voters": 38607,
+    "turnout": 27941.0,
+    "turnout_rate": 72.372886,
+    "abstention_rate": 27.627114,
+    "blank_rate": 5.540246,
+    "null_rate": 7.616048
+  },
+  "history_checks": [
+    {
+      "year": 2024,
+      "api_total_voters": 38607,
+      "db_total_voters": 38607,
+      "raw_total_voters": 38607,
+      "totals_match": true,
+      "matched_db_scope": {
+        "office": "Prefeito",
+        "election_round": 1,
+        "turnout": 27941,
+        "abstention": 10666,
+        "votes_blank": 1548,
+        "votes_null": 2128,
+        "turnout_rate": 72.37288574610822,
+        "abstention_rate": 27.627114253891783,
+        "blank_rate": 5.54024551734011,
+        "null_rate": 7.616048101356429
+      },
+      "matched_raw_scope": {
+        "office": "Prefeito",
+        "election_round": 1,
+        "election_type": "Eleição Ordinária",
+        "turnout": 27941,
+        "abstention": 10666,
+        "votes_blank": 1548,
+        "votes_null": 2128,
+        "turnout_rate": 72.37288574610822,
+        "abstention_rate": 27.627114253891783,
+        "blank_rate": 5.54024551734011,
+        "null_rate": 7.616048101356429
+      },
+      "api_metrics": {
+        "turnout": 27941.0,
+        "turnout_rate": 72.372886,
+        "abstention_rate": 27.627114,
+        "blank_rate": 5.540246,
+        "null_rate": 7.616048
+      },
+      "metrics_match_raw": true
+    }
+  ],
+  "composition_checks_2024": {
+    "sex": {
+      "api_labels": 3,
+      "db_labels": 3,
+      "raw_labels": 3,
+      "mismatches": []
+    },
+    "age": {
+      "api_labels": 22,
+      "db_labels": 22,
+      "raw_labels": 22,
+      "mismatches": []
+    },
+    "education": {
+      "api_labels": 9,
+      "db_labels": 9,
+      "raw_labels": 9,
+      "mismatches": []
+    }
+  },
+  "polling_place_checks_2024": {
+    "raw_source_supports_polling_place": false,
+    "note": "O bruto do perfil do eleitorado não expõe local de votação; a auditoria do ranking é feita contra a agregação Silver por seção/local.",
+    "items": [
+      {
+        "polling_place_name": "E. E. PROF.ª GABRIELA NEVES",
+        "api_voters_total": 2913,
+        "db_voters_total": 2913,
+        "api_section_count": 9,
+        "db_section_count": 9,
+        "api_share_percent": 7.545263812262025,
+        "db_share_percent": 7.545263812262025,
+        "matches_db": true
+      },
+      {
+        "polling_place_name": "E. E. JOAQUIM FELÍCIO DOS SANTOS",
+        "api_voters_total": 2656,
+        "db_voters_total": 2656,
+        "api_section_count": 7,
+        "db_section_count": 7,
+        "api_share_percent": 6.879581423057994,
+        "db_share_percent": 6.879581423057994,
+        "matches_db": true
+      },
+      {
+        "polling_place_name": "E. E. JÚLIA KUBITSCHEK",
+        "api_voters_total": 2495,
+        "db_voters_total": 2495,
+        "api_section_count": 8,
+        "db_section_count": 8,
+        "api_share_percent": 6.462558603362084,
+        "db_share_percent": 6.462558603362084,
+        "matches_db": true
+      },
+      {
+        "polling_place_name": "E. E. PROF.ª ISABEL MOTA",
+        "api_voters_total": 2453,
+        "db_voters_total": 2453,
+        "api_section_count": 8,
+        "db_section_count": 8,
+        "api_share_percent": 6.353770041702282,
+        "db_share_percent": 6.353770041702282,
+        "matches_db": true
+      },
+      {
+        "polling_place_name": "UEMG (ANTIGA FEVALE)",
+        "api_voters_total": 2327,
+        "db_voters_total": 2327,
+        "api_section_count": 13,
+        "db_section_count": 13,
+        "api_share_percent": 6.027404356722874,
+        "db_share_percent": 6.027404356722874,
+        "matches_db": true
+      }
+    ]
+  },
+  "candidate_context": {
+    "tables_available": true,
+    "api_year": 2024,
+    "api_notes": "electorate_election_context_v1|source_level=electoral_zone",
+    "items_count": 2
+  },
+  "candidate_nominal_checks": {
+    "raw_source": {
+      "2024": {
+        "zip_path": null,
+        "available": false,
+        "note": "candidate_bronze_missing_for_year_2024",
+        "items": []
+      }
+    },
+    "db_scope_rows": [
+      {
+        "election_year": 2024,
+        "territory_level": "electoral_zone",
+        "office": "Prefeito",
+        "election_round": 1,
+        "fact_rows": 2,
+        "section_count": 0,
+        "polling_place_count": 0,
+        "votes_total": 24265
+      },
+      {
+        "election_year": 2024,
+        "territory_level": "electoral_zone",
+        "office": "Vereador",
+        "election_round": 1,
+        "fact_rows": 163,
+        "section_count": 0,
+        "polling_place_count": 0,
+        "votes_total": 25266
+      }
+    ],
+    "year_summary": [
+      {
+        "year": 2024,
+        "raw_offices": [],
+        "db_offices": [
+          {
+            "election_year": 2024,
+            "territory_level": "electoral_zone",
+            "office": "Prefeito",
+            "election_round": 1,
+            "fact_rows": 2,
+            "section_count": 0,
+            "polling_place_count": 0,
+            "votes_total": 24265
+          },
+          {
+            "election_year": 2024,
+            "territory_level": "electoral_zone",
+            "office": "Vereador",
+            "election_round": 1,
+            "fact_rows": 163,
+            "section_count": 0,
+            "polling_place_count": 0,
+            "votes_total": 25266
+          }
+        ]
+      }
+    ],
+    "api_context_top_candidates_2024": [
+      {
+        "candidate_id": "338098b6-6f24-4106-bebb-0cb6d9ad6503",
+        "candidate_number": "15",
+        "candidate_name": "PAQUITO",
+        "ballot_name": "PAQUITO",
+        "party_abbr": "MDB",
+        "party_number": "15",
+        "party_name": "Movimento Democrático Brasileiro",
+        "votes": 12334,
+        "share_percent": 50.83041417679786
+      },
+      {
+        "candidate_id": "768e5b6e-7e76-4fad-ba91-e1bade6a625d",
+        "candidate_number": "18",
+        "candidate_name": "PROF FRED",
+        "ballot_name": "PROF FRED",
+        "party_abbr": "REDE",
+        "party_number": "18",
+        "party_name": "Rede Sustentabilidade",
+        "votes": 11931,
+        "share_percent": 49.16958582320214
+      }
+    ],
+    "db_top_candidates_for_api_scope_2024": []
+  }
+}

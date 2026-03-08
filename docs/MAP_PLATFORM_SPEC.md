@@ -1,170 +1,250 @@
-﻿# MAP_PLATFORM_SPEC
-Versão: 1.0.0
-Data: 2026-02-13
-Escopo: plataforma de mapa do QG para navegacao multi-zoom, camadas territoriais e performance operacional.
+# MAP_PLATFORM_SPEC
+
+Versão: 1.1.0  
+Data: 2026-03-06  
+Escopo: plataforma do mapa executivo do QG.
 
 ## 1) Objetivo
 
 Entregar uma plataforma de mapa dominante para decisão executiva, com:
-1. render estavel e fluido para município/distrito/setor.
-2. troca automatica de camadas por zoom.
-3. suporte a camadas tematicas (choropleth, pontos, heatmap, hotspots).
-4. contrato de API e cache previsiveis.
 
-## 2) Fora de escopo (v0.1)
+1. render estável e previsível;
+2. leitura espacial clara;
+3. troca automática de camadas por zoom;
+4. suporte a overlays e lentes operacionais;
+5. contrato de API e cache previsíveis.
 
-1. edicao geoespacial pelo usuario.
-2. analise 3D.
-3. roteamento/isochrone em tempo real.
-4. camadas privadas com ACL complexa.
+## 2) Estado atual
 
-## 3) Estado atual
+Já entregue:
 
-### Implementado (MP-1 concluido)
+1. manifesto de camadas via `GET /v1/map/layers`;
+2. metadados de estilo via `GET /v1/map/style-metadata`;
+3. tiles vetoriais via `GET /v1/map/tiles/{layer}/{z}/{x}/{y}.mvt`;
+4. engine vetorial em `QgMapPage`;
+5. modos `choropleth`, `points`, `heatmap` e `hotspots`;
+6. exportações `CSV`, `SVG` e `PNG`;
+7. mapa eleitoral por local de votação integrado ao fluxo executivo.
 
-1. `GET /v1/map/layers` — manifesto de 3 camadas (municipality, district, census_sector) com `is_official`, zoom ranges, `fallback_endpoint`. Implementado em `src/app/api/routes_map.py`.
-2. `GET /v1/map/style-metadata` — paleta de severidade (critical/attention/stable), paleta por domínio (saude/educação/trabalho/financas/eleitorado), 4 ranges de legenda, modo padrão choropleth.
-3. `GET /v1/geo/choropleth` — render choropleth GeoJSON ativo como fallback primario.
-4. Exportacoes CSV/SVG/PNG implementadas no frontend.
-5. Cache HTTP ativo para ambos endpoints de manifesto (TTL 1h) via `CacheMiddleware`.
-6. Testes E2E cobrindo fluxo completo map layers → style-metadata → render.
+## 3) Princípios do mapa
 
-### Entregue (MP-2 / MP-3 baseline)
+1. o mapa é o centro da experiência executiva;
+2. o recorte eleitoral principal é `local de votação`, não `seção eleitoral`;
+3. filtros e presets devem gerar ganho visível de leitura;
+4. camadas sem utilidade analítica não devem poluir a interface;
+5. recortes territoriais só devem aparecer com densidade de indicadores suficiente.
 
-1. ✅ Endpoint MVT de tiles vetoriais (`/v1/map/tiles/{layer}/{z}/{x}/{y}.mvt`).
-2. ✅ Troca automatica de camada por zoom no frontend.
-3. ✅ `QgMapPage` migrado para engine vetorial progressiva com fallback.
-4. ✅ Modos coropletico/pontos/heatmap/hotspots ativos no fluxo vetorial.
+## 4) Regras de zoom
 
-## 4) Arquitetura alvo
-
-## 4.1 Camadas de dados
-
-1. `silver.dim_territory` como base de geometria e hierarquia.
-2. views/materializacoes por nível:
-   - `map.territory_municipality`
-   - `map.territory_district`
-   - `map.territory_census_sector`
-3. simplificacao de geometria por zoom para reduzir payload.
-
-## 4.2 Servico de tiles
-
-1. endpoint de tiles vetoriais (MVT):
-   - `GET /v1/map/tiles/{layer}/{z}/{x}/{y}.mvt`
-2. endpoint de manifesto de camadas:
-   - `GET /v1/map/layers`
-3. endpoint de metadata de estilo basico:
-   - `GET /v1/map/style-metadata`
-
-## 4.3 Frontend
-
-1. migrar página `QgMapPage` para engine vetorial progressiva.
-2. aplicar estrategia de fallback:
-   - preferencial: MVT
-   - fallback: choropleth atual
-
-## 5) Regras de zoom e camada
-
-| Faixa de zoom | Camada principal | Camadas auxiliares |
+| Zoom | Camada principal | Uso esperado |
 |---|---|---|
-| z 0-8 | município | hotspots agregados |
-| z 9-11 | distrito | pontos de servico agregados |
-| z >=12 | setor censitario | pontos de servico detalhados e eleitorais |
+| `z 0-8` | município | leitura agregada |
+| `z 9-11` | distrito | comparação territorial |
+| `z >= 12` | setor censitário / pontos | leitura fina e overlays |
 
-Regra:
-1. troca de camada deve ser automatica e sem flicker visivel.
-2. filtros ativos (indicador, período, domínio) devem permanecer ao trocar zoom.
+## 5) Contratos principais
 
-## 6) Modos de visualizacao
+1. `GET /v1/map/layers`
+2. `GET /v1/map/style-metadata`
+3. `GET /v1/map/tiles/{layer}/{z}/{x}/{y}.mvt`
+4. `GET /v1/electorate/map`
 
-1. Choropleth (obrigatorio v1).
-2. Pontos proporcionais (obrigatorio v1).
-3. Heatmap (obrigatorio v1).
-4. Hotspots (obrigatorio v1).
-5. Split view comparativo (pós-v1).
-6. Time slider (pós-v1).
+## 6) Leitura eleitoral executiva obrigatória
 
-## 7) Contratos de API (v1)
+O eixo eleitoral do mapa não deve se limitar a mostrar pontos.
 
-## 7.1 GET /v1/map/layers
+Ele precisa permitir leitura executiva de:
 
-Resposta esperada:
-1. lista de camadas com `id`, `label`, `territory_level`, `is_official`, `source`, `default_visibility`.
-2. faixas de zoom recomendadas (`zoom_min`, `zoom_max`).
+1. concentração de eleitores por local de votação;
+2. participação percentual de cada local no município;
+3. quantidade e lista de seções por local;
+4. vínculo do local com zona eleitoral e distrito quando disponível;
+5. proximidade com escolas, UBS e outros serviços essenciais;
+6. comportamento eleitoral por local, não apenas volume:
+   - comparecimento;
+   - abstenção;
+   - votos em branco;
+   - votos nulos;
+7. leitura histórica mínima para comparação entre anos eleitorais.
 
-## 7.2 GET /v1/map/tiles/{layer}/{z}/{x}/{y}.mvt
+Regra de produto:
 
-Regras:
-1. retorno `application/vnd.mapbox-vector-tile`.
-2. suporte a filtros por query string:
-   - `metric`
-   - `period`
-   - `domain`
-   - `only_critical`
-3. incluir headers de cache (`ETag`, `Cache-Control`).
+1. `local de votação` continua sendo a unidade espacial principal;
+2. `seção eleitoral` permanece como detalhe de drill-down;
+3. a tela de eleitorado e o mapa devem compartilhar a mesma narrativa territorial, sem divergência entre resumo, ranking e detalhe cartográfico.
 
-## 7.3 GET /v1/map/style-metadata
+## 7) Lacunas atuais observadas no sistema
 
-Resposta:
-1. paletas por severidade e domínio.
-2. ranges de legenda.
-3. metadados de atualizacao e cobertura.
+Hoje o sistema já sustenta:
 
-## 8) Performance e SLO
+1. agregação por `local de votação`;
+2. exibição de eleitores, quantidade de seções e lista de seções no mapa;
+3. cruzamento visual básico com escolas e UBS;
+4. resumo municipal de eleitorado com composição por sexo, idade e escolaridade.
 
-Metas de homologação:
-1. p95 da API de tiles <= 400ms para camada municipal/distrital.
-2. p95 da API de tiles <= 700ms para setor censitario.
-3. render inicial da Home com mapa <= 3s.
-4. troca de zoom percebida <= 300ms sem congelamento da UI.
+Mas ainda faltam, para defesa plena do produto:
 
-## 9) Observabilidade
+1. ranking executivo de locais de votação;
+2. leitura territorial fora do agregado municipal na tela de eleitorado;
+3. métricas eleitorais agregadas por local para além de `voters`;
+4. série histórica visível de eleitorado e comportamento eleitoral;
+5. lentes eleitorais orientadas por acesso, cobertura e prioridade;
+6. narrativa mais forte de cobertura/confiança para camadas eleitorais `proxy`.
 
-1. telemetria frontend por evento:
-   - `map_layer_changed`
-   - `map_zoom_changed`
-   - `map_mode_changed`
-   - `map_tile_error`
-2. métricas backend:
-   - latencia por endpoint de tile
-   - taxa de erro por camada
-   - hit ratio de cache
+## 8) Próxima evolução permitida
 
-## 10) Plano de implementação
+A próxima evolução funcional do mapa deve priorizar:
 
-## Fase MP-1 (CONCLUIDO)
-1. ✅ criar manifesto de camadas (`/v1/map/layers`) — `routes_map.py`.
-2. ✅ definir regra de zoom e paleta — `style-metadata` com 3 paletas.
-3. ✅ manter render atual como fallback — `fallback_endpoint` no manifesto.
-4. ✅ cache HTTP para endpoints estaticos — `CacheMiddleware` 1h TTL.
-5. ✅ testes E2E e de contrato.
+1. presets executivos coerentes;
+2. leitura de vazios de cobertura;
+3. proximidade e acesso a serviços;
+4. densidade analítica intraurbana real.
 
-## Fase MP-2 (CONCLUIDO)
-1. ✅ endpoint MVT por camada/nível implementado.
-2. ✅ cache HTTP e ETag para tiles habilitados.
-3. ✅ métricas de latencia e erro por tile publicadas.
+Não priorizar:
 
-## Fase MP-3 (CONCLUIDO v1)
-1. ✅ `QgMapPage` migrado para engine vetorial.
-2. ✅ modos coropletico + pontos + heatmap + hotspots habilitados.
-3. ✅ validação de performance em homologação com benchmark operacional.
+1. efeito visual sem valor analítico;
+2. multiplicação de controles;
+3. recortes territoriais sem narrativa útil.
 
-## 11) Critérios de aceite
+## 9) Backlog único de UX executiva
 
-### v1.0 (MP-1) — ATENDIDOS
-1. ✅ `GET /v1/map/layers` ativo com manifesto de 3 camadas e zoom ranges.
-2. ✅ `GET /v1/map/style-metadata` ativo com paletas e ranges de legenda.
-3. ✅ Cache HTTP configurado (1h TTL).
-4. ✅ Fallback para choropleth operacional.
-5. ✅ Testes E2E cobrindo fluxo map → render.
+Ordem obrigatória de evolução do frontend executivo:
 
-### v2.0 (MP-2/MP-3) — ENTREGUE (baseline)
-1. ✅ `GET /v1/map/tiles/...` ativo com testes de contrato.
-2. ✅ troca automatica de camada por zoom funcionando no frontend.
-3. ✅ modos choropleth/pontos/heatmap/hotspots operacionais.
-4. ✅ baseline de latencia monitorada em homologação.
+### UX-1) Eleitorado territorial defensável
 
-### Backlog MP pós-v2
-1. split view comparativo.
-2. time slider.
-3. melhoria de UX para experiencia "google maps-like" (controles, painel lateral e exploracao fluida).
+Objetivo:
+
+1. tirar a tela de eleitorado do estado "resumo municipal" e levá-la para leitura territorial real.
+
+Entregas mínimas:
+
+1. ranking executivo de locais de votação;
+2. participação percentual por local no município;
+3. série histórica de eleitorado e comportamento eleitoral;
+4. detalhamento claro de seções, zona eleitoral, distrito e serviços próximos;
+5. suporte backend para métricas eleitorais por local além de `voters`.
+
+Estado do slice:
+
+1. slice 1 concluído:
+   - histórico eleitoral anual;
+   - ranking executivo de locais de votação;
+   - fallback temporal preservado.
+2. slice 2 concluído:
+   - comportamento eleitoral por local refletido diretamente no mapa executivo;
+   - ranking, tooltip e detalhe sincronizados com a mesma métrica eleitoral;
+   - fallback temporal preservado no fluxo cartográfico e no ranking.
+3. slice 3 pendente:
+   - incorporar contexto de eleição e voto nominal de forma territorialmente defensável.
+
+Detalhamento técnico oficial da expansão eleitoral:
+
+1. `slice 2` opera com dois contratos complementares:
+   - `GET /v1/electorate/map` com `aggregate_by=polling_place` para geometria e interação cartográfica;
+   - `GET /v1/electorate/polling-places` para ranking executivo, share municipal, distrito, zonas e seções.
+2. Tooltip, ranking e drawer devem compartilhar a mesma métrica eleitoral ativa:
+   - `voters`;
+   - `turnout`;
+   - `abstention_rate`;
+   - `blank_rate`;
+   - `null_rate`.
+3. A troca de métrica eleitoral não altera a unidade espacial principal:
+   - `local de votação` continua sendo o ponto principal;
+   - `seção eleitoral` continua apenas como drill-down.
+4. O fallback temporal precisa permanecer coerente entre mapa e ranking:
+   - ano solicitado primeiro;
+   - fallback automático para o último ano com dados eleitorais utilizáveis quando necessário.
+5. O ranking do mapa não pode regredir para tabela municipal quando o overlay eleitoral estiver ativo:
+   - o ranking muda para `locais de votação`;
+   - a seleção da linha precisa focar o mesmo item no mapa;
+   - o drawer precisa refletir o mesmo `territory_id`.
+
+Expansão eleitoral recomendada:
+
+1. adicionar contexto institucional do ano:
+   - tipo da eleição;
+   - turno;
+   - cargo principal analisado.
+2. adicionar leitura territorial por candidato:
+   - votação por candidato em município, zona, local de votação e seção;
+   - participação relativa do candidato por território;
+   - margem entre primeiro e segundo colocado;
+   - concentração e fragmentação de voto.
+3. restringir a exposição inicial ao que melhora leitura executiva:
+   - vencedor;
+   - top candidatos;
+   - disputa;
+   - abstenção;
+   - concentração territorial.
+4. não transformar a camada eleitoral em consulta bruta de apuração.
+
+Modelo de dados recomendado para essa expansão:
+
+1. `silver.dim_election`
+2. `silver.dim_candidate`
+3. `silver.fact_candidate_vote`
+
+Regra de produto para a expansão:
+
+1. o mapa continua centrado em território;
+2. candidato é contexto analítico, não protagonista isolado;
+3. seção eleitoral continua como drill-down;
+4. a leitura inicial deve privilegiar o cargo principal do ano, evitando somar cargos distintos no mesmo resumo;
+5. qualquer detalhamento completo por candidato deve entrar como camada analítica secundária, não como tela principal do eixo executivo.
+6. endpoints e tabelas de candidato/voto nominal só entram no `CONTRATO` quando houver implementação real; até lá permanecem como desenho futuro desta spec.
+
+### UX-2) Mapa executivo orientado por lentes
+
+Objetivo:
+
+1. transformar o mapa em motor principal de leitura e decisão.
+
+Entregas mínimas:
+
+1. presets eleitorais e de cobertura;
+2. leitura de vazios de cobertura;
+3. proximidade e acesso a serviços;
+4. ranking sincronizado com seleção cartográfica;
+5. badges e mensagens claras para camadas `official`, `proxy` e `hybrid`.
+
+### UX-3) Home, Prioridades e Insights alinhados ao mapa
+
+Objetivo:
+
+1. fazer as telas executivas derivarem da leitura territorial, e não competirem com ela.
+
+Entregas mínimas:
+
+1. Home como síntese orientada pelo mapa;
+2. Prioridades com agrupamento territorial e CTA operacional;
+3. Insights com vínculo direto entre evidência, território e lente cartográfica.
+
+### UX-4) Cenários e Briefs ancorados no território
+
+Objetivo:
+
+1. fechar o ciclo decisão -> simulação -> comunicação.
+
+Entregas mínimas:
+
+1. cenários com impacto espacial legível;
+2. briefs gerados a partir de seleção territorial/mapa;
+3. exportação com contexto geográfico e hotspots priorizados.
+
+## 10) Regra de execução
+
+1. não iniciar `UX-2` antes de fechar o núcleo de `UX-1`;
+2. não refinar Home/Prioridades/Insights sem a gramática do mapa consolidada;
+3. não expandir visuais antes de consolidar leitura territorial defensável;
+4. qualquer nova tela ou refinamento deve se encaixar nesta sequência, sem abrir trilha paralela.
+
+Atualizacao 2026-03-07:
+
+1. o backend nominal deixou de ser apenas recomendacao;
+2. ja existem:
+   - `silver.dim_election`
+   - `silver.dim_candidate`
+   - `silver.fact_candidate_vote`
+   - `GET /v1/electorate/election-context`
+   - `GET /v1/electorate/candidate-territories`
+3. o slice 3 continua aberto apenas na camada executiva/frontend.

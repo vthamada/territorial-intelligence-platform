@@ -37,6 +37,12 @@ _METRIC_COLUMN = {
 _OPTIONAL_ZONE_COLUMNS = ("NR_ZONA", "NUM_ZONA", "CD_ZONA")
 _OPTIONAL_SECTION_COLUMNS = ("NR_SECAO", "NUM_SECAO", "CD_SECAO")
 _OPTIONAL_POLLING_PLACE_COLUMNS = ("NM_LOCAL_VOTACAO", "DS_LOCAL_VOTACAO", "NM_LOCAL")
+_OPTIONAL_POLLING_PLACE_CODE_COLUMNS = ("NR_LOCAL_VOTACAO", "CD_LOCAL_VOTACAO")
+_OPTIONAL_POLLING_PLACE_ADDRESS_COLUMNS = (
+    "DS_LOCAL_VOTACAO_ENDERECO",
+    "DS_ENDERECO_LOCAL_VOTACAO",
+    "NM_ENDERECO_LOCAL_VOTACAO",
+)
 
 
 def _normalize_text(value: str) -> str:
@@ -480,6 +486,8 @@ def _upsert_electoral_section_territory(
     tse_zone: str,
     tse_section: str,
     polling_place_name: str | None = None,
+    polling_place_code: str | None = None,
+    polling_place_address: str | None = None,
 ) -> str:
     canonical_key = f"electoral_section:tse:{uf}:{tse_zone}:{tse_section}"
     source_entity_id = f"electoral_section:{municipality_ibge_code}:{tse_zone}:{tse_section}"
@@ -492,6 +500,10 @@ def _upsert_electoral_section_territory(
     }
     if polling_place_name:
         metadata["polling_place_name"] = polling_place_name
+    if polling_place_code:
+        metadata["polling_place_code"] = polling_place_code
+    if polling_place_address:
+        metadata["polling_place_address"] = polling_place_address
     return str(
         session.execute(
             text(

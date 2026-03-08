@@ -110,6 +110,42 @@ CREATE TABLE IF NOT EXISTS silver.fact_election_result (
     CONSTRAINT uq_fact_election_result UNIQUE (territory_id, election_year, election_round, office, metric)
 );
 
+CREATE TABLE IF NOT EXISTS silver.dim_election (
+    election_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    election_year INTEGER NOT NULL,
+    election_round INTEGER NULL,
+    office TEXT NOT NULL,
+    election_type TEXT NOT NULL,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_dim_election UNIQUE (election_year, election_round, office)
+);
+
+CREATE TABLE IF NOT EXISTS silver.dim_candidate (
+    candidate_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    election_id UUID NOT NULL REFERENCES silver.dim_election(election_id),
+    candidate_number TEXT NOT NULL,
+    candidate_name TEXT NOT NULL,
+    ballot_name TEXT NULL,
+    party_abbr TEXT NULL,
+    party_number TEXT NULL,
+    party_name TEXT NULL,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_dim_candidate UNIQUE (election_id, candidate_number)
+);
+
+CREATE TABLE IF NOT EXISTS silver.fact_candidate_vote (
+    fact_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    territory_id UUID NOT NULL REFERENCES silver.dim_territory(territory_id),
+    election_id UUID NOT NULL REFERENCES silver.dim_election(election_id),
+    candidate_id UUID NOT NULL REFERENCES silver.dim_candidate(candidate_id),
+    votes INTEGER NOT NULL CHECK (votes >= 0),
+    CONSTRAINT uq_fact_candidate_vote UNIQUE (territory_id, election_id, candidate_id)
+);
+
 CREATE TABLE IF NOT EXISTS ops.pipeline_runs (
     run_id UUID PRIMARY KEY,
     job_name TEXT NOT NULL,

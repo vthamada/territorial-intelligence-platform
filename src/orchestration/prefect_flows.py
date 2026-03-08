@@ -57,6 +57,7 @@ from pipelines.snis_sanitation import run as run_snis_sanitation
 from pipelines.suasweb_social_assistance import run as run_suasweb_social_assistance
 from pipelines.tse_catalog import run as run_tse_catalog
 from pipelines.tse_electorate import run as run_tse_electorate
+from pipelines.tse_candidate_votes import run as run_tse_candidate_votes
 from pipelines.tse_results import run as run_tse_results
 
 settings = get_settings()
@@ -102,6 +103,7 @@ def run_mvp_all(
         "tse_catalog_discovery": run_tse_catalog(**common_kwargs),
         "tse_electorate_fetch": run_tse_electorate(**common_kwargs),
         "tse_results_fetch": run_tse_results(**common_kwargs),
+        "tse_candidate_votes_fetch": run_tse_candidate_votes(**common_kwargs),
         "education_inep_fetch": run_inep_education(**common_kwargs),
         "health_datasus_fetch": run_datasus_health(**common_kwargs),
         "finance_siconfi_fetch": run_siconfi_finance(**common_kwargs),
@@ -173,6 +175,7 @@ def run_mvp_wave_2(
         "tse_catalog_discovery": run_tse_catalog(**common_kwargs),
         "tse_electorate_fetch": run_tse_electorate(**common_kwargs),
         "tse_results_fetch": run_tse_results(**common_kwargs),
+        "tse_candidate_votes_fetch": run_tse_candidate_votes(**common_kwargs),
         "quality_suite": run_quality_suite(**common_kwargs),
     }
 

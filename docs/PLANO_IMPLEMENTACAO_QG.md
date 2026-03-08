@@ -1,446 +1,148 @@
-# Plano Integrado de Implementação (Backend + Frontend QG)
+# Plano Integrado de Implementação (QG Estratégico)
 
-Data de referência: 2026-03-05  
-Status: execução ativa (D4-D8 concluidos tecnicamente; foco atual em consolidação operacional e governança de estado)  
-Escopo: plano executável para consolidar QG estratégico em produção com dados reais.
+Data de referência: 2026-03-06  
+Status: execução ativa  
+Escopo: fila única executável do produto.
 
-Atualização de consistência documental (2026-03-05):
-1. revisão contra os commits mais recentes do repositório:
-   - `8dc6c86` (`2026-02-25`) consolidou geocodificação real de locais de votação e ajustes estruturais do mapa;
-   - `b2ad30f` (`2026-02-26`) consolidou ajustes do mapa e sincronização operacional;
-   - `6c01e12` (`2026-02-26`) consolidou refatoração das telas executivas QG e normalização de domínio;
-   - `56bea7b` (`2026-02-27`) fechou hotfix de Home/Cenários;
-   - `eb9a4c6` (`2026-03-03`) encerrou pendências de D7 e estabilizou `QgPages.test.tsx`.
-2. efeito prático da revisão:
-   - itens históricos de P0 ligados a mapa executivo, `local_votacao`, refatoração QG e estabilização da suíte QG não devem mais ser tratados como fila ativa;
-   - a fila ativa desta rodada fica restrita a operação recorrente, governança de issues e manutenção do estado `READY`.
-3. regra operacional reforçada:
-   - não abrir nova frente funcional antes de confirmar a cadência operacional recorrente da janela de 30 dias.
+## 1) Regra de operação
 
-Atualização de consistência documental (2026-02-23):
-1. alinhado com `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` e `docs/HANDOFF.md`:
-   - `D4` e `D5` permanecem concluídos tecnicamente;
-   - backend/db em `READY` (`hard_failures=0`), com pendência residual operacional de `SLO-1` na janela.
-2. orientação de execução preservada:
-   - foco principal pode seguir para frontend;
-   - backend permanece em regime de monitoramento recorrente e hardening de confiabilidade.
+Este documento é a única fonte que define a trilha ativa.  
+`VISION` define direção de produto.  
+`HANDOFF` registra estado corrente.  
+`CHANGELOG` registra histórico validado.
 
-Atualização de status do ciclo (2026-02-25):
-1. mapa executivo consolidado no modo operacional único (OSM-only), sem fluxo simplificado paralelo;
-2. camada eleitoral evoluída para agregação por local de votação no contrato `/v1/electorate/map` via `aggregate_by=polling_place`;
-3. contrato de URL do mapa consolidado para navegação operacional (remoção de `metric`/`period` legados em `/mapa`);
-4. backend de tiles territoriais consolidado sem branch legado de `metric/period` em `/v1/map/tiles/*`;
-5. frontend de tiles consolidado sem emissão de `metric/period/domain` e sem bootstrap de `metric/period` por query em `/mapa`;
-6. exibição de locais de votação passa a fetch on-demand por interação do checkbox no mapa (com trigger robusto independente do timing da troca de nível) e com fallback automático para ano eleitoral com dados quando o período estratégico ativo estiver vazio;
-7. foco P0 mantém-se em legibilidade/estabilidade do mapa em dados reais (homologação de cluster e UX de leitura em zoom).
+Regras:
 
-Atualizacao de status do ciclo (2026-02-26):
-1. trilha de valor estrategico nas telas executivas avancou com refatoracao de:
-   - `QgOverviewPage`, `QgPrioritiesPage`, `QgInsightsPage`, `QgScenariosPage` e `ElectorateExecutivePage`;
-2. taxonomia de dominio foi normalizada para fontes socioassistenciais/Portal da Transparencia no backend (`routes_qg` + `mart_priority_drivers`);
-3. catalogo de dominio do frontend foi alinhado com `assistencia_social` e `geral`;
-4. validacao da rodada concluida com:
-   - backend `37 passed`;
-   - frontend build `OK`;
-   - testes dirigidos de telas/paginas alteradas `18 passed`;
-5. pendencia operacional isolada:
-   - estabilizar suite completa de frontend (assertions textuais com acentuacao/labels), sem abrir nova frente funcional.
+- não abrir frentes paralelas;
+- não reabrir blocos concluídos sem regressão comprovada;
+- toda rodada deve fechar com evidência técnica e atualização documental.
 
-Atualizacao de status do ciclo (2026-03-03):
-1. pendencia operacional de testes frontend foi encerrada:
-   - `frontend/src/modules/qg/pages/QgPages.test.tsx` atualizado para o contrato atual (`23 passed`).
-2. trilha D7 recebeu fechamento tecnico adicional em backend/db:
-   - endpoint explicito de explicabilidade adicionado: `GET /v1/priority/explainability`;
-   - auditoria de alteracoes de pesos/versionamento adicionada em `db/sql/019_strategic_score_weights_audit.sql`.
-3. validacao da rodada:
-   - backend: `38 passed` em `tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py`;
-   - backend contrato: `20 passed` em `tests/unit/test_api_contract.py`;
-   - frontend build: `OK`.
-4. acao de governanca:
-   - encerrar no GitHub as issues `#12`, `#23` e `#24` nesta rodada;
-   - manter `#7` fora do ciclo ativo por dependencia externa (CadUnico/CECAD).
+## 2) Estado consolidado
 
-## 0) Regra de foco operacional (WIP=1)
+Os blocos `D4` a `D8` estão concluídos tecnicamente.
 
-1. Fila ativa unica de implementação:
-   - `D4-mobilidade/frota`, `D5`, `D6`, `D7` e `D8` estao concluidos tecnicamente.
-   - nenhuma pendencia funcional historica desses blocos deve voltar para a fila ativa sem regressao comprovada.
-2. Fila ativa operacional da rodada:
-   - manter persistência recorrente da janela de 30 dias em `ops.robustness_snapshots`;
-   - acompanhar drift via `/v1/ops/robustness-history`, com foco em `drift.status_transition`, `drift.severity_transition` e `drift.delta_*`;
-   - sustentar `backend_readiness` em `READY` com `hard_failures=0`;
-   - encerrar no GitHub as issues `#12`, `#23` e `#24` com referência das evidências já registradas;
-   - manter `#7` (`CadUnico/CECAD`) bloqueada por dependência externa.
-3. Gate de saída obrigatório do ciclo atual:
-   - `.\.venv\Scripts\python.exe scripts/persist_ops_robustness_window.py` executado sem regressão operacional;
-   - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json` com `status=READY` e `hard_failures=0`;
-   - leitura mais recente de `/v1/ops/robustness-history` mantendo `gates.all_pass=true` ou desvio explicitamente registrado em `HANDOFF`/`CHANGELOG`;
-   - se houver mudança em backend/frontend durante a rodada, reexecutar testes e build pertinentes antes do fechamento.
-4. Próximo passo imediato:
-   - manter a cadência operacional recorrente e fechar a governança de issues já concluídas, sem abrir nova frente funcional.
-5. Fonte unica de sequencia de execução:
-   - este arquivo (secoes `0` e `9`; secao `5` apenas como histórico de rodadas anteriores).
-   - `docs/HANDOFF.md` registra apenas estado corrente e próximo passo imediato da mesma trilha.
-6. Demais documentos (`BACKLOG_DADOS_NIVEL_MAXIMO.md`) sao norte macro/catálogo e não devem abrir fila paralela no ciclo diario.
-7. Classificação oficial de documentos ativos/descontinuados fica em `docs/GOVERNANCA_DOCUMENTAL.md`.
+Isso inclui:
 
-## 0.2) Modo foco (demo defensavel)
+- mapa executivo em fluxo único;
+- agregação eleitoral por local de votação;
+- geolocalização eleitoral homologada por seed e auditoria;
+- telas executivas QG refatoradas;
+- explicabilidade e auditoria de pesos de score;
+- readiness operacional já funcional.
 
-1. Objetivo unico da trilha atual:
-   - entregar um fluxo demonstravel e defensavel no mapa executivo (valor visivel para decisão), sem abrir frentes paralelas.
-2. Escopo congelado ate o marco de demo:
-   - permitido: itens que melhorem diretamente leitura executiva, explicabilidade e confiabilidade do fluxo principal.
-   - proibido: abrir novas fontes/domínios sem impacto direto no fluxo de demo.
-3. Critério de "palpavel e defensavel":
-   - mapa com leitura clara de prioridade por território;
-   - evidencia explicavel da prioridade (drivers + metadados de fonte/período);
-   - comportamento estavel em `loading/error/empty/data`;
-   - validação técnica registrada em `CHANGELOG` e `HANDOFF`.
-4. Trilha unica vigente:
-   - `#22` (`BD-070`) -> `#23` (`BD-071`) -> `#24` (`BD-072`).
-   - fase atual: consolidação pós-D8, sem backlog funcional novo enquanto a cadência operacional não estiver estabilizada.
-   - nenhuma issue fora dessa sequencia pode ficar `status:active` durante este ciclo.
+Não há fila funcional aberta nesses blocos neste momento.
 
-## 0.1) Mapa de governança documental (fonte unica)
+## 3) Trilha ativa única
 
-1. `docs/CONTRATO.md`:
-   - papel: requisitos técnicos obrigatorios.
-   - pode abrir implementação nova? não.
-2. `docs/PLANO_IMPLEMENTACAO_QG.md`:
-   - papel: fila ativa, sequencia e critério de aceite da rodada.
-   - pode abrir implementação nova? sim (fonte unica).
-3. `docs/HANDOFF.md`:
-   - papel: estado corrente da trilha ativa + evidencias recentes.
-   - pode abrir implementação nova? não (apenas refletir fila do plano executável).
-4. `docs/CHANGELOG.md`:
-   - papel: histórico do que foi entregue e validado.
-   - pode abrir implementação nova? não.
-5. `docs/VISION.md`:
-   - papel: north star de produto (direção da experiencia e do valor de negocio).
-   - pode abrir implementação nova? não, sem passagem pela fila deste plano.
-6. `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`:
-   - papel: backlog técnico macro D0-D8.
-   - pode abrir implementação nova? não, sem passagem pelo plano executável.
-7. `docs/GOVERNANCA_DOCUMENTAL.md`:
-   - papel: inventario e regra de uso dos docs (ativos, complementares, descontinuados).
-   - pode abrir implementação nova? não.
+Até nova decisão formal, a trilha ativa é operacional e de governança.
 
-## 1) Objetivo
+### 3.1 Objetivo da rodada atual
 
-Entregar e estabilizar o QG estratégico municipal de Diamantina/MG, com:
+Sustentar o sistema em estado estável e preparar o terreno para a próxima rodada funcional sem reabrir trabalho já concluído.
 
-1. Home executiva para leitura rapida.
-2. Priorização territorial explicavel.
-3. Mapa analítico com recorte por indicador/período.
-4. Território 360 com comparacao orientada.
-5. Camada institucional de eleitorado.
-6. Fluxo técnico isolado em `/admin`.
-7. Extensoes operacionais de decisão (`/cenarios` e `/briefs`).
+### 3.2 Itens ativos
 
-## 2) Premissas e decisões vigentes
+1. Executar e manter a rotina da janela de robustez de 30 dias.
+2. Sustentar `backend_readiness` em `READY` com `hard_failures=0`.
+3. Acompanhar drift em `/v1/ops/robustness-history`.
+4. Encerrar as issues já implementadas e ainda abertas no GitHub.
+5. Manter a issue `#7` bloqueada até desbloqueio externo da fonte.
 
-1. Fonte de verdade técnica: `CONTRATO.md`.
-2. `docs/VISION.md` define a direção de produto (north star), sem substituir contrato técnico nem a fila executável deste plano.
-3. Camada técnica segue separada da UX executiva (sem foco em auth nesta fase).
-4. Entrega segue vertical (API + pipeline + UI + teste), por bloco de valor.
-5. Modelo principal de integração de dados continua em `silver.fact_indicator`, com rastreabilidade de `source`, `dataset`, `reference_period` e metadados.
-6. O north star de produto e concentrado em `docs/VISION.md`, sem competir com este plano executável.
-7. Catálogo/priorização de fontes e consolidado em `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`; validação de estado atual fica em `HANDOFF.md` e `ops/readiness`.
+## 4) Gate de saída da rodada atual
 
-## 2.1 Consolidação documental (feito em 2026-02-13)
+O ciclo só pode ser considerado encerrado quando:
 
-1. Visão estrategica consolidada em `docs/VISION.md`.
-2. Execução e priorização consolidada neste arquivo.
-3. Estado operacional e validações correntes consolidadas em `HANDOFF.md`.
-4. Rastreabilidade operacional consolidada em `docs/HANDOFF.md` + `docs/CHANGELOG.md`.
-5. Specs-base da visão estrategica consolidadas (v1.0):
-   - `MAP_PLATFORM_SPEC.md`
-   - `TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md`
-   - `STRATEGIC_ENGINE_SPEC.md`
-6. Próximo passo documental: manter sincronia continua das specs com cada entrega vertical (codigo + teste + operação).
+1. `scripts/persist_ops_robustness_window.py` executar sem regressão operacional.
+2. `scripts/backend_readiness.py --output-json` retornar `READY`.
+3. o snapshot mais recente de robustez mantiver `gates.all_pass=true`, ou o desvio ficar explicitamente registrado em `HANDOFF` e `CHANGELOG`.
+4. se houver mudança em backend ou frontend, os testes e builds pertinentes forem reexecutados.
 
-## 2.2 Status por onda (fonte unica)
+## 5) Próxima frente funcional permitida
 
-1. Onda 0: concluida.
-2. Onda 1: concluida.
-3. Onda 2: concluida.
-4. Onda 3: concluida.
-5. Onda 4: concluida.
-6. Onda 5: concluida tecnicamente; recursos entregues e mantidos em monitoramento operacional.
-7. Onda 6: concluida tecnicamente (mapa dominante + ajuste de usabilidade em telas executivas).
-8. Onda 7: concluida tecnicamente (cenarios/briefs + explicabilidade/auditoria complementar).
-9. Onda 8: concluida tecnicamente; permanece em monitoramento operacional (readiness, benchmark, robustness window).
+A próxima frente funcional só deve ser aberta depois que a cadência operacional estiver estável.
 
-## 3) Estado consolidado atual
+Atualização 2026-03-07:
 
-## 3.1 Backend/API
+- `UX-1` foi iniciado em slice controlado, sem abrir `UX-2`;
+- o slice 1 já entregou:
+  - `GET /v1/electorate/history`
+  - `GET /v1/electorate/polling-places`
+  - reformulação da `ElectorateExecutivePage` com histórico anual e ranking de locais;
+- o slice 2 passou a entregar no mapa executivo:
+  - seletor de métrica eleitoral por local de votação;
+  - sincronização entre mapa, ranking e drawer;
+  - ranking executivo por local também dentro da experiência cartográfica;
+- o próximo passo funcional de `UX-1` passa a ser:
+  - estruturar a expansão eleitoral com `tipo de eleição`, `cargo principal`, `candidatos` e `voto territorial por candidato`;
+  - conectar essa leitura à narrativa de `Home` e `Prioridades`;
+  - manter a unidade principal em `local de votação`.
 
-1. Contratos QG implementados e ativos:
-   - `GET /v1/kpis/overview`
-   - `GET /v1/priority/list`
-   - `GET /v1/priority/summary`
-   - `GET /v1/insights/highlights`
-   - `GET /v1/geo/choropleth`
-   - `GET /v1/territory/{id}/profile`
-   - `GET /v1/territory/{id}/compare`
-   - `GET /v1/territory/{id}/peers`
-   - `GET /v1/electorate/summary`
-   - `GET /v1/electorate/map`
-   - `POST /v1/scenarios/simulate`
-   - `POST /v1/briefs`
-2. Camada ops/observabilidade ativa:
-   - `GET /v1/ops/*`
-   - `POST /v1/ops/frontend-events`
-   - `GET /v1/ops/frontend-events`
-   - `GET /v1/ops/source-coverage`
-3. Readiness local atual: `READY` com `hard_failures=0` e `warnings=1` (SLO-1 histórico na janela de 7 dias).
+Regra explícita para essa expansão:
 
-## 3.2 Frontend
+- não abrir uma interface de apuração genérica;
+- qualquer evolução de candidato/voto deve reforçar leitura territorial e mapa;
+- o primeiro recorte deve privilegiar o cargo principal do ano e a disputa territorial entre candidatos.
 
-1. Rotas executivas ativas:
-   - `/`
-   - `/prioridades`
-   - `/mapa`
-   - `/territorio/:territoryId`
-   - `/insights`
-   - `/eleitorado`
-   - `/cenarios`
-   - `/briefs`
-   - `/admin`
-2. Recursos ja entregues:
-   - deep-link por query string (mapa/prioridades/insights/briefs/cenarios).
-   - exportacoes no mapa (CSV/SVG/PNG).
-   - exportacao de brief (HTML + print para PDF).
-   - metadados de fonte/frescor/cobertura nas telas executivas.
-   - padronizacao de domínios e rotulos amigaveis (QG e Território 360).
-3. Testes e build do frontend estaveis no ciclo atual.
+Quando isso ocorrer, a ordem recomendada é:
 
-## 3.3 Pipelines e fontes
+1. `UX-1` — fortalecer o eixo de eleitorado com leitura territorial defensável;
+2. `UX-2` — consolidar o mapa executivo com lentes, presets e leitura de cobertura;
+3. `UX-3` — alinhar `Home`, `Prioridades` e `Insights` ao mapa como centro da experiência;
+4. `UX-4` — ancorar `Cenários` e `Briefs` no território e na seleção cartográfica.
 
-1. Ondas Onda A e Onda B/C implementadas e integradas no orquestrador (`run_mvp_wave_4`, `run_mvp_wave_5`, `run_mvp_all`).
-2. Estado de conectores sincronizado em `ops.connector_registry` com 22 conectores `implemented`.
-3. Fluxos reais recentes executados com sucesso para ondas 4 e 5.
+Essa frente deve seguir estritamente o norte definido em `docs/VISION.md`.
 
-## 3.4 Atualizacao de estabilizacao (2026-02-20)
+Detalhamento oficial da sequência:
 
-1. Mapa vetorial:
-   - correção de recenter indevido no zoom em `VectorMap`.
-   - reducao de fallback agressivo para SVG em erros transitorios.
-   - hardening de tiles MVT territoriais com saneamento de geometria no backend.
-2. Eleitorado:
-   - fallback de ano logico (`requested_year`) para ano de armazenamento outlier (`storage_year`) em endpoints de resumo e mapa.
-   - tela executiva de eleitorado com estados vazios/erros mais claros.
-3. Estabilidade de frontend:
-   - regressão de hooks corrigida em `QgInsightsPage` e `TerritoryProfilePage` (erro: `Rendered more hooks than during the previous render`).
-   - paginacao adicionada para listas longas em Insights e Território 360.
-4. Validação consolidada:
-   - backend: `55 passed` (rotas qg/tse + mvt/cache).
-   - frontend: `72 passed` + build `OK`.
-5. Revalidacao operacional (2026-02-20 - ciclo atual):
-   - gate BD-033 reexecutado:
-     - backend: `29 passed` + `26 passed`;
-     - frontend: `78 passed` + build `OK`.
-   - fase 2 executada:
-     - scorecard exportado em `data/reports/data_coverage_scorecard.json` (`pass=5`, `warn=8`);
-     - readiness `READY` (`hard_failures=0`, `warnings=0`);
-     - benchmark urbano `ALL PASS` em `data/reports/benchmark_urban_map.json` (p95 entre `103.7ms` e `123.5ms`).
-6. Hotfix de UX de mapa (2026-02-20 - pós-gate):
-   - contraste corrigido para botoes de `Modo de visualizacao` e `Mapa base` no frontend;
-   - toggle da sidebar da Home com texto legivel;
-   - layout dominante ajustado para eliminar faixa vazia sob o mapa;
-   - piso de zoom contextual aplicado no carregamento do mapa para evitar `z0`;
-   - painel de filtros da Home reposicionado para coluna lateral dedicada no desktop (sem sobrepor o mapa);
-   - alinhamento interno dos controles do painel revisado (ações, mapa base, navegacao) com correção de overflow textual em cards.
+- `docs/MAP_PLATFORM_SPEC.md`
 
-## 4) Status por sprint
+## 6) Critério de prioridade funcional futura
 
-1. Sprint 0 (contratos e base): concluida.
-2. Sprint 1 (Home + Prioridades): concluida.
-3. Sprint 2 (Mapa + Território 360): concluida.
-4. Sprint 3 (Onda A parte 1 + Insights): concluida.
-5. Sprint 4 (Onda A parte 2 + Eleitorado): concluida.
-6. Sprint 5 (hardening QG v1): concluida tecnicamente; monitoramento operacional recorrente ativo.
-7. Sprint 6 (extensoes v1.1: cenarios/briefs): concluida.
+Uma nova implementação só entra na fila se atender simultaneamente aos critérios abaixo:
 
-## 5) Escopo historico de próxima execução (encerrado)
+- melhora o valor executivo do produto;
+- reforça o mapa como centro de comando;
+- aumenta explicabilidade, cobertura ou leitura territorial;
+- não cria uma segunda trilha concorrente;
+- respeita a ordem `UX-1 -> UX-2 -> UX-3 -> UX-4`.
 
-Nota de leitura:
-1. esta secao preserva a fila historica das rodadas anteriores;
-2. o proximo passo vigente passou a ser definido pela secao `0` deste plano e pelo topo de `docs/HANDOFF.md`;
-3. itens abaixo nao devem ser reabertos como pendencia atual sem evidencia de regressao.
+## 7) Critério de pronto por rodada
 
-## 5.1 Prioridade alta
+Cada rodada deve encerrar com:
 
-1. Fechar estabilizacao de UX nas telas executivas com foco em mapa, Território 360 e Eleitorado:
-   - eliminar estados vazios sem contexto;
-   - melhorar distribuicao visual de filtros, cards e tabelas;
-   - garantir comportamento previsivel de paginacao em listas longas.
-2. Consolidar navegacao do mapa vetorial para uso operacional continuo:
-   - manter zoom/drag sem recentralizacao indevida;
-   - reduzir degradação para SVG apenas em indisponibilidade real do vetor;
-   - reforcar feedback de erro para tiles indisponiveis (`503`) sem quebrar o fluxo.
-3. Completar cobertura de camada eleitoral territorial no frontend:
-   - expor `local_votacao` com toggle/legenda/tooltip;
-   - manter transparencia de `official/proxy/hybrid` nas camadas.
-4. Executar homologação ponta a ponta com dados reais e registrar evidencia unica em `docs/HANDOFF.md`.
-5. Executar backlog UX executivo unificado em ciclo unico:
-   - fonte de execução: secoes de prioridade deste plano (`5.1`, `5.2`, `5.3`);
-   - ordem obrigatoria: `P0 -> P1 -> P2`;
-   - sem abrir nova frente antes de concluir os itens de prioridade alta.
+- código funcionando no fluxo afetado;
+- validação técnica relevante executada;
+- `docs/HANDOFF.md` atualizado;
+- `docs/CHANGELOG.md` atualizado.
 
-Status da rodada (2026-02-22):
-1. Item 4 da prioridade alta concluido na homologação operacional do mapa:
-   - benchmark urbano `ALL PASS` em `data/reports/benchmark_urban_map.json`;
-   - prova ponta a ponta de observabilidade em `/v1/ops/frontend-events` com `POST 202` e leitura do evento no `GET`.
-2. Ajuste backend aplicado para suportar persistência consistente de eventos frontend:
-   - serialização de `attributes` para `JSONB`;
-   - commit defensivo após ingestão com compatibilidade para sessão fake de testes.
-3. Próximo passo imediato:
-   - manter cadência recorrente de benchmark + validação de leitura de eventos, sem abrir nova frente.
+## 8) Referências de decisão
 
-Atualizacao complementar (2026-02-23):
-4. Item 3 da prioridade alta evoluido no frontend do mapa:
-   - `local_votacao` consolidado com toggle rapido (`Locais de votacao` <-> `Secoes eleitorais`) e legenda eleitoral explicita no `QgMapPage`.
-   - estados operacionais explicitados para `local_votacao` (disponivel / indisponivel no manifesto / camada ativa sem nome detectado), com fallback textual previsível no drawer.
-   - legenda visual compacta aplicada para leitura eleitoral imediata no painel do mapa.
-   - regressao dedicada validada em `QgPages.test.tsx` e build frontend `OK`.
-5. Item 1 da prioridade alta evoluido no shell executivo:
-   - menu principal migrado para painel lateral (desktop), preservando rotas e comportamento responsivo.
-   - regressao de shell validada em `App.test.tsx`.
-6. Refatoracao visual completa aplicada na camada frontend executiva:
-   - redesign transversal em `global.css` (tokens, superfícies, componentes-base, estados e contexto de mapa), sem alterar contratos funcionais.
-   - validacao de estabilidade em suíte frontend completa (`83 passed`) + build `OK`.
-7. Próximo passo imediato:
-   - seguir com refinamento de UX final (fluidez/legibilidade) e telemetria objetiva de troca de camada eleitoral, mantendo WIP=1 e sem abrir backlog pós-v2.
+- requisitos técnicos: `docs/CONTRATO.md`
+- north star de produto: `docs/VISION.md`
+- estado corrente: `docs/HANDOFF.md`
+- histórico validado: `docs/CHANGELOG.md`
 
-Atualizacao complementar (2026-02-24):
-8. Telemetria objetiva da troca de camada eleitoral concluída no frontend:
-   - evento dedicado `map_electoral_layer_toggled` implementado em `QgMapPage` para transições `secao` <-> `local_votacao`;
-   - atributos de triagem (`from_layer`, `to_layer`, `source`, `layer_id`, `layer_classification`, `scope`, `level`) disponíveis para leitura operacional.
-   - regressão validada com `QgPages.test.tsx` (`25 passed`), suíte frontend completa (`84 passed`) e build `OK`.
-9. Próximo passo imediato:
-   - continuar refinamento P0 de UX do mapa executivo (legibilidade e fluidez) mantendo WIP=1 e gate de regressão + build por rodada.
+Atualização complementar 2026-03-07:
 
-Atualizacao complementar (2026-02-23):
-10. Hardening incremental de robustez frontend concluído no eixo Admin + observabilidade:
-   - `AdminHubPage` alinhado ao contrato de erro (`message` + `request_id`) com retry contextual;
-   - testes dedicados adicionados para `AdminHubPage` e `bootstrapFrontendObservability`.
-   - gate validado em `pass`: suíte focada (`3 passed`), suíte frontend completa (`87 passed`) e build (`OK`).
-11. Próximo passo imediato:
-   - manter WIP=1 no pacote P0 do mapa executivo (fluidez, legibilidade e previsibilidade operacional) sem abrir backlog paralelo.
-
-Atualizacao complementar (2026-02-23):
-12. Sprint P0 de previsibilidade de estados no mapa executivo concluída:
-   - fallback simplificado passou a explicitar indisponibilidade para níveis não coropléticos (`setor/zona/secao`), eliminando ambiguidade visual;
-   - busca/foco territorial contextualizados ao recorte coroplético (`municipio/distrito`) com orientação explícita para níveis granulares;
-   - cobertura de regressão adicionada em `QgPages.test.tsx` para o novo estado operacional.
-13. Validação da sprint:
-   - suíte focada QG (`26 passed`), suíte frontend completa (`88 passed`) e build (`OK`).
-14. Próximo passo imediato:
-   - continuar no WIP=1 com refinamentos incrementais de fluidez + telemetria operacional do mapa, sem abrir frentes paralelas.
-
-Atualizacao complementar (2026-02-23):
-15. Sprint P0 de telemetria de estado operacional do mapa concluída:
-   - evento `map_operational_state_changed` implementado no `QgMapPage` com transições de estado operacional para triagem;
-   - estados cobertos: `loading`, `error`, `empty`, `empty_simplified_unavailable`, `empty_svg_urban_unavailable`, `data`.
-16. Cobertura e validação da sprint:
-   - `QgPages.test.tsx` ampliado para validar emissão de evento no estado simplificado indisponível em nível não coroplético;
-   - suíte focada QG (`26 passed`), suíte frontend completa (`88 passed`) e build (`OK`).
-17. Próximo passo imediato:
-   - manter WIP=1 com ajustes incrementais de fluidez/legibilidade no mapa e monitoramento de eventos em `/v1/ops/frontend-events`.
-
-Atualizacao complementar (2026-02-23):
-18. Homologacao backend do evento `map_operational_state_changed` concluída:
-   - testes de rota em `test_ops_routes.py` cobrem ingestão do evento e filtro por nome na listagem de `/v1/ops/frontend-events`.
-19. Validação da rodada:
-   - `\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_routes.py -q` -> `32 passed`.
-20. Próximo passo imediato:
-   - seguir no WIP=1 com refino incremental de fluidez do mapa executivo e manutenção do gate de regressão frontend + backend relevante.
-
-Atualizacao complementar (2026-02-23):
-21. Sprint de utilidade estratégica do mapa executada após feedback visual:
-   - presets operacionais adicionados para acesso rápido a leitura por seções eleitorais e serviços urbanos;
-   - leitura de `Top secoes por eleitorado` incorporada ao fluxo do `QgMapPage`;
-   - ajuste de drawer para uso não modal no mapa (sem bloqueio visual da tela inteira).
-22. Validação da sprint:
-   - testes focados (`31 passed`), suíte frontend completa (`89 passed`) e build (`OK`).
-23. Próximo passo imediato:
-   - manter WIP=1 no mapa com melhorias incrementais de fluidez visual e densidade informacional sem abertura de escopo paralelo.
-
-## 5.2 Prioridade media
-
-1. Revalidar desempenho das rotas executivas e de mapa com benchmark recorrente:
-   - alvo p95 <= 800ms (executivo) e <= 1000ms (urbano), conforme runbook vigente.
-2. Fechar consolidação operacional de runbooks:
-   - `docs/OPERATIONS_RUNBOOK.md` (runbook unico)
-3. Fortalecer cobertura de testes:
-   - backend: rotas qg/map/electorate para cenarios limite e regressão;
-   - frontend: fluxos completos de navegacao e estados de erro/vazio.
-
-## 5.3 Prioridade baixa
-
-1. Refinar painel técnico `/admin` para diagnostico rapido sem poluir UX executiva.
-2. Evoluir backlog pós-v2 do mapa (split view, time slider e comparacao temporal), sem abrir nova frente antes dos gates de estabilizacao.
-
-## 6) Matriz de fontes e consumo no QG
-
-## Onda A
-
-1. SIDRA (`sidra_indicators_fetch`): Home, Prioridades, Perfil.
-2. SENATRAN (`senatran_fleet_fetch`): Home, Perfil, Insights.
-3. SEJUSP-MG (`sejusp_public_safety_fetch`): Home, Mapa, Prioridades.
-4. SIOPS (`siops_health_finance_fetch`): Home, Perfil, Insights.
-5. SNIS (`snis_sanitation_fetch`): Home, Mapa, Perfil.
-
-## Onda B/C
-
-1. INMET (`inmet_climate_fetch`): Home, Insights, Perfil.
-2. INPE Queimadas (`inpe_queimadas_fetch`): Home, Mapa, Insights.
-3. ANA (`ana_hydrology_fetch`): Home, Mapa, Perfil.
-4. ANATEL (`anatel_connectivity_fetch`): Home, Perfil, Prioridades.
-5. ANEEL (`aneel_energy_fetch`): Home, Perfil, Insights.
-
-## 7) Critérios de aceite para go-live controlado
-
-1. Endpoints executivos e extensoes (`cenarios`/`briefs`) estaveis com testes de contrato.
-2. Ondas A e B/C operando com:
-   - Bronze + manifesto/checksum
-   - Silver com `territory_id`
-   - checks de qualidade ativos
-   - rastreio em `ops.pipeline_runs` e `ops.pipeline_checks`
-3. Frontend com testes e build estaveis no ciclo de entrega.
-4. Fluxo executivo separado da camada técnica (`/admin`).
-5. Homologação executada com dados reais e sem bloqueador critico aberto.
-6. Metas operacionais objetivas registradas e validadas:
-   - API executiva p95 <= 800ms em homologação para endpoints criticos.
-   - render inicial da Home executiva <= 3s em ambiente de referência.
-   - E2E do fluxo principal com taxa de sucesso >= 95% no ciclo de release.
-
-## 8) Riscos atuais e mitigacoes
-
-1. Instabilidade eventual de fonte externa:
-   - mitigacao: fallback por catálogo/manual + bronze cache + testes de conector.
-2. SLO operacional distorcido por histórico antigo:
-   - mitigacao: separar leitura de saude corrente e histórica nos relatórios.
-3. Divergencia entre narrativa e dado:
-   - mitigacao: manter regras de prioridade/insight versionadas e auditaveis no backend.
-4. Regressão de UX em evoluções rapidas:
-   - mitigacao: ampliar E2E dos caminhos de decisão e manter smoke de roteamento.
-
-## 9) Ordem recomendada para os próximos passos
-
-1. Finalizar estabilizacao visual/UX nas telas executivas com evidencias de teste.
-2. Revalidar readiness completo (backend + frontend + benchmark) em ambiente limpo.
-3. Fechar pendencias de camada eleitoral territorial no mapa (`local_votacao`).
-4. Consolidar runbooks e rotina semanal de robustez de dados.
-5. Planejar próximo ciclo incremental (mapa pós-v2 e evoluções analíticas controladas).
-
-## 10) Trilha oficial para nível máximo de dados
-
-Backlog executável:
-- `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`
-
-Regra de execução:
-1. a trilha D0-D8 do backlog de dados passa a ser o caminho oficial de evolução de robustez.
-2. qualquer nova fonte fora do backlog precisa de registro de justificativa e impacto.
-3. o status de cada sprint D* deve ser refletido em `docs/HANDOFF.md` e `docs/CHANGELOG.md`.
+- `UX-1 slice 3` deixou de ser apenas desenho futuro.
+- A base backend nominal foi entregue com:
+  - `silver.dim_election`
+  - `silver.dim_candidate`
+  - `silver.fact_candidate_vote`
+  - `GET /v1/electorate/election-context`
+  - `GET /v1/electorate/candidate-territories`
+- O slice 3 já foi exposto no frontend executivo com contexto da eleição, top candidatos e distribuição territorial do candidato selecionado.
+- O estudo `docs/ESTUDO_TSE_SECAO_LOCAL_VOTACAO.md` concluiu que o TSE já publica `votacao_secao` com `NR_SECAO`, `NR_LOCAL_VOTACAO`, `NM_LOCAL_VOTACAO`, endereço do local, `SQ_CANDIDATO` e `QT_VOTOS` para `2016`, `2018`, `2020`, `2022` e `2024`.
+- Portanto, a granularidade nominal atual em `zona eleitoral` deve ser tratada como provisória.
+- O próximo passo funcional de `UX-1` deixa de ser propagar a base nominal atual para `Home` e `Prioridades`.
+- O próximo passo funcional passa a ser:
+  - limpar ou descontinuar explicitamente o residual legado em `electoral_zone` após a migração para `electoral_section`;
+  - auditar a necessidade de complementar eleições gerais com recurso nacional (`BR`) após a primeira carga histórica por `votacao_secao`;
+  - só depois reabrir a propagação nominal para `Home`, `Prioridades` e demais telas.
+- Estado atual do slice 3:
+  - o conector nominal foi reorientado em código para `votacao_secao` e o backfill `2016-2024` já foi executado neste ambiente;
+  - o Bronze `tse_votacao_secao` está materializado para os cinco anos da série ativa;
+  - a cobertura nominal atual do banco já mostra `electoral_section` como nível principal, com `142` seções e `36` locais de votação derivados;
+  - o `source_level=electoral_section` já está ativo em `GET /v1/electorate/election-context`;
+  - persistem `165` linhas legadas em `electoral_zone` para `2024`, que agora viram residual explícito a ser limpo ou descontinuado;
+  - a auditoria das eleições gerais `2018`/`2022` contra possível complemento `BR` continua aberta antes de propagar a camada nominal para outras telas.

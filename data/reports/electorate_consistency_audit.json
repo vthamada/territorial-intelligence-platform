@@ -1,0 +1,1771 @@
+{
+  "generated_at_utc": "2026-03-08T16:09:25.871687+00:00",
+  "municipality_ibge_code": "3121605",
+  "municipality_name": "Diamantina",
+  "municipality_uf": "MG",
+  "api_summary_2024": {
+    "level": "municipio",
+    "year": 2024,
+    "total_voters": 38607,
+    "turnout": 27941.0,
+    "turnout_rate": 72.372886,
+    "abstention_rate": 27.627114,
+    "blank_rate": 5.540246,
+    "null_rate": 7.616048
+  },
+  "history_checks": [
+    {
+      "year": 2024,
+      "api_total_voters": 38607,
+      "db_total_voters": 38607,
+      "raw_total_voters": 38607,
+      "totals_match": true,
+      "matched_db_scope": {
+        "office": "Prefeito",
+        "election_round": 1,
+        "turnout": 27941,
+        "abstention": 10666,
+        "votes_blank": 1548,
+        "votes_null": 2128,
+        "turnout_rate": 72.37288574610822,
+        "abstention_rate": 27.627114253891783,
+        "blank_rate": 5.54024551734011,
+        "null_rate": 7.616048101356429
+      },
+      "matched_raw_scope": {
+        "office": "Prefeito",
+        "election_round": 1,
+        "election_type": "Eleição Ordinária",
+        "turnout": 27941,
+        "abstention": 10666,
+        "votes_blank": 1548,
+        "votes_null": 2128,
+        "turnout_rate": 72.37288574610822,
+        "abstention_rate": 27.627114253891783,
+        "blank_rate": 5.54024551734011,
+        "null_rate": 7.616048101356429
+      },
+      "api_metrics": {
+        "turnout": 27941.0,
+        "turnout_rate": 72.372886,
+        "abstention_rate": 27.627114,
+        "blank_rate": 5.540246,
+        "null_rate": 7.616048
+      },
+      "metrics_match_raw": true
+    },
+    {
+      "year": 2022,
+      "api_total_voters": 38097,
+      "db_total_voters": 38097,
+      "raw_total_voters": 38097,
+      "totals_match": true,
+      "matched_db_scope": {
+        "office": "Deputado Estadual",
+        "election_round": 1,
+        "turnout": 28448,
+        "abstention": 9429,
+        "votes_blank": 1860,
+        "votes_null": 1080,
+        "turnout_rate": 74.67254639472924,
+        "abstention_rate": 24.749980313410504,
+        "blank_rate": 6.538245219347581,
+        "null_rate": 3.796400449943757
+      },
+      "matched_raw_scope": {
+        "office": "Deputado Estadual",
+        "election_round": 1,
+        "election_type": "Eleição Ordinária",
+        "turnout": 28448,
+        "abstention": 9429,
+        "votes_blank": 1860,
+        "votes_null": 1080,
+        "turnout_rate": 75.10626501570874,
+        "abstention_rate": 24.893734984291257,
+        "blank_rate": 6.538245219347581,
+        "null_rate": 3.796400449943757
+      },
+      "api_metrics": {
+        "turnout": 28448.0,
+        "turnout_rate": 75.106265,
+        "abstention_rate": 24.893735,
+        "blank_rate": 6.538245,
+        "null_rate": 3.7964
+      },
+      "metrics_match_raw": true
+    },
+    {
+      "year": 2020,
+      "api_total_voters": 36884,
+      "db_total_voters": 36884,
+      "raw_total_voters": 36884,
+      "totals_match": true,
+      "matched_db_scope": {
+        "office": "Prefeito",
+        "election_round": 1,
+        "turnout": 26977,
+        "abstention": 9907,
+        "votes_blank": 791,
+        "votes_null": 1891,
+        "turnout_rate": 73.14011495499403,
+        "abstention_rate": 26.859885045005967,
+        "blank_rate": 2.9321273677577193,
+        "null_rate": 7.00967490825518
+      },
+      "matched_raw_scope": {
+        "office": "Prefeito",
+        "election_round": 1,
+        "election_type": "Eleição Ordinária",
+        "turnout": 26977,
+        "abstention": 9907,
+        "votes_blank": 791,
+        "votes_null": 1891,
+        "turnout_rate": 73.14011495499403,
+        "abstention_rate": 26.859885045005967,
+        "blank_rate": 2.9321273677577193,
+        "null_rate": 7.00967490825518
+      },
+      "api_metrics": {
+        "turnout": 26977.0,
+        "turnout_rate": 73.140115,
+        "abstention_rate": 26.859885,
+        "blank_rate": 2.932127,
+        "null_rate": 7.009675
+      },
+      "metrics_match_raw": true
+    },
+    {
+      "year": 2018,
+      "api_total_voters": 36508,
+      "db_total_voters": 36508,
+      "raw_total_voters": 36508,
+      "totals_match": true,
+      "matched_db_scope": {
+        "office": "Deputado Estadual",
+        "election_round": 1,
+        "turnout": 26464,
+        "abstention": 9945,
+        "votes_blank": 1638,
+        "votes_null": 2537,
+        "turnout_rate": 72.48822175961433,
+        "abstention_rate": 27.240604798948176,
+        "blank_rate": 6.189540507859734,
+        "null_rate": 9.58660822249093
+      },
+      "matched_raw_scope": {
+        "office": "Deputado Estadual",
+        "election_round": 1,
+        "election_type": "Eleição Ordinária",
+        "turnout": 26464,
+        "abstention": 9945,
+        "votes_blank": 1638,
+        "votes_null": 2537,
+        "turnout_rate": 72.6853250569914,
+        "abstention_rate": 27.314674943008598,
+        "blank_rate": 6.189540507859734,
+        "null_rate": 9.58660822249093
+      },
+      "api_metrics": {
+        "turnout": 26464.0,
+        "turnout_rate": 72.685325,
+        "abstention_rate": 27.314675,
+        "blank_rate": 6.189541,
+        "null_rate": 9.586608
+      },
+      "metrics_match_raw": true
+    },
+    {
+      "year": 2016,
+      "api_total_voters": 36215,
+      "db_total_voters": 36215,
+      "raw_total_voters": 36215,
+      "totals_match": true,
+      "matched_db_scope": {
+        "office": "Prefeito",
+        "election_round": 1,
+        "turnout": 27765,
+        "abstention": 8450,
+        "votes_blank": 915,
+        "votes_null": 1858,
+        "turnout_rate": 76.6671268811266,
+        "abstention_rate": 23.332873118873394,
+        "blank_rate": 3.2955159373311727,
+        "null_rate": 6.691878264001441
+      },
+      "matched_raw_scope": {
+        "office": "Prefeito",
+        "election_round": 1,
+        "election_type": "Eleição Ordinária",
+        "turnout": 27765,
+        "abstention": 8450,
+        "votes_blank": 915,
+        "votes_null": 1858,
+        "turnout_rate": 76.6671268811266,
+        "abstention_rate": 23.332873118873394,
+        "blank_rate": 3.2955159373311727,
+        "null_rate": 6.691878264001441
+      },
+      "api_metrics": {
+        "turnout": 27765.0,
+        "turnout_rate": 76.667127,
+        "abstention_rate": 23.332873,
+        "blank_rate": 3.295516,
+        "null_rate": 6.691878
+      },
+      "metrics_match_raw": true
+    }
+  ],
+  "composition_checks_2024": {
+    "sex": {
+      "api_labels": 3,
+      "db_labels": 3,
+      "raw_labels": 3,
+      "mismatches": []
+    },
+    "age": {
+      "api_labels": 22,
+      "db_labels": 22,
+      "raw_labels": 22,
+      "mismatches": []
+    },
+    "education": {
+      "api_labels": 9,
+      "db_labels": 9,
+      "raw_labels": 9,
+      "mismatches": []
+    }
+  },
+  "polling_place_checks_2024": {
+    "raw_source_supports_polling_place": false,
+    "note": "O bruto do perfil do eleitorado não expõe local de votação; a auditoria do ranking é feita contra a agregação Silver por seção/local.",
+    "items": [
+      {
+        "polling_place_name": "E. E. PROF.ª GABRIELA NEVES",
+        "api_voters_total": 2913,
+        "db_voters_total": 2913,
+        "api_section_count": 9,
+        "db_section_count": 9,
+        "api_share_percent": 7.545263812262025,
+        "db_share_percent": 7.545263812262025,
+        "matches_db": true
+      },
+      {
+        "polling_place_name": "E. E. JOAQUIM FELÍCIO DOS SANTOS",
+        "api_voters_total": 2656,
+        "db_voters_total": 2656,
+        "api_section_count": 7,
+        "db_section_count": 7,
+        "api_share_percent": 6.879581423057994,
+        "db_share_percent": 6.879581423057994,
+        "matches_db": true
+      },
+      {
+        "polling_place_name": "E. E. JÚLIA KUBITSCHEK",
+        "api_voters_total": 2495,
+        "db_voters_total": 2495,
+        "api_section_count": 8,
+        "db_section_count": 8,
+        "api_share_percent": 6.462558603362084,
+        "db_share_percent": 6.462558603362084,
+        "matches_db": true
+      },
+      {
+        "polling_place_name": "E. E. PROF.ª ISABEL MOTA",
+        "api_voters_total": 2453,
+        "db_voters_total": 2453,
+        "api_section_count": 8,
+        "db_section_count": 8,
+        "api_share_percent": 6.353770041702282,
+        "db_share_percent": 6.353770041702282,
+        "matches_db": true
+      },
+      {
+        "polling_place_name": "UEMG (ANTIGA FEVALE)",
+        "api_voters_total": 2327,
+        "db_voters_total": 2327,
+        "api_section_count": 13,
+        "db_section_count": 13,
+        "api_share_percent": 6.027404356722874,
+        "db_share_percent": 6.027404356722874,
+        "matches_db": true
+      }
+    ]
+  },
+  "candidate_context": {
+    "tables_available": true,
+    "api_year": 2024,
+    "api_notes": "electorate_election_context_v1|source_level=electoral_section",
+    "items_count": 4
+  },
+  "candidate_nominal_checks": {
+    "raw_source": {
+      "2016": {
+        "zip_path": "data\\bronze\\tse\\tse_votacao_secao\\2016\\extracted_at=2026-03-08T16-04-22Z\\raw.zip",
+        "available": true,
+        "items": [
+          {
+            "office": "PREFEITO",
+            "election_round": 1,
+            "candidate_count": 6,
+            "section_count": 116,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "15",
+                "candidate_name": "JUSCELINO BRASILIANO ROQUE",
+                "votes": 8800
+              },
+              {
+                "candidate_number": "45",
+                "candidate_name": "LUIZ HENRIQUE MAIA SANTIAGO",
+                "votes": 7901
+              },
+              {
+                "candidate_number": "77",
+                "candidate_name": "MAURÍCIO DA PAIXÃO MAIA",
+                "votes": 5437
+              },
+              {
+                "candidate_number": "51",
+                "candidate_name": "FERNANDO ANTONIO DOS SANTOS",
+                "votes": 2854
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 1858
+              }
+            ]
+          },
+          {
+            "office": "VEREADOR",
+            "election_round": 1,
+            "candidate_count": 187,
+            "section_count": 116,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 1011
+              },
+              {
+                "candidate_number": "23555",
+                "candidate_name": "ANTÔNIO APARECIDO SOARES",
+                "votes": 889
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 869
+              },
+              {
+                "candidate_number": "15",
+                "candidate_name": "Partido do Movimento Democrático Brasileiro",
+                "votes": 631
+              },
+              {
+                "candidate_number": "45622",
+                "candidate_name": "LOURIVAL JOSÉ ALEXANDRE",
+                "votes": 582
+              }
+            ]
+          }
+        ]
+      },
+      "2018": {
+        "zip_path": "data\\bronze\\tse\\tse_votacao_secao\\2018\\extracted_at=2026-03-08T16-02-57Z\\raw.zip",
+        "available": true,
+        "items": [
+          {
+            "office": "Deputado Estadual",
+            "election_round": 1,
+            "candidate_count": 483,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 2508
+              },
+              {
+                "candidate_number": "17999",
+                "candidate_name": "FERNANDO ANTONIO DOS SANTOS",
+                "votes": 2310
+              },
+              {
+                "candidate_number": "15101",
+                "candidate_name": "IRAN ALMEIDA BARBOSA",
+                "votes": 1768
+              },
+              {
+                "candidate_number": "90456",
+                "candidate_name": "LUCAS MANOEL BARBOSA WERNECK",
+                "votes": 1718
+              },
+              {
+                "candidate_number": "36123",
+                "candidate_name": "CELIO DE CASSIO MOREIRA",
+                "votes": 1659
+              }
+            ]
+          },
+          {
+            "office": "Deputado Federal",
+            "election_round": 1,
+            "candidate_count": 436,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 2570
+              },
+              {
+                "candidate_number": "4555",
+                "candidate_name": "MARCUS VINÍCIUS CAETANO PESTANA DA SILVA",
+                "votes": 1974
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 1618
+              },
+              {
+                "candidate_number": "1590",
+                "candidate_name": "JOSÉ SARAIVA FELIPE",
+                "votes": 1554
+              },
+              {
+                "candidate_number": "1515",
+                "candidate_name": "HERCÍLIO ARAÚJO DINIZ FILHO",
+                "votes": 1500
+              }
+            ]
+          },
+          {
+            "office": "Governador",
+            "election_round": 1,
+            "candidate_count": 11,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "13",
+                "candidate_name": "FERNANDO DAMATA PIMENTEL",
+                "votes": 8047
+              },
+              {
+                "candidate_number": "45",
+                "candidate_name": "ANTONIO AUGUSTO JUNHO ANASTASIA",
+                "votes": 6168
+              },
+              {
+                "candidate_number": "30",
+                "candidate_name": "ROMEU ZEMA NETO",
+                "votes": 5799
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 3576
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 1536
+              }
+            ]
+          },
+          {
+            "office": "Governador",
+            "election_round": 2,
+            "candidate_count": 4,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "30",
+                "candidate_name": "ROMEU ZEMA NETO",
+                "votes": 10496
+              },
+              {
+                "candidate_number": "45",
+                "candidate_name": "ANTONIO AUGUSTO JUNHO ANASTASIA",
+                "votes": 9406
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 5038
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 1171
+              }
+            ]
+          },
+          {
+            "office": "Senador",
+            "election_round": 1,
+            "candidate_count": 17,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 10252
+              },
+              {
+                "candidate_number": "133",
+                "candidate_name": "DILMA VANA ROUSSEFF",
+                "votes": 10003
+              },
+              {
+                "candidate_number": "250",
+                "candidate_name": "RODRIGO OTÁVIO SOARES PACHECO",
+                "votes": 6174
+              },
+              {
+                "candidate_number": "130",
+                "candidate_name": "MIGUEL CORREA DA SILVA JÚNIOR",
+                "votes": 6137
+              },
+              {
+                "candidate_number": "777",
+                "candidate_name": "DINIS ANTÔNIO PINHEIRO",
+                "votes": 5777
+              }
+            ]
+          }
+        ]
+      },
+      "2020": {
+        "zip_path": "data\\bronze\\tse\\tse_votacao_secao\\2020\\extracted_at=2026-03-08T15-59-53Z\\raw.zip",
+        "available": true,
+        "items": [
+          {
+            "office": "Prefeito",
+            "election_round": 1,
+            "candidate_count": 4,
+            "section_count": 97,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "25",
+                "candidate_name": "JUSCELINO BRASILIANO ROQUE",
+                "votes": 19139
+              },
+              {
+                "candidate_number": "13",
+                "candidate_name": "ROSIMERE PEREIRA LIMA",
+                "votes": 5156
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 1891
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 791
+              }
+            ]
+          },
+          {
+            "office": "Vereador",
+            "election_round": 1,
+            "candidate_count": 205,
+            "section_count": 97,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "77622",
+                "candidate_name": "WAGNER ALCANTARA ALEXANDRE",
+                "votes": 1121
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 915
+              },
+              {
+                "candidate_number": "25123",
+                "candidate_name": "MARCOS JULIANO DA CRUZ",
+                "votes": 789
+              },
+              {
+                "candidate_number": "25",
+                "candidate_name": "Democratas",
+                "votes": 764
+              },
+              {
+                "candidate_number": "77321",
+                "candidate_name": "EDIVALDO JOSÉ SILVA LOPES",
+                "votes": 589
+              }
+            ]
+          }
+        ]
+      },
+      "2022": {
+        "zip_path": "data\\bronze\\tse\\tse_votacao_secao\\2022\\extracted_at=2026-03-08T15-56-52Z\\raw.zip",
+        "available": true,
+        "items": [
+          {
+            "office": "DEPUTADO ESTADUAL",
+            "election_round": 1,
+            "candidate_count": 511,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "77700",
+                "candidate_name": "MAURICIO DA PAIXÃO MAIA",
+                "votes": 1884
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 1860
+              },
+              {
+                "candidate_number": "13123",
+                "candidate_name": "BEATRIZ DA SILVA CERQUEIRA",
+                "votes": 1710
+              },
+              {
+                "candidate_number": "19456",
+                "candidate_name": "JOSE REIS NOGUEIRA DE BARROS",
+                "votes": 1520
+              },
+              {
+                "candidate_number": "10999",
+                "candidate_name": "FERNANDO ANTONIO DOS SANTOS",
+                "votes": 1183
+              }
+            ]
+          },
+          {
+            "office": "DEPUTADO FEDERAL",
+            "election_round": 1,
+            "candidate_count": 456,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "1515",
+                "candidate_name": "HERCILIO ARAUJO DINIZ FILHO",
+                "votes": 5159
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 1562
+              },
+              {
+                "candidate_number": "2222",
+                "candidate_name": "NIKOLAS FERREIRA DE OLIVEIRA",
+                "votes": 1452
+              },
+              {
+                "candidate_number": "1999",
+                "candidate_name": "IGOR TARCIANO TIMO",
+                "votes": 1258
+              },
+              {
+                "candidate_number": "1378",
+                "candidate_name": "PAULO JOSÉ CARLOS GUEDES",
+                "votes": 1099
+              }
+            ]
+          },
+          {
+            "office": "GOVERNADOR",
+            "election_round": 1,
+            "candidate_count": 12,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "55",
+                "candidate_name": "ALEXANDRE KALIL",
+                "votes": 13060
+              },
+              {
+                "candidate_number": "30",
+                "candidate_name": "ROMEU ZEMA NETO",
+                "votes": 8719
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 2621
+              },
+              {
+                "candidate_number": "22",
+                "candidate_name": "CARLOS ALBERTO DIAS VIANA",
+                "votes": 1872
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 1388
+              }
+            ]
+          },
+          {
+            "office": "SENADOR",
+            "election_round": 1,
+            "candidate_count": 11,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "555",
+                "candidate_name": "ALEXANDRE SILVEIRA DE OLIVEIRA",
+                "votes": 11538
+              },
+              {
+                "candidate_number": "200",
+                "candidate_name": "CLEITON GONTIJO DE AZEVEDO",
+                "votes": 9118
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 2740
+              },
+              {
+                "candidate_number": "111",
+                "candidate_name": "MARCELO GUILHERME DE ARO FERREIRA",
+                "votes": 2285
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 1962
+              }
+            ]
+          }
+        ]
+      },
+      "2024": {
+        "zip_path": "data\\bronze\\tse\\tse_votacao_secao\\2024\\extracted_at=2026-03-08T15-54-18Z\\raw.zip",
+        "available": true,
+        "items": [
+          {
+            "office": "Prefeito",
+            "election_round": 1,
+            "candidate_count": 4,
+            "section_count": 128,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "15",
+                "candidate_name": "GEFERSON GIORDANI BURGARELLI",
+                "votes": 12334
+              },
+              {
+                "candidate_number": "18",
+                "candidate_name": "FREDERICO SILVA SANTOS",
+                "votes": 11931
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 2128
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 1548
+              }
+            ]
+          },
+          {
+            "office": "Vereador",
+            "election_round": 1,
+            "candidate_count": 183,
+            "section_count": 128,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 897
+              },
+              {
+                "candidate_number": "25622",
+                "candidate_name": "WAGNER ALCANTARA ALEXANDRE",
+                "votes": 868
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 714
+              },
+              {
+                "candidate_number": "25555",
+                "candidate_name": "ANTÔNIO APARECIDO SOARES",
+                "votes": 680
+              },
+              {
+                "candidate_number": "25400",
+                "candidate_name": "ADILSON MÁRCIO TRINDADE SILVA",
+                "votes": 622
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "db_scope_rows": [
+      {
+        "election_year": 2024,
+        "territory_level": "electoral_section",
+        "office": "Prefeito",
+        "election_round": 1,
+        "fact_rows": 511,
+        "section_count": 128,
+        "polling_place_count": 36,
+        "votes_total": 27941
+      },
+      {
+        "election_year": 2024,
+        "territory_level": "electoral_section",
+        "office": "Vereador",
+        "election_round": 1,
+        "fact_rows": 8748,
+        "section_count": 128,
+        "polling_place_count": 36,
+        "votes_total": 27941
+      },
+      {
+        "election_year": 2024,
+        "territory_level": "electoral_zone",
+        "office": "Prefeito",
+        "election_round": 1,
+        "fact_rows": 2,
+        "section_count": 0,
+        "polling_place_count": 0,
+        "votes_total": 24265
+      },
+      {
+        "election_year": 2024,
+        "territory_level": "electoral_zone",
+        "office": "Vereador",
+        "election_round": 1,
+        "fact_rows": 163,
+        "section_count": 0,
+        "polling_place_count": 0,
+        "votes_total": 25266
+      },
+      {
+        "election_year": 2022,
+        "territory_level": "electoral_section",
+        "office": "DEPUTADO ESTADUAL",
+        "election_round": 1,
+        "fact_rows": 8332,
+        "section_count": 132,
+        "polling_place_count": 36,
+        "votes_total": 28448
+      },
+      {
+        "election_year": 2022,
+        "territory_level": "electoral_section",
+        "office": "DEPUTADO FEDERAL",
+        "election_round": 1,
+        "fact_rows": 7059,
+        "section_count": 132,
+        "polling_place_count": 36,
+        "votes_total": 28448
+      },
+      {
+        "election_year": 2022,
+        "territory_level": "electoral_section",
+        "office": "GOVERNADOR",
+        "election_round": 1,
+        "fact_rows": 943,
+        "section_count": 132,
+        "polling_place_count": 36,
+        "votes_total": 28448
+      },
+      {
+        "election_year": 2022,
+        "territory_level": "electoral_section",
+        "office": "SENADOR",
+        "election_round": 1,
+        "fact_rows": 998,
+        "section_count": 132,
+        "polling_place_count": 36,
+        "votes_total": 28448
+      },
+      {
+        "election_year": 2020,
+        "territory_level": "electoral_section",
+        "office": "Prefeito",
+        "election_round": 1,
+        "fact_rows": 386,
+        "section_count": 97,
+        "polling_place_count": 36,
+        "votes_total": 26977
+      },
+      {
+        "election_year": 2020,
+        "territory_level": "electoral_section",
+        "office": "Vereador",
+        "election_round": 1,
+        "fact_rows": 7440,
+        "section_count": 97,
+        "polling_place_count": 36,
+        "votes_total": 26977
+      },
+      {
+        "election_year": 2018,
+        "territory_level": "electoral_section",
+        "office": "Deputado Estadual",
+        "election_round": 1,
+        "fact_rows": 6497,
+        "section_count": 124,
+        "polling_place_count": 35,
+        "votes_total": 26464
+      },
+      {
+        "election_year": 2018,
+        "territory_level": "electoral_section",
+        "office": "Deputado Federal",
+        "election_round": 1,
+        "fact_rows": 6709,
+        "section_count": 124,
+        "polling_place_count": 35,
+        "votes_total": 26464
+      },
+      {
+        "election_year": 2018,
+        "territory_level": "electoral_section",
+        "office": "Governador",
+        "election_round": 1,
+        "fact_rows": 938,
+        "section_count": 124,
+        "polling_place_count": 35,
+        "votes_total": 26464
+      },
+      {
+        "election_year": 2018,
+        "territory_level": "electoral_section",
+        "office": "Governador",
+        "election_round": 2,
+        "fact_rows": 493,
+        "section_count": 124,
+        "polling_place_count": 35,
+        "votes_total": 26111
+      },
+      {
+        "election_year": 2018,
+        "territory_level": "electoral_section",
+        "office": "Senador",
+        "election_round": 1,
+        "fact_rows": 1689,
+        "section_count": 124,
+        "polling_place_count": 35,
+        "votes_total": 52928
+      },
+      {
+        "election_year": 2016,
+        "territory_level": "electoral_section",
+        "office": "PREFEITO",
+        "election_round": 1,
+        "fact_rows": 688,
+        "section_count": 116,
+        "polling_place_count": 35,
+        "votes_total": 27765
+      },
+      {
+        "election_year": 2016,
+        "territory_level": "electoral_section",
+        "office": "VEREADOR",
+        "election_round": 1,
+        "fact_rows": 8127,
+        "section_count": 116,
+        "polling_place_count": 35,
+        "votes_total": 27765
+      }
+    ],
+    "year_summary": [
+      {
+        "year": 2016,
+        "raw_offices": [
+          {
+            "office": "PREFEITO",
+            "election_round": 1,
+            "candidate_count": 6,
+            "section_count": 116,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "15",
+                "candidate_name": "JUSCELINO BRASILIANO ROQUE",
+                "votes": 8800
+              },
+              {
+                "candidate_number": "45",
+                "candidate_name": "LUIZ HENRIQUE MAIA SANTIAGO",
+                "votes": 7901
+              },
+              {
+                "candidate_number": "77",
+                "candidate_name": "MAURÍCIO DA PAIXÃO MAIA",
+                "votes": 5437
+              },
+              {
+                "candidate_number": "51",
+                "candidate_name": "FERNANDO ANTONIO DOS SANTOS",
+                "votes": 2854
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 1858
+              }
+            ]
+          },
+          {
+            "office": "VEREADOR",
+            "election_round": 1,
+            "candidate_count": 187,
+            "section_count": 116,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 1011
+              },
+              {
+                "candidate_number": "23555",
+                "candidate_name": "ANTÔNIO APARECIDO SOARES",
+                "votes": 889
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 869
+              },
+              {
+                "candidate_number": "15",
+                "candidate_name": "Partido do Movimento Democrático Brasileiro",
+                "votes": 631
+              },
+              {
+                "candidate_number": "45622",
+                "candidate_name": "LOURIVAL JOSÉ ALEXANDRE",
+                "votes": 582
+              }
+            ]
+          }
+        ],
+        "db_offices": [
+          {
+            "election_year": 2016,
+            "territory_level": "electoral_section",
+            "office": "PREFEITO",
+            "election_round": 1,
+            "fact_rows": 688,
+            "section_count": 116,
+            "polling_place_count": 35,
+            "votes_total": 27765
+          },
+          {
+            "election_year": 2016,
+            "territory_level": "electoral_section",
+            "office": "VEREADOR",
+            "election_round": 1,
+            "fact_rows": 8127,
+            "section_count": 116,
+            "polling_place_count": 35,
+            "votes_total": 27765
+          }
+        ]
+      },
+      {
+        "year": 2018,
+        "raw_offices": [
+          {
+            "office": "Deputado Estadual",
+            "election_round": 1,
+            "candidate_count": 483,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 2508
+              },
+              {
+                "candidate_number": "17999",
+                "candidate_name": "FERNANDO ANTONIO DOS SANTOS",
+                "votes": 2310
+              },
+              {
+                "candidate_number": "15101",
+                "candidate_name": "IRAN ALMEIDA BARBOSA",
+                "votes": 1768
+              },
+              {
+                "candidate_number": "90456",
+                "candidate_name": "LUCAS MANOEL BARBOSA WERNECK",
+                "votes": 1718
+              },
+              {
+                "candidate_number": "36123",
+                "candidate_name": "CELIO DE CASSIO MOREIRA",
+                "votes": 1659
+              }
+            ]
+          },
+          {
+            "office": "Deputado Federal",
+            "election_round": 1,
+            "candidate_count": 436,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 2570
+              },
+              {
+                "candidate_number": "4555",
+                "candidate_name": "MARCUS VINÍCIUS CAETANO PESTANA DA SILVA",
+                "votes": 1974
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 1618
+              },
+              {
+                "candidate_number": "1590",
+                "candidate_name": "JOSÉ SARAIVA FELIPE",
+                "votes": 1554
+              },
+              {
+                "candidate_number": "1515",
+                "candidate_name": "HERCÍLIO ARAÚJO DINIZ FILHO",
+                "votes": 1500
+              }
+            ]
+          },
+          {
+            "office": "Governador",
+            "election_round": 1,
+            "candidate_count": 11,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "13",
+                "candidate_name": "FERNANDO DAMATA PIMENTEL",
+                "votes": 8047
+              },
+              {
+                "candidate_number": "45",
+                "candidate_name": "ANTONIO AUGUSTO JUNHO ANASTASIA",
+                "votes": 6168
+              },
+              {
+                "candidate_number": "30",
+                "candidate_name": "ROMEU ZEMA NETO",
+                "votes": 5799
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 3576
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 1536
+              }
+            ]
+          },
+          {
+            "office": "Governador",
+            "election_round": 2,
+            "candidate_count": 4,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "30",
+                "candidate_name": "ROMEU ZEMA NETO",
+                "votes": 10496
+              },
+              {
+                "candidate_number": "45",
+                "candidate_name": "ANTONIO AUGUSTO JUNHO ANASTASIA",
+                "votes": 9406
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 5038
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 1171
+              }
+            ]
+          },
+          {
+            "office": "Senador",
+            "election_round": 1,
+            "candidate_count": 17,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 10252
+              },
+              {
+                "candidate_number": "133",
+                "candidate_name": "DILMA VANA ROUSSEFF",
+                "votes": 10003
+              },
+              {
+                "candidate_number": "250",
+                "candidate_name": "RODRIGO OTÁVIO SOARES PACHECO",
+                "votes": 6174
+              },
+              {
+                "candidate_number": "130",
+                "candidate_name": "MIGUEL CORREA DA SILVA JÚNIOR",
+                "votes": 6137
+              },
+              {
+                "candidate_number": "777",
+                "candidate_name": "DINIS ANTÔNIO PINHEIRO",
+                "votes": 5777
+              }
+            ]
+          }
+        ],
+        "db_offices": [
+          {
+            "election_year": 2018,
+            "territory_level": "electoral_section",
+            "office": "Deputado Estadual",
+            "election_round": 1,
+            "fact_rows": 6497,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "votes_total": 26464
+          },
+          {
+            "election_year": 2018,
+            "territory_level": "electoral_section",
+            "office": "Deputado Federal",
+            "election_round": 1,
+            "fact_rows": 6709,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "votes_total": 26464
+          },
+          {
+            "election_year": 2018,
+            "territory_level": "electoral_section",
+            "office": "Governador",
+            "election_round": 1,
+            "fact_rows": 938,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "votes_total": 26464
+          },
+          {
+            "election_year": 2018,
+            "territory_level": "electoral_section",
+            "office": "Governador",
+            "election_round": 2,
+            "fact_rows": 493,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "votes_total": 26111
+          },
+          {
+            "election_year": 2018,
+            "territory_level": "electoral_section",
+            "office": "Senador",
+            "election_round": 1,
+            "fact_rows": 1689,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "votes_total": 52928
+          }
+        ]
+      },
+      {
+        "year": 2020,
+        "raw_offices": [
+          {
+            "office": "Prefeito",
+            "election_round": 1,
+            "candidate_count": 4,
+            "section_count": 97,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "25",
+                "candidate_name": "JUSCELINO BRASILIANO ROQUE",
+                "votes": 19139
+              },
+              {
+                "candidate_number": "13",
+                "candidate_name": "ROSIMERE PEREIRA LIMA",
+                "votes": 5156
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 1891
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 791
+              }
+            ]
+          },
+          {
+            "office": "Vereador",
+            "election_round": 1,
+            "candidate_count": 205,
+            "section_count": 97,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "77622",
+                "candidate_name": "WAGNER ALCANTARA ALEXANDRE",
+                "votes": 1121
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 915
+              },
+              {
+                "candidate_number": "25123",
+                "candidate_name": "MARCOS JULIANO DA CRUZ",
+                "votes": 789
+              },
+              {
+                "candidate_number": "25",
+                "candidate_name": "Democratas",
+                "votes": 764
+              },
+              {
+                "candidate_number": "77321",
+                "candidate_name": "EDIVALDO JOSÉ SILVA LOPES",
+                "votes": 589
+              }
+            ]
+          }
+        ],
+        "db_offices": [
+          {
+            "election_year": 2020,
+            "territory_level": "electoral_section",
+            "office": "Prefeito",
+            "election_round": 1,
+            "fact_rows": 386,
+            "section_count": 97,
+            "polling_place_count": 36,
+            "votes_total": 26977
+          },
+          {
+            "election_year": 2020,
+            "territory_level": "electoral_section",
+            "office": "Vereador",
+            "election_round": 1,
+            "fact_rows": 7440,
+            "section_count": 97,
+            "polling_place_count": 36,
+            "votes_total": 26977
+          }
+        ]
+      },
+      {
+        "year": 2022,
+        "raw_offices": [
+          {
+            "office": "DEPUTADO ESTADUAL",
+            "election_round": 1,
+            "candidate_count": 511,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "77700",
+                "candidate_name": "MAURICIO DA PAIXÃO MAIA",
+                "votes": 1884
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 1860
+              },
+              {
+                "candidate_number": "13123",
+                "candidate_name": "BEATRIZ DA SILVA CERQUEIRA",
+                "votes": 1710
+              },
+              {
+                "candidate_number": "19456",
+                "candidate_name": "JOSE REIS NOGUEIRA DE BARROS",
+                "votes": 1520
+              },
+              {
+                "candidate_number": "10999",
+                "candidate_name": "FERNANDO ANTONIO DOS SANTOS",
+                "votes": 1183
+              }
+            ]
+          },
+          {
+            "office": "DEPUTADO FEDERAL",
+            "election_round": 1,
+            "candidate_count": 456,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "1515",
+                "candidate_name": "HERCILIO ARAUJO DINIZ FILHO",
+                "votes": 5159
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 1562
+              },
+              {
+                "candidate_number": "2222",
+                "candidate_name": "NIKOLAS FERREIRA DE OLIVEIRA",
+                "votes": 1452
+              },
+              {
+                "candidate_number": "1999",
+                "candidate_name": "IGOR TARCIANO TIMO",
+                "votes": 1258
+              },
+              {
+                "candidate_number": "1378",
+                "candidate_name": "PAULO JOSÉ CARLOS GUEDES",
+                "votes": 1099
+              }
+            ]
+          },
+          {
+            "office": "GOVERNADOR",
+            "election_round": 1,
+            "candidate_count": 12,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "55",
+                "candidate_name": "ALEXANDRE KALIL",
+                "votes": 13060
+              },
+              {
+                "candidate_number": "30",
+                "candidate_name": "ROMEU ZEMA NETO",
+                "votes": 8719
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 2621
+              },
+              {
+                "candidate_number": "22",
+                "candidate_name": "CARLOS ALBERTO DIAS VIANA",
+                "votes": 1872
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 1388
+              }
+            ]
+          },
+          {
+            "office": "SENADOR",
+            "election_round": 1,
+            "candidate_count": 11,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "555",
+                "candidate_name": "ALEXANDRE SILVEIRA DE OLIVEIRA",
+                "votes": 11538
+              },
+              {
+                "candidate_number": "200",
+                "candidate_name": "CLEITON GONTIJO DE AZEVEDO",
+                "votes": 9118
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 2740
+              },
+              {
+                "candidate_number": "111",
+                "candidate_name": "MARCELO GUILHERME DE ARO FERREIRA",
+                "votes": 2285
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 1962
+              }
+            ]
+          }
+        ],
+        "db_offices": [
+          {
+            "election_year": 2022,
+            "territory_level": "electoral_section",
+            "office": "DEPUTADO ESTADUAL",
+            "election_round": 1,
+            "fact_rows": 8332,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "votes_total": 28448
+          },
+          {
+            "election_year": 2022,
+            "territory_level": "electoral_section",
+            "office": "DEPUTADO FEDERAL",
+            "election_round": 1,
+            "fact_rows": 7059,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "votes_total": 28448
+          },
+          {
+            "election_year": 2022,
+            "territory_level": "electoral_section",
+            "office": "GOVERNADOR",
+            "election_round": 1,
+            "fact_rows": 943,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "votes_total": 28448
+          },
+          {
+            "election_year": 2022,
+            "territory_level": "electoral_section",
+            "office": "SENADOR",
+            "election_round": 1,
+            "fact_rows": 998,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "votes_total": 28448
+          }
+        ]
+      },
+      {
+        "year": 2024,
+        "raw_offices": [
+          {
+            "office": "Prefeito",
+            "election_round": 1,
+            "candidate_count": 4,
+            "section_count": 128,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "15",
+                "candidate_name": "GEFERSON GIORDANI BURGARELLI",
+                "votes": 12334
+              },
+              {
+                "candidate_number": "18",
+                "candidate_name": "FREDERICO SILVA SANTOS",
+                "votes": 11931
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 2128
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 1548
+              }
+            ]
+          },
+          {
+            "office": "Vereador",
+            "election_round": 1,
+            "candidate_count": 183,
+            "section_count": 128,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 897
+              },
+              {
+                "candidate_number": "25622",
+                "candidate_name": "WAGNER ALCANTARA ALEXANDRE",
+                "votes": 868
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 714
+              },
+              {
+                "candidate_number": "25555",
+                "candidate_name": "ANTÔNIO APARECIDO SOARES",
+                "votes": 680
+              },
+              {
+                "candidate_number": "25400",
+                "candidate_name": "ADILSON MÁRCIO TRINDADE SILVA",
+                "votes": 622
+              }
+            ]
+          }
+        ],
+        "db_offices": [
+          {
+            "election_year": 2024,
+            "territory_level": "electoral_section",
+            "office": "Prefeito",
+            "election_round": 1,
+            "fact_rows": 511,
+            "section_count": 128,
+            "polling_place_count": 36,
+            "votes_total": 27941
+          },
+          {
+            "election_year": 2024,
+            "territory_level": "electoral_section",
+            "office": "Vereador",
+            "election_round": 1,
+            "fact_rows": 8748,
+            "section_count": 128,
+            "polling_place_count": 36,
+            "votes_total": 27941
+          },
+          {
+            "election_year": 2024,
+            "territory_level": "electoral_zone",
+            "office": "Prefeito",
+            "election_round": 1,
+            "fact_rows": 2,
+            "section_count": 0,
+            "polling_place_count": 0,
+            "votes_total": 24265
+          },
+          {
+            "election_year": 2024,
+            "territory_level": "electoral_zone",
+            "office": "Vereador",
+            "election_round": 1,
+            "fact_rows": 163,
+            "section_count": 0,
+            "polling_place_count": 0,
+            "votes_total": 25266
+          }
+        ]
+      }
+    ],
+    "api_context_top_candidates_2024": [
+      {
+        "candidate_id": "338098b6-6f24-4106-bebb-0cb6d9ad6503",
+        "candidate_number": "15",
+        "candidate_name": "GEFERSON GIORDANI BURGARELLI",
+        "ballot_name": "GEFERSON GIORDANI BURGARELLI",
+        "party_abbr": "MDB",
+        "party_number": "15",
+        "party_name": "Movimento Democrático Brasileiro",
+        "votes": 12334,
+        "share_percent": 44.14301564009878
+      },
+      {
+        "candidate_id": "768e5b6e-7e76-4fad-ba91-e1bade6a625d",
+        "candidate_number": "18",
+        "candidate_name": "FREDERICO SILVA SANTOS",
+        "ballot_name": "FREDERICO SILVA SANTOS",
+        "party_abbr": "REDE",
+        "party_number": "18",
+        "party_name": "Rede Sustentabilidade",
+        "votes": 11931,
+        "share_percent": 42.70069074120468
+      },
+      {
+        "candidate_id": "6e3aa410-60f3-471a-b0fe-501bb33772a7",
+        "candidate_number": "96",
+        "candidate_name": "VOTO NULO",
+        "ballot_name": "VOTO NULO",
+        "party_abbr": null,
+        "party_number": null,
+        "party_name": null,
+        "votes": 2128,
+        "share_percent": 7.616048101356429
+      },
+      {
+        "candidate_id": "4dfd7050-0ea6-4625-8571-3aac22a9387c",
+        "candidate_number": "95",
+        "candidate_name": "VOTO BRANCO",
+        "ballot_name": "VOTO BRANCO",
+        "party_abbr": null,
+        "party_number": null,
+        "party_name": null,
+        "votes": 1548,
+        "share_percent": 5.54024551734011
+      }
+    ],
+    "db_top_candidates_for_api_scope_2024": [
+      {
+        "candidate_number": "15",
+        "candidate_name": "GEFERSON GIORDANI BURGARELLI",
+        "votes": 12334
+      },
+      {
+        "candidate_number": "18",
+        "candidate_name": "FREDERICO SILVA SANTOS",
+        "votes": 11931
+      },
+      {
+        "candidate_number": "96",
+        "candidate_name": "VOTO NULO",
+        "votes": 2128
+      },
+      {
+        "candidate_number": "95",
+        "candidate_name": "VOTO BRANCO",
+        "votes": 1548
+      }
+    ]
+  }
+}

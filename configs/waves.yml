@@ -17,9 +17,10 @@ waves:
       - tse_catalog_discovery
       - tse_electorate_fetch
       - tse_results_fetch
+      - tse_candidate_votes_fetch
     exit_criteria:
       - Electoral datasets filtered to MG and Diamantina.
-      - fact_electorate and fact_election_result populated and quality checks passing.
+      - fact_electorate, fact_election_result and fact_candidate_vote populated and quality checks passing.
   MVP-3:
     goal: Social and economic expansion.
     includes:

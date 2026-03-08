@@ -22,9 +22,17 @@ from app.schemas.qg import (
     BriefGenerateRequest,
     BriefGenerateResponse,
     ElectorateBreakdownItem,
+    ElectorateCandidateTerritoriesResponse,
+    ElectorateCandidateTerritoryItem,
+    ElectorateElectionContextResponse,
+    ElectorateHistoryItem,
+    ElectorateHistoryResponse,
     ElectorateMapItem,
     ElectorateMapResponse,
+    ElectoratePollingPlaceItem,
+    ElectoratePollingPlacesResponse,
     ElectorateSummaryResponse,
+    ElectionContextCandidateItem,
     ExplainabilityCoverage,
     ExplainabilityTrail,
     EnvironmentRiskItem,
@@ -813,11 +821,42 @@ def _fetch_electorate_breakdown(
     ]
 
 
+def _resolve_election_scope(
+    db: Session,
+    *,
+    level: str,
+    year: int,
+) -> tuple[str | None, int | None]:
+    row = db.execute(
+        text(
+            """
+            SELECT
+                fr.office,
+                fr.election_round,
+                SUM(CASE WHEN fr.metric = 'turnout' THEN fr.value ELSE 0 END)::double precision AS turnout
+            FROM silver.fact_election_result fr
+            JOIN silver.dim_territory dt ON dt.territory_id = fr.territory_id
+            WHERE dt.level::text = :level
+              AND fr.election_year = :year
+            GROUP BY fr.office, fr.election_round
+            ORDER BY turnout DESC NULLS LAST, fr.office ASC NULLS LAST
+            LIMIT 1
+            """
+        ),
+        {"level": level, "year": year},
+    ).mappings().first()
+    if not row:
+        return None, None
+    return row.get("office"), row.get("election_round")
+
+
 def _fetch_election_metrics(
     db: Session,
     *,
     level: str,
     year: int,
+    office: str | None,
+    election_round: int | None,
 ) -> dict[str, float]:
     rows = db.execute(
         text(
@@ -829,13 +868,184 @@ def _fetch_election_metrics(
             JOIN silver.dim_territory dt ON dt.territory_id = fr.territory_id
             WHERE dt.level::text = :level
               AND fr.election_year = :year
+              AND fr.office IS NOT DISTINCT FROM :office
+              AND fr.election_round IS NOT DISTINCT FROM :election_round
               AND fr.metric IN ('turnout', 'abstention', 'votes_blank', 'votes_null', 'votes_total')
             GROUP BY fr.metric
             """
         ),
-        {"level": level, "year": year},
+        {"level": level, "year": year, "office": office, "election_round": election_round},
     ).mappings().all()
     return {str(row["metric"]): float(row["total_value"]) for row in rows}
+
+
+def _build_election_metric_payload(metrics: dict[str, float]) -> dict[str, float | None]:
+    turnout = float(metrics.get("turnout", 0.0))
+    abstention = float(metrics.get("abstention", 0.0))
+    votes_total = float(metrics.get("votes_total", 0.0))
+    votes_blank = float(metrics.get("votes_blank", 0.0))
+    votes_null = float(metrics.get("votes_null", 0.0))
+    electorate_total = turnout + abstention
+
+    return {
+        "turnout": turnout if turnout > 0 else None,
+        "turnout_rate": round((turnout / electorate_total) * 100, 6) if electorate_total > 0 else None,
+        "abstention_rate": round((abstention / electorate_total) * 100, 6) if electorate_total > 0 else None,
+        "blank_rate": round((votes_blank / votes_total) * 100, 6) if votes_total > 0 else None,
+        "null_rate": round((votes_null / votes_total) * 100, 6) if votes_total > 0 else None,
+    }
+
+
+def _metric_value_from_grouped_row(metric: str, row: dict[str, Any]) -> float | None:
+    turnout = float(row.get("turnout") or 0.0)
+    abstention = float(row.get("abstention") or 0.0)
+    votes_blank = float(row.get("votes_blank") or 0.0)
+    votes_null = float(row.get("votes_null") or 0.0)
+    votes_total = float(row.get("votes_total") or 0.0)
+    electorate_total = turnout + abstention
+
+    if metric == "turnout":
+        return turnout if turnout > 0 else None
+    if metric == "abstention_rate":
+        return round((abstention / electorate_total) * 100, 6) if electorate_total > 0 else None
+    if metric == "blank_rate":
+        return round((votes_blank / votes_total) * 100, 6) if votes_total > 0 else None
+    if metric == "null_rate":
+        return round((votes_null / votes_total) * 100, 6) if votes_total > 0 else None
+    return None
+
+
+def _candidate_tables_available(db: Session) -> bool:
+    row = db.execute(
+        text(
+            """
+            SELECT
+                to_regclass('silver.fact_candidate_vote') IS NOT NULL AS fact_candidate_vote,
+                to_regclass('silver.dim_candidate') IS NOT NULL AS dim_candidate,
+                to_regclass('silver.dim_election') IS NOT NULL AS dim_election
+            """
+        )
+    ).mappings().one()
+    return all(bool(value) for value in row.values())
+
+
+def _candidate_context_levels(level: str) -> list[str]:
+    if level == "municipality":
+        return ["municipality", "electoral_section", "electoral_zone"]
+    if level == "electoral_zone":
+        return ["electoral_zone", "electoral_section"]
+    if level == "electoral_section":
+        return ["electoral_section", "electoral_zone"]
+    return [level]
+
+
+def _resolve_available_candidate_year(
+    db: Session,
+    *,
+    level: str,
+    requested_year: int | None,
+) -> tuple[int | None, str | None]:
+    if not _candidate_tables_available(db):
+        return None, None
+
+    max_allowed_year = datetime.now(UTC).year + _MAX_ALLOWED_YEAR_OFFSET
+    if requested_year is not None and not (_MIN_ALLOWED_YEAR <= requested_year <= max_allowed_year):
+        return None, None
+
+    for candidate_level in _candidate_context_levels(level):
+        if requested_year is not None:
+            count = db.execute(
+                text(
+                    """
+                    SELECT COUNT(*)
+                    FROM silver.fact_candidate_vote fcv
+                    JOIN silver.dim_election de ON de.election_id = fcv.election_id
+                    JOIN silver.dim_territory dt ON dt.territory_id = fcv.territory_id
+                    WHERE dt.level::text = :level
+                      AND de.election_year = :year
+                    """
+                ),
+                {"level": candidate_level, "year": requested_year},
+            ).scalar_one()
+            if int(count) > 0:
+                return requested_year, candidate_level
+            continue
+
+        latest_year = db.execute(
+            text(
+                """
+                SELECT MAX(de.election_year)
+                FROM silver.fact_candidate_vote fcv
+                JOIN silver.dim_election de ON de.election_id = fcv.election_id
+                JOIN silver.dim_territory dt ON dt.territory_id = fcv.territory_id
+                WHERE dt.level::text = :level
+                  AND de.election_year BETWEEN :min_year AND :max_year
+                """
+            ),
+            {"level": candidate_level, "min_year": _MIN_ALLOWED_YEAR, "max_year": max_allowed_year},
+        ).scalar_one()
+        if latest_year is not None:
+            return int(latest_year), candidate_level
+
+    return None, None
+
+
+def _resolve_candidate_election_scope(
+    db: Session,
+    *,
+    level: str,
+    year: int,
+) -> tuple[str | None, int | None, str | None]:
+    row = db.execute(
+        text(
+            """
+            SELECT
+                de.office,
+                de.election_round,
+                de.election_type,
+                SUM(fcv.votes)::double precision AS total_votes
+            FROM silver.fact_candidate_vote fcv
+            JOIN silver.dim_election de ON de.election_id = fcv.election_id
+            JOIN silver.dim_territory dt ON dt.territory_id = fcv.territory_id
+            WHERE dt.level::text = :level
+              AND de.election_year = :year
+            GROUP BY de.office, de.election_round, de.election_type
+            ORDER BY
+                CASE UPPER(TRIM(de.office))
+                    WHEN 'PREFEITO' THEN 1
+                    WHEN 'PRESIDENTE' THEN 1
+                    WHEN 'GOVERNADOR' THEN 2
+                    WHEN 'SENADOR' THEN 3
+                    WHEN 'DEPUTADO FEDERAL' THEN 4
+                    WHEN 'DEPUTADO ESTADUAL' THEN 5
+                    WHEN 'DEPUTADO DISTRITAL' THEN 5
+                    WHEN 'VEREADOR' THEN 6
+                    ELSE 99
+                END ASC,
+                total_votes DESC NULLS LAST,
+                de.office ASC
+            LIMIT 1
+            """
+        ),
+        {"level": level, "year": year},
+    ).mappings().first()
+    if not row:
+        return None, None, None
+    return row.get("office"), row.get("election_round"), row.get("election_type")
+
+
+def _build_candidate_source_note(
+    *,
+    note_prefix: str,
+    source_level: str | None = None,
+    requested_aggregate: str | None = None,
+) -> str:
+    parts = [note_prefix]
+    if source_level:
+        parts.append(f"source_level={source_level}")
+    if requested_aggregate:
+        parts.append(f"requested_aggregate={requested_aggregate}")
+    return "|".join(parts)
 
 
 def _resolve_effective_mobility_period(db: Session, requested_period: str | None) -> str | None:
@@ -1994,9 +2204,16 @@ def get_electorate_summary(
         requested_year=effective_year,
         table_kind="election",
     )
-    election_metrics = (
-        _fetch_election_metrics(db, level=level_en, year=election_year) if election_year is not None else {}
-    )
+    election_metrics: dict[str, float] = {}
+    if election_year is not None:
+        office, election_round = _resolve_election_scope(db, level=level_en, year=election_year)
+        election_metrics = _fetch_election_metrics(
+            db,
+            level=level_en,
+            year=election_year,
+            office=office,
+            election_round=election_round,
+        )
 
     turnout = election_metrics.get("turnout")
     abstention = election_metrics.get("abstention")
@@ -2039,6 +2256,822 @@ def get_electorate_summary(
         by_sex=by_sex,
         by_age=by_age,
         by_education=by_education,
+    )
+
+
+@router.get("/electorate/history", response_model=ElectorateHistoryResponse)
+def get_electorate_history(
+    level: str = Query(default="municipality"),
+    limit: int = Query(default=10, ge=1, le=50),
+    db: Session = Depends(get_db),  # noqa: B008
+) -> ElectorateHistoryResponse:
+    level_en = normalize_level(level) or "municipality"
+    max_allowed_year = datetime.now(UTC).year + _MAX_ALLOWED_YEAR_OFFSET
+
+    electorate_rows = db.execute(
+        text(
+            """
+            SELECT
+                fe.reference_year AS year,
+                SUM(fe.voters)::bigint AS total_voters
+            FROM silver.fact_electorate fe
+            JOIN silver.dim_territory dt ON dt.territory_id = fe.territory_id
+            WHERE dt.level::text = :level
+              AND fe.reference_year BETWEEN :min_year AND :max_year
+            GROUP BY fe.reference_year
+            ORDER BY fe.reference_year DESC
+            LIMIT :limit
+            """
+        ),
+        {"level": level_en, "min_year": _MIN_ALLOWED_YEAR, "max_year": max_allowed_year, "limit": limit},
+    ).mappings().all()
+
+    election_rows = db.execute(
+        text(
+            """
+            WITH scope AS (
+                SELECT
+                    fr.election_year,
+                    fr.office,
+                    fr.election_round,
+                    SUM(CASE WHEN fr.metric = 'turnout' THEN fr.value ELSE 0 END)::double precision AS turnout
+                FROM silver.fact_election_result fr
+                JOIN silver.dim_territory dt ON dt.territory_id = fr.territory_id
+                WHERE dt.level::text = :level
+                  AND fr.election_year BETWEEN :min_year AND :max_year
+                GROUP BY fr.election_year, fr.office, fr.election_round
+            ),
+            ranked AS (
+                SELECT
+                    election_year,
+                    office,
+                    election_round,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY election_year
+                        ORDER BY turnout DESC NULLS LAST, office ASC NULLS LAST
+                    ) AS rn
+                FROM scope
+            )
+            SELECT
+                fr.election_year AS year,
+                fr.metric,
+                SUM(fr.value)::double precision AS total_value
+            FROM silver.fact_election_result fr
+            JOIN silver.dim_territory dt ON dt.territory_id = fr.territory_id
+            JOIN ranked r
+              ON r.election_year = fr.election_year
+             AND r.rn = 1
+             AND fr.office IS NOT DISTINCT FROM r.office
+             AND fr.election_round IS NOT DISTINCT FROM r.election_round
+            WHERE dt.level::text = :level
+              AND fr.election_year BETWEEN :min_year AND :max_year
+              AND fr.metric IN ('turnout', 'abstention', 'votes_blank', 'votes_null', 'votes_total')
+            GROUP BY fr.election_year, fr.metric
+            ORDER BY fr.election_year DESC, fr.metric ASC
+            """
+        ),
+        {"level": level_en, "min_year": _MIN_ALLOWED_YEAR, "max_year": max_allowed_year},
+    ).mappings().all()
+
+    election_metrics_by_year: dict[int, dict[str, float]] = {}
+    for row in election_rows:
+        year_key = int(row["year"])
+        election_metrics_by_year.setdefault(year_key, {})[str(row["metric"])] = float(row["total_value"])
+
+    items = []
+    for row in electorate_rows:
+        row_year = int(row["year"])
+        metric_payload = _build_election_metric_payload(election_metrics_by_year.get(row_year, {}))
+        items.append(
+            ElectorateHistoryItem(
+                year=row_year,
+                total_voters=int(row["total_voters"] or 0),
+                turnout=metric_payload["turnout"],
+                turnout_rate=metric_payload["turnout_rate"],
+                abstention_rate=metric_payload["abstention_rate"],
+                blank_rate=metric_payload["blank_rate"],
+                null_rate=metric_payload["null_rate"],
+            )
+        )
+
+    return ElectorateHistoryResponse(
+        level=to_external_level(level_en),
+        metadata=QgMetadata(
+            source_name="silver.fact_electorate + silver.fact_election_result",
+            updated_at=None,
+            coverage_note="historical_series",
+            unit="voters",
+            notes="electorate_history_v1",
+            source_classification="oficial",
+            config_version=load_strategic_engine_config().version,
+        ),
+        items=items,
+    )
+
+
+@router.get("/electorate/polling-places", response_model=ElectoratePollingPlacesResponse)
+def get_electorate_polling_places(
+    metric: str = Query(default="voters", pattern="^(voters|turnout|abstention_rate|blank_rate|null_rate)$"),
+    year: int | None = Query(default=None, ge=1900, le=2100),
+    limit: int = Query(default=20, ge=1, le=200),
+    db: Session = Depends(get_db),  # noqa: B008
+) -> ElectoratePollingPlacesResponse:
+    level_en = "electoral_section"
+    metadata_unit = "%" if metric.endswith("_rate") else "voters"
+
+    if metric == "voters":
+        effective_year, electorate_storage_year, electorate_year_note = _resolve_electorate_year_binding(
+            db,
+            level=level_en,
+            requested_year=year,
+        )
+        if effective_year is None or electorate_storage_year is None:
+            return ElectoratePollingPlacesResponse(
+                metric=metric,
+                year=None,
+                metadata=QgMetadata(
+                    source_name="silver.fact_electorate + silver.dim_territory(metadata.polling_place_*)",
+                    updated_at=None,
+                    coverage_note="polling_place_ranked",
+                    unit=metadata_unit,
+                    notes="no_data_for_selected_filters",
+                    source_classification="oficial",
+                    config_version=load_strategic_engine_config().version,
+                ),
+                items=[],
+            )
+
+        rows = db.execute(
+            text(
+                """
+                WITH municipality_total AS (
+                    SELECT SUM(fe.voters)::double precision AS total_voters
+                    FROM silver.fact_electorate fe
+                    JOIN silver.dim_territory dt ON dt.territory_id = fe.territory_id
+                    WHERE dt.level::text = 'electoral_section'
+                      AND fe.reference_year = :year
+                ),
+                grouped AS (
+                    SELECT
+                        COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name) AS polling_place_name,
+                        NULLIF(dt.metadata->>'polling_place_code', '') AS polling_place_code,
+                        COUNT(DISTINCT dt.tse_section)::int AS section_count,
+                        ARRAY_AGG(DISTINCT dt.tse_zone ORDER BY dt.tse_zone)
+                            FILTER (WHERE dt.tse_zone IS NOT NULL) AS zone_codes,
+                        ARRAY_AGG(DISTINCT dt.tse_section ORDER BY dt.tse_section)
+                            FILTER (WHERE dt.tse_section IS NOT NULL) AS sections,
+                        SUM(fe.voters)::double precision AS voters_total,
+                        (array_agg(dt.geometry) FILTER (WHERE dt.geometry IS NOT NULL))[1] AS real_geom
+                    FROM silver.fact_electorate fe
+                    JOIN silver.dim_territory dt ON dt.territory_id = fe.territory_id
+                    WHERE dt.level::text = 'electoral_section'
+                      AND fe.reference_year = :year
+                    GROUP BY
+                        COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name),
+                        NULLIF(dt.metadata->>'polling_place_code', '')
+                )
+                SELECT
+                    md5(COALESCE(NULLIF(g.polling_place_code, ''), g.polling_place_name))::text AS territory_id,
+                    g.polling_place_name AS territory_name,
+                    'polling_place'::text AS territory_level,
+                    g.polling_place_name,
+                    g.polling_place_code,
+                    district.name AS district_name,
+                    g.zone_codes,
+                    g.section_count,
+                    g.sections,
+                    g.voters_total,
+                    CASE
+                        WHEN mt.total_voters > 0 THEN (g.voters_total / mt.total_voters) * 100
+                        ELSE NULL
+                    END::double precision AS share_percent
+                FROM grouped g
+                CROSS JOIN municipality_total mt
+                LEFT JOIN LATERAL (
+                    SELECT d.name
+                    FROM silver.dim_territory d
+                    WHERE d.level::text = 'district'
+                      AND d.geometry IS NOT NULL
+                      AND g.real_geom IS NOT NULL
+                      AND ST_Covers(d.geometry, g.real_geom)
+                    ORDER BY d.name ASC
+                    LIMIT 1
+                ) district ON TRUE
+                ORDER BY g.voters_total DESC, g.polling_place_name ASC
+                LIMIT :limit
+                """
+            ),
+            {"year": electorate_storage_year, "limit": limit},
+        ).mappings().all()
+
+        items = [
+            ElectoratePollingPlaceItem(
+                territory_id=row["territory_id"],
+                territory_name=row["territory_name"],
+                territory_level=row["territory_level"],
+                metric=metric,
+                value=float(row["voters_total"]) if row["voters_total"] is not None else None,
+                year=effective_year,
+                polling_place_name=row["polling_place_name"],
+                polling_place_code=row["polling_place_code"],
+                district_name=row["district_name"],
+                zone_codes=[str(code) for code in (row["zone_codes"] or [])],
+                section_count=int(row["section_count"] or 0),
+                sections=[str(section) for section in (row["sections"] or [])],
+                voters_total=int(round(float(row["voters_total"] or 0))),
+                share_percent=float(row["share_percent"]) if row["share_percent"] is not None else None,
+            )
+            for row in rows
+        ]
+
+        return ElectoratePollingPlacesResponse(
+            metric=metric,
+            year=effective_year,
+            metadata=QgMetadata(
+                source_name="silver.fact_electorate + silver.dim_territory(metadata.polling_place_*)",
+                updated_at=None,
+                coverage_note="polling_place_ranked",
+                unit=metadata_unit,
+                notes=electorate_year_note or "electorate_polling_places_v1",
+                source_classification="oficial",
+                config_version=load_strategic_engine_config().version,
+            ),
+            items=items,
+        )
+
+    effective_year = _resolve_available_year(
+        db,
+        level=level_en,
+        requested_year=year,
+        table_kind="election",
+    )
+    if effective_year is None:
+        return ElectoratePollingPlacesResponse(
+            metric=metric,
+            year=None,
+            metadata=QgMetadata(
+                source_name="silver.fact_election_result + silver.fact_electorate",
+                updated_at=None,
+                coverage_note="polling_place_ranked",
+                unit=metadata_unit,
+                notes="no_data_for_selected_filters",
+                source_classification="oficial",
+                config_version=load_strategic_engine_config().version,
+            ),
+            items=[],
+        )
+
+    office, election_round = _resolve_election_scope(db, level=level_en, year=effective_year)
+    rows = db.execute(
+        text(
+            """
+            WITH electorate_base AS (
+                SELECT
+                    COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name) AS polling_place_name,
+                    NULLIF(dt.metadata->>'polling_place_code', '') AS polling_place_code,
+                    COUNT(DISTINCT dt.tse_section)::int AS section_count,
+                    ARRAY_AGG(DISTINCT dt.tse_zone ORDER BY dt.tse_zone)
+                        FILTER (WHERE dt.tse_zone IS NOT NULL) AS zone_codes,
+                    ARRAY_AGG(DISTINCT dt.tse_section ORDER BY dt.tse_section)
+                        FILTER (WHERE dt.tse_section IS NOT NULL) AS sections,
+                    SUM(fe.voters)::double precision AS voters_total,
+                    (array_agg(dt.geometry) FILTER (WHERE dt.geometry IS NOT NULL))[1] AS real_geom
+                FROM silver.fact_electorate fe
+                JOIN silver.dim_territory dt ON dt.territory_id = fe.territory_id
+                WHERE dt.level::text = 'electoral_section'
+                  AND fe.reference_year = :year
+                GROUP BY
+                    COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name),
+                    NULLIF(dt.metadata->>'polling_place_code', '')
+            ),
+            municipality_total AS (
+                SELECT SUM(voters_total)::double precision AS total_voters
+                FROM electorate_base
+            ),
+            grouped AS (
+                SELECT
+                    COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name) AS polling_place_name,
+                    NULLIF(dt.metadata->>'polling_place_code', '') AS polling_place_code,
+                    SUM(CASE WHEN fr.metric = 'turnout' THEN fr.value ELSE 0 END)::double precision AS turnout,
+                    SUM(CASE WHEN fr.metric = 'abstention' THEN fr.value ELSE 0 END)::double precision AS abstention,
+                    SUM(CASE WHEN fr.metric = 'votes_blank' THEN fr.value ELSE 0 END)::double precision AS votes_blank,
+                    SUM(CASE WHEN fr.metric = 'votes_null' THEN fr.value ELSE 0 END)::double precision AS votes_null,
+                    SUM(CASE WHEN fr.metric = 'votes_total' THEN fr.value ELSE 0 END)::double precision AS votes_total
+                FROM silver.fact_election_result fr
+                JOIN silver.dim_territory dt ON dt.territory_id = fr.territory_id
+                WHERE dt.level::text = 'electoral_section'
+                  AND fr.election_year = :year
+                  AND fr.office IS NOT DISTINCT FROM :office
+                  AND fr.election_round IS NOT DISTINCT FROM :election_round
+                  AND fr.metric IN ('turnout', 'abstention', 'votes_blank', 'votes_null', 'votes_total')
+                GROUP BY
+                    COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name),
+                    NULLIF(dt.metadata->>'polling_place_code', '')
+            )
+            SELECT
+                md5(COALESCE(NULLIF(eb.polling_place_code, ''), eb.polling_place_name))::text AS territory_id,
+                eb.polling_place_name AS territory_name,
+                'polling_place'::text AS territory_level,
+                eb.polling_place_name,
+                eb.polling_place_code,
+                district.name AS district_name,
+                eb.zone_codes,
+                eb.section_count,
+                eb.sections,
+                eb.voters_total,
+                CASE
+                    WHEN mt.total_voters > 0 THEN (eb.voters_total / mt.total_voters) * 100
+                    ELSE NULL
+                END::double precision AS share_percent,
+                COALESCE(g.turnout, 0)::double precision AS turnout,
+                COALESCE(g.abstention, 0)::double precision AS abstention,
+                COALESCE(g.votes_blank, 0)::double precision AS votes_blank,
+                COALESCE(g.votes_null, 0)::double precision AS votes_null,
+                COALESCE(g.votes_total, 0)::double precision AS votes_total
+            FROM electorate_base eb
+            CROSS JOIN municipality_total mt
+            LEFT JOIN grouped g
+              ON g.polling_place_name = eb.polling_place_name
+             AND COALESCE(g.polling_place_code, '') = COALESCE(eb.polling_place_code, '')
+            LEFT JOIN LATERAL (
+                SELECT d.name
+                FROM silver.dim_territory d
+                WHERE d.level::text = 'district'
+                  AND d.geometry IS NOT NULL
+                  AND eb.real_geom IS NOT NULL
+                  AND ST_Covers(d.geometry, eb.real_geom)
+                ORDER BY d.name ASC
+                LIMIT 1
+            ) district ON TRUE
+            ORDER BY eb.polling_place_name ASC
+            """
+        ),
+        {"year": effective_year, "office": office, "election_round": election_round},
+    ).mappings().all()
+
+    enriched_rows = []
+    for row in rows:
+        row_dict = dict(row)
+        row_dict["value"] = _metric_value_from_grouped_row(metric, row_dict)
+        enriched_rows.append(row_dict)
+
+    enriched_rows.sort(
+        key=lambda row: (
+            -1 if row["value"] is None else 0,
+            -(float(row["value"]) if row["value"] is not None else 0.0),
+            str(row["territory_name"]),
+        )
+    )
+    trimmed_rows = enriched_rows[:limit]
+
+    items = [
+        ElectoratePollingPlaceItem(
+            territory_id=row["territory_id"],
+            territory_name=row["territory_name"],
+            territory_level=row["territory_level"],
+            metric=metric,
+            value=float(row["value"]) if row["value"] is not None else None,
+            year=effective_year,
+            polling_place_name=row["polling_place_name"],
+            polling_place_code=row["polling_place_code"],
+            district_name=row["district_name"],
+            zone_codes=[str(code) for code in (row["zone_codes"] or [])],
+            section_count=int(row["section_count"] or 0),
+            sections=[str(section) for section in (row["sections"] or [])],
+            voters_total=int(round(float(row["voters_total"] or 0))),
+            share_percent=float(row["share_percent"]) if row["share_percent"] is not None else None,
+        )
+        for row in trimmed_rows
+    ]
+
+    return ElectoratePollingPlacesResponse(
+        metric=metric,
+        year=effective_year,
+        metadata=QgMetadata(
+            source_name="silver.fact_election_result + silver.fact_electorate",
+            updated_at=None,
+            coverage_note="polling_place_ranked",
+            unit=metadata_unit,
+            notes="electorate_polling_places_v1",
+            source_classification="oficial",
+            config_version=load_strategic_engine_config().version,
+        ),
+        items=items,
+    )
+
+
+@router.get("/electorate/election-context", response_model=ElectorateElectionContextResponse)
+def get_electorate_election_context(
+    level: str = Query(default="municipality"),
+    year: int | None = Query(default=None, ge=1900, le=2100),
+    limit: int = Query(default=8, ge=1, le=20),
+    db: Session = Depends(get_db),  # noqa: B008
+) -> ElectorateElectionContextResponse:
+    level_en = normalize_level(level) or "municipality"
+    if not _candidate_tables_available(db):
+        return ElectorateElectionContextResponse(
+            level=to_external_level(level_en),
+            year=None,
+            metadata=QgMetadata(
+                source_name="silver.dim_election + silver.dim_candidate + silver.fact_candidate_vote",
+                updated_at=None,
+                coverage_note="candidate_context",
+                unit="votes",
+                notes="candidate_tables_missing",
+                source_classification="oficial",
+                config_version=load_strategic_engine_config().version,
+            ),
+            total_votes=0,
+            items=[],
+        )
+
+    effective_year, candidate_level = _resolve_available_candidate_year(db, level=level_en, requested_year=year)
+    if effective_year is None or candidate_level is None:
+        return ElectorateElectionContextResponse(
+            level=to_external_level(level_en),
+            year=None,
+            metadata=QgMetadata(
+                source_name="silver.dim_election + silver.dim_candidate + silver.fact_candidate_vote",
+                updated_at=None,
+                coverage_note="candidate_context",
+                unit="votes",
+                notes="no_data_for_selected_filters",
+                source_classification="oficial",
+                config_version=load_strategic_engine_config().version,
+            ),
+            total_votes=0,
+            items=[],
+        )
+
+    office, election_round, election_type = _resolve_candidate_election_scope(
+        db,
+        level=candidate_level,
+        year=effective_year,
+    )
+    rows = db.execute(
+        text(
+            """
+            WITH grouped AS (
+                SELECT
+                    dc.candidate_id::text AS candidate_id,
+                    dc.candidate_number,
+                    dc.candidate_name,
+                    dc.ballot_name,
+                    dc.party_abbr,
+                    dc.party_number,
+                    dc.party_name,
+                    SUM(fcv.votes)::double precision AS votes
+                FROM silver.fact_candidate_vote fcv
+                JOIN silver.dim_candidate dc ON dc.candidate_id = fcv.candidate_id
+                JOIN silver.dim_election de ON de.election_id = fcv.election_id
+                JOIN silver.dim_territory dt ON dt.territory_id = fcv.territory_id
+                WHERE dt.level::text = :level
+                  AND de.election_year = :year
+                  AND de.office IS NOT DISTINCT FROM :office
+                  AND de.election_round IS NOT DISTINCT FROM :election_round
+                GROUP BY
+                    dc.candidate_id,
+                    dc.candidate_number,
+                    dc.candidate_name,
+                    dc.ballot_name,
+                    dc.party_abbr,
+                    dc.party_number,
+                    dc.party_name
+            ),
+            total AS (
+                SELECT SUM(votes)::double precision AS total_votes
+                FROM grouped
+            )
+            SELECT
+                g.*,
+                t.total_votes,
+                CASE
+                    WHEN t.total_votes > 0 THEN (g.votes / t.total_votes) * 100
+                    ELSE NULL
+                END::double precision AS share_percent
+            FROM grouped g
+            CROSS JOIN total t
+            ORDER BY g.votes DESC, g.candidate_name ASC
+            LIMIT :limit
+            """
+        ),
+        {
+            "level": candidate_level,
+            "year": effective_year,
+            "office": office,
+            "election_round": election_round,
+            "limit": limit,
+        },
+    ).mappings().all()
+
+    total_votes = int(round(float(rows[0]["total_votes"] or 0))) if rows else 0
+    return ElectorateElectionContextResponse(
+        level=to_external_level(level_en),
+        year=effective_year,
+        election_round=election_round,
+        office=office,
+        election_type=election_type,
+        metadata=QgMetadata(
+            source_name="silver.dim_election + silver.dim_candidate + silver.fact_candidate_vote",
+            updated_at=None,
+            coverage_note="candidate_context",
+            unit="votes",
+            notes=_build_candidate_source_note(
+                note_prefix="electorate_election_context_v1",
+                source_level=candidate_level if candidate_level != level_en else None,
+            ),
+            source_classification="oficial",
+            config_version=load_strategic_engine_config().version,
+        ),
+        total_votes=total_votes,
+        items=[
+            ElectionContextCandidateItem(
+                candidate_id=row["candidate_id"],
+                candidate_number=str(row["candidate_number"]),
+                candidate_name=row["candidate_name"],
+                ballot_name=row["ballot_name"],
+                party_abbr=row["party_abbr"],
+                party_number=row["party_number"],
+                party_name=row["party_name"],
+                votes=int(round(float(row["votes"] or 0))),
+                share_percent=float(row["share_percent"]) if row["share_percent"] is not None else None,
+            )
+            for row in rows
+        ],
+    )
+
+
+@router.get("/electorate/candidate-territories", response_model=ElectorateCandidateTerritoriesResponse)
+def get_electorate_candidate_territories(
+    candidate_id: str = Query(...),
+    aggregate_by: str = Query(default="polling_place", pattern="^(polling_place|electoral_section)$"),
+    year: int | None = Query(default=None, ge=1900, le=2100),
+    office: str | None = Query(default=None),
+    election_round: int | None = Query(default=None, ge=1, le=2),
+    limit: int = Query(default=20, ge=1, le=200),
+    db: Session = Depends(get_db),  # noqa: B008
+) -> ElectorateCandidateTerritoriesResponse:
+    base_level = "electoral_section"
+    if not _candidate_tables_available(db):
+        return ElectorateCandidateTerritoriesResponse(
+            level=to_external_level(base_level),
+            aggregate_by=aggregate_by,
+            year=None,
+            candidate_id=candidate_id,
+            metadata=QgMetadata(
+                source_name="silver.dim_election + silver.dim_candidate + silver.fact_candidate_vote",
+                updated_at=None,
+                coverage_note="candidate_territorial",
+                unit="votes",
+                notes="candidate_tables_missing",
+                source_classification="oficial",
+                config_version=load_strategic_engine_config().version,
+            ),
+            items=[],
+        )
+
+    effective_year, resolved_level = _resolve_available_candidate_year(db, level=base_level, requested_year=year)
+    if effective_year is None or resolved_level is None:
+        return ElectorateCandidateTerritoriesResponse(
+            level=to_external_level(base_level),
+            aggregate_by=aggregate_by,
+            year=None,
+            candidate_id=candidate_id,
+            metadata=QgMetadata(
+                source_name="silver.dim_election + silver.dim_candidate + silver.fact_candidate_vote",
+                updated_at=None,
+                coverage_note="candidate_territorial",
+                unit="votes",
+                notes="no_data_for_selected_filters",
+                source_classification="oficial",
+                config_version=load_strategic_engine_config().version,
+            ),
+            items=[],
+        )
+
+    if resolved_level != base_level:
+        return ElectorateCandidateTerritoriesResponse(
+            level=to_external_level(base_level),
+            aggregate_by=aggregate_by,
+            year=effective_year,
+            candidate_id=candidate_id,
+            metadata=QgMetadata(
+                source_name="silver.dim_election + silver.dim_candidate + silver.fact_candidate_vote",
+                updated_at=None,
+                coverage_note="candidate_territorial",
+                unit="votes",
+                notes=_build_candidate_source_note(
+                    note_prefix="candidate_territories_unavailable",
+                    source_level=resolved_level,
+                    requested_aggregate=aggregate_by,
+                ),
+                source_classification="oficial",
+                config_version=load_strategic_engine_config().version,
+            ),
+            items=[],
+        )
+
+    if office is None or election_round is None:
+        resolved_office, resolved_round, resolved_type = _resolve_candidate_election_scope(
+            db,
+            level=resolved_level,
+            year=effective_year,
+        )
+        office = office or resolved_office
+        election_round = election_round if election_round is not None else resolved_round
+        election_type = resolved_type
+    else:
+        election_type = None
+
+    if aggregate_by == "electoral_section":
+        rows = db.execute(
+            text(
+                """
+                WITH grouped AS (
+                    SELECT
+                        dt.territory_id::text AS territory_id,
+                        dt.name AS territory_name,
+                        'electoral_section'::text AS territory_level,
+                        COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name) AS polling_place_name,
+                        NULLIF(dt.metadata->>'polling_place_code', '') AS polling_place_code,
+                        ARRAY[dt.tse_zone]::text[] AS zone_codes,
+                        1::int AS section_count,
+                        ARRAY[dt.tse_section]::text[] AS sections,
+                        dc.candidate_id::text AS candidate_id,
+                        dc.candidate_number,
+                        dc.candidate_name,
+                        dc.ballot_name,
+                        dc.party_abbr,
+                        dc.party_number,
+                        dc.party_name,
+                        fcv.votes::double precision AS votes
+                    FROM silver.fact_candidate_vote fcv
+                    JOIN silver.dim_candidate dc ON dc.candidate_id = fcv.candidate_id
+                    JOIN silver.dim_election de ON de.election_id = fcv.election_id
+                    JOIN silver.dim_territory dt ON dt.territory_id = fcv.territory_id
+                    WHERE dt.level::text = 'electoral_section'
+                      AND dc.candidate_id = CAST(:candidate_id AS uuid)
+                      AND de.election_year = :year
+                      AND de.office IS NOT DISTINCT FROM :office
+                      AND de.election_round IS NOT DISTINCT FROM :election_round
+                ),
+                total AS (
+                    SELECT SUM(votes)::double precision AS total_votes
+                    FROM grouped
+                )
+                SELECT
+                    g.*,
+                    district.name AS district_name,
+                    CASE
+                        WHEN t.total_votes > 0 THEN (g.votes / t.total_votes) * 100
+                        ELSE NULL
+                    END::double precision AS share_percent
+                FROM grouped g
+                CROSS JOIN total t
+                LEFT JOIN silver.dim_territory dt_section ON dt_section.territory_id::text = g.territory_id
+                LEFT JOIN LATERAL (
+                    SELECT d.name
+                    FROM silver.dim_territory d
+                    WHERE d.level::text = 'district'
+                      AND d.geometry IS NOT NULL
+                      AND dt_section.geometry IS NOT NULL
+                      AND ST_Covers(d.geometry, dt_section.geometry)
+                    ORDER BY d.name ASC
+                    LIMIT 1
+                ) district ON TRUE
+                ORDER BY g.votes DESC, g.territory_name ASC
+                LIMIT :limit
+                """
+            ),
+            {
+                "candidate_id": candidate_id,
+                "year": effective_year,
+                "office": office,
+                "election_round": election_round,
+                "limit": limit,
+            },
+        ).mappings().all()
+    else:
+        rows = db.execute(
+            text(
+                """
+                WITH grouped AS (
+                    SELECT
+                        md5(COALESCE(NULLIF(dt.metadata->>'polling_place_code', ''), COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name)))::text AS territory_id,
+                        COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name) AS territory_name,
+                        'polling_place'::text AS territory_level,
+                        COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name) AS polling_place_name,
+                        NULLIF(dt.metadata->>'polling_place_code', '') AS polling_place_code,
+                        ARRAY_AGG(DISTINCT dt.tse_zone ORDER BY dt.tse_zone)
+                            FILTER (WHERE dt.tse_zone IS NOT NULL) AS zone_codes,
+                        COUNT(DISTINCT dt.tse_section)::int AS section_count,
+                        ARRAY_AGG(DISTINCT dt.tse_section ORDER BY dt.tse_section)
+                            FILTER (WHERE dt.tse_section IS NOT NULL) AS sections,
+                        dc.candidate_id::text AS candidate_id,
+                        dc.candidate_number,
+                        dc.candidate_name,
+                        dc.ballot_name,
+                        dc.party_abbr,
+                        dc.party_number,
+                        dc.party_name,
+                        SUM(fcv.votes)::double precision AS votes,
+                        (array_agg(dt.geometry) FILTER (WHERE dt.geometry IS NOT NULL))[1] AS real_geom
+                    FROM silver.fact_candidate_vote fcv
+                    JOIN silver.dim_candidate dc ON dc.candidate_id = fcv.candidate_id
+                    JOIN silver.dim_election de ON de.election_id = fcv.election_id
+                    JOIN silver.dim_territory dt ON dt.territory_id = fcv.territory_id
+                    WHERE dt.level::text = 'electoral_section'
+                      AND dc.candidate_id = CAST(:candidate_id AS uuid)
+                      AND de.election_year = :year
+                      AND de.office IS NOT DISTINCT FROM :office
+                      AND de.election_round IS NOT DISTINCT FROM :election_round
+                    GROUP BY
+                        COALESCE(NULLIF(dt.metadata->>'polling_place_name', ''), dt.name),
+                        NULLIF(dt.metadata->>'polling_place_code', ''),
+                        dc.candidate_id,
+                        dc.candidate_number,
+                        dc.candidate_name,
+                        dc.ballot_name,
+                        dc.party_abbr,
+                        dc.party_number,
+                        dc.party_name
+                ),
+                total AS (
+                    SELECT SUM(votes)::double precision AS total_votes
+                    FROM grouped
+                )
+                SELECT
+                    g.*,
+                    district.name AS district_name,
+                    CASE
+                        WHEN t.total_votes > 0 THEN (g.votes / t.total_votes) * 100
+                        ELSE NULL
+                    END::double precision AS share_percent
+                FROM grouped g
+                CROSS JOIN total t
+                LEFT JOIN LATERAL (
+                    SELECT d.name
+                    FROM silver.dim_territory d
+                    WHERE d.level::text = 'district'
+                      AND d.geometry IS NOT NULL
+                      AND g.real_geom IS NOT NULL
+                      AND ST_Covers(d.geometry, g.real_geom)
+                    ORDER BY d.name ASC
+                    LIMIT 1
+                ) district ON TRUE
+                ORDER BY g.votes DESC, g.territory_name ASC
+                LIMIT :limit
+                """
+            ),
+            {
+                "candidate_id": candidate_id,
+                "year": effective_year,
+                "office": office,
+                "election_round": election_round,
+                "limit": limit,
+            },
+        ).mappings().all()
+
+    return ElectorateCandidateTerritoriesResponse(
+        level=to_external_level(base_level),
+        aggregate_by=aggregate_by,
+        year=effective_year,
+        election_round=election_round,
+        office=office,
+        election_type=election_type,
+        candidate_id=candidate_id,
+        metadata=QgMetadata(
+            source_name="silver.dim_election + silver.dim_candidate + silver.fact_candidate_vote",
+            updated_at=None,
+            coverage_note="candidate_territorial",
+            unit="votes",
+            notes="electorate_candidate_territories_v1",
+            source_classification="oficial",
+            config_version=load_strategic_engine_config().version,
+        ),
+        items=[
+            ElectorateCandidateTerritoryItem(
+                territory_id=row["territory_id"],
+                territory_name=row["territory_name"],
+                territory_level=row["territory_level"],
+                candidate_id=row["candidate_id"],
+                candidate_number=str(row["candidate_number"]),
+                candidate_name=row["candidate_name"],
+                ballot_name=row["ballot_name"],
+                party_abbr=row["party_abbr"],
+                party_number=row["party_number"],
+                party_name=row["party_name"],
+                votes=int(round(float(row["votes"] or 0))),
+                share_percent=float(row["share_percent"]) if row["share_percent"] is not None else None,
+                polling_place_name=row["polling_place_name"],
+                polling_place_code=row["polling_place_code"],
+                district_name=row["district_name"],
+                zone_codes=[str(code) for code in (row["zone_codes"] or [])],
+                section_count=int(row["section_count"] or 0),
+                sections=[str(section) for section in (row["sections"] or [])],
+            )
+            for row in rows
+        ],
     )
 
 
@@ -2274,6 +3307,7 @@ def get_electorate_map(
             items=[],
         )
 
+    office, election_round = _resolve_election_scope(db, level=level_en, year=effective_year)
     rows = db.execute(
         text(
             f"""
@@ -2292,6 +3326,8 @@ def get_electorate_map(
                 JOIN silver.dim_territory dt ON dt.territory_id = fr.territory_id
                 WHERE dt.level::text = :level
                   AND fr.election_year = :year
+                  AND fr.office IS NOT DISTINCT FROM :office
+                  AND fr.election_round IS NOT DISTINCT FROM :election_round
                 GROUP BY dt.territory_id, dt.name, dt.level, dt.geometry
             )
             SELECT
@@ -2311,7 +3347,14 @@ def get_electorate_map(
             LIMIT :limit
             """
         ),
-        {"level": level_en, "year": effective_year, "metric": metric, "limit": limit},
+        {
+            "level": level_en,
+            "year": effective_year,
+            "metric": metric,
+            "limit": limit,
+            "office": office,
+            "election_round": election_round,
+        },
     ).mappings().all()
 
     items = [

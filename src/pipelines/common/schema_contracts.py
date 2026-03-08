@@ -14,6 +14,7 @@ TARGET_TABLE_BY_CONNECTOR: dict[str, str] = {
     "ibge_geometries_fetch": "silver.dim_territory",
     "tse_electorate_fetch": "silver.fact_electorate",
     "tse_results_fetch": "silver.fact_election_result",
+    "tse_candidate_votes_fetch": "silver.fact_candidate_vote",
     "suasweb_social_assistance_fetch": "silver.fact_indicator",
     "cneas_social_assistance_fetch": "silver.fact_indicator",
     "cecad_social_protection_fetch": "silver.fact_social_protection",
@@ -29,6 +30,7 @@ DATASET_BY_CONNECTOR: dict[str, str] = {
     "ibge_indicators_fetch": "ibge_indicators",
     "tse_electorate_fetch": "tse_electorate",
     "tse_results_fetch": "tse_results",
+    "tse_candidate_votes_fetch": "tse_candidate_votes",
     "education_inep_fetch": "inep_education",
     "health_datasus_fetch": "datasus_health",
     "finance_siconfi_fetch": "siconfi_finance",
@@ -64,6 +66,7 @@ REQUIRED_COLUMNS_BY_TABLE: dict[str, list[str]] = {
     ],
     "silver.fact_electorate": ["territory_id", "reference_year", "voters"],
     "silver.fact_election_result": ["territory_id", "election_year", "metric", "value"],
+    "silver.fact_candidate_vote": ["territory_id", "election_id", "candidate_id", "votes"],
     "silver.dim_territory": [
         "territory_id",
         "level",
@@ -95,6 +98,7 @@ OPTIONAL_COLUMNS_BY_TABLE: dict[str, list[str]] = {
     "silver.fact_indicator": ["unit", "category", "updated_at"],
     "silver.fact_electorate": ["sex", "age_range", "education"],
     "silver.fact_election_result": ["election_round", "office"],
+    "silver.fact_candidate_vote": [],
     "silver.dim_territory": [
         "parent_territory_id",
         "ibge_geocode",
@@ -169,6 +173,12 @@ COLUMN_TYPES_BY_TABLE: dict[str, dict[str, str]] = {
         "metric": "text",
         "value": "numeric",
     },
+    "silver.fact_candidate_vote": {
+        "territory_id": "uuid",
+        "election_id": "uuid",
+        "candidate_id": "uuid",
+        "votes": "integer",
+    },
     "silver.dim_territory": {
         "territory_id": "uuid",
         "level": "silver.territory_level",
@@ -226,6 +236,10 @@ CONSTRAINTS_BY_TABLE: dict[str, dict[str, Any]] = {
             "office",
             "metric",
         ],
+    },
+    "silver.fact_candidate_vote": {
+        "checks": ["votes >= 0"],
+        "unique_key": ["territory_id", "election_id", "candidate_id"],
     },
 }
 

@@ -29,6 +29,11 @@ connectors:
     wave: MVP-2
     status: implemented
     notes: CKAN discovery + municipal-zone detail parsing + idempotent load into fact_election_result.
+  - connector_name: tse_candidate_votes_fetch
+    source: TSE
+    wave: MVP-2
+    status: implemented
+    notes: CKAN discovery + votação nominal por seção eleitoral, com derivação de local de votação e Silver em eleição/candidato/voto territorial.
   - connector_name: education_inep_fetch
     source: INEP
     wave: MVP-3

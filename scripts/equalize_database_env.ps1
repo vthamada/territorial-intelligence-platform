@@ -95,8 +95,8 @@ try {
 
     Invoke-Step -StepName "reprocess_tse_2024" -ScriptArgs @(
         "scripts/run_incremental_backfill.py",
-        "--jobs", "tse_catalog_discovery,tse_electorate_fetch,tse_results_fetch",
-        "--reprocess-jobs", "tse_electorate_fetch,tse_results_fetch",
+        "--jobs", "tse_catalog_discovery,tse_electorate_fetch,tse_results_fetch,tse_candidate_votes_fetch",
+        "--reprocess-jobs", "tse_electorate_fetch,tse_results_fetch,tse_candidate_votes_fetch",
         "--reprocess-periods", "2024",
         "--periods", "2024",
         "--output-json", $tseReprocessReport

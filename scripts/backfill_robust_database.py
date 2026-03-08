@@ -45,6 +45,7 @@ from pipelines.ibge_admin import run as run_ibge_admin  # noqa: E402
 from pipelines.ibge_geometries import run as run_ibge_geometries  # noqa: E402
 from pipelines.tse_catalog import run as run_tse_catalog  # noqa: E402
 from pipelines.tse_electorate import run as run_tse_electorate  # noqa: E402
+from pipelines.tse_candidate_votes import run as run_tse_candidate_votes  # noqa: E402
 from pipelines.tse_results import run as run_tse_results  # noqa: E402
 
 
@@ -359,6 +360,59 @@ def _coverage_report(database_url: str) -> dict[str, Any]:
                 """
             )
         ).scalar_one()
+        candidate_vote = conn.execute(
+            sa.text(
+                """
+                SELECT
+                    COUNT(*)::bigint AS rows,
+                    COUNT(DISTINCT de.election_year)::bigint AS distinct_years,
+                    MIN(de.election_year)::int AS min_year,
+                    MAX(de.election_year)::int AS max_year
+                FROM silver.fact_candidate_vote fcv
+                JOIN silver.dim_election de ON de.election_id = fcv.election_id
+                """
+            )
+        ).mappings().one()
+        candidate_vote_by_level = conn.execute(
+            sa.text(
+                """
+                SELECT
+                    dt.level::text AS territory_level,
+                    COUNT(*)::bigint AS rows,
+                    COUNT(DISTINCT de.election_year)::bigint AS distinct_years,
+                    MIN(de.election_year)::int AS min_year,
+                    MAX(de.election_year)::int AS max_year,
+                    (COUNT(DISTINCT dt.tse_section) FILTER (WHERE dt.level::text = 'electoral_section'))::bigint AS section_count,
+                    (COUNT(
+                        DISTINCT COALESCE(
+                            NULLIF(dt.metadata->>'polling_place_code', ''),
+                            NULLIF(dt.metadata->>'polling_place_name', ''),
+                            dt.name
+                        )
+                    ) FILTER (WHERE dt.level::text = 'electoral_section'))::bigint AS polling_place_count
+                FROM silver.fact_candidate_vote fcv
+                JOIN silver.dim_election de ON de.election_id = fcv.election_id
+                JOIN silver.dim_territory dt ON dt.territory_id = fcv.territory_id
+                GROUP BY dt.level::text
+                ORDER BY dt.level::text
+                """
+            )
+        ).mappings().all()
+        candidate_vote_offices = conn.execute(
+            sa.text(
+                """
+                SELECT
+                    de.election_year,
+                    dt.level::text AS territory_level,
+                    ARRAY_AGG(DISTINCT de.office ORDER BY de.office) AS offices
+                FROM silver.fact_candidate_vote fcv
+                JOIN silver.dim_election de ON de.election_id = fcv.election_id
+                JOIN silver.dim_territory dt ON dt.territory_id = fcv.territory_id
+                GROUP BY de.election_year, dt.level::text
+                ORDER BY de.election_year DESC, dt.level::text
+                """
+            )
+        ).mappings().all()
         indicators_by_source = conn.execute(
             sa.text(
                 """
@@ -517,6 +571,9 @@ def _coverage_report(database_url: str) -> dict[str, Any]:
             **dict(election),
             "electoral_zone_rows": int(election_zone_rows or 0),
         },
+        "candidate_vote": dict(candidate_vote),
+        "candidate_vote_by_level": [dict(row) for row in candidate_vote_by_level],
+        "candidate_vote_office_coverage": [dict(row) for row in candidate_vote_offices],
         "indicator_by_source_period": [dict(row) for row in indicators_by_source],
         "environmental_sources": [dict(row) for row in environmental_sources],
         "indicator_by_level": [dict(row) for row in indicators_by_level],
@@ -632,6 +689,16 @@ def main(argv: list[str] | None = None) -> int:
                 _run_job(
                     label="tse_results_fetch",
                     fn=run_tse_results,
+                    reference_period=year,
+                    dry_run=args.dry_run,
+                    timeout_seconds=args.timeout_seconds,
+                    max_retries=args.max_retries,
+                )
+            )
+            executions.append(
+                _run_job(
+                    label="tse_candidate_votes_fetch",
+                    fn=run_tse_candidate_votes,
                     reference_period=year,
                     dry_run=args.dry_run,
                     timeout_seconds=args.timeout_seconds,

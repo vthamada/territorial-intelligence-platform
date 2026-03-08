@@ -504,6 +504,103 @@ export type ElectorateMapResponse = {
   items: ElectorateMapItem[];
 };
 
+export type ElectorateHistoryItem = {
+  year: number;
+  total_voters: number;
+  turnout: number | null;
+  turnout_rate: number | null;
+  abstention_rate: number | null;
+  blank_rate: number | null;
+  null_rate: number | null;
+};
+
+export type ElectorateHistoryResponse = {
+  level: string;
+  metadata: QgMetadata;
+  items: ElectorateHistoryItem[];
+};
+
+export type ElectoratePollingPlaceItem = {
+  territory_id: string;
+  territory_name: string;
+  territory_level: string;
+  metric: "voters" | "turnout" | "abstention_rate" | "blank_rate" | "null_rate";
+  value: number | null;
+  year: number | null;
+  polling_place_name?: string | null;
+  polling_place_code?: string | null;
+  district_name?: string | null;
+  zone_codes: string[];
+  section_count: number;
+  sections: string[];
+  voters_total: number;
+  share_percent: number | null;
+};
+
+export type ElectoratePollingPlacesResponse = {
+  metric: "voters" | "turnout" | "abstention_rate" | "blank_rate" | "null_rate";
+  year: number | null;
+  metadata: QgMetadata;
+  items: ElectoratePollingPlaceItem[];
+};
+
+export type ElectionContextCandidateItem = {
+  candidate_id: string;
+  candidate_number: string;
+  candidate_name: string;
+  ballot_name: string | null;
+  party_abbr: string | null;
+  party_number: string | null;
+  party_name: string | null;
+  votes: number;
+  share_percent: number | null;
+};
+
+export type ElectorateElectionContextResponse = {
+  level: string;
+  year: number | null;
+  election_round: number | null;
+  office: string | null;
+  election_type: string | null;
+  metadata: QgMetadata;
+  total_votes: number;
+  items: ElectionContextCandidateItem[];
+};
+
+export type ElectorateCandidateTerritoryItem = {
+  territory_id: string;
+  territory_name: string;
+  territory_level: string;
+  candidate_id: string;
+  candidate_number: string;
+  candidate_name: string;
+  ballot_name: string | null;
+  party_abbr: string | null;
+  party_number: string | null;
+  party_name: string | null;
+  votes: number;
+  share_percent: number | null;
+  polling_place_name: string | null;
+  polling_place_code: string | null;
+  district_name: string | null;
+  zone_codes: string[];
+  section_count: number;
+  sections: string[];
+};
+
+export type ElectorateCandidateTerritoriesResponse = {
+  level: string;
+  aggregate_by: string;
+  year: number | null;
+  election_round: number | null;
+  office: string | null;
+  election_type: string | null;
+  candidate_id: string | null;
+  metadata: QgMetadata;
+  items: ElectorateCandidateTerritoryItem[];
+};
+
+
 export type ChoroplethItem = {
   territory_id: string;
   territory_name: string;

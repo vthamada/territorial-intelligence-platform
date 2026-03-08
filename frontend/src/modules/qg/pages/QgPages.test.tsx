@@ -8,6 +8,7 @@ import { getChoropleth, getMapLayers, getMapLayersCoverage, getMapStyleMetadata,
 import { ApiClientError } from "../../../shared/api/http";
 import {
   getElectorateMap,
+  getElectoratePollingPlaces,
   getInsightsHighlights,
   getKpisOverview,
   getPriorityList,
@@ -29,6 +30,7 @@ vi.mock("../../../shared/api/qg", () => ({
   getPriorityList: vi.fn(),
   getInsightsHighlights: vi.fn(),
   getElectorateMap: vi.fn(),
+  getElectoratePollingPlaces: vi.fn(),
   postScenarioSimulate: vi.fn(),
   postBriefGenerate: vi.fn()
 }));
@@ -201,6 +203,36 @@ describe("QG pages", () => {
           value: 450,
           year: 2024,
           geometry: null,
+        },
+      ],
+    });
+
+    vi.mocked(getElectoratePollingPlaces).mockResolvedValue({
+      metric: "voters",
+      year: 2024,
+      metadata: {
+        source_name: "silver.fact_electorate + silver.dim_territory",
+        updated_at: null,
+        coverage_note: "polling_place_ranked",
+        unit: null,
+        notes: null,
+      },
+      items: [
+        {
+          territory_id: "polling-place-001",
+          territory_name: "Escola Municipal Centro",
+          territory_level: "polling_place",
+          metric: "voters",
+          value: 500,
+          year: 2024,
+          polling_place_name: "Escola Municipal Centro",
+          polling_place_code: "1001",
+          district_name: "Sede",
+          zone_codes: ["101"],
+          section_count: 2,
+          sections: ["0001", "0002"],
+          voters_total: 500,
+          share_percent: 5.5,
         },
       ],
     });
@@ -900,14 +932,116 @@ describe("QG pages", () => {
         ],
       });
 
+    vi.mocked(getElectoratePollingPlaces)
+      .mockResolvedValueOnce({
+        metric: "voters",
+        year: 2025,
+        metadata: {
+          source_name: "silver.fact_electorate + silver.dim_territory",
+          updated_at: null,
+          coverage_note: "polling_place_ranked",
+          unit: null,
+          notes: null,
+        },
+        items: [],
+      })
+      .mockResolvedValueOnce({
+        metric: "voters",
+        year: 2024,
+        metadata: {
+          source_name: "silver.fact_electorate + silver.dim_territory",
+          updated_at: null,
+          coverage_note: "polling_place_ranked",
+          unit: null,
+          notes: null,
+        },
+        items: [
+          {
+            territory_id: "polling-place-001",
+            territory_name: "Escola Municipal Centro",
+            territory_level: "polling_place",
+            metric: "voters",
+            value: 500,
+            year: 2024,
+            polling_place_name: "Escola Municipal Centro",
+            polling_place_code: "1001",
+            district_name: "Sede",
+            zone_codes: ["101"],
+            section_count: 2,
+            sections: ["0001", "0002"],
+            voters_total: 500,
+            share_percent: 5.5,
+          },
+        ],
+      });
+
     renderWithQueryClient(<QgMapPage />, ["/mapa"]);
 
     await screen.findByLabelText("Buscar territorio");
     await userEvent.click(screen.getByLabelText(/Ativar camada Locais de vota[çc][ãa]o/i));
     await waitFor(() => expect(getElectorateMap).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(getElectoratePollingPlaces).toHaveBeenCalledTimes(2));
 
     expect(vi.mocked(getElectorateMap).mock.calls[0]?.[0]).toMatchObject({ year: 2025 });
     expect(vi.mocked(getElectorateMap).mock.calls[1]?.[0]).toMatchObject({ year: 2024 });
+    expect(vi.mocked(getElectoratePollingPlaces).mock.calls[0]?.[0]).toMatchObject({ year: 2025 });
+    expect(vi.mocked(getElectoratePollingPlaces).mock.calls[1]?.[0]).toMatchObject({ year: 2024 });
+  });
+
+  it("updates polling place metric on the executive map and reuses the ranked polling-place contract", async () => {
+    vi.mocked(getMapLayers).mockResolvedValueOnce({
+      generated_at_utc: "2026-02-13T18:20:00Z",
+      default_layer_id: "territory_municipality",
+      fallback_endpoint: "/v1/geo/choropleth",
+      items: [
+        {
+          id: "territory_municipality",
+          label: "Municipios",
+          territory_level: "municipality",
+          is_official: true,
+          official_status: "official",
+          source: "silver.dim_territory",
+          default_visibility: true,
+          zoom_min: 0,
+          zoom_max: 8,
+        },
+        {
+          id: "territory_electoral_section",
+          label: "Seções eleitorais",
+          territory_level: "electoral_section",
+          is_official: false,
+          official_status: "proxy",
+          source: "silver.dim_territory",
+          default_visibility: true,
+          zoom_min: 12,
+          zoom_max: null,
+        },
+      ],
+    });
+
+    renderWithQueryClient(<QgMapPage />, ["/mapa"]);
+
+    await screen.findByLabelText("Buscar territorio");
+    await userEvent.click(screen.getByLabelText(/Ativar camada Locais de vota[çc][ãa]o/i));
+    await screen.findByLabelText("Leitura por local");
+    await userEvent.selectOptions(screen.getByLabelText("Leitura por local"), "abstention_rate");
+
+    await waitFor(() => {
+      const lastElectorateMapCall = vi.mocked(getElectorateMap).mock.calls[vi.mocked(getElectorateMap).mock.calls.length - 1];
+      expect(lastElectorateMapCall?.[0]).toMatchObject({
+        metric: "abstention_rate",
+        aggregate_by: "polling_place",
+      });
+    });
+    await waitFor(() => {
+      const lastPollingPlaceCall =
+        vi.mocked(getElectoratePollingPlaces).mock.calls[vi.mocked(getElectoratePollingPlaces).mock.calls.length - 1];
+      expect(lastPollingPlaceCall?.[0]).toMatchObject({
+        metric: "abstention_rate",
+      });
+    });
+
+    expect(screen.getByRole("heading", { name: "Ranking de locais de votação" })).toBeInTheDocument();
   });
 
   it("shows retryable manifest and style metadata errors", async () => {

@@ -1,0 +1,237 @@
+{
+  "generated_at_utc": "2026-03-08T15:49:57.731007+00:00",
+  "config": {
+    "dry_run": false,
+    "force": false,
+    "include_partial": false,
+    "stale_after_hours": 168,
+    "skip_dbt": true,
+    "skip_quality": true,
+    "allow_blocked": false,
+    "timeout_seconds": 45,
+    "max_retries": 3
+  },
+  "selected_jobs": [
+    "tse_catalog_discovery"
+  ],
+  "reprocess": {
+    "jobs": [
+      "tse_candidate_votes_fetch",
+      "tse_catalog_discovery"
+    ],
+    "periods": []
+  },
+  "plan": [
+    {
+      "job": "tse_catalog_discovery",
+      "reference_period": "2024",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": "success",
+      "latest_started_at_utc": "2026-03-07T18:52:35.797171-03:00"
+    },
+    {
+      "job": "tse_catalog_discovery",
+      "reference_period": "2022",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": "success",
+      "latest_started_at_utc": "2026-02-25T21:00:02.423198-03:00"
+    },
+    {
+      "job": "tse_catalog_discovery",
+      "reference_period": "2020",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": "success",
+      "latest_started_at_utc": "2026-02-25T21:03:06.174845-03:00"
+    },
+    {
+      "job": "tse_catalog_discovery",
+      "reference_period": "2018",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": "success",
+      "latest_started_at_utc": "2026-02-25T21:05:15.296780-03:00"
+    },
+    {
+      "job": "tse_catalog_discovery",
+      "reference_period": "2016",
+      "execute": true,
+      "reason": "reprocess_selected",
+      "age_hours": null,
+      "latest_status": "success",
+      "latest_started_at_utc": "2026-02-25T21:07:44.408041-03:00"
+    }
+  ],
+  "executions": [
+    {
+      "job": "tse_catalog_discovery",
+      "phase": "incremental",
+      "reference_period": "2024",
+      "status": "success",
+      "rows_loaded": 0,
+      "started_at_utc": "2026-03-08T15:49:58.003658+00:00",
+      "finished_at_utc": "2026-03-08T15:50:01.100888+00:00",
+      "error": null,
+      "result": {
+        "job": "tse_catalog_discovery",
+        "status": "success",
+        "run_id": "40a17fa1-0667-4829-9104-d446d9754933",
+        "duration_seconds": 3.1,
+        "rows_extracted": 10,
+        "rows_written": 0,
+        "warnings": [],
+        "errors": [],
+        "bronze": {
+          "source": "TSE",
+          "dataset": "tse_catalog_discovery",
+          "reference_period": "2024",
+          "extracted_at_utc": "2026-03-08T15:50:01Z",
+          "local_path": "data/bronze/tse/tse_catalog_discovery/2024/extracted_at=2026-03-08T15-50-01Z/raw.json",
+          "manifest_path": "data/manifests/tse/tse_catalog_discovery/2024/extracted_at=2026-03-08T15-50-01Z.yml",
+          "size_bytes": 557588,
+          "checksum_sha256": "32008d94356ab8e76b3e6ae91e80a133bc1927f4269851a85ea04ffe3d7b4fe0",
+          "uri": "ckan://package_search?period=2024"
+        }
+      }
+    },
+    {
+      "job": "tse_catalog_discovery",
+      "phase": "incremental",
+      "reference_period": "2022",
+      "status": "success",
+      "rows_loaded": 0,
+      "started_at_utc": "2026-03-08T15:50:01.100888+00:00",
+      "finished_at_utc": "2026-03-08T15:50:02.338580+00:00",
+      "error": null,
+      "result": {
+        "job": "tse_catalog_discovery",
+        "status": "success",
+        "run_id": "80b26fbd-25b2-4f75-8d62-acbbd86b5004",
+        "duration_seconds": 1.24,
+        "rows_extracted": 7,
+        "rows_written": 0,
+        "warnings": [],
+        "errors": [],
+        "bronze": {
+          "source": "TSE",
+          "dataset": "tse_catalog_discovery",
+          "reference_period": "2022",
+          "extracted_at_utc": "2026-03-08T15:50:02Z",
+          "local_path": "data/bronze/tse/tse_catalog_discovery/2022/extracted_at=2026-03-08T15-50-02Z/raw.json",
+          "manifest_path": "data/manifests/tse/tse_catalog_discovery/2022/extracted_at=2026-03-08T15-50-02Z.yml",
+          "size_bytes": 422296,
+          "checksum_sha256": "b8d8196c715deb9fc2d46dd9d9dd9947ba14f4a371be1569aff1df913354216c",
+          "uri": "ckan://package_search?period=2022"
+        }
+      }
+    },
+    {
+      "job": "tse_catalog_discovery",
+      "phase": "incremental",
+      "reference_period": "2020",
+      "status": "success",
+      "rows_loaded": 0,
+      "started_at_utc": "2026-03-08T15:50:02.338580+00:00",
+      "finished_at_utc": "2026-03-08T15:50:03.531973+00:00",
+      "error": null,
+      "result": {
+        "job": "tse_catalog_discovery",
+        "status": "success",
+        "run_id": "ccaf7a72-2be0-4336-b207-efd05fdf6e2d",
+        "duration_seconds": 1.19,
+        "rows_extracted": 7,
+        "rows_written": 0,
+        "warnings": [],
+        "errors": [],
+        "bronze": {
+          "source": "TSE",
+          "dataset": "tse_catalog_discovery",
+          "reference_period": "2020",
+          "extracted_at_utc": "2026-03-08T15:50:03Z",
+          "local_path": "data/bronze/tse/tse_catalog_discovery/2020/extracted_at=2026-03-08T15-50-03Z/raw.json",
+          "manifest_path": "data/manifests/tse/tse_catalog_discovery/2020/extracted_at=2026-03-08T15-50-03Z.yml",
+          "size_bytes": 355063,
+          "checksum_sha256": "db6ed29996a6db4ca86658b2389f36b9887688cc7de479834bc70c9fa4c91d62",
+          "uri": "ckan://package_search?period=2020"
+        }
+      }
+    },
+    {
+      "job": "tse_catalog_discovery",
+      "phase": "incremental",
+      "reference_period": "2018",
+      "status": "success",
+      "rows_loaded": 0,
+      "started_at_utc": "2026-03-08T15:50:03.531973+00:00",
+      "finished_at_utc": "2026-03-08T15:50:04.648446+00:00",
+      "error": null,
+      "result": {
+        "job": "tse_catalog_discovery",
+        "status": "success",
+        "run_id": "8d209c52-9b14-48fa-b263-f1e7d9b41351",
+        "duration_seconds": 1.11,
+        "rows_extracted": 6,
+        "rows_written": 0,
+        "warnings": [],
+        "errors": [],
+        "bronze": {
+          "source": "TSE",
+          "dataset": "tse_catalog_discovery",
+          "reference_period": "2018",
+          "extracted_at_utc": "2026-03-08T15:50:04Z",
+          "local_path": "data/bronze/tse/tse_catalog_discovery/2018/extracted_at=2026-03-08T15-50-04Z/raw.json",
+          "manifest_path": "data/manifests/tse/tse_catalog_discovery/2018/extracted_at=2026-03-08T15-50-04Z.yml",
+          "size_bytes": 373157,
+          "checksum_sha256": "ffcb8c85195a059c4fc9c712556e6814627580ece4c9e480714ca6401e755312",
+          "uri": "ckan://package_search?period=2018"
+        }
+      }
+    },
+    {
+      "job": "tse_catalog_discovery",
+      "phase": "incremental",
+      "reference_period": "2016",
+      "status": "success",
+      "rows_loaded": 0,
+      "started_at_utc": "2026-03-08T15:50:04.648446+00:00",
+      "finished_at_utc": "2026-03-08T15:50:05.685322+00:00",
+      "error": null,
+      "result": {
+        "job": "tse_catalog_discovery",
+        "status": "success",
+        "run_id": "5dd8c45b-26d0-4492-83d4-4aa4b170376d",
+        "duration_seconds": 1.04,
+        "rows_extracted": 6,
+        "rows_written": 0,
+        "warnings": [],
+        "errors": [],
+        "bronze": {
+          "source": "TSE",
+          "dataset": "tse_catalog_discovery",
+          "reference_period": "2016",
+          "extracted_at_utc": "2026-03-08T15:50:05Z",
+          "local_path": "data/bronze/tse/tse_catalog_discovery/2016/extracted_at=2026-03-08T15-50-05Z/raw.json",
+          "manifest_path": "data/manifests/tse/tse_catalog_discovery/2016/extracted_at=2026-03-08T15-50-05Z.yml",
+          "size_bytes": 338262,
+          "checksum_sha256": "b393590a5c3c9ef344a85d18df77509677920a64d285c4908249416c5123a2db",
+          "uri": "ckan://package_search?period=2016"
+        }
+      }
+    }
+  ],
+  "summary": {
+    "planned_pairs": 5,
+    "executed_pairs": 5,
+    "skipped_pairs": 0,
+    "post_load_runs": 0,
+    "execution_status": {
+      "success": 5
+    }
+  }
+}

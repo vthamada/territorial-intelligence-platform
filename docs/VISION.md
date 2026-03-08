@@ -1,168 +1,240 @@
-# VISÃO DO PRODUTO  
-## QG ESTRATÉGICO TERRITORIAL — DIAMANTINA/MG
+# VISÃO DO PRODUTO
+## QG Estratégico Territorial — Diamantina/MG
 
-## 1. Propósito
+Data de referência: 2026-03-06  
+Status: ativo  
+Papel: north star de produto e experiência.
 
-Construir um **Centro de Comando Estratégico Municipal** para Diamantina/MG, baseado em dados públicos, capaz de:
+## 1) Propósito
 
-- Transformar dados dispersos em inteligência territorial clara
-- Permitir leitura imediata dos gargalos da cidade
-- Cruzar território, eleitorado e serviços públicos
-- Apoiar decisões executivas com base espacial
+Construir um centro de comando estratégico municipal para Diamantina/MG baseado em dados públicos, capaz de:
 
-O sistema não é apenas um dashboard.  
-Ele é uma **plataforma geoespacial imersiva**, orientada à tomada de decisão.
+- transformar dados dispersos em inteligência territorial clara;
+- localizar gargalos e vazios de cobertura;
+- cruzar território, eleitorado e serviços públicos;
+- apoiar decisão executiva com evidência espacial.
 
-## 2. Problema que estamos resolvendo
+O sistema não deve ser apenas um dashboard.  
+Ele deve funcionar como uma plataforma geoespacial de leitura executiva.
 
-Gestores públicos possuem dados, mas não possuem:
+## 2) Problema que o produto resolve
 
-- Integração territorial clara
-- Visualização estratégica consolidada
-- Cruzamento entre eleitorado e infraestrutura
-- Ferramenta que mostre onde estão os desequilíbrios
+Hoje o gestor público até possui dados, mas não possui:
 
-O resultado é:
+- integração territorial clara;
+- leitura espacial consolidada;
+- conexão entre demanda territorial e oferta de serviços;
+- uma ferramenta que mostre onde estão os desequilíbrios relevantes.
 
-- Decisões fragmentadas
-- Falta de priorização territorial
-- Dificuldade de enxergar a cidade como sistema
+O resultado sem o QG é previsível:
 
-O QG Estratégico resolve isso.
+- decisões fragmentadas;
+- baixa priorização territorial;
+- dificuldade de enxergar a cidade como sistema.
 
-## 3. Princípio central
+## 3) Princípio central
 
-O sistema deve permitir que um Secretário ou Prefeito:
+O sistema deve permitir que Prefeito, Secretário ou assessor estratégico:
 
-- Entenda a cidade em segundos
-- Visualize o território como algo vivo
-- Identifique onde estão os problemas
-- Fundamente decisões com evidência espacial
+- entendam a cidade em minutos;
+- identifiquem problemas territorialmente;
+- sustentem decisão com evidência;
+- transformem leitura em ação.
 
-A experiência deve ser:
+A experiência esperada é:
 
-- Clara
-- Direcionada
-- Visualmente forte
-- Estratégica
+- clara;
+- orientada;
+- visualmente forte;
+- defensável institucionalmente.
 
-## 4. Estrutura conceitual
+## 4) Estrutura conceitual
 
-O sistema opera sobre **territórios paralelos**.
+O produto opera sobre territórios paralelos que podem ser cruzados.
 
 ### 4.1 Território administrativo
-- Município
-- Distritos
-- Bairros (se houver camada oficial)
-- Setores censitários (microterritório base)
+
+- município;
+- distritos;
+- bairros, se houver camada confiável;
+- setores censitários, quando houver densidade analítica real.
 
 ### 4.2 Território eleitoral
-- Zonas eleitorais
-- Seções eleitorais
-- Locais de votação
+
+- zonas eleitorais;
+- seções eleitorais;
+- locais de votação.
 
 ### 4.3 Território de serviços
-- Escolas
-- Unidades de saúde
-- Equipamentos públicos (quando disponíveis)
 
-Essas camadas coexistem e podem ser cruzadas.
+- escolas;
+- unidades de saúde;
+- equipamentos públicos e pontos de interesse relevantes.
 
-## 5. Modo Estratégico C (prioridade atual)
+### 4.4 Confiabilidade da camada
 
-Foco imediato do produto: implementar a integração:
+Nem todo recorte territorial tem o mesmo nível de confiança.
 
-**Eleitorado + Serviços + Território**
+O produto deve distinguir com clareza:
 
-O mapa deve permitir visualizar:
+- camada oficial;
+- camada proxy;
+- camada híbrida.
 
-- Concentração de eleitores por seção
-- Distribuição de serviços públicos
-- Relação espacial entre demanda e oferta
-- Possíveis áreas de desequilíbrio
+Essa distinção não é detalhe técnico.  
+Ela influencia a força da leitura executiva.
 
-O objetivo não é apenas mostrar pontos.  
-É permitir identificar:
+Regra de produto:
 
-- Áreas de alta pressão territorial
-- Regiões com menor cobertura de serviços
-- Concentrações demográficas estratégicas
+- camadas oficiais podem sustentar leitura principal;
+- camadas proxy ou híbridas podem apoiar a análise, mas devem expor metodologia e limitação de forma visível;
+- nenhuma camada proxy deve parecer equivalente a uma camada oficial sem aviso explícito.
 
-## 6. Experiência do usuário (Letra B)
+## 5) Princípios de produto
 
-A interface deve seguir o modelo:
-
-**Mapa dominante + painel estratégico lateral**
-
-Ao abrir o sistema, o usuário deve:
-
-1. Ver imediatamente onde há concentração crítica
-2. Visualizar serviços no território
-3. Ampliar e explorar regiões específicas
-4. Clicar e entender o contexto territorial rapidamente
+### 5.1 O mapa é o centro
 
 O mapa não é complemento.  
-O mapa é o centro da experiência.
+O mapa é o centro da experiência executiva.
 
-## 7. Características do mapa estratégico
+Ele deve permitir:
 
-O mapa deve permitir:
+- localizar concentração eleitoral;
+- cruzar serviços públicos com demanda territorial;
+- identificar hotspots e vazios de cobertura;
+- sustentar leitura rápida e drill-down coerente;
+- mostrar acesso, proximidade e distribuição intraurbana quando houver base suficiente.
 
-- Pontos proporcionais por seção eleitoral (tamanho = total de eleitores)
-- Heatmap de concentração (opcional)
-- Visualização de serviços por tipo (ícones distintos)
-- Base territorial administrativa (polígonos)
-- Tooltips estratégicos (valor, tendência, metadados)
-- Identificação visual de hotspots
+### 5.2 Visão Geral é síntese, não catálogo
 
-O mapa deve transmitir sensação de:
+A Visão Geral deve responder rapidamente:
 
-- Controle
-- Clareza
-- Diagnóstico
+- como está o território;
+- quais são as prioridades;
+- onde estão os principais problemas;
+- qual a próxima ação recomendada.
 
-## 8. Filosofia de produto
+Ela não deve usar como protagonismo:
 
-O sistema não deve ser apenas técnico. Ele deve:
+- zona eleitoral;
+- seção eleitoral;
+- local de votação;
+- atributos cadastrais sem valor analítico, como área territorial isolada.
 
-- Contar uma história territorial
-- Mostrar prioridade de forma clara
-- Reduzir complexidade
-- Evitar excesso de filtros
-- Ser compreensível como um Power BI, mas com mapa vivo
+### 5.3 Recorte territorial só entra quando há densidade
 
-Não é uma ferramenta para analistas técnicos.  
-É uma ferramenta para decisão executiva.
+Geometria sozinha não gera valor.  
+Um nível territorial só deve ser exposto como leitura estratégica quando houver:
 
-## 9. Limites éticos e técnicos
+- geometria confiável;
+- atributos úteis;
+- comparação possível;
+- narrativa decisória;
+- cobertura estável o suficiente para não induzir erro.
 
-- Apenas dados agregados e públicos
-- Nenhuma identificação individual
-- Transparência sobre proxies territoriais (oficial vs derivado)
-- Documentação clara de fontes, cobertura e limitações
+Se distrito ou setor censitário não tiverem indicadores fortes, o produto deve:
 
-O sistema deve ser defensável institucionalmente.
+- esconder o recorte; ou
+- exibir estado vazio inteligente explicando a limitação.
 
-## 10. Visão de longo prazo
+Distrito e setor censitário não devem entrar apenas porque a geometria existe.  
+Eles entram quando ajudarem a responder onde está o problema, qual sua intensidade e qual ação faz sentido.
 
-O QG Estratégico deve evoluir para:
+### 5.4 Gramática operacional do mapa
 
-- Motor de prioridades automatizado (ranking explicável)
-- Insights estratégicos automáticos (com evidências)
-- Simulação de cenários simples (antes/depois)
-- Briefings exportáveis para reuniões (PDF/HTML)
-- Plataforma replicável para outros municípios
+O mapa deve obedecer uma progressão clara de leitura:
 
-## 11. Declaração final
+- zoom mais aberto: município e síntese agregada;
+- zoom intermediário: distritos, quando houver densidade analítica suficiente;
+- zoom fino: setores censitários, locais de votação e serviços, quando a leitura intraurbana for realmente útil.
 
-Este projeto demonstra que é possível:
+Essa progressão deve evitar dois erros:
 
-- Integrar múltiplas bases públicas
-- Transformar dados brutos em inteligência estratégica
-- Construir uma plataforma geoespacial robusta
-- Apoiar decisões públicas com clareza e responsabilidade
+- mostrar granularidade fina sem contexto;
+- manter agregação excessiva quando a leitura local já é necessária.
 
-Objetivo final:
+### 5.5 Linguagem executiva
 
-**Permitir que a cidade seja compreendida como território vivo  
-e que decisões sejam tomadas com base em evidência espacial.**
+- o conteúdo principal deve usar linguagem executiva;
+- IDs, chaves técnicas e detalhes de debug devem ficar em metadados colapsáveis;
+- CTAs devem existir apenas quando geram ganho real de compreensão.
+
+## 6) Regra atual do mapa
+
+No fluxo eleitoral, a unidade espacial principal deve ser:
+
+- local de votação.
+
+Justificativa:
+
+- um local pode concentrar várias seções;
+- isso evita sobreposição artificial;
+- melhora a leitura de concentração eleitoral;
+- permite cruzamento mais útil com escolas, UBS e outros serviços.
+
+Detalhes de seção podem existir em:
+
+- tooltip;
+- painel de detalhe;
+- drill-down.
+
+Mas seção eleitoral não deve ser o ponto principal do mapa executivo.
+
+## 7) Lentes prioritárias
+
+O produto deve caminhar para presets claros e operacionais, como:
+
+- eleitoral;
+- serviços;
+- eleitoral + serviços;
+- locais prioritários;
+- vazios de cobertura.
+
+Essas lentes são importantes porque transformam o mapa em leitura orientada, não em exploração solta.
+
+Lentes prioritárias mais úteis:
+
+- eleitoral;
+- serviços essenciais;
+- eleitoral + serviços;
+- mobilidade e acesso;
+- vulnerabilidade social;
+- risco ambiental;
+- locais prioritários;
+- vazios de cobertura.
+
+## 8) Dados intraurbanos que realmente agregam valor
+
+Distritos e setores censitários só passam a ser estratégicos quando o sistema conseguir produzir, por geometria:
+
+- população;
+- domicílios;
+- composição etária;
+- alfabetização;
+- água, esgoto e lixo;
+- proxies de vulnerabilidade;
+- acesso e proximidade de serviços;
+- comparações territoriais consistentes.
+
+Sem isso, o produto deve priorizar município, local de votação e overlays de serviços.
+
+Base urbana que fortalece essa leitura:
+
+- vias e logradouros;
+- pontos de interesse essenciais;
+- equipamentos públicos georreferenciados;
+- métricas de proximidade e cobertura;
+- leitura de vazio territorial e concentração de oferta.
+
+## 9) Limites éticos e técnicos
+
+- apenas dados agregados e públicos;
+- nenhuma identificação individual;
+- transparência sobre proxies, fontes e limitações;
+- distinção clara entre dado oficial, proxy, derivado e estimado.
+
+## 10) Declaração final
+
+Objetivo final do QG Estratégico:
+
+**Permitir que Diamantina seja compreendida como território vivo e que decisões sejam tomadas com base em evidência espacial clara, útil e defensável.**

@@ -25,6 +25,11 @@ class _RowsResult:
             return None
         return self._rows[0]
 
+    def one(self) -> dict[str, Any]:
+        if not self._rows:
+            raise AssertionError("Expected one row, found none")
+        return self._rows[0]
+
 
 class _ScalarResult:
     def __init__(self, value: Any) -> None:
@@ -465,6 +470,8 @@ class _ElectorateSummarySession:
 
         if "select max(fe.reference_year)" in sql:
             return _ScalarResult(2024)
+        if "group by fr.office" in sql and "sum(case when fr.metric = 'turnout'" in sql:
+            return _RowsResult([{"office": "PREFEITO", "election_round": 1, "turnout": 8200.0}])
         if "from silver.fact_election_result fr" in sql and "count(*)" in sql:
             return _ScalarResult(1)
         if "select coalesce(sum(fe.voters), 0)::bigint as total_voters" in sql:
@@ -509,6 +516,8 @@ class _ElectorateMapSession:
             )
         if "select max(fr.election_year)" in sql:
             return _ScalarResult(2024)
+        if "group by fr.office" in sql and "sum(case when fr.metric = 'turnout'" in sql:
+            return _RowsResult([{"office": "PREFEITO", "election_round": 1, "turnout": 8200.0}])
         if "with grouped as" in sql and "from silver.fact_election_result fr" in sql:
             return _RowsResult(
                 [
@@ -553,6 +562,8 @@ class _ElectorateOutlierFallbackSession:
             return _RowsResult([{"label": "ENSINO MEDIO", "voters": 7000}, {"label": "SUPERIOR", "voters": 2000}])
         if "from silver.fact_election_result fr" in sql and "count(*)" in sql:
             return _ScalarResult(1)
+        if "group by fr.office" in sql and "sum(case when fr.metric = 'turnout'" in sql:
+            return _RowsResult([{"office": "PREFEITO", "election_round": 1, "turnout": 8200.0}])
         if "group by fr.metric" in sql:
             return _RowsResult(
                 [
@@ -577,6 +588,342 @@ class _ElectorateOutlierFallbackSession:
             )
 
         raise AssertionError(f"Unexpected SQL in electorate outlier fallback test: {sql}")
+
+
+class _ElectorateHistorySession:
+    def execute(self, *_args: Any, **_kwargs: Any) -> _RowsResult:
+        sql = str(_args[0]).lower() if _args else ""
+
+        if "sum(fe.voters)::bigint as total_voters" in sql and "group by fe.reference_year" in sql:
+            return _RowsResult(
+                [
+                    {"year": 2024, "total_voters": 12500},
+                    {"year": 2022, "total_voters": 11900},
+                ]
+            )
+        if "row_number()" in sql and "group by fr.election_year, fr.metric" in sql:
+            return _RowsResult(
+                [
+                    {"year": 2024, "metric": "turnout", "total_value": 8200.0},
+                    {"year": 2024, "metric": "abstention", "total_value": 1800.0},
+                    {"year": 2024, "metric": "votes_total", "total_value": 8000.0},
+                    {"year": 2024, "metric": "votes_blank", "total_value": 200.0},
+                    {"year": 2024, "metric": "votes_null", "total_value": 300.0},
+                    {"year": 2022, "metric": "turnout", "total_value": 7600.0},
+                    {"year": 2022, "metric": "abstention", "total_value": 1700.0},
+                    {"year": 2022, "metric": "votes_total", "total_value": 7400.0},
+                    {"year": 2022, "metric": "votes_blank", "total_value": 150.0},
+                    {"year": 2022, "metric": "votes_null", "total_value": 250.0},
+                ]
+            )
+
+        raise AssertionError(f"Unexpected SQL in electorate history test: {sql}")
+
+
+class _ElectoratePollingPlacesSession:
+    def execute(self, *_args: Any, **_kwargs: Any) -> _ScalarResult | _RowsResult:
+        sql = str(_args[0]).lower() if _args else ""
+
+        if "select max(fe.reference_year)" in sql:
+            return _ScalarResult(2024)
+        if "with municipality_total as" in sql and "grouped as" in sql and "from silver.fact_electorate fe" in sql:
+            return _RowsResult(
+                [
+                    {
+                        "territory_id": "pp-1",
+                        "territory_name": "E. E. PROF.ª ISABEL MOTA",
+                        "territory_level": "polling_place",
+                        "polling_place_name": "E. E. PROF.ª ISABEL MOTA",
+                        "polling_place_code": "102",
+                        "district_name": "Rio Grande",
+                        "zone_codes": ["101"],
+                        "section_count": 8,
+                        "sections": ["58", "59", "60"],
+                        "voters_total": 2453.0,
+                        "share_percent": 6.3,
+                    },
+                    {
+                        "territory_id": "pp-2",
+                        "territory_name": "UEMG (ANTIGA FEVALE)",
+                        "territory_level": "polling_place",
+                        "polling_place_name": "UEMG (ANTIGA FEVALE)",
+                        "polling_place_code": "101",
+                        "district_name": "Centro",
+                        "zone_codes": ["101"],
+                        "section_count": 13,
+                        "sections": ["41", "177", "212"],
+                        "voters_total": 2327.0,
+                        "share_percent": 6.1,
+                    },
+                ]
+            )
+        if "select max(fr.election_year)" in sql:
+            return _ScalarResult(2024)
+        if "group by fr.office" in sql and "sum(case when fr.metric = 'turnout'" in sql:
+            return _RowsResult([{"office": "PREFEITO", "election_round": 1, "turnout": 8200.0}])
+        if "with electorate_base as" in sql and "from silver.fact_election_result fr" in sql:
+            return _RowsResult(
+                [
+                    {
+                        "territory_id": "pp-1",
+                        "territory_name": "UEMG (ANTIGA FEVALE)",
+                        "territory_level": "polling_place",
+                        "polling_place_name": "UEMG (ANTIGA FEVALE)",
+                        "polling_place_code": "101",
+                        "district_name": "Centro",
+                        "zone_codes": ["101"],
+                        "section_count": 13,
+                        "sections": ["41", "177", "212"],
+                        "voters_total": 2327.0,
+                        "share_percent": 6.1,
+                        "turnout": 1800.0,
+                        "abstention": 400.0,
+                        "votes_blank": 50.0,
+                        "votes_null": 30.0,
+                        "votes_total": 1880.0,
+                    },
+                    {
+                        "territory_id": "pp-2",
+                        "territory_name": "E. E. PROF.ª ISABEL MOTA",
+                        "territory_level": "polling_place",
+                        "polling_place_name": "E. E. PROF.ª ISABEL MOTA",
+                        "polling_place_code": "102",
+                        "district_name": "Rio Grande",
+                        "zone_codes": ["101"],
+                        "section_count": 8,
+                        "sections": ["58", "59", "60"],
+                        "voters_total": 2453.0,
+                        "share_percent": 6.3,
+                        "turnout": 1700.0,
+                        "abstention": 500.0,
+                        "votes_blank": 30.0,
+                        "votes_null": 20.0,
+                        "votes_total": 1750.0,
+                    },
+                ]
+            )
+
+        raise AssertionError(f"Unexpected SQL in electorate polling places test: {sql}")
+
+
+class _ElectorateElectionContextSession:
+    def execute(self, *_args: Any, **_kwargs: Any) -> _ScalarResult | _RowsResult:
+        sql = str(_args[0]).lower() if _args else ""
+
+        if "to_regclass('silver.fact_candidate_vote')" in sql:
+            return _RowsResult(
+                [{"fact_candidate_vote": True, "dim_candidate": True, "dim_election": True}]
+            )
+        if "from silver.fact_candidate_vote fcv" in sql and "count(*)" in sql:
+            return _ScalarResult(12)
+        if "from silver.fact_candidate_vote fcv" in sql and "group by de.office, de.election_round, de.election_type" in sql:
+            return _RowsResult(
+                [{"office": "PREFEITO", "election_round": 1, "election_type": "municipal", "total_votes": 8200.0}]
+            )
+        if "with grouped as" in sql and "cross join total t" in sql and "dc.candidate_id::text as candidate_id" in sql:
+            return _RowsResult(
+                [
+                    {
+                        "candidate_id": "cand-13",
+                        "candidate_number": "13",
+                        "candidate_name": "Candidato A",
+                        "ballot_name": "Candidato A",
+                        "party_abbr": "PT",
+                        "party_number": "13",
+                        "party_name": "Partido dos Testes",
+                        "votes": 4300.0,
+                        "total_votes": 8200.0,
+                        "share_percent": 52.439024,
+                    },
+                    {
+                        "candidate_id": "cand-45",
+                        "candidate_number": "45",
+                        "candidate_name": "Candidato B",
+                        "ballot_name": "Candidato B",
+                        "party_abbr": "PSDB",
+                        "party_number": "45",
+                        "party_name": "Partido B",
+                        "votes": 3900.0,
+                        "total_votes": 8200.0,
+                        "share_percent": 47.560976,
+                    },
+                ]
+            )
+
+        raise AssertionError(f"Unexpected SQL in electorate election context test: {sql}")
+
+
+class _ElectorateElectionContextFallbackSession:
+    def execute(self, *_args: Any, **_kwargs: Any) -> _ScalarResult | _RowsResult:
+        params = _kwargs.get("params")
+        if params is None and len(_args) >= 2 and isinstance(_args[1], dict):
+            params = _args[1]
+        sql = str(_args[0]).lower() if _args else ""
+
+        if "to_regclass('silver.fact_candidate_vote')" in sql:
+            return _RowsResult(
+                [{"fact_candidate_vote": True, "dim_candidate": True, "dim_election": True}]
+            )
+        if "from silver.fact_candidate_vote fcv" in sql and "count(*)" in sql:
+            level = str((params or {}).get("level"))
+            if level == "municipality":
+                return _ScalarResult(0)
+            if level == "electoral_section":
+                return _ScalarResult(0)
+            return _ScalarResult(12)
+        if "from silver.fact_candidate_vote fcv" in sql and "group by de.office, de.election_round, de.election_type" in sql:
+            return _RowsResult(
+                [{"office": "PREFEITO", "election_round": 1, "election_type": "municipal", "total_votes": 8200.0}]
+            )
+        if "with grouped as" in sql and "cross join total t" in sql and "dc.candidate_id::text as candidate_id" in sql:
+            return _RowsResult(
+                [
+                    {
+                        "candidate_id": "cand-13",
+                        "candidate_number": "13",
+                        "candidate_name": "Candidato A",
+                        "ballot_name": "Candidato A",
+                        "party_abbr": "PT",
+                        "party_number": "13",
+                        "party_name": "Partido dos Testes",
+                        "votes": 4300.0,
+                        "total_votes": 8200.0,
+                        "share_percent": 52.439024,
+                    }
+                ]
+            )
+
+        raise AssertionError(f"Unexpected SQL in electorate election context fallback test: {sql}")
+
+
+class _ElectorateElectionContextSectionPreferredSession:
+    def execute(self, *_args: Any, **_kwargs: Any) -> _ScalarResult | _RowsResult:
+        params = _kwargs.get("params")
+        if params is None and len(_args) >= 2 and isinstance(_args[1], dict):
+            params = _args[1]
+        sql = str(_args[0]).lower() if _args else ""
+
+        if "to_regclass('silver.fact_candidate_vote')" in sql:
+            return _RowsResult(
+                [{"fact_candidate_vote": True, "dim_candidate": True, "dim_election": True}]
+            )
+        if "from silver.fact_candidate_vote fcv" in sql and "count(*)" in sql:
+            level = str((params or {}).get("level"))
+            if level == "municipality":
+                return _ScalarResult(0)
+            if level == "electoral_section":
+                return _ScalarResult(48)
+            if level == "electoral_zone":
+                return _ScalarResult(24)
+        if "from silver.fact_candidate_vote fcv" in sql and "group by de.office, de.election_round, de.election_type" in sql:
+            return _RowsResult(
+                [{"office": "PREFEITO", "election_round": 1, "election_type": "municipal", "total_votes": 8200.0}]
+            )
+        if "with grouped as" in sql and "cross join total t" in sql and "dc.candidate_id::text as candidate_id" in sql:
+            return _RowsResult(
+                [
+                    {
+                        "candidate_id": "cand-13",
+                        "candidate_number": "13",
+                        "candidate_name": "Candidato A",
+                        "ballot_name": "Candidato A",
+                        "party_abbr": "PT",
+                        "party_number": "13",
+                        "party_name": "Partido dos Testes",
+                        "votes": 4300.0,
+                        "total_votes": 8200.0,
+                        "share_percent": 52.439024,
+                    }
+                ]
+            )
+
+        raise AssertionError(f"Unexpected SQL in electorate election context section preferred test: {sql}")
+
+
+class _ElectorateCandidateTerritoriesSession:
+    def execute(self, *_args: Any, **_kwargs: Any) -> _ScalarResult | _RowsResult:
+        sql = str(_args[0]).lower() if _args else ""
+
+        if "to_regclass('silver.fact_candidate_vote')" in sql:
+            return _RowsResult(
+                [{"fact_candidate_vote": True, "dim_candidate": True, "dim_election": True}]
+            )
+        if "from silver.fact_candidate_vote fcv" in sql and "count(*)" in sql:
+            return _ScalarResult(24)
+        if "from silver.fact_candidate_vote fcv" in sql and "group by de.office, de.election_round, de.election_type" in sql:
+            return _RowsResult(
+                [{"office": "PREFEITO", "election_round": 1, "election_type": "municipal", "total_votes": 8200.0}]
+            )
+        if "md5(coalesce(nullif(dt.metadata->>'polling_place_code', '')," in sql:
+            return _RowsResult(
+                [
+                    {
+                        "territory_id": "pp-1",
+                        "territory_name": "UEMG (ANTIGA FEVALE)",
+                        "territory_level": "polling_place",
+                        "polling_place_name": "UEMG (ANTIGA FEVALE)",
+                        "polling_place_code": "101",
+                        "zone_codes": ["101"],
+                        "section_count": 3,
+                        "sections": ["41", "177", "212"],
+                        "candidate_id": "cand-13",
+                        "candidate_number": "13",
+                        "candidate_name": "Candidato A",
+                        "ballot_name": "Candidato A",
+                        "party_abbr": "PT",
+                        "party_number": "13",
+                        "party_name": "Partido dos Testes",
+                        "votes": 1200.0,
+                        "district_name": "Centro",
+                        "share_percent": 27.906977,
+                    }
+                ]
+            )
+        if "territory_level,\n                        coalesce(nullif(dt.metadata->>'polling_place_name', ''), dt.name) as polling_place_name" in sql:
+            return _RowsResult(
+                [
+                    {
+                        "territory_id": "sec-41",
+                        "territory_name": "Seção eleitoral 41 (zona 101) - Diamantina",
+                        "territory_level": "electoral_section",
+                        "polling_place_name": "UEMG (ANTIGA FEVALE)",
+                        "polling_place_code": "101",
+                        "zone_codes": ["101"],
+                        "section_count": 1,
+                        "sections": ["41"],
+                        "candidate_id": "cand-13",
+                        "candidate_number": "13",
+                        "candidate_name": "Candidato A",
+                        "ballot_name": "Candidato A",
+                        "party_abbr": "PT",
+                        "party_number": "13",
+                        "party_name": "Partido dos Testes",
+                        "votes": 480.0,
+                        "district_name": "Centro",
+                        "share_percent": 11.707317,
+                    }
+                ]
+            )
+
+        raise AssertionError(f"Unexpected SQL in electorate candidate territories test: {sql}")
+
+
+class _ElectorateCandidateTerritoriesFallbackSession:
+    def execute(self, *_args: Any, **_kwargs: Any) -> _ScalarResult | _RowsResult:
+        params = _kwargs.get("params")
+        if params is None and len(_args) >= 2 and isinstance(_args[1], dict):
+            params = _args[1]
+        sql = str(_args[0]).lower() if _args else ""
+
+        if "to_regclass('silver.fact_candidate_vote')" in sql:
+            return _RowsResult(
+                [{"fact_candidate_vote": True, "dim_candidate": True, "dim_election": True}]
+            )
+        if "from silver.fact_candidate_vote fcv" in sql and "count(*)" in sql:
+            level = str((params or {}).get("level"))
+            return _ScalarResult(0 if level == "electoral_section" else 24)
+
+        raise AssertionError(f"Unexpected SQL in electorate candidate territories fallback test: {sql}")
 
 
 class _MobilityAccessSession:
@@ -1165,6 +1512,26 @@ def test_electorate_summary_uses_outlier_storage_year_when_requested_year_is_val
     app.dependency_overrides.clear()
 
 
+def test_electorate_history_returns_historical_series() -> None:
+    def _db() -> Generator[_ElectorateHistorySession, None, None]:
+        yield _ElectorateHistorySession()
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/electorate/history?level=municipio&limit=5")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["level"] == "municipio"
+    assert len(payload["items"]) == 2
+    assert payload["items"][0]["year"] == 2024
+    assert payload["items"][0]["total_voters"] == 12500
+    assert payload["items"][0]["turnout_rate"] == 82.0
+    assert payload["items"][1]["abstention_rate"] == 18.27957
+    app.dependency_overrides.clear()
+
+
 def test_electorate_map_uses_outlier_storage_year_when_requested_year_is_valid() -> None:
     def _db() -> Generator[_ElectorateOutlierFallbackSession, None, None]:
         yield _ElectorateOutlierFallbackSession()
@@ -1180,4 +1547,156 @@ def test_electorate_map_uses_outlier_storage_year_when_requested_year_is_valid()
     assert payload["metric"] == "voters"
     assert len(payload["items"]) == 1
     assert payload["metadata"]["notes"].startswith("electorate_outlier_year_fallback")
+    app.dependency_overrides.clear()
+
+
+def test_electorate_polling_places_returns_ranked_voters() -> None:
+    def _db() -> Generator[_ElectoratePollingPlacesSession, None, None]:
+        yield _ElectoratePollingPlacesSession()
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/electorate/polling-places?metric=voters&limit=5")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metric"] == "voters"
+    assert payload["year"] == 2024
+    assert len(payload["items"]) == 2
+    assert payload["items"][0]["territory_name"] == "E. E. PROF.\u00aa ISABEL MOTA"
+    assert payload["items"][0]["section_count"] == 8
+    assert payload["items"][0]["share_percent"] == 6.3
+    app.dependency_overrides.clear()
+
+
+def test_electorate_polling_places_returns_ranked_behavior_metric() -> None:
+    def _db() -> Generator[_ElectoratePollingPlacesSession, None, None]:
+        yield _ElectoratePollingPlacesSession()
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/electorate/polling-places?metric=abstention_rate&limit=5")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metric"] == "abstention_rate"
+    assert payload["year"] == 2024
+    assert len(payload["items"]) == 2
+    assert payload["items"][0]["territory_name"] == "E. E. PROF.\u00aa ISABEL MOTA"
+    assert payload["items"][0]["value"] == 22.727273
+    assert payload["items"][1]["value"] == 18.181818
+    app.dependency_overrides.clear()
+
+
+def test_electorate_election_context_returns_primary_office_and_candidates() -> None:
+    def _db() -> Generator[_ElectorateElectionContextSession, None, None]:
+        yield _ElectorateElectionContextSession()
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/electorate/election-context?level=municipio&year=2024&limit=5")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["office"] == "PREFEITO"
+    assert payload["election_type"] == "municipal"
+    assert payload["total_votes"] == 8200
+    assert payload["items"][0]["candidate_id"] == "cand-13"
+    assert payload["items"][0]["votes"] == 4300
+    app.dependency_overrides.clear()
+
+
+def test_electorate_election_context_falls_back_to_zone_level_for_municipality_view() -> None:
+    def _db() -> Generator[_ElectorateElectionContextFallbackSession, None, None]:
+        yield _ElectorateElectionContextFallbackSession()
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/electorate/election-context?level=municipio&year=2024&limit=5")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["year"] == 2024
+    assert payload["office"] == "PREFEITO"
+    assert payload["total_votes"] == 8200
+    assert payload["metadata"]["notes"] == "electorate_election_context_v1|source_level=electoral_zone"
+    assert payload["items"][0]["candidate_id"] == "cand-13"
+    app.dependency_overrides.clear()
+
+
+def test_electorate_election_context_prefers_section_level_over_zone_for_municipality_view() -> None:
+    def _db() -> Generator[_ElectorateElectionContextSectionPreferredSession, None, None]:
+        yield _ElectorateElectionContextSectionPreferredSession()
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/electorate/election-context?level=municipio&year=2024&limit=5")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["year"] == 2024
+    assert payload["office"] == "PREFEITO"
+    assert payload["total_votes"] == 8200
+    assert payload["metadata"]["notes"] == "electorate_election_context_v1|source_level=electoral_section"
+    assert payload["items"][0]["candidate_id"] == "cand-13"
+    app.dependency_overrides.clear()
+
+
+def test_electorate_candidate_territories_returns_polling_place_ranking() -> None:
+    def _db() -> Generator[_ElectorateCandidateTerritoriesSession, None, None]:
+        yield _ElectorateCandidateTerritoriesSession()
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/electorate/candidate-territories?candidate_id=cand-13&year=2024&limit=5")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["aggregate_by"] == "polling_place"
+    assert payload["office"] == "PREFEITO"
+    assert payload["items"][0]["territory_id"] == "pp-1"
+    assert payload["items"][0]["votes"] == 1200
+    assert payload["items"][0]["sections"] == ["41", "177", "212"]
+    app.dependency_overrides.clear()
+
+
+def test_electorate_candidate_territories_returns_explicit_note_when_only_zone_level_exists() -> None:
+    def _db() -> Generator[_ElectorateCandidateTerritoriesFallbackSession, None, None]:
+        yield _ElectorateCandidateTerritoriesFallbackSession()
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/electorate/candidate-territories?candidate_id=cand-13&year=2024&limit=5")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["items"] == []
+    assert payload["metadata"]["notes"] == "candidate_territories_unavailable|source_level=electoral_zone|requested_aggregate=polling_place"
+    app.dependency_overrides.clear()
+
+
+def test_electorate_candidate_territories_returns_section_breakdown() -> None:
+    def _db() -> Generator[_ElectorateCandidateTerritoriesSession, None, None]:
+        yield _ElectorateCandidateTerritoriesSession()
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get(
+        "/v1/electorate/candidate-territories?candidate_id=cand-13&year=2024&aggregate_by=electoral_section&limit=5"
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["aggregate_by"] == "electoral_section"
+    assert payload["items"][0]["territory_id"] == "sec-41"
+    assert payload["items"][0]["section_count"] == 1
+    assert payload["items"][0]["votes"] == 480
     app.dependency_overrides.clear()

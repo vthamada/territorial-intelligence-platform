@@ -1,21 +1,23 @@
-# Governança Documental (Fonte Oficial)
+# Governança Documental
 
-Data de referência: 2026-02-20  
+Data de referência: 2026-03-06  
 Status: ativo
 
 ## 1) Objetivo
 
-Reduzir dispersao e garantir trilha unica de execução documental.
+Reduzir dispersão sem perder contexto operacional crítico.
 
 ## 2) Hierarquia de verdade
 
-1. `docs/CONTRATO.md` (requisitos técnicos obrigatorios)
-2. `docs/VISION.md` (north star de produto)
-3. `docs/PLANO_IMPLEMENTACAO_QG.md` (fila unica executável)
-4. `docs/HANDOFF.md` (estado da trilha ativa)
-5. `docs/CHANGELOG.md` (evidencia histórica)
+1. `docs/CONTRATO.md`
+2. `docs/VISION.md`
+3. `docs/PLANO_IMPLEMENTACAO_QG.md`
+4. `docs/HANDOFF.md`
+5. `docs/CHANGELOG.md`
 
-## 3) Nucleo ativo (leitura obrigatoria)
+## 3) Núcleo ativo
+
+Leitura obrigatória:
 
 1. `docs/CONTRATO.md`
 2. `docs/VISION.md`
@@ -30,34 +32,35 @@ Reduzir dispersao e garantir trilha unica de execução documental.
 3. `docs/STRATEGIC_ENGINE_SPEC.md`
 4. `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`
 5. `docs/OPERATIONS_RUNBOOK.md`
+6. `docs/REFATORACAO_TELAS.md`
 
-## 5) Complementar (não executável)
+## 5) Regras obrigatórias
 
-1. nenhum documento complementar ativo no momento
+1. Somente `docs/PLANO_IMPLEMENTACAO_QG.md` define a fila ativa.
+2. `docs/VISION.md` é o north star oficial de produto.
+3. `docs/HANDOFF.md` é documento central de continuidade e memória operacional.
+4. `docs/HANDOFF.md` deve preservar estado corrente, contexto recente relevante, evidências de validação, decisões/correções que impactam a retomada e próximos passos executáveis.
+5. `docs/CHANGELOG.md` registra o histórico validado de mudanças.
+6. Documento complementar pode existir, mas não pode competir com `CONTRATO`, `VISION`, `PLANO_IMPLEMENTACAO_QG`, `HANDOFF` e `CHANGELOG`.
 
-## 6) Descontinuados (removidos do repositório)
+## 6) Consolidações
 
-Arquivos removidos em 2026-02-20:
-1. `FRONTEND_SPEC.md`
-2. `PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md`
-3. `MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md`
-4. `GITHUB_ISSUES_BACKLOG_DADOS_NIVEL_MAXIMO.md`
-5. `PLANO_FONTES_DADOS_DIAMANTINA.md`
-6. `RUNBOOK_ROBUSTEZ_DADOS_SEMANAL.md`
-7. `MTE_RUNBOOK.md`
-8. `BRONZE_POLICY.md`
-9. `BACKLOG_UX_EXECUTIVO_QG.md`
-10. `PLANO.md`
+Consolidações vigentes:
 
-Consolidações oficiais:
-1. fontes e priorização -> `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md`
-2. runbooks operacionais -> `docs/OPERATIONS_RUNBOOK.md`
-3. politica Bronze -> `docs/CONTRATO.md` (secao `4.1`)
+1. fila executável permanece em `docs/PLANO_IMPLEMENTACAO_QG.md`;
+2. runbook operacional permanece em `docs/OPERATIONS_RUNBOOK.md`;
+3. documentos auxiliares de direcionamento, quando existirem, são complementares e não substituem `docs/VISION.md`.
 
-## 7) Regras obrigatorias
+## 7) Descontinuados
 
-1. Documento descontinuado não abre backlog nem prioridade.
-2. Somente `docs/PLANO_IMPLEMENTACAO_QG.md` define ordem da trilha ativa.
-3. `docs/HANDOFF.md` so registra estado corrente e próximo passo.
-4. Toda rodada concluida deve atualizar `docs/CHANGELOG.md` e `docs/HANDOFF.md`.
-5. `docs/VISION.md` deve existir como unico north star e permanecer enxuto (produto, não backlog).
+Documentos removidos do fluxo ativo:
+
+1. `docs/UI_MAPA.md`
+2. `docs/PLANO.md`
+3. `docs/PLANO_FONTES_DADOS_DIAMANTINA.md`
+4. `docs/PLANO_EVOLUCAO_QG_ESTRATEGICO_DIAMANTINA.md`
+5. `docs/MATRIZ_RASTREABILIDADE_EVOLUCAO_QG.md`
+6. `docs/GITHUB_ISSUES_BACKLOG_DADOS_NIVEL_MAXIMO.md`
+7. `docs/RUNBOOK_ROBUSTEZ_DADOS_SEMANAL.md`
+8. `docs/MTE_RUNBOOK.md`
+9. `docs/BACKLOG_UX_EXECUTIVO_QG.md`

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { getChoropleth, getMapLayers, getMapLayersCoverage, getMapStyleMetadata } from "../../../shared/api/domain";
 import { formatApiError } from "../../../shared/api/http";
-import { getElectorateMap } from "../../../shared/api/qg";
+import { getElectorateMap, getElectoratePollingPlaces } from "../../../shared/api/qg";
 import type { MapLayerItem } from "../../../shared/api/types";
 import { useAutoLayerSwitch } from "../../../shared/hooks/useAutoLayerSwitch";
 import { formatDecimal, formatLevelLabel, formatStatusLabel, formatTrendLabel, toNumber } from "../../../shared/ui/presentation";
@@ -26,6 +26,16 @@ const BASEMAP_STREETS_URL =
 const VIZ_MODES: { value: VizMode; label: string }[] = [
   { value: "choropleth", label: "Coropletico" },
   { value: "points", label: "Pontos" },
+];
+
+type ElectoralMetric = "voters" | "turnout" | "abstention_rate" | "blank_rate" | "null_rate";
+
+const ELECTORAL_METRIC_OPTIONS: Array<{ value: ElectoralMetric; label: string }> = [
+  { value: "voters", label: "Eleitores" },
+  { value: "turnout", label: "Comparecimento" },
+  { value: "abstention_rate", label: "Taxa de abstenção" },
+  { value: "blank_rate", label: "Taxa de brancos" },
+  { value: "null_rate", label: "Taxa de nulos" },
 ];
 
 type LayerScope = "territorial" | "urban";
@@ -230,6 +240,35 @@ function resolveStrategicYear(period: string) {
   return parsed;
 }
 
+function normalizeElectoralMetric(value: string | null): ElectoralMetric {
+  const normalized = (value ?? "").trim().toLowerCase();
+  if (
+    normalized === "voters" ||
+    normalized === "turnout" ||
+    normalized === "abstention_rate" ||
+    normalized === "blank_rate" ||
+    normalized === "null_rate"
+  ) {
+    return normalized;
+  }
+  return "voters";
+}
+
+function formatElectoralMetricLabel(metric: ElectoralMetric) {
+  return ELECTORAL_METRIC_OPTIONS.find((item) => item.value === metric)?.label ?? metric;
+}
+
+function formatElectoralMetricValue(metric: ElectoralMetric, value: unknown) {
+  const numeric = toNumber(value);
+  if (numeric === null) {
+    return "-";
+  }
+  if (metric === "voters" || metric === "turnout") {
+    return formatDecimal(numeric);
+  }
+  return `${numeric.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+}
+
 function resolveContextualZoom(
   currentZoom: number,
   scope: LayerScope,
@@ -379,6 +418,7 @@ export function QgMapPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const globalFilters = useFilterStore();
   const initialMetric = "MTE_NOVO_CAGED_SALDO_TOTAL";
+  const initialElectoralMetric = normalizeElectoralMetric(searchParams.get("electoral_metric"));
   const initialPeriod = "2025";
   const initialLevel = normalizeMapLevel(searchParams.get("level"));
   const initialTerritoryId = searchParams.get("territory_id") || undefined;
@@ -393,10 +433,12 @@ export function QgMapPage() {
   );
 
   const [metric, setMetric] = useState(initialMetric);
+  const [electoralMetric, setElectoralMetric] = useState<ElectoralMetric>(initialElectoralMetric);
   const [period, setPeriod] = useState(initialPeriod);
   const [level, setLevel] = useState<string>(initialLevel);
   const [mapScope, setMapScope] = useState<LayerScope>(initialScope);
   const [appliedMetric, setAppliedMetric] = useState(initialMetric);
+  const [appliedElectoralMetric, setAppliedElectoralMetric] = useState<ElectoralMetric>(initialElectoralMetric);
   const [appliedPeriod, setAppliedPeriod] = useState(initialPeriod);
   const [appliedLevel, setAppliedLevel] = useState<string>(initialLevel);
   const [appliedMapScope, setAppliedMapScope] = useState<LayerScope>(initialScope);
@@ -475,14 +517,15 @@ export function QgMapPage() {
   const appliedStrategicYear = useMemo(() => resolveStrategicYear(appliedPeriod), [appliedPeriod]);
   const isPollingPlacesOverlayEnabled = activeOverlayIds.has("overlay_polling_places");
   const shouldFetchPollingPlaces = isPollingPlacesOverlayEnabled;
+  const electoralMetricLabel = formatElectoralMetricLabel(appliedElectoralMetric);
 
   const electorateSectionQuery = useQuery({
-    queryKey: ["qg", "map", "electorate-sections", appliedStrategicYear, "with-geometry"],
+    queryKey: ["qg", "map", "electorate-sections", appliedStrategicYear, appliedElectoralMetric, "with-geometry"],
     queryFn: () =>
       getElectorateMap({
         level: "secao_eleitoral",
         year: appliedStrategicYear,
-        metric: "voters",
+        metric: appliedElectoralMetric,
         aggregate_by: "polling_place",
         include_geometry: true,
         limit: 500,
@@ -492,12 +535,12 @@ export function QgMapPage() {
   });
 
   const electorateSectionFallbackQuery = useQuery({
-    queryKey: ["qg", "map", "electorate-sections", "fallback", 2024, "with-geometry"],
+    queryKey: ["qg", "map", "electorate-sections", "fallback", 2024, appliedElectoralMetric, "with-geometry"],
     queryFn: () =>
       getElectorateMap({
         level: "secao_eleitoral",
         year: 2024,
-        metric: "voters",
+        metric: appliedElectoralMetric,
         aggregate_by: "polling_place",
         include_geometry: true,
         limit: 500,
@@ -511,13 +554,51 @@ export function QgMapPage() {
     staleTime: 60 * 1000,
   });
 
+  const pollingPlaceRankingQuery = useQuery({
+    queryKey: ["qg", "map", "electorate-polling-places", appliedStrategicYear, appliedElectoralMetric],
+    queryFn: () =>
+      getElectoratePollingPlaces({
+        year: appliedStrategicYear,
+        metric: appliedElectoralMetric,
+        limit: 100,
+      }),
+    enabled: shouldFetchPollingPlaces,
+    staleTime: 60 * 1000,
+  });
+
+  const pollingPlaceRankingFallbackQuery = useQuery({
+    queryKey: ["qg", "map", "electorate-polling-places", "fallback", 2024, appliedElectoralMetric],
+    queryFn: () =>
+      getElectoratePollingPlaces({
+        year: 2024,
+        metric: appliedElectoralMetric,
+        limit: 100,
+      }),
+    enabled:
+      shouldFetchPollingPlaces &&
+      appliedStrategicYear !== 2024 &&
+      !pollingPlaceRankingQuery.isPending &&
+      !pollingPlaceRankingQuery.error &&
+      (pollingPlaceRankingQuery.data?.items.length ?? 0) === 0,
+    staleTime: 60 * 1000,
+  });
+
   const effectiveElectorateSectionData =
     (electorateSectionQuery.data?.items.length ?? 0) > 0
       ? electorateSectionQuery.data
       : electorateSectionFallbackQuery.data ?? electorateSectionQuery.data;
+  const effectivePollingPlaceRankingData =
+    (pollingPlaceRankingQuery.data?.items.length ?? 0) > 0
+      ? pollingPlaceRankingQuery.data
+      : pollingPlaceRankingFallbackQuery.data ?? pollingPlaceRankingQuery.data;
   const mapLayersError = mapLayersQuery.error ? formatApiError(mapLayersQuery.error) : null;
   const mapStyleError = mapStyleQuery.error ? formatApiError(mapStyleQuery.error) : null;
   const layersCoverageError = layersCoverageQuery.error ? formatApiError(layersCoverageQuery.error) : null;
+  const pollingPlaceRankingError = pollingPlaceRankingFallbackQuery.error
+    ? formatApiError(pollingPlaceRankingFallbackQuery.error)
+    : pollingPlaceRankingQuery.error
+      ? formatApiError(pollingPlaceRankingQuery.error)
+      : null;
   const styleMetadata = mapStyleQuery.data?.generated_at_utc ?? null;
 
   const territorialLayers = useMemo(
@@ -581,16 +662,28 @@ export function QgMapPage() {
       ),
     [normalizedItems],
   );
+  const pollingPlaceRankingItems = useMemo(
+    () => effectivePollingPlaceRankingData?.items ?? [],
+    [effectivePollingPlaceRankingData?.items],
+  );
+  const pollingPlaceRankingById = useMemo(
+    () => new Map(pollingPlaceRankingItems.map((item) => [item.territory_id, item])),
+    [pollingPlaceRankingItems],
+  );
 
   useEffect(() => {
     if (appliedMapScope !== "territorial" || !selectedTerritoryId) {
       return;
     }
-    const selected = sortedItems.find((item) => item.territory_id === selectedTerritoryId);
+    const activeSearchItems =
+      isPollingPlacesOverlayEnabled && appliedLevel === "secao_eleitoral"
+        ? pollingPlaceRankingItems
+        : sortedItems;
+    const selected = activeSearchItems.find((item) => item.territory_id === selectedTerritoryId);
     if (selected) {
       setTerritorySearch(selected.territory_name);
     }
-  }, [appliedMapScope, selectedTerritoryId, sortedItems]);
+  }, [appliedLevel, appliedMapScope, isPollingPlacesOverlayEnabled, pollingPlaceRankingItems, selectedTerritoryId, sortedItems]);
 
   const availableLevelLayerIds = useMemo(() => new Set(levelScopedLayers.map((item) => item.id)), [levelScopedLayers]);
   const availableUrbanLayers = urbanLayers.length > 0 ? urbanLayers : FALLBACK_URBAN_LAYER_ITEMS;
@@ -623,7 +716,7 @@ export function QgMapPage() {
 
   useEffect(() => {
     setVectorMapError(null);
-  }, [appliedLevel, appliedMetric, appliedPeriod]);
+  }, [appliedElectoralMetric, appliedLevel, appliedMetric, appliedPeriod]);
 
   useEffect(() => {
     if (appliedMapScope !== "territorial") {
@@ -687,6 +780,9 @@ export function QgMapPage() {
     if (vizMode !== "choropleth") {
       nextSearch.set("viz", vizMode);
     }
+    if (appliedElectoralMetric !== "voters") {
+      nextSearch.set("electoral_metric", appliedElectoralMetric);
+    }
     const nextValue = nextSearch.toString();
     const currentValue = searchParams.toString();
     if (nextValue !== currentValue) {
@@ -694,6 +790,7 @@ export function QgMapPage() {
     }
   }, [
     appliedLevel,
+    appliedElectoralMetric,
     appliedMapScope,
     appliedUrbanLayerId,
     basemapMode,
@@ -852,12 +949,20 @@ export function QgMapPage() {
     const validItems = items.filter(
       (item) => item.geometry && typeof item.value === "number" && item.value > 0,
     );
-    const totalVoters = validItems.reduce((sum, item) => sum + (item.value ?? 0), 0);
     return {
       type: "FeatureCollection" as const,
       features: validItems.map((item) => {
-        const sections = Array.isArray(item.sections)
-          ? item.sections.map((section) => String(section)).filter(Boolean)
+        const rankingItem = pollingPlaceRankingById.get(item.territory_id);
+        const sections = Array.isArray(rankingItem?.sections)
+          ? rankingItem.sections.map((section) => String(section)).filter(Boolean)
+          : Array.isArray(item.sections)
+            ? item.sections.map((section) => String(section)).filter(Boolean)
+            : [];
+        const value = item.value ?? rankingItem?.value ?? 0;
+        const votersTotal = rankingItem?.voters_total ?? (appliedElectoralMetric === "voters" ? value : null);
+        const sharePercent = rankingItem?.share_percent ?? null;
+        const zoneCodes = Array.isArray(rankingItem?.zone_codes)
+          ? rankingItem.zone_codes.map((code) => String(code)).filter(Boolean)
           : [];
 
         return {
@@ -867,17 +972,24 @@ export function QgMapPage() {
             tname: item.territory_name,
             polling_place_name: item.polling_place_name ?? item.territory_name,
             polling_place_code: item.polling_place_code ?? null,
-            section_count: item.section_count ?? 0,
+            section_count: rankingItem?.section_count ?? item.section_count ?? 0,
             sections,
             sections_csv: sections.join(", "),
-            voters: item.value ?? 0,
-            voters_pct: totalVoters > 0 ? Number(((item.value ?? 0) / totalVoters * 100).toFixed(2)) : 0,
+            voters: votersTotal ?? 0,
+            voters_pct: sharePercent ?? 0,
+            district_name: rankingItem?.district_name ?? null,
+            zone_codes: zoneCodes,
+            zone_codes_csv: zoneCodes.join(", "),
+            metric_key: appliedElectoralMetric,
+            metric_label: formatElectoralMetricLabel(appliedElectoralMetric),
+            metric_value: value,
+            val: value,
           },
           geometry: item.geometry as unknown as GeoJSON.Geometry,
         };
       }),
     };
-  }, [effectiveElectorateSectionData?.items]);
+  }, [appliedElectoralMetric, effectiveElectorateSectionData?.items, pollingPlaceRankingById]);
 
   const sectionTotalVoters = useMemo(() => {
     return sectionGeoJson.features.reduce(
@@ -916,6 +1028,18 @@ export function QgMapPage() {
         const name = String(props.polling_place_name ?? props.tname ?? "n/d");
         const voters = Number(props.voters ?? 0);
         const pct = Number(props.voters_pct ?? 0);
+        const metricLabel = String(props.metric_label ?? "Indicador");
+        const metricKey = String(props.metric_key ?? "voters");
+        const metricValue = formatElectoralMetricValue(
+          normalizeElectoralMetric(metricKey),
+          props.metric_value,
+        );
+        const districtName = optionalText(props.district_name);
+        const zoneCodes = typeof props.zone_codes_csv === "string"
+          ? props.zone_codes_csv
+          : Array.isArray(props.zone_codes)
+            ? props.zone_codes.map((item) => String(item)).filter(Boolean).join(", ")
+            : null;
         const sectionCount =
           typeof props.section_count === "number"
             ? props.section_count
@@ -930,12 +1054,16 @@ export function QgMapPage() {
         const sections = sectionsResolved.slice(0, 6);
         return [
           `<strong>Local: ${name}</strong>`,
-          `Eleitores: ${voters.toLocaleString("pt-BR")}`,
+          metricKey === "voters"
+            ? `Eleitores: ${voters.toLocaleString("pt-BR")}`
+            : `${metricLabel}: ${metricValue}`,
+          metricKey === "voters" ? `% do município: ${pct.toFixed(1)}%` : `Eleitores base: ${voters.toLocaleString("pt-BR")}`,
           `Qtd seções: ${sectionCount}`,
+          districtName ? `Distrito: ${districtName}` : null,
+          zoneCodes ? `Zonas: ${zoneCodes}` : null,
           sections.length > 0 ? `Seções: ${sections.join(", ")}${sectionsResolved.length > sections.length ? " ..." : ""}` : "Seções: n/d",
-          `% do município: ${pct.toFixed(1)}%`,
           `Fonte: TSE | Eleitorado`,
-        ].join("<br/>");
+        ].filter(Boolean).join("<br/>");
       },
       clusterTooltipFn: (props: Record<string, unknown>) => {
         const count = Number(props.point_count ?? 0);
@@ -954,14 +1082,14 @@ export function QgMapPage() {
 
 
   function focusTerritoryFromSearch() {
-    if (appliedMapScope !== "territorial" || sortedItems.length === 0) {
+    if (appliedMapScope !== "territorial" || searchableTerritoryItems.length === 0) {
       return;
     }
     const searchValue = normalizeText(territorySearch);
     const match =
-      sortedItems.find((item) => normalizeText(item.territory_name) === searchValue) ??
-      sortedItems.find((item) => normalizeText(item.territory_name).includes(searchValue)) ??
-      sortedItems[0];
+      searchableTerritoryItems.find((item) => normalizeText(item.territory_name) === searchValue) ??
+      searchableTerritoryItems.find((item) => normalizeText(item.territory_name).includes(searchValue)) ??
+      searchableTerritoryItems[0];
     if (!match) {
       return;
     }
@@ -1003,6 +1131,7 @@ export function QgMapPage() {
     const nextZoom = resolveContextualZoom(currentZoom, mapScope, level, preferredLayer);
 
     setAppliedMetric(metric);
+    setAppliedElectoralMetric(electoralMetric);
     setAppliedPeriod(period);
     setAppliedLevel(level);
     setAppliedMapScope(mapScope);
@@ -1051,6 +1180,8 @@ export function QgMapPage() {
       setAppliedMapScope("territorial");
       setAppliedLevel("secao_eleitoral");
       setAppliedPeriod(nextPeriod);
+      setElectoralMetric("voters");
+      setAppliedElectoralMetric("voters");
       setSelectedVectorLayerId("territory_electoral_section");
       const nextZoom = Math.max(currentZoom, 14);
       setCurrentZoom(nextZoom);
@@ -1076,6 +1207,7 @@ export function QgMapPage() {
   function clearFilters() {
     const hadTerritoryContext = Boolean(selectedTerritoryId || selectedFeature || territorySearch.trim());
     setMetric("MTE_NOVO_CAGED_SALDO_TOTAL");
+    setElectoralMetric("voters");
     setPeriod("2025");
     setLevel("municipio");
     setMapScope("territorial");
@@ -1083,6 +1215,7 @@ export function QgMapPage() {
     setUrbanLayerId("urban_roads");
     setAppliedUrbanLayerId("urban_roads");
     setAppliedMetric("MTE_NOVO_CAGED_SALDO_TOTAL");
+    setAppliedElectoralMetric("voters");
     setAppliedPeriod("2025");
     setAppliedLevel("municipio");
     setSelectedTerritoryId(undefined);
@@ -1103,6 +1236,31 @@ export function QgMapPage() {
   }
 
   function exportCsv() {
+    if (isElectoralOverlayMode) {
+      if (!pollingPlaceRankingItems.length) {
+        return;
+      }
+      const rows = [
+        ["territory_id", "local", "district", "zone_codes", "section_count", "voters_total", "share_percent", "metric", "value", "year"],
+        ...pollingPlaceRankingItems.map((item) => [
+          item.territory_id,
+          item.territory_name,
+          item.district_name ?? "",
+          item.zone_codes.join("|"),
+          String(item.section_count),
+          String(item.voters_total),
+          item.share_percent === null ? "" : String(item.share_percent),
+          appliedElectoralMetric,
+          item.value === null ? "" : String(item.value),
+          item.year === null ? "" : String(item.year),
+        ]),
+      ];
+      const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      triggerDownload(blob, `qg_mapa_eleitoral_${sanitizeFilePart(appliedElectoralMetric)}_${sanitizeFilePart(appliedPeriod)}.csv`);
+      return;
+    }
+
     if (!sortedItems.length) {
       return;
     }
@@ -1153,7 +1311,7 @@ export function QgMapPage() {
       setExportError("Não foi possível localizar o mapa para exportacao.");
       return;
     }
-    const metricPart = sanitizeFilePart(appliedMetric);
+    const metricPart = sanitizeFilePart(isElectoralOverlayMode ? appliedElectoralMetric : appliedMetric);
     const periodPart = sanitizeFilePart(appliedPeriod);
     const fileName = `qg_mapa_${metricPart}_${periodPart}.svg`;
     const blob = new Blob([serialized.source], { type: "image/svg+xml;charset=utf-8" });
@@ -1197,7 +1355,7 @@ export function QgMapPage() {
             setExportError("Falha ao converter o mapa para PNG.");
             return;
           }
-          const metricPart = sanitizeFilePart(appliedMetric);
+          const metricPart = sanitizeFilePart(isElectoralOverlayMode ? appliedElectoralMetric : appliedMetric);
           const periodPart = sanitizeFilePart(appliedPeriod);
           const fileName = `qg_mapa_${metricPart}_${periodPart}.png`;
           triggerDownload(blob, fileName);
@@ -1265,10 +1423,20 @@ export function QgMapPage() {
     ? sectionGeometryLayer?.id ?? null
     : pollingPlaceLayer?.id ?? null;
   const effectiveVizLabel = VIZ_MODES.find((mode) => mode.value === effectiveVizMode)?.label ?? effectiveVizMode;
+  const isElectoralOverlayMode = isPollingPlacesOverlayEnabled && appliedMapScope === "territorial" && appliedLevel === "secao_eleitoral";
+  const selectedPollingPlaceItem = isElectoralOverlayMode
+    ? (selectedTerritoryId ? pollingPlaceRankingById.get(selectedTerritoryId) : null) ??
+      (selectedFeature?.tid ? pollingPlaceRankingById.get(selectedFeature.tid) : null) ??
+      pollingPlaceRankingItems[0] ??
+      null
+    : null;
+  const searchableTerritoryItems: Array<{ territory_id: string; territory_name: string }> = isElectoralOverlayMode
+    ? pollingPlaceRankingItems
+    : sortedItems;
 
-  const selectedTerritoryName = selectedItem?.territory_name ?? selectedFeature?.tname;
-  const selectedTerritoryValue = selectedItem?.value ?? selectedFeature?.val;
-  const selectedTerritoryIdSafe = selectedItem?.territory_id ?? selectedFeature?.tid;
+  const selectedTerritoryName = selectedPollingPlaceItem?.territory_name ?? selectedItem?.territory_name ?? selectedFeature?.tname;
+  const selectedTerritoryValue = selectedPollingPlaceItem?.value ?? selectedItem?.value ?? selectedFeature?.val;
+  const selectedTerritoryIdSafe = selectedPollingPlaceItem?.territory_id ?? selectedItem?.territory_id ?? selectedFeature?.tid;
   const selectedFeatureLabel = selectedFeature?.label ?? selectedTerritoryName;
   const selectedPollingPlaceName =
     optionalText(selectedFeature?.rawProperties?.local_votacao) ??
@@ -1286,8 +1454,8 @@ export function QgMapPage() {
   const topTerritory = sortedItems[0] ?? null;
   const bottomTerritory = sortedItems.length > 1 ? sortedItems[sortedItems.length - 1] ?? null : null;
   const selectedTerritoryRank =
-    selectedItem && sortedItems.length > 0
-      ? sortedItems.findIndex((item) => item.territory_id === selectedItem.territory_id) + 1
+    selectedTerritoryIdSafe && searchableTerritoryItems.length > 0
+      ? searchableTerritoryItems.findIndex((item) => item.territory_id === selectedTerritoryIdSafe) + 1
       : null;
   const recommendedLayerClassification = formatLayerClassificationLabel(recommendedLayer);
   const effectiveLayerClassification = formatLayerClassificationLabel(effectiveLayer);
@@ -1311,14 +1479,18 @@ export function QgMapPage() {
           .split(",")
           .map((section) => section.trim())
           .filter(Boolean)
+      : Array.isArray(selectedPollingPlaceItem?.sections)
+        ? selectedPollingPlaceItem.sections.map((section) => String(section)).filter(Boolean)
       : [];
   const selectedFeatureSectionCount =
     typeof selectedFeature?.rawProperties?.section_count === "number" ||
     typeof selectedFeature?.rawProperties?.section_count === "string"
       ? Number(selectedFeature.rawProperties.section_count)
-      : selectedFeatureSections.length;
+      : Number(selectedPollingPlaceItem?.section_count ?? selectedFeatureSections.length);
   const drawerTerritoryItem =
-    appliedMapScope === "territorial"
+    isElectoralOverlayMode
+      ? selectedPollingPlaceItem ?? undefined
+      : appliedMapScope === "territorial"
       ? sortedItems.find((item) => item.territory_id === selectedTerritoryId) ?? sortedItems[0]
       : undefined;
   const drawerTerritoryId = drawerTerritoryItem?.territory_id ?? selectedFeature?.tid ?? null;
@@ -1327,7 +1499,9 @@ export function QgMapPage() {
   const drawerStatusRaw = optionalText(selectedFeature?.rawProperties?.status);
   const drawerStatusFallback = inferStatusFromValue(drawerTerritoryValue);
   const drawerTrendRaw = optionalText(selectedFeature?.rawProperties?.trend);
-  const drawerScoreDisplay = formatNumber(drawerTerritoryValue);
+  const drawerScoreDisplay = isElectoralOverlayMode
+    ? formatElectoralMetricValue(appliedElectoralMetric, drawerTerritoryValue)
+    : formatNumber(drawerTerritoryValue);
   const drawerStatusDisplay = drawerStatusRaw
     ? formatStatusLabel(drawerStatusRaw)
     : drawerStatusFallback
@@ -1338,6 +1512,15 @@ export function QgMapPage() {
     ? `${selectedLayerCoverage.territories_with_geometry}/${selectedLayerCoverage.territories_total}`
     : "n/d";
   const drawerEvidenceItems = selectedFeatureMetadata.slice(0, 4);
+  const drawerDistrictName = selectedPollingPlaceItem?.district_name ?? optionalText(selectedFeature?.rawProperties?.district_name);
+  const drawerZoneCodes =
+    selectedPollingPlaceItem?.zone_codes ??
+    (Array.isArray(selectedFeature?.rawProperties?.zone_codes)
+      ? (selectedFeature?.rawProperties?.zone_codes as unknown[]).map((item) => String(item)).filter(Boolean)
+      : []);
+  const drawerSharePercent = selectedPollingPlaceItem?.share_percent ?? toNumber(selectedFeature?.rawProperties?.voters_pct);
+  const drawerVotersTotal = selectedPollingPlaceItem?.voters_total ?? toNumber(selectedFeature?.rawProperties?.voters);
+  const drawerMetricTitle = isElectoralOverlayMode ? electoralMetricLabel : "Valor";
   const sectionElectorateTopItems = effectiveElectorateSectionData
     ? [...effectiveElectorateSectionData.items]
         .filter((item) => typeof item.value === "number")
@@ -1347,7 +1530,7 @@ export function QgMapPage() {
   const hasSingleMunicipalityView =
     appliedMapScope === "territorial" && appliedLevel === "municipio" && sortedItems.length <= 1;
 
-  const selectedTerritoryActions = appliedMapScope === "territorial" && selectedTerritoryIdSafe
+  const selectedTerritoryActions = appliedMapScope === "territorial" && selectedTerritoryIdSafe && !isElectoralOverlayMode
     ? {
         profile: `/territorio/${encodeURIComponent(selectedTerritoryIdSafe)}`,
         scenarios: `/cenarios?territory_id=${encodeURIComponent(selectedTerritoryIdSafe)}&period=${encodeURIComponent(
@@ -1476,6 +1659,16 @@ export function QgMapPage() {
     }
   }
 
+  function handleElectoralMetricChange(nextMetric: ElectoralMetric) {
+    setElectoralMetric(nextMetric);
+    setAppliedElectoralMetric(nextMetric);
+    setSelectedFeature(null);
+    setSelectedTerritoryId(undefined);
+    setTerritorySearch("");
+    setTerritoryFocusNotice(null);
+    setMapRecenterNotice(`Métrica eleitoral atualizada para ${formatElectoralMetricLabel(nextMetric).toLowerCase()}.`);
+  }
+
   const overlayConfigs: OverlayLayerConfig[] = [
     {
       id: "overlay_schools",
@@ -1537,11 +1730,11 @@ export function QgMapPage() {
           placeholder="Buscar território ou endereço..."
           aria-label="Buscar territorio"
         />
-        <button type="button" className="button-secondary" onClick={focusTerritoryFromSearch} disabled={sortedItems.length === 0}>
+        <button type="button" className="button-secondary" onClick={focusTerritoryFromSearch} disabled={searchableTerritoryItems.length === 0}>
           Buscar
         </button>
         <datalist id="territory-search-options">
-          {sortedItems.map((item) => (
+          {searchableTerritoryItems.map((item) => (
             <option key={item.territory_id} value={item.territory_name} />
           ))}
         </datalist>
@@ -1621,7 +1814,7 @@ export function QgMapPage() {
                   streets: BASEMAP_STREETS_URL,
                 }}
                 tooltipContext={{
-                  indicatorName: appliedMetric,
+                  indicatorName: isElectoralOverlayMode ? electoralMetricLabel : appliedMetric,
                   trend: drawerTrendRaw,
                   source: effectiveLayer?.source ?? "n/d",
                   updatedAt: styleMetadata,
@@ -1642,6 +1835,25 @@ export function QgMapPage() {
         </div>
         <aside className="map-layers-sidebar" aria-label="Painel de camadas estrategicas">
           <h3>Camadas</h3>
+          {isPollingPlacesOverlayEnabled ? (
+            <div className="map-layers-sidebar-group">
+              <h4>Métrica eleitoral</h4>
+              <label className="map-sidebar-select-field" htmlFor="electoral-metric-select">
+                <span>Leitura por local</span>
+                <select
+                  id="electoral-metric-select"
+                  value={electoralMetric}
+                  onChange={(event) => handleElectoralMetricChange(normalizeElectoralMetric(event.target.value))}
+                >
+                  {ELECTORAL_METRIC_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          ) : null}
           {strategicLayerGroups.map((group) => (
             <div key={group.key} className="map-layers-sidebar-group">
               <h4>{group.title}</h4>
@@ -1665,7 +1877,7 @@ export function QgMapPage() {
             </div>
           ))}
           <div className="map-layers-sidebar-search-actions">
-            <button type="button" className="button-secondary" onClick={focusTerritoryFromSearch} disabled={sortedItems.length === 0}>
+            <button type="button" className="button-secondary" onClick={focusTerritoryFromSearch} disabled={searchableTerritoryItems.length === 0}>
               Focar
             </button>
             <button type="button" className="button-secondary" onClick={() => recenterMap()}>
@@ -1685,12 +1897,12 @@ export function QgMapPage() {
           {/* Ranking section */}
           <section className="map-bottom-section" aria-label="Ranking territorial">
             <div className="map-bottom-section-header">
-              <h3>Ranking territorial</h3>
+              <h3>{isElectoralOverlayMode ? "Ranking de locais de votação" : "Ranking territorial"}</h3>
               <button
                 type="button"
                 className="button-secondary"
                 onClick={exportCsv}
-                disabled={sortedItems.length === 0}
+                disabled={isElectoralOverlayMode ? pollingPlaceRankingItems.length === 0 : sortedItems.length === 0}
                 aria-label="Exportar ranking como CSV"
               >
                 CSV
@@ -1698,6 +1910,81 @@ export function QgMapPage() {
             </div>
             {appliedMapScope === "urban" ? (
               <StateBlock tone="empty" title="Ranking indisponível para camada urbana" message="Use o modo avançado para explorar camadas urbanas." />
+            ) : isElectoralOverlayMode && pollingPlaceRankingQuery.isPending && pollingPlaceRankingItems.length === 0 ? (
+              <StateBlock
+                tone="loading"
+                title="Carregando ranking eleitoral"
+                message="Consolidando comportamento eleitoral por local de votação."
+              />
+            ) : isElectoralOverlayMode && pollingPlaceRankingError ? (
+              <StateBlock
+                tone="error"
+                title="Falha ao carregar ranking eleitoral"
+                message={pollingPlaceRankingError.message}
+                requestId={pollingPlaceRankingError.requestId}
+                onRetry={() => {
+                  void pollingPlaceRankingQuery.refetch();
+                  void pollingPlaceRankingFallbackQuery.refetch();
+                }}
+              />
+            ) : isElectoralOverlayMode ? (
+              pollingPlaceRankingItems.length === 0 ? (
+                <StateBlock
+                  tone="empty"
+                  title="Sem locais de votação para o recorte"
+                  message="Nenhum local com comportamento eleitoral agregado foi encontrado para o período informado."
+                />
+              ) : (
+                <div className="table-wrap">
+                  <table aria-label="Ranking de locais de votação">
+                    <thead>
+                      <tr>
+                        <th>Local</th>
+                        <th>Distrito</th>
+                        <th>Zonas</th>
+                        <th>Seções</th>
+                        <th>Eleitores</th>
+                        <th>% município</th>
+                        <th>{electoralMetricLabel}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pollingPlaceRankingItems.map((item) => (
+                        <tr
+                          key={item.territory_id}
+                          className={item.territory_id === selectedTerritoryIdSafe ? "territory-selected-row" : undefined}
+                          onClick={() => {
+                            setTerritoryPanelCollapsed(false);
+                            setSelectedTerritoryId(item.territory_id);
+                            setTerritorySearch(item.territory_name);
+                            setFocusSignal((value) => value + 1);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              setTerritoryPanelCollapsed(false);
+                              setSelectedTerritoryId(item.territory_id);
+                              setTerritorySearch(item.territory_name);
+                              setFocusSignal((value) => value + 1);
+                            }
+                          }}
+                          tabIndex={0}
+                          role="button"
+                          aria-pressed={item.territory_id === selectedTerritoryIdSafe}
+                        >
+                          <td>{item.territory_name}</td>
+                          <td>{item.district_name ?? "n/d"}</td>
+                          <td>{item.zone_codes.length > 0 ? item.zone_codes.join(", ") : "n/d"}</td>
+                          <td>{item.section_count}</td>
+                          <td>{formatDecimal(item.voters_total)}</td>
+                          <td>{item.share_percent !== null ? `${item.share_percent.toFixed(1)}%` : "-"}</td>
+                          <td>{formatElectoralMetricValue(appliedElectoralMetric, item.value)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
             ) : !isChoroplethLevel ? (
               <StateBlock tone="empty" title="Ranking indisponível neste nivel" message="Use o nivel municipio ou distrito para ranking tabular." />
             ) : sortedItems.length === 0 ? (
@@ -1769,7 +2056,9 @@ export function QgMapPage() {
               <div className="map-bottom-section-header">
                 <h3>{drawerTerritoryName}</h3>
                 <span className="map-bottom-section-subtitle">
-                  {formatLevelLabel(appliedLevel)} · {drawerStatusDisplay} · {drawerTrendDisplay}
+                  {isElectoralOverlayMode
+                    ? `Local de votação · ${electoralMetricLabel}`
+                    : `${formatLevelLabel(appliedLevel)} · ${drawerStatusDisplay} · ${drawerTrendDisplay}`}
                 </span>
                 <button
                   type="button"
@@ -1787,24 +2076,41 @@ export function QgMapPage() {
 
               <div className="territory-detail-grid">
                 <div className="territory-detail-score-card">
-                  <p>Valor</p>
+                  <p>{drawerMetricTitle}</p>
                   <strong>{drawerScoreDisplay}</strong>
                 </div>
                 <div className="territory-detail-stats" role="list" aria-label="Metricas rápidas do territorio">
                   <article role="listitem">
-                    <span>Período</span>
-                    <strong>{appliedPeriod}</strong>
+                    <span>{isElectoralOverlayMode ? "Ano eleitoral" : "Período"}</span>
+                    <strong>{isElectoralOverlayMode ? (selectedPollingPlaceItem?.year ?? effectivePollingPlaceRankingData?.year ?? effectiveElectorateSectionData?.year ?? appliedStrategicYear) : appliedPeriod}</strong>
                   </article>
                   <article role="listitem">
-                    <span>Camada</span>
-                    <strong>{effectiveLayer?.label ?? "n/d"}</strong>
+                    <span>{isElectoralOverlayMode ? "Eleitores base" : "Camada"}</span>
+                    <strong>{isElectoralOverlayMode ? (typeof drawerVotersTotal === "number" ? formatDecimal(drawerVotersTotal) : "n/d") : effectiveLayer?.label ?? "n/d"}</strong>
                   </article>
                   <article role="listitem">
-                    <span>Zoom</span>
-                    <strong>z{currentZoom}</strong>
+                    <span>{isElectoralOverlayMode ? "% do município" : "Zoom"}</span>
+                    <strong>{isElectoralOverlayMode ? (typeof drawerSharePercent === "number" ? `${drawerSharePercent.toFixed(1)}%` : "n/d") : `z${currentZoom}`}</strong>
                   </article>
                 </div>
               </div>
+
+              {isElectoralOverlayMode ? (
+                <div className="territory-detail-stats" role="list" aria-label="Contexto eleitoral do local">
+                  <article role="listitem">
+                    <span>Distrito</span>
+                    <strong>{drawerDistrictName ?? "n/d"}</strong>
+                  </article>
+                  <article role="listitem">
+                    <span>Zonas</span>
+                    <strong>{drawerZoneCodes.length > 0 ? drawerZoneCodes.join(", ") : "n/d"}</strong>
+                  </article>
+                  <article role="listitem">
+                    <span>Métrica</span>
+                    <strong>{electoralMetricLabel}</strong>
+                  </article>
+                </div>
+              ) : null}
 
               {drawerEvidenceItems.length > 0 ? (
                 <ul className="territory-detail-evidence-list">

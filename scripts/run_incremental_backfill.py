@@ -43,6 +43,7 @@ from pipelines.siops_health_finance import run as run_siops_health_finance  # no
 from pipelines.snis_sanitation import run as run_snis_sanitation  # noqa: E402
 from pipelines.tse_catalog import run as run_tse_catalog  # noqa: E402
 from pipelines.tse_electorate import run as run_tse_electorate  # noqa: E402
+from pipelines.tse_candidate_votes import run as run_tse_candidate_votes  # noqa: E402
 from pipelines.tse_results import run as run_tse_results  # noqa: E402
 from pipelines.urban_pois import run as run_urban_pois  # noqa: E402
 from pipelines.urban_roads import run as run_urban_roads  # noqa: E402
@@ -58,6 +59,7 @@ JOB_RUNNERS: dict[str, Runner] = {
     "tse_catalog_discovery": run_tse_catalog,
     "tse_electorate_fetch": run_tse_electorate,
     "tse_results_fetch": run_tse_results,
+    "tse_candidate_votes_fetch": run_tse_candidate_votes,
     "education_inep_fetch": run_inep_education,
     "health_datasus_fetch": run_datasus_health,
     "finance_siconfi_fetch": run_siconfi_finance,
@@ -94,6 +96,7 @@ JOB_ORDER: tuple[str, ...] = (
     "tse_catalog_discovery",
     "tse_electorate_fetch",
     "tse_results_fetch",
+    "tse_candidate_votes_fetch",
     "education_inep_fetch",
     "health_datasus_fetch",
     "finance_siconfi_fetch",

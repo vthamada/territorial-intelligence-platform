@@ -17,6 +17,9 @@ overrides:
   tse_results_fetch:
     schema_version: v1
     notes: "Election result contract by metric and office."
+  tse_candidate_votes_fetch:
+    schema_version: v1
+    notes: "Candidate vote contract by election/candidate/electoral_section, with polling place derivation."
   cecad_social_protection_fetch:
     schema_version: v1
     notes: "Social protection aggregated contract."

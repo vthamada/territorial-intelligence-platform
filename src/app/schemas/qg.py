@@ -296,6 +296,102 @@ class ElectorateMapResponse(BaseModel):
     items: list[ElectorateMapItem]
 
 
+class ElectorateHistoryItem(BaseModel):
+    year: int
+    total_voters: int
+    turnout: float | None = None
+    turnout_rate: float | None = None
+    abstention_rate: float | None = None
+    blank_rate: float | None = None
+    null_rate: float | None = None
+
+
+class ElectorateHistoryResponse(BaseModel):
+    level: str
+    metadata: QgMetadata
+    items: list[ElectorateHistoryItem]
+
+
+class ElectoratePollingPlaceItem(BaseModel):
+    territory_id: str
+    territory_name: str
+    territory_level: str
+    metric: str
+    value: float | None = None
+    year: int | None = None
+    polling_place_name: str | None = None
+    polling_place_code: str | None = None
+    district_name: str | None = None
+    zone_codes: list[str] = []
+    section_count: int = 0
+    sections: list[str] = []
+    voters_total: int = 0
+    share_percent: float | None = None
+
+
+class ElectoratePollingPlacesResponse(BaseModel):
+    metric: str
+    year: int | None
+    metadata: QgMetadata
+    items: list[ElectoratePollingPlaceItem]
+
+
+class ElectionContextCandidateItem(BaseModel):
+    candidate_id: str
+    candidate_number: str
+    candidate_name: str
+    ballot_name: str | None = None
+    party_abbr: str | None = None
+    party_number: str | None = None
+    party_name: str | None = None
+    votes: int
+    share_percent: float | None = None
+
+
+class ElectorateElectionContextResponse(BaseModel):
+    level: str
+    year: int | None
+    election_round: int | None = None
+    office: str | None = None
+    election_type: str | None = None
+    metadata: QgMetadata
+    total_votes: int = 0
+    items: list[ElectionContextCandidateItem]
+
+
+class ElectorateCandidateTerritoryItem(BaseModel):
+    territory_id: str
+    territory_name: str
+    territory_level: str
+    candidate_id: str
+    candidate_number: str
+    candidate_name: str
+    ballot_name: str | None = None
+    party_abbr: str | None = None
+    party_number: str | None = None
+    party_name: str | None = None
+    votes: int
+    share_percent: float | None = None
+    polling_place_name: str | None = None
+    polling_place_code: str | None = None
+    district_name: str | None = None
+    zone_codes: list[str] = []
+    section_count: int = 0
+    sections: list[str] = []
+
+
+class ElectorateCandidateTerritoriesResponse(BaseModel):
+    level: str
+    aggregate_by: str
+    year: int | None
+    election_round: int | None = None
+    office: str | None = None
+    election_type: str | None = None
+    candidate_id: str | None = None
+    metadata: QgMetadata
+    items: list[ElectorateCandidateTerritoryItem]
+
+
 class ScenarioSimulateRequest(BaseModel):
     territory_id: str
     period: str | None = None

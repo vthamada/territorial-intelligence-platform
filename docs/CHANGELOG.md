@@ -2,6 +2,360 @@
 
 Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
+## 2026-03-08 - Conector nominal reorientado para `votacao_secao`
+
+### Changed
+- `src/pipelines/tse_candidate_votes.py` deixou de apontar para `tse_votacao_candidato_munzona` e passou a consumir `tse_votacao_secao`.
+- O parse nominal passou a capturar `NR_LOCAL_VOTACAO`, `NM_LOCAL_VOTACAO` e `DS_LOCAL_VOTACAO_ENDERECO` junto de `NR_SECAO`, `SQ_CANDIDATO` e `QT_VOTOS`.
+- `src/pipelines/tse_results.py` passou a aceitar `polling_place_code` e `polling_place_address` no upsert de `electoral_section`.
+- `configs/connectors.yml` e `configs/schema_contracts.yml` atualizados para refletir a nova granularidade nominal primária.
+- `docs/PLANO_IMPLEMENTACAO_QG.md`, `docs/HANDOFF.md` e `docs/ESTUDO_TSE_SECAO_LOCAL_VOTACAO.md` alinhados ao novo estado: a migração do conector já começou, e o próximo passo passa a ser backfill histórico + auditoria.
+
+### Verified
+- `./.venv/Scripts/python.exe -m pytest tests/unit/test_tse_candidate_votes.py -q` -> `3 passed`
+- `./.venv/Scripts/python.exe -m pytest tests/unit/test_qg_routes.py -q` -> `31 passed`
+- `./.venv/Scripts/python.exe -m py_compile src/pipelines/tse_candidate_votes.py src/pipelines/tse_results.py src/app/api/routes_qg.py` -> `OK`
+
+### Notes
+- A base nominal carregada no ambiente ainda precisa ser reprocessada para substituir o legado em `zona eleitoral`.
+- A avaliação de complemento nacional (`BR`) para eleições gerais foi deixada para a etapa de backfill/auditoria histórica.
+
+## 2026-03-08 - Observabilidade da cobertura nominal por seção/local
+
+### Changed
+- `scripts/audit_electorate_consistency.py` passou a:
+  - ler ZIPs brutos em streaming, sem materializar CSVs inteiros em memória;
+  - aceitar `--years` para auditoria focalizada por recorte temporal;
+  - reportar cobertura nominal por candidato a partir de `tse_votacao_secao`, quando o Bronze estiver disponível;
+  - degradar explicitamente quando o Bronze nominal ainda não existir no ambiente.
+- `scripts/backfill_robust_database.py` passou a incluir no report:
+  - `candidate_vote`;
+  - `candidate_vote_by_level`;
+  - `candidate_vote_office_coverage`.
+
+### Verified
+- `./.venv/Scripts/python.exe -m py_compile scripts/audit_electorate_consistency.py scripts/backfill_robust_database.py` -> `OK`
+- `./.venv/Scripts/python.exe scripts/audit_electorate_consistency.py --years 2024 --output data/reports/electorate_consistency_audit_2024.json` -> `OK`
+- `./.venv/Scripts/python.exe -m pytest tests/unit/test_tse_candidate_votes.py tests/unit/test_qg_routes.py -q` -> `34 passed`
+
+### Notes
+- O relatório `data/reports/electorate_consistency_audit_2024.json` confirmou que o eleitorado agregado segue consistente, mas a camada nominal ainda está carregada apenas em `electoral_zone`.
+- A extração de cobertura via `_coverage_report` confirmou o estado atual do banco:
+  - `candidate_vote.distinct_years = 1`
+  - `candidate_vote.min_year = 2024`
+  - `candidate_vote.max_year = 2024`
+  - `candidate_vote_by_level = electoral_zone`
+- O Bronze `data/bronze/tse/tse_votacao_secao` ainda não existe neste ambiente; o próximo passo real continua sendo materializar essa série e executar o backfill `2016-2024`.
+
+## 2026-03-08 - Backfill nominal TSE por seção concluído (`2016-2024`)
+
+### Changed
+- O pipeline `tse_candidate_votes_fetch` foi executado diretamente para `2016`, `2018`, `2020`, `2022` e `2024`, materializando:
+  - Bronze `data/bronze/tse/tse_votacao_secao/...`
+  - manifests `data/manifests/tse/tse_votacao_secao/...`
+  - carga Silver nominal por `electoral_section`
+- `src/app/api/routes_qg.py` passou a preferir `electoral_section` antes de `electoral_zone` ao resolver o contexto nominal municipal.
+- `tests/unit/test_qg_routes.py` recebeu cobertura para garantir essa precedência.
+- `data/reports/electorate_consistency_audit.json` e `data/reports/tse_candidate_votes_section_direct_run.json` foram gerados após a carga histórica.
+
+### Verified
+- Execução direta do pipeline nominal:
+  - `2024` -> `9259` linhas
+  - `2022` -> `17332` linhas
+  - `2020` -> `7826` linhas
+  - `2018` -> `16326` linhas
+  - `2016` -> `8815` linhas
+- `./.venv/Scripts/python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_candidate_votes.py -q` -> `35 passed`
+- `./.venv/Scripts/python.exe scripts/audit_electorate_consistency.py --years 2016,2018,2020,2022,2024 --output data/reports/electorate_consistency_audit.json` -> `OK`
+
+### Notes
+- A cobertura nominal atual do banco passou a ser:
+  - `candidate_vote.rows = 59723`
+  - `candidate_vote.distinct_years = 5`
+  - `candidate_vote.min_year = 2016`
+  - `candidate_vote.max_year = 2024`
+- O nível principal agora é `electoral_section`:
+  - `candidate_vote_by_level.electoral_section.rows = 59558`
+  - `candidate_vote_by_level.electoral_section.section_count = 142`
+  - `candidate_vote_by_level.electoral_section.polling_place_count = 36`
+- A API passou a responder:
+  - `GET /v1/electorate/election-context` -> `electorate_election_context_v1|source_level=electoral_section`
+  - `GET /v1/electorate/candidate-territories?aggregate_by=polling_place` -> `electorate_candidate_territories_v1`
+- Persistem `165` linhas legadas em `electoral_zone` para `2024`; o próximo passo é decidir limpeza explícita desse residual e auditar se as eleições gerais (`2018`/`2022`) exigem complemento `BR` para cargos não presentes no pacote `MG`.
+
+## 2026-03-07 - Estudo de viabilidade TSE por seção eleitoral e local de votação
+
+### Changed
+- Novo estudo `docs/ESTUDO_TSE_SECAO_LOCAL_VOTACAO.md` adicionado para consolidar a verificação de viabilidade da trilha nominal por `seção eleitoral` e `local de votação`.
+- `docs/PLANO_IMPLEMENTACAO_QG.md` reorientado para registrar que o próximo passo funcional do eixo eleitoral não é mais propagar a base nominal atual de `zona eleitoral` para novas telas.
+- `docs/HANDOFF.md` atualizado para marcar como próximo passo executável a migração do backend nominal para `votacao_secao` e a derivação de `local de votação` a partir das seções.
+
+### Verified
+- Inspeção dos arquivos oficiais `votacao_secao_2016_MG.zip`, `votacao_secao_2018_MG.zip`, `votacao_secao_2020_MG.zip`, `votacao_secao_2022_MG.zip` e `votacao_secao_2024_MG.zip`.
+- Confirmação de schema consistente com:
+  - `NR_SECAO`
+  - `NR_LOCAL_VOTACAO`
+  - `NM_LOCAL_VOTACAO`
+  - `DS_LOCAL_VOTACAO_ENDERECO`
+  - `SQ_CANDIDATO`
+  - `QT_VOTOS`
+- Verificação oficial no Portal de Dados Abertos do TSE para os conjuntos de resultados `2016`, `2020`, `2022` e `2024`, todos com referência explícita a `votação por seção eleitoral`.
+
+### Notes
+- A conclusão do estudo é objetiva: para a série `2016-2024`, a limitação atual em `zona eleitoral` decorre da escolha do conector `tse_votacao_candidato_munzona`, não da indisponibilidade da fonte oficial.
+- `zona eleitoral` permanece apenas como fallback técnico até a migração para `seção eleitoral`/`local de votação`.
+## 2026-03-07 - Sinalização explícita de granularidade nominal no eleitorado
+
+### Changed
+- `src/app/api/routes_qg.py` passou a retornar `candidate_territories_unavailable|source_level=electoral_zone|requested_aggregate=polling_place` quando a base nominal disponível só desce até `zona eleitoral`.
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` agora:
+  - informa no contexto da eleição quando o agregado municipal foi consolidado a partir de `zona eleitoral`;
+  - troca o estado vazio genérico da distribuição do candidato por um aviso explícito de limitação de granularidade;
+  - mantém o restante da leitura territorial intacto, sem simular um detalhamento inexistente em `local de votação`.
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` foi ajustada para validar o aviso nominal de granularidade de forma robusta.
+
+### Verified
+- `./.venv/Scripts/python.exe -m pytest tests/unit/test_qg_routes.py -q` -> `31 passed`
+- `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `6 passed`
+- `npm --prefix frontend run build` -> `OK`
+
+### Notes
+- A API real em `2024` agora devolve:
+  - `GET /v1/electorate/election-context` -> `electorate_election_context_v1|source_level=electoral_zone`
+  - `GET /v1/electorate/candidate-territories` -> `candidate_territories_unavailable|source_level=electoral_zone|requested_aggregate=polling_place`
+- Ainda existe mojibake histórico em arquivos/documentos antigos do repositório; nesta rodada o ajuste ficou restrito ao fluxo novo do eleitorado.
+
+## 2026-03-07 - Ranking eleitoral por distrito e validação pós-carga nominal
+
+### Changed
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` ajustada para:
+  - agrupar o ranking de locais de votação por distrito;
+  - apresentar `seções` em formato mais legível (`N seções` + prévia curta);
+  - ocultar a coluna `Indicador selecionado` quando a métrica escolhida é `voters`, evitando duplicidade com `Eleitores`;
+  - corrigir a ordem dos hooks após a introdução do agrupamento por distrito.
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` ampliada para validar:
+  - agrupamento por distrito;
+  - ocultação da coluna de métrica duplicada;
+  - apresentação resumida das seções.
+- `data/reports/electorate_consistency_audit.json` regenerado após a carga nominal do TSE 2024.
+
+### Verified
+- `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `5 passed`
+- `npm --prefix frontend run build` -> `OK`
+- `./.venv/Scripts/python.exe -m pytest tests/unit/test_qg_routes.py -q` -> `30 passed`
+- `./.venv/Scripts/python.exe scripts/audit_electorate_consistency.py` -> relatório atualizado
+
+### Audit summary
+- `summary`, `history`, `composição` e ranking de locais de votação seguem consistentes entre API, Silver e bruto TSE.
+- As tabelas nominais (`silver.dim_election`, `silver.dim_candidate`, `silver.fact_candidate_vote`) já estão carregadas para `2024`.
+- O endpoint `GET /v1/electorate/election-context` agora resolve o contexto municipal usando a melhor granularidade disponível e retorna `source_level=electoral_zone` quando a carga nominal veio de `votacao_candidato_munzona`.
+- A limitação remanescente ficou concentrada em `GET /v1/electorate/candidate-territories`: a distribuição nominal continua dependente de fonte em `local de votação` ou `seção`, e hoje a base carregada ainda para em `zona eleitoral`.
+
+## 2026-03-07 - UX-1 slice 3 no frontend e auditoria de consistência do eleitorado
+
+### Changed
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` ampliada com:
+  - contexto da eleição (`tipo`, `cargo`, `turno`, `total de votos válidos`);
+  - tabela dos candidatos mais votados no recorte exibido;
+  - distribuição territorial do candidato selecionado por local de votação.
+- `frontend/src/shared/api/qg.ts` e `frontend/src/shared/api/types.ts` atualizados para consumir:
+  - `GET /v1/electorate/election-context`
+  - `GET /v1/electorate/candidate-territories`
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` reescrito para cobrir o novo fluxo nominal e a troca de candidato.
+- `src/app/api/routes_qg.py` blindado para retornar estado vazio controlado quando `silver.fact_candidate_vote`, `silver.dim_candidate` ou `silver.dim_election` ainda não existem no banco local.
+- Novo script `scripts/audit_electorate_consistency.py` adicionado para comparar API, banco e bruto TSE e gerar `data/reports/electorate_consistency_audit.json`.
+
+### Verified
+- `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `4 passed`
+- `npm --prefix frontend run build` -> `OK`
+- `./.venv/Scripts/python.exe -m pytest tests/unit/test_qg_routes.py -q` -> `29 passed`
+- `./.venv/Scripts/python.exe -m py_compile src/app/api/routes_qg.py scripts/audit_electorate_consistency.py` -> `OK`
+- `./.venv/Scripts/python.exe scripts/audit_electorate_consistency.py` -> relatório gerado em `data/reports/electorate_consistency_audit.json`
+
+### Audit summary
+- `summary`, `history` e `composição` do eleitorado batem entre API, Silver e bruto TSE para `2016`, `2018`, `2020`, `2022` e `2024`.
+- O ranking de locais de votação de `2024` bate integralmente entre API e agregação Silver por seção/local.
+- O bruto `perfil_eleitorado` não expõe local de votação; por isso o ranking foi auditado contra Silver, não diretamente contra o ZIP bruto.
+- A camada nominal de candidatos ainda não está carregada neste ambiente: `GET /v1/electorate/election-context` retorna `notes=candidate_tables_missing` até a migração/carga da base nominal.
+
+## 2026-03-07 - UX-1 slice 3 backend nominal do eleitorado
+
+### Changed
+- Nova modelagem Silver para voto nominal:
+  - `silver.dim_election`
+  - `silver.dim_candidate`
+  - `silver.fact_candidate_vote`
+- Novo pipeline `src/pipelines/tse_candidate_votes.py` para ingestao de `votacao_candidato_munzona` com Bronze dedicado e upsert idempotente em eleicao/candidato/voto territorial.
+- `src/app/api/routes_qg.py` ampliado com:
+  - `GET /v1/electorate/election-context`
+  - `GET /v1/electorate/candidate-territories`
+- `configs/connectors.yml`, `configs/jobs.yml`, `configs/waves.yml`, `configs/schema_contracts.yml`, `src/orchestration/prefect_flows.py`, `scripts/run_incremental_backfill.py`, `scripts/backfill_robust_database.py` e `scripts/equalize_database_env.ps1` atualizados para integrar `tse_candidate_votes_fetch`.
+- `docs/CONTRATO.md`, `docs/MAP_PLATFORM_SPEC.md`, `docs/PLANO_IMPLEMENTACAO_QG.md` e `docs/HANDOFF.md` atualizados para registrar o backend nominal como base entregue do slice 3.
+
+### Verified
+- `./.venv/Scripts/python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_candidate_votes.py tests/contracts/test_sql_contracts.py -q` -> `46 passed`
+- `./.venv/Scripts/python.exe -m py_compile src/pipelines/tse_candidate_votes.py src/app/api/routes_qg.py src/orchestration/prefect_flows.py scripts/run_incremental_backfill.py scripts/backfill_robust_database.py` -> `OK`
+## 2026-03-07 - UX-1 slice 2 no mapa executivo eleitoral
+
+### Changed
+- `frontend/src/modules/qg/pages/QgMapPage.tsx` passou a refletir comportamento eleitoral por local de votação diretamente no mapa executivo.
+- Overlay de locais de votação agora aceita troca de métrica eleitoral sem sair do fluxo cartográfico:
+  - `voters`
+  - `turnout`
+  - `abstention_rate`
+  - `blank_rate`
+  - `null_rate`
+- Ranking inferior do mapa deixou de regredir para tabela municipal quando o overlay eleitoral está ativo e passou a consumir `GET /v1/electorate/polling-places`.
+- Tooltip e drawer do local de votação agora compartilham o mesmo contexto do ranking:
+  - eleitores base
+  - share no município
+  - distrito
+  - zonas
+  - seções
+- `frontend/src/modules/qg/pages/QgPages.test.tsx` ampliado para cobrir:
+  - fallback temporal do ranking eleitoral do mapa;
+  - troca de métrica eleitoral no overlay de locais de votação.
+- `docs/MAP_PLATFORM_SPEC.md`, `docs/PLANO_IMPLEMENTACAO_QG.md` e `docs/HANDOFF.md` atualizados para registrar `UX-1 slice 2` como concluído e detalhar o contrato técnico dessa etapa.
+
+### Verified
+- `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`
+- `npm --prefix frontend run build` -> `OK`
+
+## 2026-03-07 - UX-1 slice 1 no eleitorado executivo
+
+### Changed
+- Backend ampliado em `src/app/api/routes_qg.py` com:
+  - `GET /v1/electorate/history`
+  - `GET /v1/electorate/polling-places`
+- Schemas adicionados em `src/app/schemas/qg.py` para:
+  - histórico anual do eleitorado
+  - ranking de locais de votação
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` reformulada para trocar a tabela municipal fraca por:
+  - histórico eleitoral anual
+  - ranking executivo de locais de votação
+  - fallback de ano preservado no novo fluxo
+- `frontend/src/shared/api/qg.ts` e `frontend/src/shared/api/types.ts` atualizados para o novo contrato.
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` reescrito para cobrir:
+  - aplicação de filtros
+  - fallback para último ano com dados
+  - tolerância a falha no fallback quando o ano filtrado tem dados
+  - erro de fallback quando o ano filtrado não tem dados
+- `tests/unit/test_qg_routes.py` ampliado para cobrir:
+  - histórico eleitoral
+  - ranking de locais por eleitores
+  - ranking de locais por comportamento eleitoral
+- `docs/CONTRATO.md` atualizado com os novos endpoints de eleitorado.
+- Correção no cálculo de comparecimento:
+  - agregados eleitorais agora escolhem um único `office`/`election_round` por ano (maior turnout) antes de calcular `turnout`/`abstention`, evitando comparecimento acima do total de eleitores.
+
+### Verified
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py -q` -> `26 passed`
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `41 passed`
+- `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `4 passed`
+- `npm --prefix frontend run build` -> `OK`
+
+### Notes
+- O teste Vitest precisou ser executado fora da sandbox por `EPERM` do ambiente local no acesso a `C:\\Users\\vtham`, sem evidência de falha do código da tela.
+
+## 2026-03-07 - Direção da expansão eleitoral territorial
+
+### Changed
+- `docs/MAP_PLATFORM_SPEC.md` ampliado para formalizar a próxima evolução de `UX-1`:
+  - `slice 2` com comportamento eleitoral por local no mapa;
+  - `slice 3` com contexto de eleição, cargo principal, candidatos e voto territorial por candidato.
+- `docs/PLANO_IMPLEMENTACAO_QG.md` alinhado para deixar explícito que a expansão eleitoral deve:
+  - reforçar leitura territorial;
+  - evitar uma interface de apuração genérica;
+  - privilegiar o cargo principal do ano.
+- `docs/HANDOFF.md` atualizado com a decisão de produto e com o modelo recomendado para a próxima camada eleitoral:
+  - `silver.dim_election`
+  - `silver.dim_candidate`
+  - `silver.fact_candidate_vote`
+
+### Verified
+- Revisão manual de coerência entre:
+  - `docs/MAP_PLATFORM_SPEC.md`
+  - `docs/PLANO_IMPLEMENTACAO_QG.md`
+  - `docs/HANDOFF.md`
+- Nenhum teste executado nesta rodada:
+  - alteração restrita à documentação.
+
+## 2026-03-06 - Refinamento do VISION para distrito, setor censitário e gramática do mapa
+
+### Changed
+- `docs/VISION.md` reforçado para refletir explicitamente:
+  - distinção entre camada `official`, `proxy` e `hybrid`;
+  - critérios mais rígidos para ativação de distrito e setor censitário;
+  - progressão operacional do mapa por nível de zoom e densidade analítica;
+  - incorporação da base urbana como parte do valor do produto;
+  - expansão das lentes executivas para acesso, vulnerabilidade, risco e vazios de cobertura.
+
+### Verified
+- Revisão manual de coerência entre:
+  - `docs/VISION.md`
+  - `docs/MAP_PLATFORM_SPEC.md`
+  - `docs/TERRITORIAL_LAYERS_SPEC_DIAMANTINA.md`
+- Nenhum teste executado nesta rodada:
+  - alteração restrita à documentação.
+
+## 2026-03-06 - Formalização da leitura eleitoral e diagnóstico das telas
+
+### Changed
+- `docs/MAP_PLATFORM_SPEC.md` ampliado com:
+  - leitura eleitoral executiva obrigatória;
+  - lacunas atuais observadas no sistema;
+  - necessidade de comportamento eleitoral por local de votação, não apenas volume.
+- `docs/HANDOFF.md` atualizado com diagnóstico resumido das telas do sistema:
+  - eleitorado;
+  - mapa QG;
+  - home;
+  - prioridades;
+  - insights;
+  - cenários;
+  - briefs;
+  - perfil territorial;
+  - admin/ops.
+
+### Verified
+- Revisão manual de coerência entre:
+  - `docs/VISION.md`
+  - `docs/MAP_PLATFORM_SPEC.md`
+  - `docs/HANDOFF.md`
+- Nenhum teste executado nesta rodada:
+  - alteração restrita à documentação.
+
+## 2026-03-06 - Consolidação da trilha única de UX executiva
+
+### Changed
+- `docs/MAP_PLATFORM_SPEC.md` atualizado com backlog único de UX executiva:
+  - `UX-1` Eleitorado territorial defensável;
+  - `UX-2` Mapa executivo orientado por lentes;
+  - `UX-3` Home/Prioridades/Insights alinhados ao mapa;
+  - `UX-4` Cenários/Briefs ancorados no território.
+- `docs/PLANO_IMPLEMENTACAO_QG.md` alinhado para apontar essa sequência como única frente funcional futura permitida.
+- `docs/HANDOFF.md` atualizado com a sequência aprovada e o próximo passo executável da frente funcional.
+
+### Verified
+- Revisão manual de coerência entre:
+  - `docs/PLANO_IMPLEMENTACAO_QG.md`
+  - `docs/MAP_PLATFORM_SPEC.md`
+  - `docs/HANDOFF.md`
+- Nenhum teste executado nesta rodada:
+  - alteração restrita à documentação.
+
+## 2026-03-06 - Recalibração da governança documental sobre o HANDOFF
+
+### Changed
+- `docs/GOVERNANCA_DOCUMENTAL.md` corrigido para refletir o papel real do `docs/HANDOFF.md`.
+- `docs/HANDOFF.md` passou a explicitar no topo que é memória operacional viva do projeto.
+- Removida a regra incorreta que restringia o `HANDOFF` a apenas estado corrente e próximo passo imediato.
+- Ajustado o texto de governança para deixar claro que documentos auxiliares podem existir, mas não substituem `docs/VISION.md`.
+
+### Verified
+- Revisão manual de coerência entre `docs/HANDOFF.md`, `docs/GOVERNANCA_DOCUMENTAL.md` e a decisão operacional vigente.
+- Nenhum teste executado nesta rodada:
+  - alteração restrita à documentação.
+
 ## 2026-03-05 - Sincronizacao documental do estado atual (commits x fila ativa)
 
 ### Changed

@@ -9,6 +9,9 @@ def test_silver_schema_has_required_tables() -> None:
     assert "CREATE TABLE IF NOT EXISTS silver.fact_indicator" in schema_sql
     assert "CREATE TABLE IF NOT EXISTS silver.fact_electorate" in schema_sql
     assert "CREATE TABLE IF NOT EXISTS silver.fact_election_result" in schema_sql
+    assert "CREATE TABLE IF NOT EXISTS silver.dim_election" in schema_sql
+    assert "CREATE TABLE IF NOT EXISTS silver.dim_candidate" in schema_sql
+    assert "CREATE TABLE IF NOT EXISTS silver.fact_candidate_vote" in schema_sql
     assert "CREATE TABLE IF NOT EXISTS ops.pipeline_runs" in schema_sql
 
 

@@ -1,0 +1,107 @@
+[
+  {
+    "job": "tse_candidate_votes_fetch",
+    "status": "success",
+    "run_id": "be285742-6fdb-492e-bf3c-72a78e95f665",
+    "duration_seconds": 160.08,
+    "rows_extracted": 9259,
+    "rows_written": 9259,
+    "warnings": [],
+    "errors": [],
+    "bronze": {
+      "source": "TSE",
+      "dataset": "tse_votacao_secao",
+      "reference_period": "2024",
+      "extracted_at_utc": "2026-03-08T15:54:18Z",
+      "local_path": "data/bronze/tse/tse_votacao_secao/2024/extracted_at=2026-03-08T15-54-18Z/raw.zip",
+      "manifest_path": "data/manifests/tse/tse_votacao_secao/2024/extracted_at=2026-03-08T15-54-18Z.yml",
+      "size_bytes": 201353290,
+      "checksum_sha256": "4622245b8346b8a15317f9995220f33597383a8db536abf0e5e558539ce08b02",
+      "uri": "https://cdn.tse.jus.br/estatistica/sead/odsele/votacao_secao/votacao_secao_2024_MG.zip"
+    }
+  },
+  {
+    "job": "tse_candidate_votes_fetch",
+    "status": "success",
+    "run_id": "cbcb1c98-dc00-4eed-bbb1-edabcc764008",
+    "duration_seconds": 153.85,
+    "rows_extracted": 17332,
+    "rows_written": 17332,
+    "warnings": [],
+    "errors": [],
+    "bronze": {
+      "source": "TSE",
+      "dataset": "tse_votacao_secao",
+      "reference_period": "2022",
+      "extracted_at_utc": "2026-03-08T15:56:52Z",
+      "local_path": "data/bronze/tse/tse_votacao_secao/2022/extracted_at=2026-03-08T15-56-52Z/raw.zip",
+      "manifest_path": "data/manifests/tse/tse_votacao_secao/2022/extracted_at=2026-03-08T15-56-52Z.yml",
+      "size_bytes": 255003874,
+      "checksum_sha256": "4fdec565e4a9d0def8ff474b76953e5fa770323f521d9c0f1717e1198ecf46f4",
+      "uri": "https://cdn.tse.jus.br/estatistica/sead/odsele/votacao_secao/votacao_secao_2022_MG.zip"
+    }
+  },
+  {
+    "job": "tse_candidate_votes_fetch",
+    "status": "success",
+    "run_id": "585e2350-cd1c-489a-a25c-897431a2999f",
+    "duration_seconds": 181.18,
+    "rows_extracted": 7826,
+    "rows_written": 7826,
+    "warnings": [],
+    "errors": [],
+    "bronze": {
+      "source": "TSE",
+      "dataset": "tse_votacao_secao",
+      "reference_period": "2020",
+      "extracted_at_utc": "2026-03-08T15:59:53Z",
+      "local_path": "data/bronze/tse/tse_votacao_secao/2020/extracted_at=2026-03-08T15-59-53Z/raw.zip",
+      "manifest_path": "data/manifests/tse/tse_votacao_secao/2020/extracted_at=2026-03-08T15-59-53Z.yml",
+      "size_bytes": 218553625,
+      "checksum_sha256": "ee5f6253407665178bad9d4e1f6f48371094e20c76652b93dbb48ad7503199dd",
+      "uri": "https://cdn.tse.jus.br/estatistica/sead/odsele/votacao_secao/votacao_secao_2020_MG.zip"
+    }
+  },
+  {
+    "job": "tse_candidate_votes_fetch",
+    "status": "success",
+    "run_id": "b10a695f-b6b6-4c3e-8159-a62a24ceadc0",
+    "duration_seconds": 183.96,
+    "rows_extracted": 16326,
+    "rows_written": 16326,
+    "warnings": [],
+    "errors": [],
+    "bronze": {
+      "source": "TSE",
+      "dataset": "tse_votacao_secao",
+      "reference_period": "2018",
+      "extracted_at_utc": "2026-03-08T16:02:57Z",
+      "local_path": "data/bronze/tse/tse_votacao_secao/2018/extracted_at=2026-03-08T16-02-57Z/raw.zip",
+      "manifest_path": "data/manifests/tse/tse_votacao_secao/2018/extracted_at=2026-03-08T16-02-57Z.yml",
+      "size_bytes": 192869746,
+      "checksum_sha256": "d549941f4c4362fff39d18df0f97352c0c4747051ec9023b3e68e0d2e20b2df9",
+      "uri": "https://cdn.tse.jus.br/estatistica/sead/odsele/votacao_secao/votacao_secao_2018_MG.zip"
+    }
+  },
+  {
+    "job": "tse_candidate_votes_fetch",
+    "status": "success",
+    "run_id": "4237f7bd-85d8-40f2-9c40-914a03a8f7cb",
+    "duration_seconds": 84.59,
+    "rows_extracted": 8815,
+    "rows_written": 8815,
+    "warnings": [],
+    "errors": [],
+    "bronze": {
+      "source": "TSE",
+      "dataset": "tse_votacao_secao",
+      "reference_period": "2016",
+      "extracted_at_utc": "2026-03-08T16:04:22Z",
+      "local_path": "data/bronze/tse/tse_votacao_secao/2016/extracted_at=2026-03-08T16-04-22Z/raw.zip",
+      "manifest_path": "data/manifests/tse/tse_votacao_secao/2016/extracted_at=2026-03-08T16-04-22Z.yml",
+      "size_bytes": 138581779,
+      "checksum_sha256": "48dc7ce890ad5d226bfbfe74e071461a33e69c58dff6ea46a6683efa42dda31e",
+      "uri": "https://cdn.tse.jus.br/estatistica/sead/odsele/votacao_secao/votacao_secao_2016_MG.zip"
+    }
+  }
+]

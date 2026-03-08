@@ -76,6 +76,9 @@ Silver:
 - `silver.fact_indicator`
 - `silver.fact_electorate`
 - `silver.fact_election_result`
+- `silver.dim_election`
+- `silver.dim_candidate`
+- `silver.fact_candidate_vote`
 
 Gold (executivo mínimo):
 - `gold.mart_priority_drivers`
@@ -132,6 +135,10 @@ Endpoints executivos (QG estratégico):
 - `GET /v1/territory/{territory_id}/compare` — comparação entre territórios
 - `GET /v1/territory/{territory_id}/peers` — territórios pares
 - `GET /v1/electorate/summary` — resumo eleitoral agregado por nível
+- `GET /v1/electorate/history` — série histórica anual do eleitorado e da participação
+- `GET /v1/electorate/polling-places` — ranking executivo de locais de votação com eleitores, seções e comportamento eleitoral por local
+- `GET /v1/electorate/election-context` — contexto do ano eleitoral com cargo principal, tipo de eleição e top candidatos
+- `GET /v1/electorate/candidate-territories` — distribuição territorial do voto nominal por candidato
 - `GET /v1/electorate/map` — dados eleitorais para mapa
 
 Endpoints geoespaciais:
