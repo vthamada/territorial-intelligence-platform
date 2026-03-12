@@ -1,0 +1,1480 @@
+{
+  "generated_at_utc": "2026-03-12T00:03:36.108104+00:00",
+  "municipality_ibge_code": "3121605",
+  "municipality_name": "Diamantina",
+  "municipality_uf": "MG",
+  "api_summary": {
+    "level": "municipio",
+    "year": 2022,
+    "total_voters": 38097,
+    "turnout": 28448.0,
+    "turnout_rate": 75.106265,
+    "abstention_rate": 24.893735,
+    "blank_rate": 6.538245,
+    "null_rate": 3.7964
+  },
+  "history_checks": [
+    {
+      "year": 2022,
+      "api_total_voters": 38097,
+      "db_total_voters": 38097,
+      "raw_total_voters": 38097,
+      "totals_match": true,
+      "matched_db_scope": {
+        "office": "Deputado Estadual",
+        "election_round": 1,
+        "turnout": 28448,
+        "abstention": 9429,
+        "votes_blank": 1860,
+        "votes_null": 1080,
+        "turnout_rate": 74.67254639472924,
+        "abstention_rate": 24.749980313410504,
+        "blank_rate": 6.538245219347581,
+        "null_rate": 3.796400449943757
+      },
+      "matched_raw_scope": {
+        "office": "Deputado Estadual",
+        "election_round": 1,
+        "election_type": "Eleição Ordinária",
+        "turnout": 28448,
+        "abstention": 9429,
+        "votes_blank": 1860,
+        "votes_null": 1080,
+        "turnout_rate": 75.10626501570874,
+        "abstention_rate": 24.893734984291257,
+        "blank_rate": 6.538245219347581,
+        "null_rate": 3.796400449943757
+      },
+      "api_metrics": {
+        "turnout": 28448.0,
+        "turnout_rate": 75.106265,
+        "abstention_rate": 24.893735,
+        "blank_rate": 6.538245,
+        "null_rate": 3.7964
+      },
+      "metrics_match_raw": true
+    },
+    {
+      "year": 2018,
+      "api_total_voters": 36508,
+      "db_total_voters": 36508,
+      "raw_total_voters": 36508,
+      "totals_match": true,
+      "matched_db_scope": {
+        "office": "Deputado Estadual",
+        "election_round": 1,
+        "turnout": 26464,
+        "abstention": 9945,
+        "votes_blank": 1638,
+        "votes_null": 2537,
+        "turnout_rate": 72.48822175961433,
+        "abstention_rate": 27.240604798948176,
+        "blank_rate": 6.189540507859734,
+        "null_rate": 9.58660822249093
+      },
+      "matched_raw_scope": {
+        "office": "Deputado Estadual",
+        "election_round": 1,
+        "election_type": "Eleição Ordinária",
+        "turnout": 26464,
+        "abstention": 9945,
+        "votes_blank": 1638,
+        "votes_null": 2537,
+        "turnout_rate": 72.6853250569914,
+        "abstention_rate": 27.314674943008598,
+        "blank_rate": 6.189540507859734,
+        "null_rate": 9.58660822249093
+      },
+      "api_metrics": {
+        "turnout": 26464.0,
+        "turnout_rate": 72.685325,
+        "abstention_rate": 27.314675,
+        "blank_rate": 6.189541,
+        "null_rate": 9.586608
+      },
+      "metrics_match_raw": true
+    }
+  ],
+  "composition_checks": {
+    "year": 2022,
+    "items": {
+      "sex": {
+        "api_labels": 3,
+        "db_labels": 3,
+        "raw_labels": 3,
+        "mismatches": []
+      },
+      "age": {
+        "api_labels": 22,
+        "db_labels": 22,
+        "raw_labels": 22,
+        "mismatches": []
+      },
+      "education": {
+        "api_labels": 9,
+        "db_labels": 9,
+        "raw_labels": 9,
+        "mismatches": []
+      }
+    }
+  },
+  "polling_place_checks": {
+    "year": 2022,
+    "raw_source_supports_polling_place": false,
+    "note": "O bruto do perfil do eleitorado não expõe local de votação; a auditoria do ranking é feita contra a agregação Silver por seção/local.",
+    "items": [
+      {
+        "polling_place_name": "E. E. PROF.ª GABRIELA NEVES",
+        "api_voters_total": 3013,
+        "db_voters_total": 3013,
+        "api_section_count": 9,
+        "db_section_count": 9,
+        "api_share_percent": 7.90875921988608,
+        "db_share_percent": 7.90875921988608,
+        "matches_db": true
+      },
+      {
+        "polling_place_name": "E. E. JOAQUIM FELÍCIO DOS SANTOS",
+        "api_voters_total": 2638,
+        "db_voters_total": 2638,
+        "api_section_count": 7,
+        "db_section_count": 7,
+        "api_share_percent": 6.924429745124288,
+        "db_share_percent": 6.924429745124288,
+        "matches_db": true
+      },
+      {
+        "polling_place_name": "E. E. PROF.ª ISABEL MOTA",
+        "api_voters_total": 2569,
+        "db_voters_total": 2569,
+        "api_section_count": 8,
+        "db_section_count": 8,
+        "api_share_percent": 6.743313121768119,
+        "db_share_percent": 6.743313121768119,
+        "matches_db": true
+      },
+      {
+        "polling_place_name": "E. E. JÚLIA KUBITSCHEK",
+        "api_voters_total": 2489,
+        "db_voters_total": 2489,
+        "api_section_count": 8,
+        "db_section_count": 8,
+        "api_share_percent": 6.533322833818936,
+        "db_share_percent": 6.533322833818936,
+        "matches_db": true
+      },
+      {
+        "polling_place_name": "UEMG (ANTIGA FEVALE)",
+        "api_voters_total": 2445,
+        "db_voters_total": 2445,
+        "api_section_count": 13,
+        "db_section_count": 13,
+        "api_share_percent": 6.4178281754468856,
+        "db_share_percent": 6.4178281754468856,
+        "matches_db": true
+      }
+    ]
+  },
+  "candidate_context": {
+    "tables_available": true,
+    "api_year": 2022,
+    "api_notes": "electorate_election_context_v1|source_level=electoral_section",
+    "items_count": 4
+  },
+  "candidate_nominal_checks": {
+    "raw_source": {
+      "2018": {
+        "zip_path": "data\\bronze\\tse\\tse_votacao_secao_presidente\\2018\\extracted_at=2026-03-11T23-35-57Z\\raw.zip",
+        "zip_paths": [
+          "data\\bronze\\tse\\tse_votacao_secao\\2018\\extracted_at=2026-03-08T16-02-57Z\\raw.zip",
+          "data\\bronze\\tse\\tse_votacao_secao\\2018\\extracted_at=2026-03-11T23-03-27Z\\raw.zip",
+          "data\\bronze\\tse\\tse_votacao_secao\\2018\\extracted_at=2026-03-11T23-35-57Z\\raw.zip",
+          "data\\bronze\\tse\\tse_votacao_secao_presidente\\2018\\extracted_at=2026-03-11T23-03-27Z\\raw.zip",
+          "data\\bronze\\tse\\tse_votacao_secao_presidente\\2018\\extracted_at=2026-03-11T23-35-57Z\\raw.zip"
+        ],
+        "available": true,
+        "items": [
+          {
+            "office": "Deputado Estadual",
+            "election_round": 1,
+            "candidate_count": 483,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 7524
+              },
+              {
+                "candidate_number": "17999",
+                "candidate_name": "FERNANDO ANTONIO DOS SANTOS",
+                "votes": 6930
+              },
+              {
+                "candidate_number": "15101",
+                "candidate_name": "IRAN ALMEIDA BARBOSA",
+                "votes": 5304
+              },
+              {
+                "candidate_number": "90456",
+                "candidate_name": "LUCAS MANOEL BARBOSA WERNECK",
+                "votes": 5154
+              },
+              {
+                "candidate_number": "36123",
+                "candidate_name": "CELIO DE CASSIO MOREIRA",
+                "votes": 4977
+              }
+            ]
+          },
+          {
+            "office": "Deputado Federal",
+            "election_round": 1,
+            "candidate_count": 436,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 7710
+              },
+              {
+                "candidate_number": "4555",
+                "candidate_name": "MARCUS VINÍCIUS CAETANO PESTANA DA SILVA",
+                "votes": 5922
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 4854
+              },
+              {
+                "candidate_number": "1590",
+                "candidate_name": "JOSÉ SARAIVA FELIPE",
+                "votes": 4662
+              },
+              {
+                "candidate_number": "1515",
+                "candidate_name": "HERCÍLIO ARAÚJO DINIZ FILHO",
+                "votes": 4500
+              }
+            ]
+          },
+          {
+            "office": "Governador",
+            "election_round": 1,
+            "candidate_count": 11,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "13",
+                "candidate_name": "FERNANDO DAMATA PIMENTEL",
+                "votes": 24141
+              },
+              {
+                "candidate_number": "45",
+                "candidate_name": "ANTONIO AUGUSTO JUNHO ANASTASIA",
+                "votes": 18504
+              },
+              {
+                "candidate_number": "30",
+                "candidate_name": "ROMEU ZEMA NETO",
+                "votes": 17397
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 10728
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 4608
+              }
+            ]
+          },
+          {
+            "office": "Governador",
+            "election_round": 2,
+            "candidate_count": 4,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "30",
+                "candidate_name": "ROMEU ZEMA NETO",
+                "votes": 31488
+              },
+              {
+                "candidate_number": "45",
+                "candidate_name": "ANTONIO AUGUSTO JUNHO ANASTASIA",
+                "votes": 28218
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 15114
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 3513
+              }
+            ]
+          },
+          {
+            "office": "Presidente",
+            "election_round": 1,
+            "candidate_count": 15,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "13",
+                "candidate_name": "FERNANDO HADDAD",
+                "votes": 20864
+              },
+              {
+                "candidate_number": "17",
+                "candidate_name": "JAIR MESSIAS BOLSONARO",
+                "votes": 14710
+              },
+              {
+                "candidate_number": "12",
+                "candidate_name": "CIRO FERREIRA GOMES",
+                "votes": 7222
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 3520
+              },
+              {
+                "candidate_number": "45",
+                "candidate_name": "GERALDO JOSÉ RODRIGUES ALCKMIN FILHO",
+                "votes": 1968
+              }
+            ]
+          },
+          {
+            "office": "Presidente",
+            "election_round": 2,
+            "candidate_count": 4,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "13",
+                "candidate_name": "FERNANDO HADDAD",
+                "votes": 27932
+              },
+              {
+                "candidate_number": "17",
+                "candidate_name": "JAIR MESSIAS BOLSONARO",
+                "votes": 17210
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 5840
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 1240
+              }
+            ]
+          },
+          {
+            "office": "Senador",
+            "election_round": 1,
+            "candidate_count": 17,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 30756
+              },
+              {
+                "candidate_number": "133",
+                "candidate_name": "DILMA VANA ROUSSEFF",
+                "votes": 30009
+              },
+              {
+                "candidate_number": "250",
+                "candidate_name": "RODRIGO OTÁVIO SOARES PACHECO",
+                "votes": 18522
+              },
+              {
+                "candidate_number": "130",
+                "candidate_name": "MIGUEL CORREA DA SILVA JÚNIOR",
+                "votes": 18411
+              },
+              {
+                "candidate_number": "777",
+                "candidate_name": "DINIS ANTÔNIO PINHEIRO",
+                "votes": 17331
+              }
+            ]
+          }
+        ]
+      },
+      "2022": {
+        "zip_path": "data\\bronze\\tse\\tse_votacao_secao_presidente\\2022\\extracted_at=2026-03-11T23-40-40Z\\raw.zip",
+        "zip_paths": [
+          "data\\bronze\\tse\\tse_votacao_secao\\2022\\extracted_at=2026-03-08T15-56-52Z\\raw.zip",
+          "data\\bronze\\tse\\tse_votacao_secao\\2022\\extracted_at=2026-03-11T23-07-32Z\\raw.zip",
+          "data\\bronze\\tse\\tse_votacao_secao\\2022\\extracted_at=2026-03-11T23-40-40Z\\raw.zip",
+          "data\\bronze\\tse\\tse_votacao_secao_presidente\\2022\\extracted_at=2026-03-11T23-07-32Z\\raw.zip",
+          "data\\bronze\\tse\\tse_votacao_secao_presidente\\2022\\extracted_at=2026-03-11T23-40-40Z\\raw.zip"
+        ],
+        "available": true,
+        "items": [
+          {
+            "office": "DEPUTADO ESTADUAL",
+            "election_round": 1,
+            "candidate_count": 511,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "77700",
+                "candidate_name": "MAURICIO DA PAIXÃO MAIA",
+                "votes": 5652
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 5580
+              },
+              {
+                "candidate_number": "13123",
+                "candidate_name": "BEATRIZ DA SILVA CERQUEIRA",
+                "votes": 5130
+              },
+              {
+                "candidate_number": "19456",
+                "candidate_name": "JOSE REIS NOGUEIRA DE BARROS",
+                "votes": 4560
+              },
+              {
+                "candidate_number": "10999",
+                "candidate_name": "FERNANDO ANTONIO DOS SANTOS",
+                "votes": 3549
+              }
+            ]
+          },
+          {
+            "office": "DEPUTADO FEDERAL",
+            "election_round": 1,
+            "candidate_count": 456,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "1515",
+                "candidate_name": "HERCILIO ARAUJO DINIZ FILHO",
+                "votes": 15477
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 4686
+              },
+              {
+                "candidate_number": "2222",
+                "candidate_name": "NIKOLAS FERREIRA DE OLIVEIRA",
+                "votes": 4356
+              },
+              {
+                "candidate_number": "1999",
+                "candidate_name": "IGOR TARCIANO TIMO",
+                "votes": 3774
+              },
+              {
+                "candidate_number": "1378",
+                "candidate_name": "PAULO JOSÉ CARLOS GUEDES",
+                "votes": 3297
+              }
+            ]
+          },
+          {
+            "office": "GOVERNADOR",
+            "election_round": 1,
+            "candidate_count": 12,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "55",
+                "candidate_name": "ALEXANDRE KALIL",
+                "votes": 39180
+              },
+              {
+                "candidate_number": "30",
+                "candidate_name": "ROMEU ZEMA NETO",
+                "votes": 26157
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 7863
+              },
+              {
+                "candidate_number": "22",
+                "candidate_name": "CARLOS ALBERTO DIAS VIANA",
+                "votes": 5616
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 4164
+              }
+            ]
+          },
+          {
+            "office": "PRESIDENTE",
+            "election_round": 1,
+            "candidate_count": 13,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "13",
+                "candidate_name": "LUIZ INÁCIO LULA DA SILVA",
+                "votes": 35846
+              },
+              {
+                "candidate_number": "22",
+                "candidate_name": "JAIR MESSIAS BOLSONARO",
+                "votes": 14334
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 1936
+              },
+              {
+                "candidate_number": "15",
+                "candidate_name": "SIMONE NASSAR TEBET",
+                "votes": 1796
+              },
+              {
+                "candidate_number": "12",
+                "candidate_name": "CIRO FERREIRA GOMES",
+                "votes": 1668
+              }
+            ]
+          },
+          {
+            "office": "PRESIDENTE",
+            "election_round": 2,
+            "candidate_count": 4,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "13",
+                "candidate_name": "LUIZ INÁCIO LULA DA SILVA",
+                "votes": 38090
+              },
+              {
+                "candidate_number": "22",
+                "candidate_name": "JAIR MESSIAS BOLSONARO",
+                "votes": 17328
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 1368
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 678
+              }
+            ]
+          },
+          {
+            "office": "SENADOR",
+            "election_round": 1,
+            "candidate_count": 11,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "555",
+                "candidate_name": "ALEXANDRE SILVEIRA DE OLIVEIRA",
+                "votes": 34614
+              },
+              {
+                "candidate_number": "200",
+                "candidate_name": "CLEITON GONTIJO DE AZEVEDO",
+                "votes": 27354
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 8220
+              },
+              {
+                "candidate_number": "111",
+                "candidate_name": "MARCELO GUILHERME DE ARO FERREIRA",
+                "votes": 6855
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 5886
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "db_scope_rows": [
+      {
+        "election_year": 2024,
+        "territory_level": "electoral_section",
+        "office": "Prefeito",
+        "election_round": 1,
+        "fact_rows": 511,
+        "section_count": 128,
+        "polling_place_count": 36,
+        "votes_total": 27941
+      },
+      {
+        "election_year": 2024,
+        "territory_level": "electoral_section",
+        "office": "Vereador",
+        "election_round": 1,
+        "fact_rows": 8748,
+        "section_count": 128,
+        "polling_place_count": 36,
+        "votes_total": 27941
+      },
+      {
+        "election_year": 2022,
+        "territory_level": "electoral_section",
+        "office": "DEPUTADO ESTADUAL",
+        "election_round": 1,
+        "fact_rows": 8332,
+        "section_count": 132,
+        "polling_place_count": 36,
+        "votes_total": 28448
+      },
+      {
+        "election_year": 2022,
+        "territory_level": "electoral_section",
+        "office": "DEPUTADO FEDERAL",
+        "election_round": 1,
+        "fact_rows": 7059,
+        "section_count": 132,
+        "polling_place_count": 36,
+        "votes_total": 28448
+      },
+      {
+        "election_year": 2022,
+        "territory_level": "electoral_section",
+        "office": "GOVERNADOR",
+        "election_round": 1,
+        "fact_rows": 943,
+        "section_count": 132,
+        "polling_place_count": 36,
+        "votes_total": 28448
+      },
+      {
+        "election_year": 2022,
+        "territory_level": "electoral_section",
+        "office": "PRESIDENTE",
+        "election_round": 1,
+        "fact_rows": 956,
+        "section_count": 132,
+        "polling_place_count": 36,
+        "votes_total": 28449
+      },
+      {
+        "election_year": 2022,
+        "territory_level": "electoral_section",
+        "office": "PRESIDENTE",
+        "election_round": 2,
+        "fact_rows": 511,
+        "section_count": 132,
+        "polling_place_count": 36,
+        "votes_total": 28732
+      },
+      {
+        "election_year": 2022,
+        "territory_level": "electoral_section",
+        "office": "SENADOR",
+        "election_round": 1,
+        "fact_rows": 998,
+        "section_count": 132,
+        "polling_place_count": 36,
+        "votes_total": 28448
+      },
+      {
+        "election_year": 2020,
+        "territory_level": "electoral_section",
+        "office": "Prefeito",
+        "election_round": 1,
+        "fact_rows": 386,
+        "section_count": 97,
+        "polling_place_count": 36,
+        "votes_total": 26977
+      },
+      {
+        "election_year": 2020,
+        "territory_level": "electoral_section",
+        "office": "Vereador",
+        "election_round": 1,
+        "fact_rows": 7440,
+        "section_count": 97,
+        "polling_place_count": 36,
+        "votes_total": 26977
+      },
+      {
+        "election_year": 2018,
+        "territory_level": "electoral_section",
+        "office": "Deputado Estadual",
+        "election_round": 1,
+        "fact_rows": 6497,
+        "section_count": 124,
+        "polling_place_count": 35,
+        "votes_total": 26464
+      },
+      {
+        "election_year": 2018,
+        "territory_level": "electoral_section",
+        "office": "Deputado Federal",
+        "election_round": 1,
+        "fact_rows": 6709,
+        "section_count": 124,
+        "polling_place_count": 35,
+        "votes_total": 26464
+      },
+      {
+        "election_year": 2018,
+        "territory_level": "electoral_section",
+        "office": "Governador",
+        "election_round": 1,
+        "fact_rows": 938,
+        "section_count": 124,
+        "polling_place_count": 35,
+        "votes_total": 26464
+      },
+      {
+        "election_year": 2018,
+        "territory_level": "electoral_section",
+        "office": "Governador",
+        "election_round": 2,
+        "fact_rows": 493,
+        "section_count": 124,
+        "polling_place_count": 35,
+        "votes_total": 26111
+      },
+      {
+        "election_year": 2018,
+        "territory_level": "electoral_section",
+        "office": "Presidente",
+        "election_round": 1,
+        "fact_rows": 1304,
+        "section_count": 124,
+        "polling_place_count": 35,
+        "votes_total": 26464
+      },
+      {
+        "election_year": 2018,
+        "territory_level": "electoral_section",
+        "office": "Presidente",
+        "election_round": 2,
+        "fact_rows": 490,
+        "section_count": 124,
+        "polling_place_count": 35,
+        "votes_total": 26111
+      },
+      {
+        "election_year": 2018,
+        "territory_level": "electoral_section",
+        "office": "Senador",
+        "election_round": 1,
+        "fact_rows": 1689,
+        "section_count": 124,
+        "polling_place_count": 35,
+        "votes_total": 52928
+      },
+      {
+        "election_year": 2016,
+        "territory_level": "electoral_section",
+        "office": "PREFEITO",
+        "election_round": 1,
+        "fact_rows": 688,
+        "section_count": 116,
+        "polling_place_count": 35,
+        "votes_total": 27765
+      },
+      {
+        "election_year": 2016,
+        "territory_level": "electoral_section",
+        "office": "VEREADOR",
+        "election_round": 1,
+        "fact_rows": 8127,
+        "section_count": 116,
+        "polling_place_count": 35,
+        "votes_total": 27765
+      }
+    ],
+    "year_summary": [
+      {
+        "year": 2018,
+        "raw_offices": [
+          {
+            "office": "Deputado Estadual",
+            "election_round": 1,
+            "candidate_count": 483,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 7524
+              },
+              {
+                "candidate_number": "17999",
+                "candidate_name": "FERNANDO ANTONIO DOS SANTOS",
+                "votes": 6930
+              },
+              {
+                "candidate_number": "15101",
+                "candidate_name": "IRAN ALMEIDA BARBOSA",
+                "votes": 5304
+              },
+              {
+                "candidate_number": "90456",
+                "candidate_name": "LUCAS MANOEL BARBOSA WERNECK",
+                "votes": 5154
+              },
+              {
+                "candidate_number": "36123",
+                "candidate_name": "CELIO DE CASSIO MOREIRA",
+                "votes": 4977
+              }
+            ]
+          },
+          {
+            "office": "Deputado Federal",
+            "election_round": 1,
+            "candidate_count": 436,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 7710
+              },
+              {
+                "candidate_number": "4555",
+                "candidate_name": "MARCUS VINÍCIUS CAETANO PESTANA DA SILVA",
+                "votes": 5922
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 4854
+              },
+              {
+                "candidate_number": "1590",
+                "candidate_name": "JOSÉ SARAIVA FELIPE",
+                "votes": 4662
+              },
+              {
+                "candidate_number": "1515",
+                "candidate_name": "HERCÍLIO ARAÚJO DINIZ FILHO",
+                "votes": 4500
+              }
+            ]
+          },
+          {
+            "office": "Governador",
+            "election_round": 1,
+            "candidate_count": 11,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "13",
+                "candidate_name": "FERNANDO DAMATA PIMENTEL",
+                "votes": 24141
+              },
+              {
+                "candidate_number": "45",
+                "candidate_name": "ANTONIO AUGUSTO JUNHO ANASTASIA",
+                "votes": 18504
+              },
+              {
+                "candidate_number": "30",
+                "candidate_name": "ROMEU ZEMA NETO",
+                "votes": 17397
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 10728
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 4608
+              }
+            ]
+          },
+          {
+            "office": "Governador",
+            "election_round": 2,
+            "candidate_count": 4,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "30",
+                "candidate_name": "ROMEU ZEMA NETO",
+                "votes": 31488
+              },
+              {
+                "candidate_number": "45",
+                "candidate_name": "ANTONIO AUGUSTO JUNHO ANASTASIA",
+                "votes": 28218
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 15114
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 3513
+              }
+            ]
+          },
+          {
+            "office": "Presidente",
+            "election_round": 1,
+            "candidate_count": 15,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "13",
+                "candidate_name": "FERNANDO HADDAD",
+                "votes": 20864
+              },
+              {
+                "candidate_number": "17",
+                "candidate_name": "JAIR MESSIAS BOLSONARO",
+                "votes": 14710
+              },
+              {
+                "candidate_number": "12",
+                "candidate_name": "CIRO FERREIRA GOMES",
+                "votes": 7222
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 3520
+              },
+              {
+                "candidate_number": "45",
+                "candidate_name": "GERALDO JOSÉ RODRIGUES ALCKMIN FILHO",
+                "votes": 1968
+              }
+            ]
+          },
+          {
+            "office": "Presidente",
+            "election_round": 2,
+            "candidate_count": 4,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "13",
+                "candidate_name": "FERNANDO HADDAD",
+                "votes": 27932
+              },
+              {
+                "candidate_number": "17",
+                "candidate_name": "JAIR MESSIAS BOLSONARO",
+                "votes": 17210
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 5840
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 1240
+              }
+            ]
+          },
+          {
+            "office": "Senador",
+            "election_round": 1,
+            "candidate_count": 17,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "top_candidates": [
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 30756
+              },
+              {
+                "candidate_number": "133",
+                "candidate_name": "DILMA VANA ROUSSEFF",
+                "votes": 30009
+              },
+              {
+                "candidate_number": "250",
+                "candidate_name": "RODRIGO OTÁVIO SOARES PACHECO",
+                "votes": 18522
+              },
+              {
+                "candidate_number": "130",
+                "candidate_name": "MIGUEL CORREA DA SILVA JÚNIOR",
+                "votes": 18411
+              },
+              {
+                "candidate_number": "777",
+                "candidate_name": "DINIS ANTÔNIO PINHEIRO",
+                "votes": 17331
+              }
+            ]
+          }
+        ],
+        "db_offices": [
+          {
+            "election_year": 2018,
+            "territory_level": "electoral_section",
+            "office": "Deputado Estadual",
+            "election_round": 1,
+            "fact_rows": 6497,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "votes_total": 26464
+          },
+          {
+            "election_year": 2018,
+            "territory_level": "electoral_section",
+            "office": "Deputado Federal",
+            "election_round": 1,
+            "fact_rows": 6709,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "votes_total": 26464
+          },
+          {
+            "election_year": 2018,
+            "territory_level": "electoral_section",
+            "office": "Governador",
+            "election_round": 1,
+            "fact_rows": 938,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "votes_total": 26464
+          },
+          {
+            "election_year": 2018,
+            "territory_level": "electoral_section",
+            "office": "Governador",
+            "election_round": 2,
+            "fact_rows": 493,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "votes_total": 26111
+          },
+          {
+            "election_year": 2018,
+            "territory_level": "electoral_section",
+            "office": "Presidente",
+            "election_round": 1,
+            "fact_rows": 1304,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "votes_total": 26464
+          },
+          {
+            "election_year": 2018,
+            "territory_level": "electoral_section",
+            "office": "Presidente",
+            "election_round": 2,
+            "fact_rows": 490,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "votes_total": 26111
+          },
+          {
+            "election_year": 2018,
+            "territory_level": "electoral_section",
+            "office": "Senador",
+            "election_round": 1,
+            "fact_rows": 1689,
+            "section_count": 124,
+            "polling_place_count": 35,
+            "votes_total": 52928
+          }
+        ]
+      },
+      {
+        "year": 2022,
+        "raw_offices": [
+          {
+            "office": "DEPUTADO ESTADUAL",
+            "election_round": 1,
+            "candidate_count": 511,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "77700",
+                "candidate_name": "MAURICIO DA PAIXÃO MAIA",
+                "votes": 5652
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 5580
+              },
+              {
+                "candidate_number": "13123",
+                "candidate_name": "BEATRIZ DA SILVA CERQUEIRA",
+                "votes": 5130
+              },
+              {
+                "candidate_number": "19456",
+                "candidate_name": "JOSE REIS NOGUEIRA DE BARROS",
+                "votes": 4560
+              },
+              {
+                "candidate_number": "10999",
+                "candidate_name": "FERNANDO ANTONIO DOS SANTOS",
+                "votes": 3549
+              }
+            ]
+          },
+          {
+            "office": "DEPUTADO FEDERAL",
+            "election_round": 1,
+            "candidate_count": 456,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "1515",
+                "candidate_name": "HERCILIO ARAUJO DINIZ FILHO",
+                "votes": 15477
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 4686
+              },
+              {
+                "candidate_number": "2222",
+                "candidate_name": "NIKOLAS FERREIRA DE OLIVEIRA",
+                "votes": 4356
+              },
+              {
+                "candidate_number": "1999",
+                "candidate_name": "IGOR TARCIANO TIMO",
+                "votes": 3774
+              },
+              {
+                "candidate_number": "1378",
+                "candidate_name": "PAULO JOSÉ CARLOS GUEDES",
+                "votes": 3297
+              }
+            ]
+          },
+          {
+            "office": "GOVERNADOR",
+            "election_round": 1,
+            "candidate_count": 12,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "55",
+                "candidate_name": "ALEXANDRE KALIL",
+                "votes": 39180
+              },
+              {
+                "candidate_number": "30",
+                "candidate_name": "ROMEU ZEMA NETO",
+                "votes": 26157
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 7863
+              },
+              {
+                "candidate_number": "22",
+                "candidate_name": "CARLOS ALBERTO DIAS VIANA",
+                "votes": 5616
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 4164
+              }
+            ]
+          },
+          {
+            "office": "PRESIDENTE",
+            "election_round": 1,
+            "candidate_count": 13,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "13",
+                "candidate_name": "LUIZ INÁCIO LULA DA SILVA",
+                "votes": 35846
+              },
+              {
+                "candidate_number": "22",
+                "candidate_name": "JAIR MESSIAS BOLSONARO",
+                "votes": 14334
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 1936
+              },
+              {
+                "candidate_number": "15",
+                "candidate_name": "SIMONE NASSAR TEBET",
+                "votes": 1796
+              },
+              {
+                "candidate_number": "12",
+                "candidate_name": "CIRO FERREIRA GOMES",
+                "votes": 1668
+              }
+            ]
+          },
+          {
+            "office": "PRESIDENTE",
+            "election_round": 2,
+            "candidate_count": 4,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "13",
+                "candidate_name": "LUIZ INÁCIO LULA DA SILVA",
+                "votes": 38090
+              },
+              {
+                "candidate_number": "22",
+                "candidate_name": "JAIR MESSIAS BOLSONARO",
+                "votes": 17328
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 1368
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 678
+              }
+            ]
+          },
+          {
+            "office": "SENADOR",
+            "election_round": 1,
+            "candidate_count": 11,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "top_candidates": [
+              {
+                "candidate_number": "555",
+                "candidate_name": "ALEXANDRE SILVEIRA DE OLIVEIRA",
+                "votes": 34614
+              },
+              {
+                "candidate_number": "200",
+                "candidate_name": "CLEITON GONTIJO DE AZEVEDO",
+                "votes": 27354
+              },
+              {
+                "candidate_number": "96",
+                "candidate_name": "VOTO NULO",
+                "votes": 8220
+              },
+              {
+                "candidate_number": "111",
+                "candidate_name": "MARCELO GUILHERME DE ARO FERREIRA",
+                "votes": 6855
+              },
+              {
+                "candidate_number": "95",
+                "candidate_name": "VOTO BRANCO",
+                "votes": 5886
+              }
+            ]
+          }
+        ],
+        "db_offices": [
+          {
+            "election_year": 2022,
+            "territory_level": "electoral_section",
+            "office": "DEPUTADO ESTADUAL",
+            "election_round": 1,
+            "fact_rows": 8332,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "votes_total": 28448
+          },
+          {
+            "election_year": 2022,
+            "territory_level": "electoral_section",
+            "office": "DEPUTADO FEDERAL",
+            "election_round": 1,
+            "fact_rows": 7059,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "votes_total": 28448
+          },
+          {
+            "election_year": 2022,
+            "territory_level": "electoral_section",
+            "office": "GOVERNADOR",
+            "election_round": 1,
+            "fact_rows": 943,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "votes_total": 28448
+          },
+          {
+            "election_year": 2022,
+            "territory_level": "electoral_section",
+            "office": "PRESIDENTE",
+            "election_round": 1,
+            "fact_rows": 956,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "votes_total": 28449
+          },
+          {
+            "election_year": 2022,
+            "territory_level": "electoral_section",
+            "office": "PRESIDENTE",
+            "election_round": 2,
+            "fact_rows": 511,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "votes_total": 28732
+          },
+          {
+            "election_year": 2022,
+            "territory_level": "electoral_section",
+            "office": "SENADOR",
+            "election_round": 1,
+            "fact_rows": 998,
+            "section_count": 132,
+            "polling_place_count": 36,
+            "votes_total": 28448
+          }
+        ]
+      }
+    ],
+    "api_context_top_candidates": {
+      "year": 2022,
+      "items": [
+        {
+          "candidate_id": "76f983bf-67b7-47b7-b302-db2021a1a4d7",
+          "candidate_number": "13",
+          "candidate_name": "LUIZ INÁCIO LULA DA SILVA",
+          "ballot_name": "LUIZ INÁCIO LULA DA SILVA",
+          "party_abbr": null,
+          "party_number": null,
+          "party_name": null,
+          "votes": 19045,
+          "share_percent": 66.28497842127244
+        },
+        {
+          "candidate_id": "98aaf962-175f-442f-8e1e-6c694b6d2f7f",
+          "candidate_number": "22",
+          "candidate_name": "JAIR MESSIAS BOLSONARO",
+          "ballot_name": "JAIR MESSIAS BOLSONARO",
+          "party_abbr": null,
+          "party_number": null,
+          "party_name": null,
+          "votes": 8664,
+          "share_percent": 30.154531532785743
+        },
+        {
+          "candidate_id": "5ab3f6e9-31a0-439c-ac3f-5027cce6f90e",
+          "candidate_number": "96",
+          "candidate_name": "VOTO NULO",
+          "ballot_name": "VOTO NULO",
+          "party_abbr": null,
+          "party_number": null,
+          "party_name": null,
+          "votes": 684,
+          "share_percent": 2.380620910483085
+        },
+        {
+          "candidate_id": "223fd00e-3a01-4f7b-a3a2-65b5ff95d98a",
+          "candidate_number": "95",
+          "candidate_name": "VOTO BRANCO",
+          "ballot_name": "VOTO BRANCO",
+          "party_abbr": null,
+          "party_number": null,
+          "party_name": null,
+          "votes": 339,
+          "share_percent": 1.1798691354587219
+        }
+      ]
+    },
+    "db_top_candidates_for_api_scope": {
+      "year": 2022,
+      "items": [
+        {
+          "candidate_number": "13",
+          "candidate_name": "LUIZ INÁCIO LULA DA SILVA",
+          "votes": 19045
+        },
+        {
+          "candidate_number": "22",
+          "candidate_name": "JAIR MESSIAS BOLSONARO",
+          "votes": 8664
+        },
+        {
+          "candidate_number": "96",
+          "candidate_name": "VOTO NULO",
+          "votes": 684
+        },
+        {
+          "candidate_number": "95",
+          "candidate_name": "VOTO BRANCO",
+          "votes": 339
+        }
+      ]
+    }
+  }
+}

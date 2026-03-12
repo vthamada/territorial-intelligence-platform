@@ -1,6 +1,6 @@
 # Territorial Intelligence Platform - Handoff
 
-Data de referência: 2026-03-07
+Data de referência: 2026-03-11
 Planejamento principal: `docs/PLANO_IMPLEMENTACAO_QG.md`
 North star de produto: `docs/VISION.md`
 Contrato técnico principal: `CONTRATO.md`
@@ -21,20 +21,20 @@ Papel deste documento: memória operacional viva do projeto, preservando estado 
    - `/v1/electorate/history` e `/v1/electorate/polling-places` sustentam `UX-1` com série histórica, ranking executivo e sincronização cartográfica por local de votação;
    - geolocalizacao de locais de votacao estabilizada com seed `data/seed/polling_places_diamantina.csv` (`36/36` locais) e auditoria geoespacial dedicada;
    - telas executivas (`Home`, `Prioridades`, `Mapa`, `Insights`, `Cenarios`, `Eleitorado`) alinhadas ao contrato atual e com suite QG estabilizada;
-   - `ElectorateExecutivePage` deixou de expor apenas uma tabela municipal simples e passou a mostrar histórico anual + ranking de locais de votação;
+   - `ElectorateExecutivePage` deixou de expor apenas uma tabela municipal simples e passou a mostrar histórico anual + ranking de locais de votação, com seletor controlado de cargo/turno no contexto nominal;
    - `QgMapPage` agora permite alternar a métrica eleitoral do local e mantém ranking, tooltip e drawer no mesmo contexto;
    - referencia vigente da refatoracao visual/estrutural do mapa esta consolidada em `docs/REFATORACAO_TELAS.md`.
 3. Validacao consolidada mais recente:
-   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py -q` -> `30 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_candidate_votes.py -q` -> `40 passed`.
    - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `41 passed`.
    - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`.
-   - `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `6 passed`.
+   - `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `8 passed`.
    - `npm --prefix frontend run build` -> `OK`.
    - `./.venv/Scripts/python.exe scripts/audit_electorate_consistency.py` -> relat?rio atualizado.
 4. Próximo passo executável real:
-   - limpar ou descontinuar explicitamente o residual legado em `electoral_zone` (`165` linhas de `2024`) para deixar a base nominal alinhada à nova granularidade principal;
-   - auditar a necessidade de complementar eleições gerais com recurso nacional (`BR`) após a primeira carga histórica por `votacao_secao`;
-   - só depois propagar contexto eleitoral nominal para `Home`/`Prioridades`, sem abrir `UX-2` antes da hora;
+   - propagar contexto eleitoral nominal agora validado para `Home`/`Prioridades`, sem abrir `UX-2` antes da hora;
+   - manter a limpeza do legado em `electoral_zone` automatizada via `scripts/cleanup_candidate_vote_zone_legacy.py` e `scripts/equalize_database_env.ps1`;
+   - preservar `Presidente` como cargo principal dos anos gerais (`2018`/`2022`) e `Prefeito` como cargo principal dos anos municipais;
    - manter rotina recorrente da janela de 30 dias com persistência de snapshots (`scripts/persist_ops_robustness_window.py`);
    - acompanhar drift para sustentar `status=READY`, `severity=normal` e `gates.all_pass=true`;
    - manter `#7` (`CadUnico/CECAD`) fora do ciclo ativo até desbloqueio externo.
@@ -42,6 +42,45 @@ Papel deste documento: memória operacional viva do projeto, preservando estado 
    - apenas esta secao define o "próximo passo executável" vigente;
    - secoes abaixo preservam histórico de entregas/rodadas e não reabrem pendencias já concluídas, salvo regressao comprovada.
 
+## Atualização técnica (2026-03-11) - Encoding dos documentos normalizado
+
+1. Correção documental:
+   - `docs/CHANGELOG.md` e `docs/HANDOFF.md` foram regravados em UTF-8 sem BOM e tiveram os trechos com mojibake/caractere de substituição corrigidos.
+2. Guardrail permanente:
+   - `.editorconfig` adicionado para padronizar `utf-8`, `LF` e newline final no repositório;
+   - `tests/unit/test_docs_encoding.py` adicionado para detectar regressão de encoding em arquivos `docs/*.md`;
+   - `scripts/fix_docs_encoding.py` adicionado para reaplicar a normalização de forma reproduzível quando necessário.
+3. Validação:
+   - `./.venv/Scripts/python.exe scripts/fix_docs_encoding.py` -> `OK`;
+   - `./.venv/Scripts/python.exe -m pytest tests/unit/test_docs_encoding.py -q` -> `1 passed`.
+
+## Atualização técnica (2026-03-11) - Consolidação da faixa etária de 16 a 20 anos
+
+1. Refinamento funcional na UI:
+   - ElectorateExecutivePage passou a consolidar as idades 16, 17, 18, 19 e 20 em um único bucket "16 a 20 anos" na aba Idade.
+2. Regra de apresentação:
+   - a agregação preserva o total de eleitores do bloco jovem e recalcula a participação percentual do bucket consolidado sobre o total exibido;
+   - as entradas individuais deixam de aparecer na tabela, reduzindo ruído visual sem perder informação relevante para leitura executiva.
+3. Validação:
+   - npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx -> 8 passed;
+   - npm --prefix frontend run build -> OK.
+
+## Atualização técnica (2026-03-11) - Seletor controlado de cargo/turno no eleitorado executivo
+
+1. Backend/API:
+   - `GET /v1/electorate/election-context` passou a aceitar `office` e `election_round`;
+   - a resposta agora expõe `available_offices`, permitindo que a UI selecione explicitamente o cargo/turno do ano.
+2. Frontend executivo:
+   - `ElectorateExecutivePage` agora exibe seletor de cargo quando o ano possui mais de um cargo nominal;
+   - a troca de cargo sincroniza o contexto eleitoral e a distribuição territorial do candidato;
+   - o cargo em exibição passou a ter apresentação legível (`Prefeito`, `Vereador`, `Presidente` etc.), sem depender do nome bruto do banco.
+3. Validação:
+   - `./.venv/Scripts/python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_candidate_votes.py -q` -> `40 passed`;
+   - `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `7 passed`;
+   - `npm --prefix frontend run build` -> `OK`.
+4. Efeito funcional:
+   - anos municipais já permitem alternar entre `Prefeito` e `Vereador` na tela executiva;
+   - anos gerais já podem expor `Presidente` como cargo principal e preservar os demais cargos como leitura secundária controlada.
 ## Atualização técnica (2026-03-08) - Normalização de locais/distritos na distribuição nominal
 
 1. Correção funcional na API:
@@ -57,6 +96,8 @@ Papel deste documento: memória operacional viva do projeto, preservando estado 
 4. Pendência real remanescente:
    - a dimensão `silver.dim_territory` ainda contém legado duplicado de `electoral_section`;
    - a inconsistência funcional foi neutralizada na API, mas a limpeza física da dimensão continua como hardening posterior.
+
+## Atualização técnica (2026-03-08) - Observabilidade da cobertura nominal
 
 1. Auditoria nominal reforçada:
    - `scripts/audit_electorate_consistency.py` agora lê ZIPs em streaming e aceita `--years` para auditoria focalizada;
@@ -105,6 +146,30 @@ Papel deste documento: memória operacional viva do projeto, preservando estado 
    - `data/reports/electorate_consistency_audit.json`
    - `./.venv/Scripts/python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_candidate_votes.py -q` -> `35 passed`
 
+## Atualização técnica (2026-03-11) - Suplemento presidencial e limpeza do legado nominal
+
+1. Limpeza do legado em `electoral_zone`:
+   - novo script `scripts/cleanup_candidate_vote_zone_legacy.py` remove linhas antigas de `silver.fact_candidate_vote` em `electoral_zone` quando o mesmo ano já está coberto por `electoral_section`;
+   - a limpeza foi executada para `2024`, removendo `165` linhas legadas;
+   - `scripts/equalize_database_env.ps1` passou a incorporar essa limpeza automaticamente.
+2. Pipeline nominal endurecido:
+   - `src/pipelines/tse_candidate_votes.py` agora suporta múltiplos recursos por ano;
+   - para eleições gerais, o job combina o pacote estadual (`MG`) com suplemento presidencial nacional (`BR`) sem duplicar votos;
+   - quando o CKAN falha ou não resolve recursos compatíveis, o pipeline passa a usar fallback direto do CDN do TSE (`votacao_secao_{ano}_{UF|BR}.zip`).
+3. Cobertura validada em produção local:
+   - `2018` e `2022` foram reprocessados com sucesso;
+   - `silver.fact_candidate_vote` agora inclui `Presidente` em `2018` e `PRESIDENTE` em `2022`, ambos em `electoral_section`;
+   - o Bronze complementar foi materializado em `data/bronze/tse/tse_votacao_secao_presidente/...`.
+4. Efeito funcional:
+   - `GET /v1/electorate/election-context?year=2018` agora retorna `Presidente` como cargo principal;
+   - `GET /v1/electorate/election-context?year=2022` agora retorna `PRESIDENTE` como cargo principal;
+   - `GET /v1/electorate/candidate-territories?aggregate_by=polling_place` passou a responder distribuição presidencial por local de votação em `2018` e `2022`.
+5. Evidências:
+   - `data/reports/candidate_vote_zone_cleanup.json`
+   - `data/reports/tse_candidate_votes_president_backfill.json`
+   - `data/reports/electorate_consistency_audit_general_president.json`
+   - `./.venv/Scripts/python.exe -m pytest tests/unit/test_tse_candidate_votes.py tests/unit/test_qg_routes.py -q` -> `39 passed`
+
 ## Atualização técnica (2026-03-07) - Limitação nominal explícita por zona eleitoral
 
 1. Backend/API:
@@ -115,7 +180,7 @@ Papel deste documento: memória operacional viva do projeto, preservando estado 
    - a tela agora informa explicitamente que a distribuição nominal está disponível apenas em `zona eleitoral` e que ainda não desce até `local de votação`.
 3. Validação:
    - `./.venv/Scripts/python.exe -m pytest tests/unit/test_qg_routes.py -q` -> `31 passed`.
-   - `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `6 passed`.
+   - `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `8 passed`.
    - `npm --prefix frontend run build` -> `OK`.
 4. Próximo passo executável real:
    - propagar o contexto nominal validado para `Home`/`Prioridades` sem abrir `UX-2`;
@@ -3414,6 +3479,7 @@ Sprint atual recomendado:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_up.ps1`
 - Encerrar API + frontend iniciados pelo launcher:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_down.ps1`
+
 
 
 

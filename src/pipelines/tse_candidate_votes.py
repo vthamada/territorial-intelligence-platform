@@ -45,6 +45,126 @@ _PARTY_ABBR_COLUMNS = ("SG_PARTIDO",)
 _PARTY_NUMBER_COLUMNS = ("NR_PARTIDO",)
 _PARTY_NAME_COLUMNS = ("NM_PARTIDO",)
 _VOTE_COLUMNS = ("QT_VOTOS_NOMINAIS", "QT_VOTOS", "QT_VOTOS_VALIDOS")
+_PRESIDENT_SUPPLEMENT_YEARS = {2018, 2022}
+_DIRECT_VOTACAO_SECAO_BASE_URL = "https://cdn.tse.jus.br/estatistica/sead/odsele/votacao_secao"
+
+
+def _is_candidate_vote_zip_resource(resource: dict[str, Any]) -> bool:
+    url = str(resource.get("url", "")).strip().lower()
+    return bool(url) and "votacao_secao" in url and url.endswith(".zip")
+
+
+def _resource_name(resource: dict[str, Any]) -> str:
+    return _normalize_text(str(resource.get("name", "")))
+
+
+def _resource_url(resource: dict[str, Any]) -> str:
+    return str(resource.get("url", "")).strip()
+
+
+def _is_exact_uf_resource(resource: dict[str, Any], *, uf: str) -> bool:
+    url = _resource_url(resource).lower()
+    normalized_uf = uf.strip().upper()
+    name = _resource_name(resource)
+    return url.endswith(f"_{normalized_uf.lower()}.zip") or f" {normalized_uf.lower()} " in f" {name} "
+
+
+def _is_generic_br_resource(resource: dict[str, Any]) -> bool:
+    url = _resource_url(resource).lower()
+    return url.endswith("_br.zip") or url.endswith("_brasil.zip")
+
+
+def _is_presidential_supplement_resource(resource: dict[str, Any]) -> bool:
+    url = _resource_url(resource).lower()
+    name = _resource_name(resource)
+    return "presidente" in name or "presidente" in url or _is_generic_br_resource(resource)
+
+
+def _pick_candidate_votes_resources(
+    resources: list[dict[str, Any]],
+    *,
+    uf: str,
+    reference_year: int,
+) -> list[dict[str, Any]]:
+    exact_matches: list[dict[str, Any]] = []
+    generic_matches: list[dict[str, Any]] = []
+
+    for resource in resources:
+        if not isinstance(resource, dict) or not _is_candidate_vote_zip_resource(resource):
+            continue
+        resource_copy = dict(resource)
+        if _is_exact_uf_resource(resource_copy, uf=uf):
+            exact_matches.append(resource_copy)
+            continue
+        if _is_generic_br_resource(resource_copy) or _is_presidential_supplement_resource(resource_copy):
+            generic_matches.append(resource_copy)
+
+    selected: list[dict[str, Any]] = []
+    primary_resource = exact_matches[0] if exact_matches else (generic_matches[0] if generic_matches else None)
+    if primary_resource is not None:
+        selected.append(
+            {
+                "resource": primary_resource,
+                "dataset": DATASET_NAME,
+                "allowed_offices": None,
+                "scope": "primary",
+            }
+        )
+
+    if reference_year not in _PRESIDENT_SUPPLEMENT_YEARS or not exact_matches:
+        return selected
+
+    supplement = next(
+        (resource for resource in generic_matches if _is_presidential_supplement_resource(resource)),
+        None,
+    )
+    if supplement is None:
+        return selected
+
+    if primary_resource is not None and _resource_url(primary_resource) == _resource_url(supplement):
+        return selected
+
+    selected.append(
+        {
+            "resource": supplement,
+            "dataset": f"{DATASET_NAME}_presidente",
+            "allowed_offices": {"presidente"},
+            "scope": "president_supplement",
+        }
+    )
+    return selected
+
+
+def _build_direct_candidate_vote_resources(
+    *,
+    uf: str,
+    reference_year: int,
+) -> list[dict[str, Any]]:
+    normalized_uf = uf.strip().upper()
+    resources = [
+        {
+            "resource": {
+                "name": f"{normalized_uf} - Votacao por secao eleitoral - {reference_year}",
+                "url": f"{_DIRECT_VOTACAO_SECAO_BASE_URL}/votacao_secao_{reference_year}_{normalized_uf}.zip",
+            },
+            "dataset": DATASET_NAME,
+            "allowed_offices": None,
+            "scope": "primary_direct",
+        }
+    ]
+    if reference_year in _PRESIDENT_SUPPLEMENT_YEARS:
+        resources.append(
+            {
+                "resource": {
+                    "name": f"Presidente - Votacao por secao eleitoral - {reference_year}",
+                    "url": f"{_DIRECT_VOTACAO_SECAO_BASE_URL}/votacao_secao_{reference_year}_BR.zip",
+                },
+                "dataset": f"{DATASET_NAME}_presidente",
+                "allowed_offices": {"presidente"},
+                "scope": "president_supplement_direct",
+            }
+        )
+    return resources
 
 
 def _pick_candidate_votes_resource(
@@ -52,31 +172,10 @@ def _pick_candidate_votes_resource(
     *,
     uf: str,
 ) -> dict[str, Any] | None:
-    normalized_uf = uf.strip().upper()
-    exact_matches: list[dict[str, Any]] = []
-    generic_matches: list[dict[str, Any]] = []
-
-    for resource in resources:
-        if not isinstance(resource, dict):
-            continue
-        url = str(resource.get("url", "")).strip().lower()
-        name = _normalize_text(str(resource.get("name", "")))
-        if not url:
-            continue
-        if "votacao_secao" not in url or not url.endswith(".zip"):
-            continue
-        resource_copy = dict(resource)
-        if url.endswith(f"_{normalized_uf.lower()}.zip") or f" {normalized_uf.lower()} " in f" {name} ":
-            exact_matches.append(resource_copy)
-            continue
-        if url.endswith("_br.zip") or url.endswith("_brasil.zip"):
-            generic_matches.append(resource_copy)
-
-    if exact_matches:
-        return exact_matches[0]
-    if generic_matches:
-        return generic_matches[0]
-    return None
+    selected = _pick_candidate_votes_resources(resources, uf=uf, reference_year=datetime.now(UTC).year)
+    if not selected:
+        return None
+    return dict(selected[0]["resource"])
 
 
 def _pick_first_available(columns: list[str], candidates: tuple[str, ...]) -> str | None:
@@ -120,6 +219,7 @@ def _extract_rows_from_zip(
     zip_bytes: bytes,
     municipality_name: str,
     uf: str,
+    allowed_offices: set[str] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     target_name = _normalize_text(municipality_name)
     rows_scanned = 0
@@ -310,6 +410,8 @@ def _extract_rows_from_zip(
                     if votes < 0:
                         continue
                     office = _normalize_optional_text(grouped_row["DS_CARGO"]) or "NAO_INFORMADO"
+                    if allowed_offices is not None and _normalize_text(office) not in allowed_offices:
+                        continue
                     key = (
                         int(float(grouped_row["ANO_ELEICAO"])),
                         int(float(grouped_row["NR_TURNO"])),
@@ -390,6 +492,52 @@ def _extract_rows_from_zip(
         ),
     }
     return result_rows, parse_info
+
+
+def _candidate_vote_row_key(row: dict[str, Any]) -> tuple[Any, ...]:
+    return (
+        row["election_year"],
+        row["election_round"],
+        row["office"],
+        row["tse_zone"],
+        row["tse_section"],
+        row["polling_place_name"],
+        row["polling_place_code"],
+        row["polling_place_address"],
+        row["candidate_number"],
+        row["candidate_name"],
+        row["ballot_name"],
+        row["full_name"],
+        row["party_abbr"],
+        row["party_number"],
+        row["party_name"],
+    )
+
+
+def _merge_candidate_vote_rows(
+    combined: dict[tuple[Any, ...], dict[str, Any]],
+    rows: list[dict[str, Any]],
+    *,
+    source_label: str,
+    warnings: list[str],
+) -> None:
+    for row in rows:
+        row_key = _candidate_vote_row_key(row)
+        existing = combined.get(row_key)
+        if existing is None:
+            combined[row_key] = dict(row)
+            continue
+        if int(existing["votes"]) == int(row["votes"]):
+            continue
+        kept = "new" if int(row["votes"]) > int(existing["votes"]) else "existing"
+        warnings.append(
+            "Duplicate candidate vote row across resources; "
+            f"keeping {kept} value for {source_label} "
+            f"(year={row['election_year']}, office={row['office']}, "
+            f"candidate={row['candidate_number']}, section={row['tse_section']}, zone={row['tse_zone']})."
+        )
+        if int(row["votes"]) > int(existing["votes"]):
+            combined[row_key] = dict(row)
 
 
 def _upsert_election(
@@ -594,30 +742,96 @@ def run(
                         f"CKAN package '{package_id}' not found; fallback to '{effective_package_id}'."
                     )
                     break
+        resource_specs: list[dict[str, Any]] = []
         if package is None:
-            raise RuntimeError("Could not resolve candidate vote package from TSE CKAN.")
+            effective_package_id = f"direct-votacao-secao-{reference_year}"
+            warnings.append(
+                f"CKAN package '{package_id}' unavailable; fallback to direct CDN pattern for {reference_year}."
+            )
+            resource_specs = _build_direct_candidate_vote_resources(uf=uf, reference_year=reference_year)
+        else:
+            resources = package.get("resources", [])
+            if not isinstance(resources, list):
+                raise RuntimeError("Invalid resources format in TSE CKAN package.")
+            resource_specs = _pick_candidate_votes_resources(resources, uf=uf, reference_year=reference_year)
+            if not resource_specs:
+                warnings.append(
+                    f"CKAN package '{effective_package_id}' has no matching candidate vote resource; "
+                    f"fallback to direct CDN pattern for {reference_year}."
+                )
+                resource_specs = _build_direct_candidate_vote_resources(uf=uf, reference_year=reference_year)
+        extracted_at = datetime.now(UTC)
+        resource_payloads: list[dict[str, Any]] = []
+        parse_infos: list[dict[str, Any]] = []
+        combined_rows: dict[tuple[Any, ...], dict[str, Any]] = {}
+        total_rows_scanned = 0
+        total_rows_filtered = 0
 
-        resources = package.get("resources", [])
-        if not isinstance(resources, list):
-            raise RuntimeError("Invalid resources format in TSE CKAN package.")
-        resource = _pick_candidate_votes_resource(resources, uf=uf)
-        if resource is None:
-            raise RuntimeError("No candidate vote section resource found in TSE CKAN package.")
+        for resource_spec in resource_specs:
+            resource = dict(resource_spec["resource"])
+            resource_url = _resource_url(resource)
+            if not resource_url:
+                raise RuntimeError("Selected TSE candidate votes resource has empty URL.")
 
-        resource_url = str(resource.get("url", "")).strip()
-        if not resource_url:
-            raise RuntimeError("Selected TSE candidate votes resource has empty URL.")
+            zip_bytes, _ = client.download_bytes(
+                resource_url,
+                expected_content_types=["zip", "octet-stream", "application/octet-stream"],
+                min_bytes=1024,
+            )
+            resource_rows, resource_parse_info = _extract_rows_from_zip(
+                zip_bytes=zip_bytes,
+                municipality_name=municipality_name,
+                uf=uf,
+                allowed_offices=resource_spec.get("allowed_offices"),
+            )
+            total_rows_scanned += int(resource_parse_info.get("rows_scanned", 0))
+            total_rows_filtered += int(resource_parse_info.get("rows_filtered", 0))
+            parse_infos.append(
+                {
+                    **resource_parse_info,
+                    "resource_url": resource_url,
+                    "resource_name": str(resource.get("name", "")),
+                    "dataset": str(resource_spec["dataset"]),
+                    "scope": str(resource_spec["scope"]),
+                }
+            )
+            _merge_candidate_vote_rows(
+                combined=combined_rows,
+                rows=resource_rows,
+                source_label=resource_url,
+                warnings=warnings,
+            )
+            resource_payloads.append(
+                {
+                    "spec": dict(resource_spec),
+                    "resource": resource,
+                    "resource_url": resource_url,
+                    "zip_bytes": zip_bytes,
+                }
+            )
 
-        zip_bytes, _ = client.download_bytes(
-            resource_url,
-            expected_content_types=["zip", "octet-stream", "application/octet-stream"],
-            min_bytes=1024,
-        )
-        parsed_rows, parse_info = _extract_rows_from_zip(
-            zip_bytes=zip_bytes,
-            municipality_name=municipality_name,
-            uf=uf,
-        )
+        parsed_rows = list(combined_rows.values())
+        parse_info = {
+            "resources": parse_infos,
+            "resource_count": len(parse_infos),
+            "rows_scanned": total_rows_scanned,
+            "rows_filtered": total_rows_filtered,
+            "rows_aggregated": len(parsed_rows),
+            "zones_detected": len({row["tse_zone"] for row in parsed_rows if row["tse_zone"] is not None}),
+            "sections_detected": len(
+                {
+                    (row["tse_zone"], row["tse_section"])
+                    for row in parsed_rows
+                    if row["tse_zone"] is not None and row["tse_section"] is not None
+                }
+            ),
+            "polling_places_detected": len(
+                {row["polling_place_name"] for row in parsed_rows if row["polling_place_name"]}
+            ),
+            "candidates_detected": len(
+                {(row["election_year"], row["office"], row["candidate_number"]) for row in parsed_rows}
+            ),
+        }
 
         if dry_run:
             elapsed = time.perf_counter() - started_at
@@ -632,7 +846,6 @@ def run(
                 "errors": [],
                 "preview": {
                     "package_id": effective_package_id,
-                    "resource_url": resource_url,
                     "parse_info": parse_info,
                 },
             }
@@ -750,30 +963,35 @@ def run(
             zones_upserted=zones_upserted,
             sections_upserted=sections_upserted,
         )
-        artifact = persist_raw_bytes(
-            settings=settings,
-            source=SOURCE,
-            dataset=DATASET_NAME,
-            reference_period=reference_period,
-            raw_bytes=zip_bytes,
-            extension=".zip",
-            uri=resource_url,
-            territory_scope="municipality,electoral_zone,electoral_section",
-            dataset_version=effective_package_id,
-            checks=checks,
-            notes="TSE candidate vote extraction and Silver upsert for election/candidate/territory vote facts.",
-            run_id=run_id,
-            tables_written=[
-                "silver.dim_election",
-                "silver.dim_candidate",
-                "silver.fact_candidate_vote",
-                "silver.dim_territory",
-            ],
-            rows_written=[
-                {"table": "silver.fact_candidate_vote", "rows": rows_written},
-                {"table": "silver.dim_territory", "rows": zones_upserted + sections_upserted},
-            ],
-        )
+        artifacts = []
+        for payload in resource_payloads:
+            artifact = persist_raw_bytes(
+                settings=settings,
+                source=SOURCE,
+                dataset=str(payload["spec"]["dataset"]),
+                reference_period=reference_period,
+                raw_bytes=payload["zip_bytes"],
+                extension=".zip",
+                uri=payload["resource_url"],
+                territory_scope="municipality,electoral_zone,electoral_section",
+                dataset_version=effective_package_id,
+                checks=checks,
+                notes="TSE candidate vote extraction and Silver upsert for election/candidate/territory vote facts.",
+                extracted_at=extracted_at,
+                run_id=run_id,
+                tables_written=[
+                    "silver.dim_election",
+                    "silver.dim_candidate",
+                    "silver.fact_candidate_vote",
+                    "silver.dim_territory",
+                ],
+                rows_written=[
+                    {"table": "silver.fact_candidate_vote", "rows": rows_written},
+                    {"table": "silver.dim_territory", "rows": zones_upserted + sections_upserted},
+                ],
+            )
+            artifacts.append(artifact)
+        artifact = artifacts[0]
 
         finished_at_utc = datetime.now(UTC)
         with session_scope(settings) as session:
@@ -797,10 +1015,11 @@ def run(
                 checksum_sha256=artifact.checksum_sha256,
                 details={
                     "package_id": effective_package_id,
-                    "resource_url": resource_url,
+                    "resource_urls": [payload["resource_url"] for payload in resource_payloads],
                     "parse_info": parse_info,
                     "zones_upserted": zones_upserted,
                     "sections_upserted": sections_upserted,
+                    "bronze_artifacts": [artifact_to_dict(item) for item in artifacts],
                 },
             )
             replace_pipeline_checks_from_dicts(session=session, run_id=run_id, checks=checks)
@@ -823,6 +1042,9 @@ def run(
             "warnings": warnings,
             "errors": [],
             "bronze": artifact_to_dict(artifact),
+            "bronze_artifacts": [artifact_to_dict(item) for item in artifacts],
+            "resource_urls": [payload["resource_url"] for payload in resource_payloads],
+            "parse_info": parse_info,
         }
     except Exception as exc:  # pragma: no cover - runtime logging path
         elapsed = time.perf_counter() - started_at

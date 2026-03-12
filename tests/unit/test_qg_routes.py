@@ -723,7 +723,10 @@ class _ElectorateElectionContextSession:
             return _ScalarResult(12)
         if "from silver.fact_candidate_vote fcv" in sql and "group by de.office, de.election_round, de.election_type" in sql:
             return _RowsResult(
-                [{"office": "PREFEITO", "election_round": 1, "election_type": "municipal", "total_votes": 8200.0}]
+                [
+                    {"office": "PREFEITO", "election_round": 1, "election_type": "municipal", "total_votes": 8200.0},
+                    {"office": "VEREADOR", "election_round": 1, "election_type": "municipal", "total_votes": 7900.0},
+                ]
             )
         if "with grouped as" in sql and "cross join total t" in sql and "dc.candidate_id::text as candidate_id" in sql:
             return _RowsResult(
@@ -778,7 +781,10 @@ class _ElectorateElectionContextFallbackSession:
             return _ScalarResult(12)
         if "from silver.fact_candidate_vote fcv" in sql and "group by de.office, de.election_round, de.election_type" in sql:
             return _RowsResult(
-                [{"office": "PREFEITO", "election_round": 1, "election_type": "municipal", "total_votes": 8200.0}]
+                [
+                    {"office": "PREFEITO", "election_round": 1, "election_type": "municipal", "total_votes": 8200.0},
+                    {"office": "VEREADOR", "election_round": 1, "election_type": "municipal", "total_votes": 7900.0},
+                ]
             )
         if "with grouped as" in sql and "cross join total t" in sql and "dc.candidate_id::text as candidate_id" in sql:
             return _RowsResult(
@@ -822,7 +828,10 @@ class _ElectorateElectionContextSectionPreferredSession:
                 return _ScalarResult(24)
         if "from silver.fact_candidate_vote fcv" in sql and "group by de.office, de.election_round, de.election_type" in sql:
             return _RowsResult(
-                [{"office": "PREFEITO", "election_round": 1, "election_type": "municipal", "total_votes": 8200.0}]
+                [
+                    {"office": "PREFEITO", "election_round": 1, "election_type": "municipal", "total_votes": 8200.0},
+                    {"office": "VEREADOR", "election_round": 1, "election_type": "municipal", "total_votes": 7900.0},
+                ]
             )
         if "with grouped as" in sql and "cross join total t" in sql and "dc.candidate_id::text as candidate_id" in sql:
             return _RowsResult(
@@ -1609,8 +1618,29 @@ def test_electorate_election_context_returns_primary_office_and_candidates() -> 
     assert payload["office"] == "PREFEITO"
     assert payload["election_type"] == "municipal"
     assert payload["total_votes"] == 8200
+    assert len(payload["available_offices"]) == 2
+    assert payload["available_offices"][0]["office"] == "PREFEITO"
+    assert payload["available_offices"][0]["is_primary"] is True
     assert payload["items"][0]["candidate_id"] == "cand-13"
     assert payload["items"][0]["votes"] == 4300
+    app.dependency_overrides.clear()
+
+
+def test_electorate_election_context_accepts_explicit_office_selection() -> None:
+    def _db() -> Generator[_ElectorateElectionContextSession, None, None]:
+        yield _ElectorateElectionContextSession()
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/electorate/election-context?level=municipio&year=2024&office=vereador&election_round=1&limit=5")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["office"] == "VEREADOR"
+    assert payload["election_round"] == 1
+    assert payload["available_offices"][1]["office"] == "VEREADOR"
+    assert payload["available_offices"][1]["is_primary"] is True
     app.dependency_overrides.clear()
 
 

@@ -556,6 +556,14 @@ export type ElectionContextCandidateItem = {
   share_percent: number | null;
 };
 
+export type ElectionContextOfficeOption = {
+  office: string;
+  election_round: number | null;
+  election_type: string | null;
+  total_votes: number;
+  is_primary: boolean;
+};
+
 export type ElectorateElectionContextResponse = {
   level: string;
   year: number | null;
@@ -564,6 +572,7 @@ export type ElectorateElectionContextResponse = {
   election_type: string | null;
   metadata: QgMetadata;
   total_votes: number;
+  available_offices: ElectionContextOfficeOption[];
   items: ElectionContextCandidateItem[];
 };
 

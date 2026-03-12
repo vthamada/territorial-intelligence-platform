@@ -1,0 +1,16 @@
+{
+  "status": "applied",
+  "years": [
+    2024
+  ],
+  "summary_before": [
+    {
+      "election_year": 2024,
+      "zone_rows": 165,
+      "zone_territories": 1,
+      "candidates": 165
+    }
+  ],
+  "deleted_rows": 165,
+  "summary_after": []
+}

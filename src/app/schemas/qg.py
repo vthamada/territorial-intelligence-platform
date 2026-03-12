@@ -348,6 +348,14 @@ class ElectionContextCandidateItem(BaseModel):
     share_percent: float | None = None
 
 
+class ElectionContextOfficeOption(BaseModel):
+    office: str
+    election_round: int | None = None
+    election_type: str | None = None
+    total_votes: int
+    is_primary: bool = False
+
+
 class ElectorateElectionContextResponse(BaseModel):
     level: str
     year: int | None
@@ -356,6 +364,7 @@ class ElectorateElectionContextResponse(BaseModel):
     election_type: str | None = None
     metadata: QgMetadata
     total_votes: int = 0
+    available_offices: list[ElectionContextOfficeOption] = []
     items: list[ElectionContextCandidateItem]
 
 

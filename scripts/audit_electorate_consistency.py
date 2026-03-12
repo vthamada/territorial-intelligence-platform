@@ -22,7 +22,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = PROJECT_ROOT / "data" / "reports" / "electorate_consistency_audit.json"
 PROFILE_ROOT = PROJECT_ROOT / "data" / "bronze" / "tse" / "tse_perfil_eleitorado"
 RESULT_ROOT = PROJECT_ROOT / "data" / "bronze" / "tse" / "tse_detalhe_votacao_munzona"
-CANDIDATE_ROOT = PROJECT_ROOT / "data" / "bronze" / "tse" / "tse_votacao_secao"
+CANDIDATE_ROOTS = [
+    PROJECT_ROOT / "data" / "bronze" / "tse" / "tse_votacao_secao",
+    PROJECT_ROOT / "data" / "bronze" / "tse" / "tse_votacao_secao_presidente",
+]
 YEARS = [2016, 2018, 2020, 2022, 2024]
 
 
@@ -151,46 +154,57 @@ def load_raw_result_scopes(municipality_name: str, municipality_uf: str, year: i
 
 
 def load_raw_candidate_scopes(municipality_name: str, municipality_uf: str, year: int) -> dict[str, Any]:
-    year_root = CANDIDATE_ROOT / str(year)
-    if not year_root.exists():
+    available_paths: list[Path] = []
+    for root in CANDIDATE_ROOTS:
+        year_root = root / str(year)
+        if not year_root.exists():
+            continue
+        available_paths.extend(sorted(year_root.glob("extracted_at=*/raw.zip")))
+
+    if not available_paths:
         return {
             "zip_path": None,
+            "zip_paths": [],
             "available": False,
             "note": f"candidate_bronze_missing_for_year_{year}",
             "items": [],
         }
 
-    path = latest_extracted_zip(CANDIDATE_ROOT, year)
     grouped: dict[tuple[str, int | None], dict[str, Any]] = {}
 
-    for row in iter_csv_rows_from_zip(path, member_predicate=lambda name: name.lower().endswith("_mg.csv")):
-        if row["NM_MUNICIPIO"].strip().upper() != municipality_name.upper() or row["SG_UF"].strip().upper() != municipality_uf.upper():
-            continue
-        office = row.get("DS_CARGO", "").strip() or "NÃO INFORMADO"
-        election_round = int(row["NR_TURNO"]) if row.get("NR_TURNO") else None
-        votes = int(row.get("QT_VOTOS_NOMINAIS") or row.get("QT_VOTOS") or 0)
-        candidate_number = str(row.get("NR_VOTAVEL") or row.get("NR_CANDIDATO") or "").strip()
-        candidate_name = str(row.get("NM_VOTAVEL") or row.get("NM_URNA_CANDIDATO") or row.get("NM_CANDIDATO") or "").strip()
-        section_code = str(row.get("NR_SECAO") or "").strip()
-        polling_place_name = str(row.get("NM_LOCAL_VOTACAO") or "").strip()
-        polling_place_code = str(row.get("NR_LOCAL_VOTACAO") or row.get("CD_LOCAL_VOTACAO") or "").strip()
-        key = (office, election_round)
-        scope = grouped.setdefault(
-            key,
-            {
-                "office": office,
-                "election_round": election_round,
-                "candidate_votes": defaultdict(int),
-                "section_codes": set(),
-                "polling_place_keys": set(),
-            },
-        )
-        if candidate_number or candidate_name:
-            scope["candidate_votes"][(candidate_number, candidate_name)] += votes
-        if section_code:
-            scope["section_codes"].add(section_code)
-        if polling_place_name or polling_place_code:
-            scope["polling_place_keys"].add((polling_place_code, polling_place_name))
+    for path in available_paths:
+        member_predicate = None
+        if "tse_votacao_secao_presidente" not in str(path):
+            member_predicate = lambda name: name.lower().endswith("_mg.csv")
+
+        for row in iter_csv_rows_from_zip(path, member_predicate=member_predicate):
+            if row["NM_MUNICIPIO"].strip().upper() != municipality_name.upper() or row["SG_UF"].strip().upper() != municipality_uf.upper():
+                continue
+            office = row.get("DS_CARGO", "").strip() or "NAO INFORMADO"
+            election_round = int(row["NR_TURNO"]) if row.get("NR_TURNO") else None
+            votes = int(row.get("QT_VOTOS_NOMINAIS") or row.get("QT_VOTOS") or 0)
+            candidate_number = str(row.get("NR_VOTAVEL") or row.get("NR_CANDIDATO") or "").strip()
+            candidate_name = str(row.get("NM_VOTAVEL") or row.get("NM_URNA_CANDIDATO") or row.get("NM_CANDIDATO") or "").strip()
+            section_code = str(row.get("NR_SECAO") or "").strip()
+            polling_place_name = str(row.get("NM_LOCAL_VOTACAO") or "").strip()
+            polling_place_code = str(row.get("NR_LOCAL_VOTACAO") or row.get("CD_LOCAL_VOTACAO") or "").strip()
+            key = (office, election_round)
+            scope = grouped.setdefault(
+                key,
+                {
+                    "office": office,
+                    "election_round": election_round,
+                    "candidate_votes": defaultdict(int),
+                    "section_codes": set(),
+                    "polling_place_keys": set(),
+                },
+            )
+            if candidate_number or candidate_name:
+                scope["candidate_votes"][(candidate_number, candidate_name)] += votes
+            if section_code:
+                scope["section_codes"].add(section_code)
+            if polling_place_name or polling_place_code:
+                scope["polling_place_keys"].add((polling_place_code, polling_place_name))
 
     items: list[dict[str, Any]] = []
     for (_, _), scope in grouped.items():
@@ -218,7 +232,8 @@ def load_raw_candidate_scopes(municipality_name: str, municipality_uf: str, year
 
     items.sort(key=lambda item: (item["office"], item["election_round"] or 0))
     return {
-        "zip_path": str(path.relative_to(PROJECT_ROOT)),
+        "zip_path": str(available_paths[-1].relative_to(PROJECT_ROOT)),
+        "zip_paths": [str(path.relative_to(PROJECT_ROOT)) for path in available_paths],
         "available": True,
         "items": items,
     }
@@ -504,16 +519,19 @@ def main() -> None:
         for token in str(args.years).split(",")
         if token.strip()
     ]
+    if not audit_years:
+        raise RuntimeError("At least one audit year must be provided via --years.")
+    focus_year = max(audit_years)
 
     client = TestClient(app)
     engine = build_db_engine()
 
-    summary_response = client.get("/v1/electorate/summary", params={"level": "municipality", "year": 2024}).json()
+    summary_response = client.get("/v1/electorate/summary", params={"level": "municipality", "year": focus_year}).json()
     history_response = client.get("/v1/electorate/history", params={"level": "municipality", "limit": len(YEARS)}).json()
-    polling_response = client.get("/v1/electorate/polling-places", params={"year": 2024, "metric": "voters", "limit": 5}).json()
+    polling_response = client.get("/v1/electorate/polling-places", params={"year": focus_year, "metric": "voters", "limit": 5}).json()
     election_context_response = client.get(
         "/v1/electorate/election-context",
-        params={"level": "municipality", "year": 2024, "limit": 5},
+        params={"level": "municipality", "year": focus_year, "limit": 5},
     ).json()
 
     with engine.connect() as conn:
@@ -523,8 +541,8 @@ def main() -> None:
         raw_candidate_scopes = {year: load_raw_candidate_scopes(municipality_name, municipality_uf, year) for year in audit_years}
         db_totals = {year: db_electorate_total(conn, territory_id, year) for year in audit_years}
         db_scopes = {year: db_result_scopes(conn, territory_id, year) for year in audit_years}
-        composition_checks = composition_report(summary_response, raw_profiles[2024], conn, territory_id)
-        polling_db = db_polling_places_top(conn, 2024, 5)
+        composition_checks = composition_report(summary_response, raw_profiles[focus_year], conn, territory_id)
+        polling_db = db_polling_places_top(conn, focus_year, 5)
         candidate_tables = candidate_tables_available(conn)
         db_candidate_scopes = db_candidate_scope_rows(conn) if candidate_tables else []
         db_top_candidates_api_scope = (
@@ -618,7 +636,7 @@ def main() -> None:
         "municipality_ibge_code": args.municipality_code,
         "municipality_name": municipality_name,
         "municipality_uf": municipality_uf,
-        "api_summary_2024": {
+        "api_summary": {
             key: summary_response[key]
             for key in [
                 "level",
@@ -632,8 +650,12 @@ def main() -> None:
             ]
         },
         "history_checks": history_checks,
-        "composition_checks_2024": composition_checks,
-        "polling_place_checks_2024": {
+        "composition_checks": {
+            "year": focus_year,
+            "items": composition_checks,
+        },
+        "polling_place_checks": {
+            "year": focus_year,
             "raw_source_supports_polling_place": False,
             "note": "O bruto do perfil do eleitorado não expõe local de votação; a auditoria do ranking é feita contra a agregação Silver por seção/local.",
             "items": polling_checks,
@@ -672,8 +694,14 @@ def main() -> None:
                 }
                 for year in audit_years
             ],
-            "api_context_top_candidates_2024": election_context_response["items"],
-            "db_top_candidates_for_api_scope_2024": db_top_candidates_api_scope,
+            "api_context_top_candidates": {
+                "year": focus_year,
+                "items": election_context_response["items"],
+            },
+            "db_top_candidates_for_api_scope": {
+                "year": focus_year,
+                "items": db_top_candidates_api_scope,
+            },
         },
     }
 

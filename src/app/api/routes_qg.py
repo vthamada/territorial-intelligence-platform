@@ -1034,6 +1034,48 @@ def _resolve_candidate_election_scope(
     return row.get("office"), row.get("election_round"), row.get("election_type")
 
 
+def _fetch_candidate_office_options(
+    db: Session,
+    *,
+    level: str,
+    year: int,
+) -> list[dict[str, Any]]:
+    rows = db.execute(
+        text(
+            """
+            SELECT
+                de.office,
+                de.election_round,
+                de.election_type,
+                SUM(fcv.votes)::double precision AS total_votes
+            FROM silver.fact_candidate_vote fcv
+            JOIN silver.dim_election de ON de.election_id = fcv.election_id
+            JOIN silver.dim_territory dt ON dt.territory_id = fcv.territory_id
+            WHERE dt.level::text = :level
+              AND de.election_year = :year
+            GROUP BY de.office, de.election_round, de.election_type
+            ORDER BY
+                CASE UPPER(TRIM(de.office))
+                    WHEN 'PREFEITO' THEN 1
+                    WHEN 'PRESIDENTE' THEN 1
+                    WHEN 'GOVERNADOR' THEN 2
+                    WHEN 'SENADOR' THEN 3
+                    WHEN 'DEPUTADO FEDERAL' THEN 4
+                    WHEN 'DEPUTADO ESTADUAL' THEN 5
+                    WHEN 'DEPUTADO DISTRITAL' THEN 5
+                    WHEN 'VEREADOR' THEN 6
+                    ELSE 99
+                END ASC,
+                de.election_round ASC NULLS LAST,
+                total_votes DESC NULLS LAST,
+                de.office ASC
+            """
+        ),
+        {"level": level, "year": year},
+    ).mappings().all()
+    return [dict(row) for row in rows]
+
+
 def _build_candidate_source_note(
     *,
     note_prefix: str,
@@ -2732,6 +2774,8 @@ def get_electorate_polling_places(
 def get_electorate_election_context(
     level: str = Query(default="municipality"),
     year: int | None = Query(default=None, ge=1900, le=2100),
+    office: str | None = Query(default=None),
+    election_round: int | None = Query(default=None, ge=1, le=2),
     limit: int = Query(default=8, ge=1, le=20),
     db: Session = Depends(get_db),  # noqa: B008
 ) -> ElectorateElectionContextResponse:
@@ -2750,6 +2794,7 @@ def get_electorate_election_context(
                 config_version=load_strategic_engine_config().version,
             ),
             total_votes=0,
+            available_offices=[],
             items=[],
         )
 
@@ -2768,14 +2813,55 @@ def get_electorate_election_context(
                 config_version=load_strategic_engine_config().version,
             ),
             total_votes=0,
+            available_offices=[],
             items=[],
         )
 
-    office, election_round, election_type = _resolve_candidate_election_scope(
+    office_options = _fetch_candidate_office_options(
         db,
         level=candidate_level,
         year=effective_year,
     )
+    selected_scope = None
+    if office_options:
+        if office is not None:
+            normalized_requested_office = office.strip().casefold()
+            selected_scope = next(
+                (
+                    row
+                    for row in office_options
+                    if str(row.get("office") or "").strip().casefold() == normalized_requested_office
+                    and (
+                        election_round is None
+                        or row.get("election_round") == election_round
+                    )
+                ),
+                None,
+            )
+        if selected_scope is None:
+            selected_scope = office_options[0]
+
+    if selected_scope is None:
+        return ElectorateElectionContextResponse(
+            level=to_external_level(level_en),
+            year=effective_year,
+            metadata=QgMetadata(
+                source_name="silver.dim_election + silver.dim_candidate + silver.fact_candidate_vote",
+                updated_at=None,
+                coverage_note="candidate_context",
+                unit="votes",
+                notes="no_data_for_selected_filters",
+                source_classification="oficial",
+                config_version=load_strategic_engine_config().version,
+            ),
+            total_votes=0,
+            available_offices=[],
+            items=[],
+        )
+
+    office = selected_scope.get("office")
+    election_round = selected_scope.get("election_round")
+    election_type = selected_scope.get("election_type")
     rows = db.execute(
         text(
             """
@@ -2852,6 +2938,17 @@ def get_electorate_election_context(
             config_version=load_strategic_engine_config().version,
         ),
         total_votes=total_votes,
+        available_offices=[
+            {
+                "office": str(row["office"]),
+                "election_round": row.get("election_round"),
+                "election_type": row.get("election_type"),
+                "total_votes": int(round(float(row.get("total_votes") or 0))),
+                "is_primary": str(row.get("office")) == str(office)
+                and row.get("election_round") == election_round,
+            }
+            for row in office_options
+        ],
         items=[
             ElectionContextCandidateItem(
                 candidate_id=row["candidate_id"],

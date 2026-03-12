@@ -144,5 +144,7 @@ Atualização complementar 2026-03-07:
   - o Bronze `tse_votacao_secao` está materializado para os cinco anos da série ativa;
   - a cobertura nominal atual do banco já mostra `electoral_section` como nível principal, com `142` seções e `36` locais de votação derivados;
   - o `source_level=electoral_section` já está ativo em `GET /v1/electorate/election-context`;
-  - persistem `165` linhas legadas em `electoral_zone` para `2024`, que agora viram residual explícito a ser limpo ou descontinuado;
-  - a auditoria das eleições gerais `2018`/`2022` contra possível complemento `BR` continua aberta antes de propagar a camada nominal para outras telas.
+  - o residual legado de `2024` em `electoral_zone` foi limpo com `scripts/cleanup_candidate_vote_zone_legacy.py`;
+  - `2018` e `2022` já foram reprocessados com suplemento presidencial (`BR`) e agora expõem `Presidente` como cargo principal dos anos gerais;
+  - a `ElectorateExecutivePage` agora também permite alternar cargo/turno quando o ano possui mais de um cargo nominal, mantendo contexto e distribuição territorial sincronizados;
+  - o próximo passo funcional deixa de ser infraestrutura do nominal e passa a ser propagar essa leitura validada para `Home`, `Prioridades` e demais telas executivas.

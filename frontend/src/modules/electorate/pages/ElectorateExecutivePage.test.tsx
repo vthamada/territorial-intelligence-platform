@@ -56,7 +56,14 @@ function seedDefaultMocks() {
     blank_rate: 2,
     null_rate: 3,
     by_sex: [{ label: "MASCULINO", voters: 5800, share_percent: 48.3 }],
-    by_age: [],
+    by_age: [
+      { label: "25 a 29 anos", voters: 3940, share_percent: 32.83 },
+      { label: "20 anos", voters: 527, share_percent: 4.39 },
+      { label: "19 anos", voters: 494, share_percent: 4.12 },
+      { label: "18 anos", voters: 414, share_percent: 3.45 },
+      { label: "17 anos", voters: 166, share_percent: 1.38 },
+      { label: "16 anos", voters: 72, share_percent: 0.6 },
+    ],
     by_education: [],
   });
 
@@ -151,6 +158,10 @@ function seedDefaultMocks() {
       notes: null,
     },
     total_votes: 10000,
+    available_offices: [
+      { office: "PREFEITO", election_round: 1, election_type: "municipal", total_votes: 10000, is_primary: true },
+      { office: "VEREADOR", election_round: 1, election_type: "municipal", total_votes: 9800, is_primary: false },
+    ],
     items: [
       {
         candidate_id: "cand-1",
@@ -397,8 +408,8 @@ describe("ElectorateExecutivePage", () => {
   it("renders election context and allows switching candidate territorial distribution", async () => {
     renderWithQueryClient(<ElectorateExecutivePage />);
 
-    expect(await screen.findByText("Cargo principal")).toBeInTheDocument();
-    expect(screen.getByText("PREFEITO")).toBeInTheDocument();
+    expect(await screen.findByText("Cargo em exibição")).toBeInTheDocument();
+    expect(screen.getByText("Prefeito")).toBeInTheDocument();
     expect(screen.getByText("João")).toBeInTheDocument();
     expect(screen.getByText("52,00%")).toBeInTheDocument();
     expect(await screen.findByText("UEMG (ANTIGA FEVALE)")).toBeInTheDocument();
@@ -413,6 +424,140 @@ describe("ElectorateExecutivePage", () => {
     );
     expect(await screen.findByText("Escola A")).toBeInTheDocument();
     expect(screen.getByText("1.300")).toBeInTheDocument();
+  });
+
+  it("allows switching the office shown in the election context", async () => {
+    vi.mocked(getElectorateElectionContext)
+      .mockResolvedValueOnce({
+        level: "municipality",
+        year: 2024,
+        election_round: 1,
+        office: "PREFEITO",
+        election_type: "municipal",
+        metadata: {
+          source_name: "silver.dim_election + silver.dim_candidate + silver.fact_candidate_vote",
+          updated_at: null,
+          coverage_note: "candidate_context",
+          unit: "votes",
+          notes: null,
+        },
+        total_votes: 10000,
+        available_offices: [
+          { office: "PREFEITO", election_round: 1, election_type: "municipal", total_votes: 10000, is_primary: true },
+          { office: "VEREADOR", election_round: 1, election_type: "municipal", total_votes: 9800, is_primary: false },
+        ],
+        items: [
+          {
+            candidate_id: "cand-1",
+            candidate_number: "15",
+            candidate_name: "João Silva",
+            ballot_name: "João",
+            party_abbr: "MDB",
+            party_number: "15",
+            party_name: "Movimento Democrático Brasileiro",
+            votes: 5200,
+            share_percent: 52,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        level: "municipality",
+        year: 2024,
+        election_round: 1,
+        office: "VEREADOR",
+        election_type: "municipal",
+        metadata: {
+          source_name: "silver.dim_election + silver.dim_candidate + silver.fact_candidate_vote",
+          updated_at: null,
+          coverage_note: "candidate_context",
+          unit: "votes",
+          notes: null,
+        },
+        total_votes: 9800,
+        available_offices: [
+          { office: "PREFEITO", election_round: 1, election_type: "municipal", total_votes: 10000, is_primary: false },
+          { office: "VEREADOR", election_round: 1, election_type: "municipal", total_votes: 9800, is_primary: true },
+        ],
+        items: [
+          {
+            candidate_id: "cand-9",
+            candidate_number: "12345",
+            candidate_name: "Carlos Pereira",
+            ballot_name: "Carlos",
+            party_abbr: "PSD",
+            party_number: "55",
+            party_name: "Partido Social Democrático",
+            votes: 1400,
+            share_percent: 14.29,
+          },
+        ],
+      });
+
+    vi.mocked(getElectorateCandidateTerritories)
+      .mockResolvedValueOnce({
+        level: "electoral_section",
+        aggregate_by: "polling_place",
+        year: 2024,
+        election_round: 1,
+        office: "PREFEITO",
+        election_type: "municipal",
+        candidate_id: "cand-1",
+        metadata: {
+          source_name: "silver.dim_election + silver.dim_candidate + silver.fact_candidate_vote",
+          updated_at: null,
+          coverage_note: "candidate_territorial",
+          unit: "votes",
+          notes: null,
+        },
+        items: [],
+      })
+      .mockResolvedValueOnce({
+        level: "electoral_section",
+        aggregate_by: "polling_place",
+        year: 2024,
+        election_round: 1,
+        office: "VEREADOR",
+        election_type: "municipal",
+        candidate_id: "cand-9",
+        metadata: {
+          source_name: "silver.dim_election + silver.dim_candidate + silver.fact_candidate_vote",
+          updated_at: null,
+          coverage_note: "candidate_territorial",
+          unit: "votes",
+          notes: null,
+        },
+        items: [],
+      });
+
+    renderWithQueryClient(<ElectorateExecutivePage />);
+
+    expect(await screen.findByLabelText("Cargo da eleição")).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("Cargo da eleição"), "VEREADOR::1");
+
+    await waitFor(() =>
+      expect(vi.mocked(getElectorateElectionContext).mock.calls).toContainEqual([
+        expect.objectContaining({
+          level: "municipality",
+          year: 2024,
+          office: "VEREADOR",
+          election_round: 1,
+          limit: 8,
+        }),
+      ]),
+    );
+    await waitFor(() =>
+      expect(vi.mocked(getElectorateCandidateTerritories).mock.calls).toContainEqual([
+        expect.objectContaining({
+          candidate_id: "cand-9",
+          aggregate_by: "polling_place",
+          year: 2024,
+          office: "VEREADOR",
+          election_round: 1,
+        }),
+      ]),
+    );
+    expect(await screen.findByText("Vereador")).toBeInTheDocument();
+    expect(screen.getByText("Carlos")).toBeInTheDocument();
   });
 
   it("explains when nominal candidate distribution is only available by electoral zone", async () => {
@@ -430,6 +575,9 @@ describe("ElectorateExecutivePage", () => {
         notes: "electorate_election_context_v1|source_level=electoral_zone",
       },
       total_votes: 10000,
+      available_offices: [
+        { office: "PREFEITO", election_round: 1, election_type: "municipal", total_votes: 10000, is_primary: true },
+      ],
       items: [
         {
           candidate_id: "cand-1",
@@ -478,6 +626,20 @@ describe("ElectorateExecutivePage", () => {
     expect(screen.queryByRole("columnheader", { name: "Indicador selecionado" })).not.toBeInTheDocument();
     expect(screen.getByText("13 seções")).toBeInTheDocument();
     expect(screen.getByText("Seções: 41, 177, 212")).toBeInTheDocument();
+  });
+
+  it("aggregates ages 16 to 20 into a single electorate composition bucket", async () => {
+    renderWithQueryClient(<ElectorateExecutivePage />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Idade" }));
+
+    expect(screen.getByText("16 a 20 anos")).toBeInTheDocument();
+    expect(screen.getByText("1.673")).toBeInTheDocument();
+    expect(screen.queryByText("16 anos")).not.toBeInTheDocument();
+    expect(screen.queryByText("17 anos")).not.toBeInTheDocument();
+    expect(screen.queryByText("18 anos")).not.toBeInTheDocument();
+    expect(screen.queryByText("19 anos")).not.toBeInTheDocument();
+    expect(screen.queryByText("20 anos")).not.toBeInTheDocument();
   });
 
   it("shows fallback error when selected year has no data and fallback fails", async () => {

@@ -25,6 +25,7 @@ $robustBackfillReport = Join-Path $OutputDir "robustness_backfill_sync_env.curre
 $incrementalFullReport = Join-Path $OutputDir "incremental_full_sources.current_env.json"
 $scorecardReport = Join-Path $OutputDir "data_coverage_scorecard.current_env.json"
 $pollingAuditReport = Join-Path $OutputDir "polling_places_geolocation_audit.current_env.json"
+$candidateZoneCleanupReport = Join-Path $OutputDir "candidate_vote_zone_cleanup.current_env.json"
 
 function Invoke-Step {
     param(
@@ -122,6 +123,13 @@ try {
         }
     }
 
+    Invoke-Step -StepName "cleanup_candidate_vote_zone_legacy" -ScriptArgs @(
+        "scripts/cleanup_candidate_vote_zone_legacy.py",
+        "--years", $TseYears,
+        "--apply",
+        "--output-json", $candidateZoneCleanupReport
+    )
+
     if (-not $SkipFullIncremental.IsPresent) {
         $incrementalArgs = @(
             "scripts/run_incremental_backfill.py",
@@ -172,6 +180,7 @@ try {
     Write-Host " - $incrementalFullReport"
     Write-Host " - $scorecardReport"
     Write-Host " - $pollingAuditReport"
+    Write-Host " - $candidateZoneCleanupReport"
 }
 finally {
     Pop-Location

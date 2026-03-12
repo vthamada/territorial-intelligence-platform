@@ -74,6 +74,43 @@ function breakdownGroupLabel(group: "sex" | "age" | "education") {
   return "escolaridade";
 }
 
+type BreakdownItem = {
+  label: string;
+  voters: number;
+  share_percent: number;
+};
+
+function aggregateAgeBreakdown(items: BreakdownItem[]) {
+  if (items.length === 0) {
+    return items;
+  }
+
+  const totalVoters = items.reduce((acc, item) => acc + item.voters, 0);
+  let mergedYoungVoters = 0;
+  const preservedItems: BreakdownItem[] = [];
+
+  for (const item of items) {
+    const ageMatch = item.label.match(/^(\d{2}) anos?$/i);
+    const ageValue = ageMatch ? Number(ageMatch[1]) : null;
+    if (ageValue !== null && ageValue >= 16 && ageValue <= 20) {
+      mergedYoungVoters += item.voters;
+      continue;
+    }
+    preservedItems.push(item);
+  }
+
+  const aggregatedItems = [...preservedItems];
+  if (mergedYoungVoters > 0) {
+    aggregatedItems.push({
+      label: "16 a 20 anos",
+      voters: mergedYoungVoters,
+      share_percent: totalVoters > 0 ? (mergedYoungVoters / totalVoters) * 100 : 0,
+    });
+  }
+
+  return aggregatedItems.sort((left, right) => right.voters - left.voters || left.label.localeCompare(right.label));
+}
+
 function formatSections(sectionCount: number, sections: string[]) {
   if (sectionCount <= 0) {
     return "-";
@@ -111,6 +148,35 @@ function formatElectionType(value: string | null) {
     .split("_")
     .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
     .join(" ");
+}
+
+function formatOfficeLabel(value: string | null) {
+  if (!value) {
+    return "-";
+  }
+  return value
+    .toLowerCase()
+    .split(" ")
+    .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
+    .join(" ");
+}
+
+function buildOfficeSelectionKey(office: string | null | undefined, electionRound: number | null | undefined) {
+  if (!office) {
+    return null;
+  }
+  return `${office}::${electionRound ?? ""}`;
+}
+
+function parseOfficeSelectionKey(value: string | null) {
+  if (!value) {
+    return { office: undefined, electionRound: undefined };
+  }
+  const [office, round] = value.split("::");
+  return {
+    office: office || undefined,
+    electionRound: round ? Number(round) : undefined,
+  };
 }
 
 function formatCandidateLabel(ballotName: string | null, candidateName: string) {
@@ -154,7 +220,9 @@ export function ElectorateExecutivePage() {
   const [appliedYear, setAppliedYear] = useState<number | undefined>(undefined);
   const [appliedMetric, setAppliedMetric] = useState<ElectorateMetric>("voters");
   const [compositionTab, setCompositionTab] = useState<"sex" | "age" | "education">("sex");
+  const [selectedOfficeKey, setSelectedOfficeKey] = useState<string | null>(null);
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
+  const requestedOfficeSelection = useMemo(() => parseOfficeSelectionKey(selectedOfficeKey), [selectedOfficeKey]);
 
   const baseQuery = useMemo(
     () => ({
@@ -215,6 +283,9 @@ export function ElectorateExecutivePage() {
       (fallbackPollingPlacesQuery.data?.items.length ?? 0) > 0);
   const showingFallbackData = hasNoData && appliedYear !== undefined && hasFallbackData;
   const effectiveDisplayYear = showingFallbackData ? fallbackYear : summaryYear;
+  const displayAgeItems =
+    (showingFallbackData ? fallbackSummaryQuery.data?.by_age : summaryQuery.data?.by_age) ?? [];
+  const ageBreakdown = useMemo(() => aggregateAgeBreakdown(displayAgeItems), [displayAgeItems]);
 
   const isLoading =
     summaryQuery.isPending ||
@@ -225,10 +296,27 @@ export function ElectorateExecutivePage() {
   const firstError = summaryQuery.error ?? historyQuery.error ?? pollingPlacesQuery.error;
 
   const electionContextQuery = useQuery({
-    queryKey: ["qg", "electorate-election-context", effectiveDisplayYear],
-    queryFn: () => getElectorateElectionContext({ level: "municipality", year: effectiveDisplayYear ?? undefined, limit: 8 }),
+    queryKey: [
+      "qg",
+      "electorate-election-context",
+      effectiveDisplayYear,
+      requestedOfficeSelection.office ?? null,
+      requestedOfficeSelection.electionRound ?? null,
+    ],
+    queryFn: () =>
+      getElectorateElectionContext({
+        level: "municipality",
+        year: effectiveDisplayYear ?? undefined,
+        office: requestedOfficeSelection.office,
+        election_round: requestedOfficeSelection.electionRound,
+        limit: 8,
+      }),
     enabled: !isLoading && !firstError && effectiveDisplayYear !== null,
   });
+  const currentOfficeKey = buildOfficeSelectionKey(
+    electionContextQuery.data?.office,
+    electionContextQuery.data?.election_round,
+  );
 
   const effectiveCandidateId = useMemo(() => {
     const items = electionContextQuery.data?.items ?? [];
@@ -302,6 +390,7 @@ export function ElectorateExecutivePage() {
     const parsedYear = yearInput.trim() ? Number(yearInput) : undefined;
     setAppliedYear(Number.isFinite(parsedYear) ? parsedYear : undefined);
     setAppliedMetric(metric);
+    setSelectedOfficeKey(null);
     setSelectedCandidateId(null);
   }
 
@@ -310,6 +399,7 @@ export function ElectorateExecutivePage() {
     setMetric("voters");
     setAppliedYear(undefined);
     setAppliedMetric("voters");
+    setSelectedOfficeKey(null);
     setSelectedCandidateId(null);
   }
 
@@ -563,18 +653,53 @@ export function ElectorateExecutivePage() {
                 <strong>{formatElectionType(electionContextQuery.data.election_type)}</strong>
               </article>
               <article>
-                <span>Cargo principal</span>
-                <strong>{electionContextQuery.data.office ?? "-"}</strong>
+                <span>Cargo em exibição</span>
+                <strong>{formatOfficeLabel(electionContextQuery.data.office)}</strong>
               </article>
               <article>
                 <span>Turno</span>
-                <strong>{electionContextQuery.data.election_round ?? "-"}</strong>
+                <strong>
+                  {electionContextQuery.data.election_round ? `${electionContextQuery.data.election_round}º turno` : "-"}
+                </strong>
               </article>
               <article>
                 <span>Total de votos válidos do recorte</span>
                 <strong>{formatInteger(electionContextQuery.data.total_votes)}</strong>
               </article>
             </div>
+            {electionContextQuery.data.available_offices.length > 1 ? (
+              <div
+                style={{
+                  display: "grid",
+                  gap: "0.35rem",
+                  marginTop: "1rem",
+                  marginBottom: "1rem",
+                  maxWidth: "22rem",
+                }}
+              >
+                <label htmlFor="electorate-office-select">Cargo da eleição</label>
+                <select
+                  id="electorate-office-select"
+                  value={selectedOfficeKey ?? currentOfficeKey ?? ""}
+                  onChange={(event) => {
+                    setSelectedOfficeKey(event.target.value || null);
+                    setSelectedCandidateId(null);
+                  }}
+                >
+                  {electionContextQuery.data.available_offices.map((item) => {
+                    const value = buildOfficeSelectionKey(item.office, item.election_round) ?? "";
+                    const label = `${formatOfficeLabel(item.office)}${
+                      item.election_round ? ` · ${item.election_round}º turno` : ""
+                    }`;
+                    return (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            ) : null}
             {electionContextSourceLevel ? (
               <StateBlock
                 tone="empty"
@@ -807,7 +932,7 @@ export function ElectorateExecutivePage() {
                       ))
                     : null}
                   {compositionTab === "age"
-                    ? effectiveSummary.by_age.map((item) => (
+                    ? ageBreakdown.map((item) => (
                         <tr key={`age-${item.label}`}>
                           <td>{breakdownGroupLabel("age")}</td>
                           <td>{item.label}</td>

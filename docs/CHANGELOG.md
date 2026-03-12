@@ -2,6 +2,80 @@
 
 Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
+## 2026-03-11 - Normalização de encoding dos documentos e guardrail de regressão
+
+### Changed
+- `docs/CHANGELOG.md` e `docs/HANDOFF.md` foram normalizados em UTF-8 sem BOM, com correção dos trechos que ainda estavam com mojibake e caracteres de substituição.
+- Novo script `scripts/fix_docs_encoding.py` adicionado para reaplicar a correção de forma reproduzível quando houver degradação documental.
+- Novo `.editorconfig` adicionado ao repositório para padronizar `charset=utf-8`, `LF` e newline final.
+- Novo teste `tests/unit/test_docs_encoding.py` adicionado para falhar quando arquivos em `docs/` voltarem a conter sequências típicas de encoding corrompido.
+
+### Verified
+- `python scripts/fix_docs_encoding.py` -> normalização aplicada nos documentos afetados.
+- `python -m pytest tests/unit/test_docs_encoding.py -q` -> `1 passed`.
+
+## 2026-03-11 - Agregação da faixa etária de 16 a 20 anos no eleitorado executivo
+
+### Changed
+- frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx passou a consolidar as idades nominais 16, 17, 18, 19 e 20 em um único bucket "16 a 20 anos" na aba de composição por idade.
+- A participação percentual desse bucket passou a ser recalculada sobre o total da composição exibida, preservando a ordenação por volume de eleitores.
+- frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx recebeu cobertura específica para validar a agregação e garantir que as idades individuais não voltem a aparecer separadas na UI.
+
+### Verified
+- npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx -> 8 passed.
+- npm --prefix frontend run build -> OK.
+
+## 2026-03-11 - Seletor controlado de cargo/turno no eleitorado executivo
+
+### Changed
+- `src/app/api/routes_qg.py` passou a aceitar `office` e `election_round` em `GET /v1/electorate/election-context`, retornando também `available_offices` para seleção controlada do cargo exibido.
+- `src/app/schemas/qg.py` e `frontend/src/shared/api/types.ts` foram ampliados com `ElectionContextOfficeOption`.
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` passou a:
+  - exibir seletor de cargo/turno quando o ano possui mais de um cargo nominal;
+  - manter o contexto eleitoral e a distribuição territorial sincronizados com o cargo selecionado;
+  - formatar a apresentação do cargo e do turno de forma legível no painel executivo.
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` recebeu cobertura para a troca controlada de cargo.
+- `tests/unit/test_qg_routes.py` passou a validar `available_offices` e seleção explícita de cargo.
+
+### Verified
+- `./.venv/Scripts/python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_candidate_votes.py -q` -> `40 passed`.
+- `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `7 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+
+### Notes
+- O eixo eleitoral nominal agora já suporta `Prefeito`, `Vereador`, `Presidente`, `Governador`, `Senador`, `Deputado Federal` e `Deputado Estadual` no backend, mas a UI executiva continua tratando o cargo principal do ano como padrão e os demais como seleção controlada.
+
+## 2026-03-11 - Cobertura presidencial nominal e limpeza do legado em `electoral_zone`
+
+### Changed
+- Novo script `scripts/cleanup_candidate_vote_zone_legacy.py` para remover linhas legadas de `silver.fact_candidate_vote` em `electoral_zone` quando o ano já possui cobertura em `electoral_section`.
+- `scripts/equalize_database_env.ps1` passou a executar essa limpeza automaticamente após o backfill robusto.
+- `src/pipelines/tse_candidate_votes.py` passou a:
+  - combinar múltiplos recursos por ano quando necessário;
+  - somar pacote estadual (`MG`) com suplemento presidencial nacional (`BR`) nas eleições gerais;
+  - evitar dupla contagem entre recursos duplicados;
+  - usar fallback direto do CDN do TSE quando o CKAN falha ou não resolve os recursos nominais esperados.
+- `scripts/audit_electorate_consistency.py` passou a ler também `data/bronze/tse/tse_votacao_secao_presidente` e a suportar auditorias focadas por `--years` sem assumir `2024` como ano fixo.
+- `tests/unit/test_tse_candidate_votes.py` ampliado para cobrir:
+  - seleção do suplemento presidencial;
+  - fallback direto do CDN;
+  - prevenção de dupla contagem na mescla de recursos.
+
+### Verified
+- `./.venv/Scripts/python.exe -m pytest tests/unit/test_tse_candidate_votes.py tests/unit/test_qg_routes.py -q` -> `39 passed`.
+- `./.venv/Scripts/python.exe -m py_compile src/pipelines/tse_candidate_votes.py scripts/audit_electorate_consistency.py` -> `OK`.
+- `./.venv/Scripts/python.exe scripts/cleanup_candidate_vote_zone_legacy.py --years 2024 --apply --output-json data/reports/candidate_vote_zone_cleanup.json` -> `165` linhas removidas.
+- `./.venv/Scripts/python.exe scripts/run_incremental_backfill.py --jobs tse_candidate_votes_fetch --reprocess-jobs tse_candidate_votes_fetch --reprocess-periods 2018,2022 --periods 2018,2022 --output-json data/reports/tse_candidate_votes_president_backfill.json` -> `2018` e `2022` reprocessados com sucesso.
+- `./.venv/Scripts/python.exe scripts/audit_electorate_consistency.py --years 2018,2022 --output data/reports/electorate_consistency_audit_general_president.json` -> `OK`.
+- Smoke real da API:
+  - `GET /v1/electorate/election-context?year=2018` -> `office=Presidente`, `source_level=electoral_section`
+  - `GET /v1/electorate/election-context?year=2022` -> `office=PRESIDENTE`, `source_level=electoral_section`
+  - `GET /v1/electorate/candidate-territories?aggregate_by=polling_place` -> distribuição presidencial por local em `2018` e `2022`
+
+### Notes
+- O banco agora expõe `Presidente` em `2018` e `PRESIDENTE` em `2022` na `silver.fact_candidate_vote`, ambos no nível `electoral_section`.
+- A infraestrutura nominal do eixo eleitoral fica, com isso, suficientemente fechada para abrir o próximo passo funcional: propagar o contexto nominal validado para `Home` e `Prioridades`.
+
 ## 2026-03-08 - Normalização de local/distrito na distribuição nominal por candidato
 
 ### Changed
@@ -25,6 +99,8 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ### Notes
 - O problema observado não era só de frontend. A base continha seções legadas duplicadas em `silver.dim_territory`, e o agrupamento por `nome + código` permitia que o mesmo `polling_place_code` aparecesse em linhas separadas.
 - Ainda existe legado duplicado em `silver.dim_territory`; a correção desta rodada neutraliza o efeito funcional na API, mas a limpeza física da dimensão continua válida como passo posterior.
+
+## 2026-03-08 - Conector nominal reorientado para `votacao_secao`
 
 ### Changed
 - `src/pipelines/tse_candidate_votes.py` deixou de apontar para `tse_votacao_candidato_munzona` e passou a consumir `tse_votacao_secao`.
@@ -2660,7 +2736,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ## 2026-02-20 — Fase UX-P0 (auditoria visual completa)
 
 ### Fixed (frontend — presentation.ts)
-- UX-P0-01: `formatValueWithUnit()` agora mapeia unidades corretamente: `count` → sem unidade, `percent` → `%`, `ratio` → sem unidade, `C` → `Â°C`, `m3/s` → `mÂ³/s`, `mm`/`ha`/`km`/`kwh` com símbolos corretos.
+- UX-P0-01: `formatValueWithUnit()` agora mapeia unidades corretamente: `count` → sem unidade, `percent` → `%`, `ratio` → sem unidade, `C` → `?C`, `m3/s` → `m?/s`, `mm`/`ha`/`km`/`kwh` com símbolos corretos.
 - UX-P0-02: Novos helpers `humanizeSourceName()`, `humanizeCoverageNote()`, `humanizeDatasetSource()` — convertem nomes técnicos de tabelas/datasets em labels legiveis.
 
 ### Fixed (frontend — SourceFreshnessBadge.tsx)
@@ -2700,7 +2776,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - UX-P0-20: Coluna "Métrica" removida da tabela de ranking (redundante — todas as linhas usam a métrica filtrada).
 
 ### Fixed (backend — routes_qg.py)
-- UX-P0-21: `_format_highlight_value()` agora trata `percent` → `%`, `count` → sem unidade, `ratio` → sem unidade, `C` → `Â°C`, `m3/s` → `mÂ³/s`.
+- UX-P0-21: `_format_highlight_value()` agora trata `percent` → `%`, `count` → sem unidade, `ratio` → sem unidade, `C` → `?C`, `m3/s` → `m?/s`.
 - UX-P0-22: Explicacao de cenarios usa `_format_highlight_value()` para valores e traduz `impact` para pt-BR ("melhora"/"piora"/"inalterado").
 
 ### Changed (testes)
@@ -2988,7 +3064,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - testes de mapa ampliados em `frontend/src/modules/qg/pages/QgPages.test.tsx`:
     - prefill dos controles visuais por query string.
     - sincronização de query params após aplicar filtros e controles de visualização.
-  - otimizaÃ§Ã£o de bundle do mapa:
+  - otimização de bundle do mapa:
     - `VectorMap` passou a carregar sob demanda via `React.lazy` + `Suspense` em `QgMapPage`.
     - chunk de rota `QgMapPage` caiu de ~`1.0MB` para ~`19KB`.
     - chunk pesado ficou isolado em `VectorMap-*.js`, reduzindo custo de carregamento inicial da rota.
@@ -3217,7 +3293,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - **Strategic engine config (SE-2)** (`configs/strategic_engine.yml` + `strategic_engine_config.py`):
   - YAML externalizado: thresholds (critical: 80, attention: 50), severity_weights, limites de cenários.
   - `ScoringConfig` + `StrategicEngineConfig` dataclasses (frozen).
-  - `load_strategic_engine_config()` com `@lru_cache` — carregamento Ãºnico.
+  - `load_strategic_engine_config()` com `@lru_cache` — carregamento ?nico.
   - `score_to_status()` + `status_impact()`: delegam para config YAML.
   - SQL CASE statements parametrizados com thresholds do config.
   - `config_version` adicionado ao schema `QgMetadata` (Python + TypeScript).
@@ -3244,7 +3320,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Backend: **246 testes passando** (pytest) — +33 vs Sprint 7.
 - Frontend: **59 testes passando** (vitest) em 18 arquivos.
 - Build Vite: OK (4.3s).
-- RegressÃ£o completa sem falhas.
+- Regressão completa sem falhas.
 - 26 endpoints totais (11 QG + 10 ops + 1 geo + 2 map + 1 MVT + 1 tile-metrics).
 
 ### Added
@@ -4102,3 +4178,20 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Suite de testes local: `20 passed`.
 - Fluxos MVP executados com sucesso em modo direto.
 - Fluxo Prefect completo validado em `dry_run`.
+## Changed
+- `src/app/api/routes_qg.py` passou a aceitar `office` e `election_round` em `GET /v1/electorate/election-context`, retornando também `available_offices` para seleção controlada do cargo exibido.
+- `src/app/schemas/qg.py` e `frontend/src/shared/api/types.ts` foram ampliados com `ElectionContextOfficeOption`.
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` passou a:
+  - exibir seletor de cargo/turno quando o ano possui mais de um cargo nominal;
+  - manter o contexto eleitoral e a distribuição territorial sincronizados com o cargo selecionado;
+  - formatar a apresentação do cargo e do turno de forma legível no painel executivo.
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` recebeu cobertura para a troca controlada de cargo.
+- `tests/unit/test_qg_routes.py` passou a validar `available_offices` e seleção explícita de cargo.
+
+### Verified
+- `./.venv/Scripts/python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_candidate_votes.py -q` -> `40 passed`.
+- `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `7 passed`.
+- `npm --prefix frontend run build` -> `OK`.
+
+### Notes
+- O eixo eleitoral nominal agora já suporta `Prefeito`, `Vereador`, `Presidente`, `Governador`, `Senador`, `Deputado Federal` e `Deputado Estadual` no backend, mas a UI executiva continua tratando o cargo principal do ano como padrão e os demais como seleção controlada.
