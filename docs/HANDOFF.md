@@ -81,6 +81,7 @@ Papel deste documento: memória operacional viva do projeto, preservando estado 
 4. Efeito funcional:
    - anos municipais já permitem alternar entre `Prefeito` e `Vereador` na tela executiva;
    - anos gerais já podem expor `Presidente` como cargo principal e preservar os demais cargos como leitura secundária controlada.
+
 ## Atualização técnica (2026-03-08) - Normalização de locais/distritos na distribuição nominal
 
 1. Correção funcional na API:
