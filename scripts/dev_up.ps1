@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$ApiHost = "0.0.0.0",
     [int]$ApiPort = 8000,
     [int]$FrontendPort = 5173
@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$apiPython = Join-Path $repoRoot ".venv\\Scripts\\python.exe"
+$apiPython = Join-Path $repoRoot ".venv\Scripts\python.exe"
 $frontendDir = Join-Path $repoRoot "frontend"
 $stateFile = Join-Path $repoRoot ".dev-processes.json"
 
@@ -39,12 +39,14 @@ $frontendProcess = Start-Process -FilePath "npm.cmd" -ArgumentList $frontendArgs
 $state = [ordered]@{
     api_pid = $apiProcess.Id
     frontend_pid = $frontendProcess.Id
-    api_url = "http://localhost:$ApiPort"
-    frontend_url = "http://localhost:$FrontendPort"
+    api_url = "http://127.0.0.1:$ApiPort"
+    frontend_url = "http://127.0.0.1:$FrontendPort"
 }
 
 $state | ConvertTo-Json | Set-Content -Path $stateFile -Encoding UTF8
 
+Write-Host "Workspace oficial: $repoRoot"
 Write-Host "API iniciada (PID $($apiProcess.Id)) em $($state.api_url)"
 Write-Host "Frontend iniciado (PID $($frontendProcess.Id)) em $($state.frontend_url)"
+Write-Host "Para consultar status, execute: powershell -ExecutionPolicy Bypass -File scripts/dev_status.ps1"
 Write-Host "Para parar, execute: powershell -ExecutionPolicy Bypass -File scripts/dev_down.ps1"

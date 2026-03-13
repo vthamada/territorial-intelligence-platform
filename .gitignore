@@ -1,4 +1,4 @@
-.env
+﻿.env
 .venv/
 venv/
 __pycache__/
@@ -45,6 +45,7 @@ frontend/.vite/
 .tmp/
 .tmp_*.txt
 .piptmp/
+.dev-processes.json
 dbt_project/target/
 dbt_project/logs/
 
@@ -53,3 +54,4 @@ data/reports/*.current_env.json
 data/reports/reprocess_tse_*.json
 data/reports/robustness_backfill_sync_env*.json
 data/reports/incremental_backfill_dryrun_*.json
+
