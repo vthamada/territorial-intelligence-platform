@@ -6,16 +6,6 @@ North star de produto: `docs/VISION.md`
 Contrato técnico principal: `CONTRATO.md`
 Papel deste documento: memória operacional viva do projeto, preservando estado atual, contexto recente, evidências, decisões e próximos passos para retomada segura.
 
-## Workspace oficial
-
-1. O único workspace oficial do projeto passa a ser D:\Users\DTI\Desktop\territorial-intelligence-platform.
-2. O clone duplicado em C: foi removido para evitar edição em um diretório e execução em outro.
-3. Atalhos operacionais vigentes:
-   - subir ambiente: powershell -ExecutionPolicy Bypass -File D:\Users\DTI\Desktop\territorial-intelligence-platform\scripts\dev_up.ps1`r
-   - consultar status: powershell -ExecutionPolicy Bypass -File D:\Users\DTI\Desktop\territorial-intelligence-platform\scripts\dev_status.ps1`r
-   - encerrar ambiente: powershell -ExecutionPolicy Bypass -File D:\Users\DTI\Desktop\territorial-intelligence-platform\scripts\dev_down.ps1`r
-4. Os launchers locais passaram a publicar URLs em 127.0.0.1 e o arquivo .dev-processes.json deixou de aparecer como pendência no Git.
-
 ## Trilha ativa única (executável no ciclo atual)
 
 1. Estado oficial da trilha (WIP=1):
