@@ -5,7 +5,7 @@ import type { MapLayerItem } from "../api/types";
 const LAYERS: MapLayerItem[] = [
   {
     id: "territory_municipality",
-    label: "Municipios",
+    label: "Municípios",
     territory_level: "municipality",
     is_official: true,
     source: "silver.dim_territory",
@@ -25,7 +25,7 @@ const LAYERS: MapLayerItem[] = [
   },
   {
     id: "territory_census_sector",
-    label: "Setores censitarios",
+    label: "Setores censitários",
     territory_level: "census_sector",
     is_official: false,
     source: "silver.dim_territory",

@@ -17,6 +17,7 @@ from app.settings import Settings, get_settings
 from pipelines.common.bronze_store import artifact_to_dict, persist_raw_bytes
 from pipelines.common.http_client import HttpClient
 from pipelines.common.observability import replace_pipeline_checks_from_dicts, upsert_pipeline_run
+from pipelines.tse_party_registry import enrich_candidate_rows_with_party
 from pipelines.tse_results import (
     _OPTIONAL_POLLING_PLACE_COLUMNS,
     _OPTIONAL_POLLING_PLACE_ADDRESS_COLUMNS,
@@ -810,7 +811,7 @@ def run(
                 }
             )
 
-        parsed_rows = list(combined_rows.values())
+        parsed_rows = enrich_candidate_rows_with_party(list(combined_rows.values()))
         parse_info = {
             "resources": parse_infos,
             "resource_count": len(parse_infos),

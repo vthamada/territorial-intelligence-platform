@@ -28,7 +28,8 @@ Isso inclui:
 - geolocalização eleitoral homologada por seed e auditoria;
 - telas executivas QG refatoradas;
 - explicabilidade e auditoria de pesos de score;
-- readiness operacional já funcional.
+- readiness operacional já funcional;
+- operação assistida no Admin para validação e sincronização governadas do ambiente, com histórico persistido em `ops`.
 
 Não há fila funcional aberta nesses blocos neste momento.
 
@@ -147,4 +148,8 @@ Atualização complementar 2026-03-07:
   - o residual legado de `2024` em `electoral_zone` foi limpo com `scripts/cleanup_candidate_vote_zone_legacy.py`;
   - `2018` e `2022` já foram reprocessados com suplemento presidencial (`BR`) e agora expõem `Presidente` como cargo principal dos anos gerais;
   - a `ElectorateExecutivePage` agora também permite alternar cargo/turno quando o ano possui mais de um cargo nominal, mantendo contexto e distribuição territorial sincronizados;
-  - o próximo passo funcional deixa de ser infraestrutura do nominal e passa a ser propagar essa leitura validada para `Home`, `Prioridades` e demais telas executivas.
+  - `Home` e `Prioridades` já passaram a consumir o contexto eleitoral nominal validado;
+  - o próximo passo funcional passa a ser estender a mesma leitura para `Insights` e deep-links executivos relacionados, sem reabrir infraestrutura do nominal.
+
+
+

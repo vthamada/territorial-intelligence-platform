@@ -1,6 +1,6 @@
 ﻿import type { ReactElement } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -225,6 +225,8 @@ function seedDefaultMocks() {
             zone_codes: ["101"],
             section_count: 4,
             sections: ["10", "11", "12", "13"],
+            polling_place_section_count: 5,
+            polling_place_sections: ["10", "11", "12", "13", "14"],
           },
         ],
       };
@@ -265,6 +267,8 @@ function seedDefaultMocks() {
           zone_codes: ["101"],
           section_count: 13,
           sections: ["41", "177", "212"],
+          polling_place_section_count: 13,
+          polling_place_sections: ["41", "177", "212"],
         },
       ],
     };
@@ -414,6 +418,8 @@ describe("ElectorateExecutivePage", () => {
     expect(screen.getByText("52,00%")).toBeInTheDocument();
     expect(await screen.findByText("UEMG (ANTIGA FEVALE)")).toBeInTheDocument();
     expect(screen.getByText("1.450")).toBeInTheDocument();
+    expect(screen.getByText("13 seções com votos")).toBeInTheDocument();
+    expect(screen.getAllByText("Seções: 41, 177, 212").length).toBeGreaterThan(0);
 
     await userEvent.click(screen.getByRole("button", { name: "Ver distribuição" }));
 
@@ -424,6 +430,8 @@ describe("ElectorateExecutivePage", () => {
     );
     expect(await screen.findByText("Escola A")).toBeInTheDocument();
     expect(screen.getByText("1.300")).toBeInTheDocument();
+    expect(screen.getByText("4 de 5 seções com votos")).toBeInTheDocument();
+    expect(screen.getByText("Seções: 10, 11, 12, 13")).toBeInTheDocument();
   });
 
   it("allows switching the office shown in the election context", async () => {
@@ -640,6 +648,161 @@ describe("ElectorateExecutivePage", () => {
     expect(screen.queryByText("18 anos")).not.toBeInTheDocument();
     expect(screen.queryByText("19 anos")).not.toBeInTheDocument();
     expect(screen.queryByText("20 anos")).not.toBeInTheDocument();
+  });
+
+  it("uses historical metrics in resumo executivo when summary lacks rates for the selected year", async () => {
+    renderWithQueryClient(<ElectorateExecutivePage />);
+    await screen.findByLabelText("Ano");
+
+    vi.mocked(getElectorateSummary).mockImplementation(async (params) => {
+      if (params?.year === 2022) {
+        return {
+          level: "município",
+          year: 2022,
+          metadata: {
+            source_name: "silver.fact_electorate",
+            updated_at: null,
+            coverage_note: "territorial_aggregated",
+            unit: "voters",
+            notes: null,
+          },
+          total_voters: 38097,
+          turnout: null,
+          turnout_rate: null,
+          abstention_rate: null,
+          blank_rate: null,
+          null_rate: null,
+          by_sex: [{ label: "FEMININO", voters: 20152, share_percent: 52.9 }],
+          by_age: [],
+          by_education: [],
+        };
+      }
+      throw new Error("Unexpected summary request");
+    });
+    vi.mocked(getElectorateHistory).mockImplementation(async (params) => {
+      if (params?.year === 2022) {
+        return {
+          level: "município",
+          metadata: {
+            source_name: "silver.fact_electorate + silver.fact_election_result",
+            updated_at: null,
+            coverage_note: "historical_series",
+            unit: "voters",
+            notes: null,
+          },
+          items: [
+            {
+              year: 2024,
+              total_voters: 38607,
+              turnout: 27941,
+              turnout_rate: 72.372886,
+              abstention_rate: 27.627114,
+              blank_rate: 5.540246,
+              null_rate: 7.616048,
+            },
+            {
+              year: 2022,
+              total_voters: 38097,
+              turnout: 28448,
+              turnout_rate: 75.106265,
+              abstention_rate: 24.893735,
+              blank_rate: 6.538245,
+              null_rate: 3.7964,
+            },
+          ],
+        };
+      }
+      throw new Error("Unexpected history request");
+    });
+    vi.mocked(getElectoratePollingPlaces).mockImplementation(async (params) => {
+      if (params?.year === 2022) {
+        return {
+          metric: "voters",
+          year: 2022,
+          metadata: {
+            source_name: "silver.fact_electorate + silver.dim_territory(metadata.polling_place_*)",
+            updated_at: null,
+            coverage_note: "polling_place_ranked",
+            unit: "voters",
+            notes: null,
+          },
+          items: [],
+        };
+      }
+      throw new Error("Unexpected polling-place request");
+    });
+    vi.mocked(getElectorateElectionContext).mockImplementation(async (params) => {
+      if (params?.year === 2022) {
+        return {
+          level: "municipality",
+          year: 2022,
+          election_round: 1,
+          office: "PRESIDENTE",
+          election_type: "geral",
+          metadata: {
+            source_name: "silver.dim_election + silver.dim_candidate + silver.fact_candidate_vote",
+            updated_at: null,
+            coverage_note: "candidate_context",
+            unit: "votes",
+            notes: null,
+          },
+          total_votes: 27761,
+          available_offices: [
+            { office: "PRESIDENTE", election_round: 1, election_type: "geral", total_votes: 27761, is_primary: true },
+          ],
+          items: [
+            {
+              candidate_id: "cand-pt",
+              candidate_number: "13",
+              candidate_name: "Lula",
+              ballot_name: "Lula",
+              party_abbr: "PT",
+              party_number: "13",
+              party_name: "Partido dos Trabalhadores",
+              votes: 14000,
+              share_percent: 50.43,
+            },
+          ],
+        };
+      }
+      throw new Error("Unexpected election-context request");
+    });
+    vi.mocked(getElectorateCandidateTerritories).mockImplementation(async (params) => {
+      if (params.candidate_id === "cand-pt") {
+        return {
+          level: "electoral_section",
+          aggregate_by: "polling_place",
+          year: 2022,
+          election_round: 1,
+          office: "PRESIDENTE",
+          election_type: "geral",
+          candidate_id: "cand-pt",
+          metadata: {
+            source_name: "silver.dim_election + silver.dim_candidate + silver.fact_candidate_vote",
+            updated_at: null,
+            coverage_note: "candidate_territorial",
+            unit: "votes",
+            notes: null,
+          },
+          items: [],
+        };
+      }
+      throw new Error("Unexpected candidate-territories request");
+    });
+
+    await userEvent.clear(screen.getByLabelText("Ano"));
+    await userEvent.type(screen.getByLabelText("Ano"), "2022");
+    await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+
+    const executiveSummaryPanel = screen.getByRole("heading", { name: "Resumo executivo" }).closest(".panel");
+    expect(executiveSummaryPanel).not.toBeNull();
+    const summaryScope = within(executiveSummaryPanel as HTMLElement);
+
+    expect(await summaryScope.findByText("28.448")).toBeInTheDocument();
+    expect(summaryScope.getByText("75,11%")).toBeInTheDocument();
+    expect(summaryScope.getByText("24,89%")).toBeInTheDocument();
+    expect(summaryScope.getByText("6,54%")).toBeInTheDocument();
+    expect(summaryScope.getByText("3,80%")).toBeInTheDocument();
   });
 
   it("shows fallback error when selected year has no data and fallback fails", async () => {

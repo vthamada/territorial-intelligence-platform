@@ -64,7 +64,7 @@ export function OpsRunsPage() {
 
   return (
     <div className="page-grid">
-      <Panel title="Execucoes de pipeline" subtitle="Filtros por job, status e janela temporal">
+      <Panel title="Execuções de pipeline" subtitle="Filtros por job, status e janela temporal">
         <form
           className="filter-grid"
           onSubmit={(event) => {
@@ -104,7 +104,7 @@ export function OpsRunsPage() {
             </select>
           </label>
           <label>
-            Inicio em
+            Início em
             <input
               type="datetime-local"
               value={draftFilters.startedFrom}
@@ -112,7 +112,7 @@ export function OpsRunsPage() {
             />
           </label>
           <label>
-            Inicio ate
+            Início até
             <input
               type="datetime-local"
               value={draftFilters.startedTo}
@@ -150,12 +150,12 @@ export function OpsRunsPage() {
               <table>
                 <thead>
                   <tr>
-                    <th>Inicio</th>
+                    <th>Início</th>
                     <th>Job</th>
                     <th>Status</th>
                     <th>Wave</th>
                     <th>Rows loaded</th>
-                    <th>Duracao (s)</th>
+                    <th>Duração (s)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -180,7 +180,7 @@ export function OpsRunsPage() {
                 Anterior
               </button>
               <span>
-                Pagina {page} de {totalPages}
+                Página {page} de {totalPages}
               </span>
               <button
                 type="button"
@@ -188,7 +188,7 @@ export function OpsRunsPage() {
                 disabled={page >= totalPages}
                 onClick={() => setPage((old) => old + 1)}
               >
-                Proxima
+                Próxima
               </button>
             </div>
           </>

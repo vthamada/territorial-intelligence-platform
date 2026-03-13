@@ -1,5 +1,9 @@
 import { requestJson } from "./http";
 import type {
+  AdminSyncHistoryItem,
+  AdminSyncJobEnvelopeResponse,
+  AdminSyncJobStatus,
+  AdminSyncStartRequest,
   ConnectorRegistryItem,
   FrontendEventItem,
   MapLayersReadinessResponse,
@@ -12,6 +16,12 @@ import type {
   PipelineCheck,
   PipelineRun
 } from "./types";
+
+const ADMIN_OPS_TOKEN = import.meta.env.VITE_ADMIN_OPS_TOKEN;
+
+function getAdminOpsHeaders() {
+  return ADMIN_OPS_TOKEN ? { "x-admin-ops-token": ADMIN_OPS_TOKEN } : undefined;
+}
 
 export function getOpsSummary(query?: Record<string, string | number | boolean | undefined>) {
   return requestJson<OpsSummaryResponse>("/ops/summary", { query });
@@ -31,6 +41,33 @@ export function getOpsSourceCoverage(query?: Record<string, string | number | bo
 
 export function getOpsReadiness(query?: Record<string, string | number | boolean | undefined>) {
   return requestJson<OpsReadinessResponse>("/ops/readiness", { query });
+}
+
+export function getAdminSyncStatus() {
+  return requestJson<AdminSyncJobEnvelopeResponse>("/ops/admin/sync/status", {
+    headers: getAdminOpsHeaders(),
+  });
+}
+
+export function getAdminSyncJob(jobId: string) {
+  return requestJson<AdminSyncJobEnvelopeResponse>(`/ops/admin/sync/jobs/${jobId}`, {
+    headers: getAdminOpsHeaders(),
+  });
+}
+
+export function getAdminSyncHistory(query?: Record<string, string | number | boolean | undefined>) {
+  return requestJson<PaginatedResponse<AdminSyncHistoryItem>>("/ops/admin/sync/history", {
+    query,
+    headers: getAdminOpsHeaders(),
+  });
+}
+
+export function startAdminSync(payload: AdminSyncStartRequest) {
+  return requestJson<AdminSyncJobStatus>("/ops/admin/sync/start", {
+    method: "POST",
+    body: payload,
+    headers: getAdminOpsHeaders(),
+  });
 }
 
 export function getMapLayersReadiness(query?: Record<string, string | number | boolean | undefined>) {

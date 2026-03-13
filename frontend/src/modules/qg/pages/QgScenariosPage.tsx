@@ -167,7 +167,7 @@ export function QgScenariosPage() {
   }
 
   if (territoriesQuery.isPending) {
-    return <StateBlock tone="loading" title="Carregando cenarios" message="Preparando lista de territorios para simulacao." />;
+    return <StateBlock tone="loading" title="Carregando cenários" message="Preparando lista de territórios para simulação." />;
   }
 
   if (territoriesQuery.error) {
@@ -175,7 +175,7 @@ export function QgScenariosPage() {
     return (
       <StateBlock
         tone="error"
-        title="Falha ao carregar cenarios"
+        title="Falha ao carregar cenários"
         message={message}
         requestId={requestId}
         onRetry={() => void territoriesQuery.refetch()}
@@ -195,7 +195,7 @@ export function QgScenariosPage() {
 
   return (
     <main className="page-grid">
-      <Panel title="Cenarios estrategicos" subtitle="Simulacao simplificada de impacto no score territorial">
+      <Panel title="Cenários estratégicos" subtitle="Simulação simplificada de impacto no score territorial">
         <form
           className="filter-grid compact"
           onSubmit={(event) => {
@@ -260,13 +260,13 @@ export function QgScenariosPage() {
       </Panel>
 
       {simulationMutation.isPending ? (
-        <StateBlock tone="loading" title="Executando simulacao" message="Calculando impacto estimado para o recorte informado." />
+        <StateBlock tone="loading" title="Executando simulação" message="Calculando impacto estimado para o recorte informado." />
       ) : null}
 
       {simulationMutation.error ? (
         <StateBlock
           tone="error"
-          title="Falha na simulacao"
+          title="Falha na simulação"
           message={formatApiError(simulationMutation.error).message}
           requestId={formatApiError(simulationMutation.error).requestId}
           onRetry={submitScenario}
@@ -281,7 +281,7 @@ export function QgScenariosPage() {
           {hasFormChangesAfterSimulation ? (
             <StateBlock
               tone="empty"
-              title="Filtros alterados apos a simulacao"
+              title="Filtros alterados após a simulação"
               message="Os resultados abaixo refletem o último envio. Clique em Simular para atualizar com os filtros atuais."
             />
           ) : null}
@@ -290,7 +290,7 @@ export function QgScenariosPage() {
             <StateBlock
               tone="empty"
               title="Indicador ajustado automaticamente"
-              message={`O indicador informado nao foi encontrado no recorte. Resultado calculado com ${simulation.indicator_code}.`}
+              message={`O indicador informado não foi encontrado no recorte. Resultado calculado com ${simulation.indicator_code}.`}
             />
           ) : null}
 
@@ -306,7 +306,7 @@ export function QgScenariosPage() {
               status={impactStatus(simulation.impact)}
             />
             <StrategicIndexCard
-              label="Variacao ranking"
+              label="Variação ranking"
               value={formatSignedInteger(simulation.rank_delta)}
               status={impactStatus(simulation.impact)}
               helper={`posicao ${simulation.base_rank}/${simulation.peer_count} -> ${simulation.simulated_rank}/${simulation.peer_count}`}

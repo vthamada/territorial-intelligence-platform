@@ -1,8 +1,16 @@
 from __future__ import annotations
 
 import json
+import logging
+import os
+import subprocess
+import sys
+import threading
+from collections import deque
 from datetime import datetime
-from typing import Any
+from pathlib import Path
+from typing import Any, Literal
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
@@ -11,11 +19,555 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.api.utils import normalize_pagination
+from app.db import session_scope
 from app.ops_robustness_window import build_ops_robustness_window_report
 from app.ops_readiness import build_backend_readiness_report
 from app.schemas.responses import PaginatedResponse
+from app.settings import get_settings
 
 router = APIRouter(prefix="/ops", tags=["ops"])
+logger = logging.getLogger(__name__)
+settings = get_settings()
+
+
+class AdminSyncStartRequest(BaseModel):
+    mode: Literal["validate", "sync"] = "validate"
+    include_wave7: bool = True
+    allow_backfill_blocked: bool = True
+
+
+class AdminSyncStepStatus(BaseModel):
+    name: str
+    status: Literal["pending", "running", "success", "failed"]
+    started_at_utc: str | None = None
+    finished_at_utc: str | None = None
+    exit_code: int | None = None
+    summary: str | None = None
+
+
+class AdminSyncJobStatusResponse(BaseModel):
+    job_id: str
+    mode: Literal["validate", "sync"]
+    status: Literal["queued", "running", "success", "failed"]
+    started_at_utc: str
+    finished_at_utc: str | None = None
+    is_active: bool
+    current_step: str | None = None
+    last_message: str | None = None
+    recent_logs: list[str]
+    steps: list[AdminSyncStepStatus]
+
+
+class AdminSyncJobEnvelopeResponse(BaseModel):
+    job: AdminSyncJobStatusResponse | None
+
+
+class AdminSyncHistoryItemResponse(BaseModel):
+    job_id: str
+    mode: Literal["validate", "sync"]
+    status: Literal["queued", "running", "success", "failed"]
+    started_at_utc: str
+    finished_at_utc: str | None = None
+    is_active: bool
+    current_step: str | None = None
+    last_message: str | None = None
+
+
+class _AdminSyncJobManager:
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._jobs: dict[str, dict[str, Any]] = {}
+        self._job_order: list[str] = []
+        self._active_job_id: str | None = None
+
+    @staticmethod
+    def _project_root() -> Path:
+        return Path(__file__).resolve().parents[3]
+
+    @staticmethod
+    def _utc_now() -> str:
+        return datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+
+    @staticmethod
+    def _powershell_executable() -> str:
+        system_root = os.environ.get("SystemRoot", r"C:\WINDOWS")
+        return str(Path(system_root) / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe")
+
+    @staticmethod
+    def _serialize_steps(job: dict[str, Any]) -> list[dict[str, Any]]:
+        return [
+            {
+                "step_name": step["name"],
+                "step_order": index,
+                "status": step["status"],
+                "started_at_utc": step.get("started_at_utc"),
+                "finished_at_utc": step.get("finished_at_utc"),
+                "exit_code": step.get("exit_code"),
+                "summary": step.get("summary"),
+            }
+            for index, step in enumerate(job["steps"], start=1)
+        ]
+
+    def _persist_job(self, job: dict[str, Any]) -> None:
+        try:
+            with session_scope() as session:
+                session.execute(
+                    text(
+                        """
+                        INSERT INTO ops.admin_sync_jobs (
+                            job_id,
+                            mode,
+                            status,
+                            started_at_utc,
+                            finished_at_utc,
+                            is_active,
+                            current_step,
+                            last_message,
+                            recent_logs
+                        ) VALUES (
+                            CAST(:job_id AS UUID),
+                            CAST(:mode AS TEXT),
+                            CAST(:status AS TEXT),
+                            CAST(:started_at_utc AS TIMESTAMPTZ),
+                            CAST(:finished_at_utc AS TIMESTAMPTZ),
+                            CAST(:is_active AS BOOLEAN),
+                            CAST(:current_step AS TEXT),
+                            CAST(:last_message AS TEXT),
+                            CAST(:recent_logs AS JSONB)
+                        )
+                        ON CONFLICT (job_id) DO UPDATE SET
+                            mode = EXCLUDED.mode,
+                            status = EXCLUDED.status,
+                            started_at_utc = EXCLUDED.started_at_utc,
+                            finished_at_utc = EXCLUDED.finished_at_utc,
+                            is_active = EXCLUDED.is_active,
+                            current_step = EXCLUDED.current_step,
+                            last_message = EXCLUDED.last_message,
+                            recent_logs = EXCLUDED.recent_logs,
+                            updated_at_utc = NOW()
+                        """
+                    ),
+                    {
+                        "job_id": job["job_id"],
+                        "mode": job["mode"],
+                        "status": job["status"],
+                        "started_at_utc": job["started_at_utc"],
+                        "finished_at_utc": job.get("finished_at_utc"),
+                        "is_active": self._active_job_id == job["job_id"] and job["status"] in {"queued", "running"},
+                        "current_step": job.get("current_step"),
+                        "last_message": job.get("last_message"),
+                        "recent_logs": json.dumps(list(job["recent_logs"])),
+                    },
+                )
+                for step in self._serialize_steps(job):
+                    session.execute(
+                        text(
+                            """
+                            INSERT INTO ops.admin_sync_job_steps (
+                                job_id,
+                                step_name,
+                                step_order,
+                                status,
+                                started_at_utc,
+                                finished_at_utc,
+                                exit_code,
+                                summary
+                            ) VALUES (
+                                CAST(:job_id AS UUID),
+                                CAST(:step_name AS TEXT),
+                                CAST(:step_order AS INTEGER),
+                                CAST(:status AS TEXT),
+                                CAST(:started_at_utc AS TIMESTAMPTZ),
+                                CAST(:finished_at_utc AS TIMESTAMPTZ),
+                                CAST(:exit_code AS INTEGER),
+                                CAST(:summary AS TEXT)
+                            )
+                            ON CONFLICT (job_id, step_name) DO UPDATE SET
+                                step_order = EXCLUDED.step_order,
+                                status = EXCLUDED.status,
+                                started_at_utc = EXCLUDED.started_at_utc,
+                                finished_at_utc = EXCLUDED.finished_at_utc,
+                                exit_code = EXCLUDED.exit_code,
+                                summary = EXCLUDED.summary,
+                                updated_at_utc = NOW()
+                            """
+                        ),
+                        {
+                            "job_id": job["job_id"],
+                            **step,
+                        },
+                    )
+        except Exception as exc:  # pragma: no cover - defensive runtime path
+            logger.warning("Falha ao persistir admin sync job %s: %s", job["job_id"], exc)
+
+    @staticmethod
+    def _hydrate_job_from_db_row(job_row: dict[str, Any], steps_rows: list[dict[str, Any]]) -> dict[str, Any]:
+        return {
+            "job_id": job_row["job_id"],
+            "mode": job_row["mode"],
+            "status": job_row["status"],
+            "started_at_utc": job_row["started_at_utc"],
+            "finished_at_utc": job_row["finished_at_utc"],
+            "is_active": job_row["is_active"],
+            "current_step": job_row["current_step"],
+            "last_message": job_row["last_message"],
+            "recent_logs": job_row["recent_logs"] or [],
+            "steps": [
+                {
+                    "name": step["step_name"],
+                    "status": step["status"],
+                    "started_at_utc": step["started_at_utc"],
+                    "finished_at_utc": step["finished_at_utc"],
+                    "exit_code": step["exit_code"],
+                    "summary": step["summary"],
+                }
+                for step in steps_rows
+            ],
+        }
+
+    def _load_job_from_db(self, *, job_id: str | None = None) -> dict[str, Any] | None:
+        try:
+            with session_scope() as session:
+                if job_id is None:
+                    job_row = session.execute(
+                        text(
+                            """
+                            SELECT
+                                job_id::text AS job_id,
+                                mode,
+                                status,
+                                started_at_utc::text AS started_at_utc,
+                                finished_at_utc::text AS finished_at_utc,
+                                is_active,
+                                current_step,
+                                last_message,
+                                recent_logs
+                            FROM ops.admin_sync_jobs
+                            ORDER BY started_at_utc DESC, job_id DESC
+                            LIMIT 1
+                            """
+                        )
+                    ).mappings().first()
+                else:
+                    job_row = session.execute(
+                        text(
+                            """
+                            SELECT
+                                job_id::text AS job_id,
+                                mode,
+                                status,
+                                started_at_utc::text AS started_at_utc,
+                                finished_at_utc::text AS finished_at_utc,
+                                is_active,
+                                current_step,
+                                last_message,
+                                recent_logs
+                            FROM ops.admin_sync_jobs
+                            WHERE job_id = CAST(:job_id AS UUID)
+                            """
+                        ),
+                        {"job_id": job_id},
+                    ).mappings().first()
+
+                if job_row is None:
+                    return None
+
+                steps_rows = session.execute(
+                    text(
+                        """
+                        SELECT
+                            step_name,
+                            step_order,
+                            status,
+                            started_at_utc::text AS started_at_utc,
+                            finished_at_utc::text AS finished_at_utc,
+                            exit_code,
+                            summary
+                        FROM ops.admin_sync_job_steps
+                        WHERE job_id = CAST(:job_id AS UUID)
+                        ORDER BY step_order ASC, step_name ASC
+                        """
+                    ),
+                    {"job_id": job_row["job_id"]},
+                ).mappings().all()
+                return self._hydrate_job_from_db_row(dict(job_row), [dict(row) for row in steps_rows])
+        except Exception as exc:  # pragma: no cover - defensive runtime path
+            logger.warning("Falha ao carregar admin sync job %s do banco: %s", job_id or "<latest>", exc)
+            return None
+
+    def get_job_history(self, page: int, page_size: int) -> dict[str, Any]:
+        page, page_size, offset = normalize_pagination(page, page_size)
+        try:
+            with session_scope() as session:
+                total = session.execute(text("SELECT COUNT(*) FROM ops.admin_sync_jobs")).scalar_one()
+                rows = session.execute(
+                    text(
+                        """
+                        SELECT
+                            job_id::text AS job_id,
+                            mode,
+                            status,
+                            started_at_utc::text AS started_at_utc,
+                            finished_at_utc::text AS finished_at_utc,
+                            is_active,
+                            current_step,
+                            last_message
+                        FROM ops.admin_sync_jobs
+                        ORDER BY started_at_utc DESC, job_id DESC
+                        LIMIT :limit OFFSET :offset
+                        """
+                    ),
+                    {"limit": page_size, "offset": offset},
+                ).mappings().all()
+                return {
+                    "page": page,
+                    "page_size": page_size,
+                    "total": int(total),
+                    "items": [dict(row) for row in rows],
+                }
+        except Exception as exc:  # pragma: no cover - defensive runtime path
+            logger.warning("Falha ao carregar historico de admin sync do banco: %s", exc)
+            return {
+                "page": page,
+                "page_size": page_size,
+                "total": 0,
+                "items": [],
+            }
+
+    def _build_job_steps(self, request: AdminSyncStartRequest) -> list[dict[str, Any]]:
+        python_exe = sys.executable
+        steps: list[dict[str, Any]] = []
+        if request.mode == "validate":
+            steps.extend(
+                [
+                    {
+                        "name": "export_data_coverage_scorecard",
+                        "command": [
+                            python_exe,
+                            "scripts/export_data_coverage_scorecard.py",
+                            "--output-json",
+                            "data/reports/data_coverage_scorecard.admin_sync.json",
+                        ],
+                    },
+                    {
+                        "name": "audit_polling_places_geolocation",
+                        "command": [
+                            python_exe,
+                            "scripts/audit_polling_places_geolocation.py",
+                            "--output-json",
+                            "data/reports/polling_places_geolocation_audit.admin_sync.json",
+                        ],
+                    },
+                    {
+                        "name": "backend_readiness",
+                        "command": [
+                            python_exe,
+                            "scripts/backend_readiness.py",
+                            "--output-json",
+                        ],
+                    },
+                ]
+            )
+        else:
+            command = [
+                self._powershell_executable(),
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "scripts/equalize_database_env.ps1",
+            ]
+            if request.include_wave7:
+                command.append("-IncludeWave7")
+            if request.allow_backfill_blocked:
+                command.append("-AllowBackfillBlocked")
+            steps.append({"name": "equalize_database_env", "command": command})
+        return steps
+
+    def _snapshot(self, job: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "job_id": job["job_id"],
+            "mode": job["mode"],
+            "status": job["status"],
+            "started_at_utc": job["started_at_utc"],
+            "finished_at_utc": job.get("finished_at_utc"),
+            "is_active": self._active_job_id == job["job_id"] and job["status"] in {"queued", "running"},
+            "current_step": job.get("current_step"),
+            "last_message": job.get("last_message"),
+            "recent_logs": list(job["recent_logs"]),
+            "steps": [
+                {
+                    "name": step["name"],
+                    "status": step["status"],
+                    "started_at_utc": step.get("started_at_utc"),
+                    "finished_at_utc": step.get("finished_at_utc"),
+                    "exit_code": step.get("exit_code"),
+                    "summary": step.get("summary"),
+                }
+                for step in job["steps"]
+            ],
+        }
+
+    def get_latest_job(self) -> dict[str, Any] | None:
+        with self._lock:
+            if self._active_job_id is not None and self._active_job_id in self._jobs:
+                return self._snapshot(self._jobs[self._active_job_id])
+        return self._load_job_from_db()
+
+    def get_job(self, job_id: str) -> dict[str, Any] | None:
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if job is not None:
+                return self._snapshot(job)
+        return self._load_job_from_db(job_id=job_id)
+
+    def start_job(self, request: AdminSyncStartRequest) -> dict[str, Any]:
+        with self._lock:
+            if self._active_job_id is not None:
+                active_job = self._jobs.get(self._active_job_id)
+                if active_job is not None and active_job["status"] in {"queued", "running"}:
+                    from fastapi import HTTPException
+
+                    raise HTTPException(
+                        status_code=409,
+                        detail=f"Ja existe uma execucao administrativa em andamento ({self._active_job_id}).",
+                    )
+
+            job_id = str(uuid4())
+            job = {
+                "job_id": job_id,
+                "mode": request.mode,
+                "status": "queued",
+                "started_at_utc": self._utc_now(),
+                "finished_at_utc": None,
+                "current_step": None,
+                "last_message": "Job enfileirado.",
+                "recent_logs": deque(maxlen=200),
+                "steps": [
+                    {
+                        "name": step["name"],
+                        "command": step["command"],
+                        "status": "pending",
+                        "started_at_utc": None,
+                        "finished_at_utc": None,
+                        "exit_code": None,
+                        "summary": None,
+                    }
+                    for step in self._build_job_steps(request)
+                ],
+            }
+            self._jobs[job_id] = job
+            self._job_order.insert(0, job_id)
+            self._job_order = self._job_order[:20]
+            self._active_job_id = job_id
+            self._persist_job(job)
+
+        thread = threading.Thread(target=self._run_job, args=(job_id,), daemon=True)
+        thread.start()
+        return self.get_job(job_id) or self._snapshot(job)
+
+    def _append_log(self, job: dict[str, Any], message: str) -> None:
+        trimmed = message.rstrip()
+        if not trimmed:
+            return
+        job["recent_logs"].append(trimmed)
+        job["last_message"] = trimmed
+
+    def _run_job(self, job_id: str) -> None:
+        with self._lock:
+            job = self._jobs[job_id]
+            job["status"] = "running"
+            self._append_log(job, f"[{self._utc_now()}] Job iniciado: {job['mode']}")
+
+        project_root = self._project_root()
+
+        try:
+            for step in job["steps"]:
+                with self._lock:
+                    step["status"] = "running"
+                    step["started_at_utc"] = self._utc_now()
+                    job["current_step"] = step["name"]
+                    self._append_log(job, f"[{step['started_at_utc']}] Iniciando etapa: {step['name']}")
+                    self._persist_job(job)
+
+                process = subprocess.Popen(
+                    step["command"],
+                    cwd=str(project_root),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                )
+
+                assert process.stdout is not None
+                for line in process.stdout:
+                    with self._lock:
+                        self._append_log(job, line)
+
+                exit_code = process.wait()
+                finished_at = self._utc_now()
+                with self._lock:
+                    step["finished_at_utc"] = finished_at
+                    step["exit_code"] = int(exit_code)
+                    if exit_code == 0:
+                        step["status"] = "success"
+                        step["summary"] = "Etapa concluida com sucesso."
+                        self._append_log(job, f"[{finished_at}] Etapa concluida: {step['name']}")
+                    else:
+                        step["status"] = "failed"
+                        step["summary"] = f"Etapa falhou com exit code {exit_code}."
+                        job["status"] = "failed"
+                        job["finished_at_utc"] = finished_at
+                        self._append_log(
+                            job,
+                            f"[{finished_at}] Etapa falhou: {step['name']} (exit code {exit_code})",
+                        )
+                        self._persist_job(job)
+                        return
+                    self._persist_job(job)
+
+            with self._lock:
+                finished_at = self._utc_now()
+                job["status"] = "success"
+                job["finished_at_utc"] = finished_at
+                job["current_step"] = None
+                self._append_log(job, f"[{finished_at}] Job concluido com sucesso.")
+                self._persist_job(job)
+        except Exception as exc:  # pragma: no cover - defensive runtime path
+            with self._lock:
+                finished_at = self._utc_now()
+                job["status"] = "failed"
+                job["finished_at_utc"] = finished_at
+                job["current_step"] = None
+                self._append_log(job, f"[{finished_at}] Job falhou: {exc}")
+                self._persist_job(job)
+        finally:
+            with self._lock:
+                if self._active_job_id == job_id:
+                    self._active_job_id = None
+                self._persist_job(job)
+
+
+_admin_sync_manager = _AdminSyncJobManager()
+
+
+def require_admin_ops_access(request: Request) -> None:
+    token = settings.admin_ops_token
+    if token:
+        provided = request.headers.get("x-admin-ops-token")
+        if provided != token:
+            from fastapi import HTTPException
+
+            raise HTTPException(status_code=403, detail="Acesso administrativo negado.")
+        return
+
+    if settings.app_env.lower() != "local":
+        from fastapi import HTTPException
+
+        raise HTTPException(
+            status_code=503,
+            detail="admin_ops_token nao configurado para ambiente nao local.",
+        )
 
 
 class FrontendEventIn(BaseModel):
@@ -327,6 +879,47 @@ def list_frontend_events(
         total=total,
         items=[dict(row) for row in rows],
     )
+
+
+@router.post("/admin/sync/start", response_model=AdminSyncJobStatusResponse, status_code=202)
+def start_admin_sync_job(
+    payload: AdminSyncStartRequest,
+    _access: None = Depends(require_admin_ops_access),  # noqa: B008
+) -> AdminSyncJobStatusResponse:
+    job = _admin_sync_manager.start_job(payload)
+    return AdminSyncJobStatusResponse(**job)
+
+
+@router.get("/admin/sync/status", response_model=AdminSyncJobEnvelopeResponse)
+def get_admin_sync_status(
+    _access: None = Depends(require_admin_ops_access),  # noqa: B008
+) -> AdminSyncJobEnvelopeResponse:
+    job = _admin_sync_manager.get_latest_job()
+    return AdminSyncJobEnvelopeResponse(job=None if job is None else AdminSyncJobStatusResponse(**job))
+
+
+@router.get("/admin/sync/history", response_model=PaginatedResponse)
+def get_admin_sync_history(
+    page: int = Query(default=1),
+    page_size: int = Query(default=20),
+    _access: None = Depends(require_admin_ops_access),  # noqa: B008
+) -> PaginatedResponse:
+    payload = _admin_sync_manager.get_job_history(page, page_size)
+    return PaginatedResponse(
+        page=payload["page"],
+        page_size=payload["page_size"],
+        total=payload["total"],
+        items=[AdminSyncHistoryItemResponse(**item).model_dump() for item in payload["items"]],
+    )
+
+
+@router.get("/admin/sync/jobs/{job_id}", response_model=AdminSyncJobEnvelopeResponse)
+def get_admin_sync_job(
+    job_id: str,
+    _access: None = Depends(require_admin_ops_access),  # noqa: B008
+) -> AdminSyncJobEnvelopeResponse:
+    job = _admin_sync_manager.get_job(job_id)
+    return AdminSyncJobEnvelopeResponse(job=None if job is None else AdminSyncJobStatusResponse(**job))
 
 
 @router.get("/pipeline-checks", response_model=PaginatedResponse)

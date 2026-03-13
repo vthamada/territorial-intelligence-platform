@@ -59,7 +59,20 @@ vi.mock("../shared/api/ops", () => ({
   getPipelineChecks: vi.fn().mockResolvedValue({ page: 1, page_size: 20, total: 0, items: [] }),
   getConnectorRegistry: vi.fn().mockResolvedValue({ page: 1, page_size: 20, total: 0, items: [] }),
   getFrontendEvents: vi.fn().mockResolvedValue({ page: 1, page_size: 20, total: 0, items: [] }),
-  getOpsSourceCoverage: vi.fn().mockResolvedValue({ source: null, wave: null, reference_period: null, include_internal: false, items: [] })
+  getOpsSourceCoverage: vi.fn().mockResolvedValue({ source: null, wave: null, reference_period: null, include_internal: false, items: [] }),
+  getAdminSyncStatus: vi.fn().mockResolvedValue({ job: null }),
+  getAdminSyncHistory: vi.fn().mockResolvedValue({ page: 1, page_size: 10, total: 0, items: [] }),
+  startAdminSync: vi.fn().mockResolvedValue({
+    job_id: "job-mock-001",
+    mode: "validate",
+    status: "queued",
+    started_at_utc: "2026-03-12T12:00:00Z",
+    finished_at_utc: null,
+    current_step: "queued",
+    is_active: true,
+    recent_logs: [],
+    steps: []
+  })
 }));
 
 vi.mock("../shared/api/domain", () => ({
@@ -83,7 +96,7 @@ vi.mock("../shared/api/domain", () => ({
     default_layer_id: "territory_municipality",
     fallback_endpoint: "/v1/geo/choropleth",
     items: [{
-      id: "territory_municipality", label: "Municipios", territory_level: "municipality",
+      id: "territory_municipality", label: "Municípios", territory_level: "municipality",
       is_official: true, source: "silver.dim_territory", default_visibility: true,
       zoom_min: 0, zoom_max: 8
     }]
@@ -91,8 +104,8 @@ vi.mock("../shared/api/domain", () => ({
   getMapStyleMetadata: vi.fn().mockResolvedValue({
     generated_at_utc: "2026-02-13T18:25:00Z", version: "v1", default_mode: "choropleth",
     severity_palette: [
-      { severity: "critical", label: "Critico", color: "#b91c1c" },
-      { severity: "stable", label: "Estavel", color: "#0f766e" }
+      { severity: "critical", label: "Cr?tico", color: "#b91c1c" },
+      { severity: "stable", label: "Est?vel", color: "#0f766e" }
     ],
     domain_palette: [], legend_ranges: [], notes: "style_metadata_v1_static"
   })
@@ -164,7 +177,7 @@ vi.mock("../shared/api/qg", () => ({
     territory_id: "3121605", territory_name: "Diamantina", territory_level: "municipio",
     period: "2025", overall_score: 68.2, overall_status: "attention", overall_trend: "down",
     metadata: { source_name: "silver.fact_indicator", updated_at: null, coverage_note: "territorial_aggregated", unit: null, notes: null },
-    highlights: ["Saude em deterioracao"], domains: []
+    highlights: ["Saúde em deterioração"], domains: []
   }),
   getTerritoryPeers: vi.fn().mockResolvedValue({
     territory_id: "3121605", territory_name: "Diamantina", territory_level: "municipio",
@@ -188,6 +201,81 @@ vi.mock("../shared/api/qg", () => ({
     level: "municipio", metric: "voters", year: 2024,
     metadata: { source_name: "silver.fact_electorate", updated_at: null, coverage_note: "territorial_aggregated", unit: "voters", notes: null },
     items: []
+  }),
+  getElectorateHistory: vi.fn().mockResolvedValue({
+    level: "municipio",
+    metadata: { source_name: "silver.fact_electorate", updated_at: null, coverage_note: "territorial_aggregated", unit: "voters", notes: null },
+    items: [
+      {
+        year: 2024,
+        total_voters: 38607,
+        turnout: 27941,
+        turnout_rate: 72.37,
+        abstention_rate: 27.63,
+        blank_rate: 5.54,
+        null_rate: 7.62
+      }
+    ]
+  }),
+  getElectoratePollingPlaces: vi.fn().mockResolvedValue({
+    metric: "voters",
+    year: 2024,
+    metadata: {
+      source_name: "silver.fact_electorate + silver.dim_territory",
+      updated_at: null,
+      coverage_note: "polling_place_ranked",
+      unit: "voters",
+      notes: null
+    },
+    items: [
+      {
+        territory_id: "polling-place-001",
+        territory_name: "Escola Municipal Centro",
+        territory_level: "polling_place",
+        metric: "voters",
+        value: 500,
+        year: 2024,
+        polling_place_name: "Escola Municipal Centro",
+        polling_place_code: "1001",
+        district_name: "Sede",
+        zone_codes: ["101"],
+        section_count: 2,
+        sections: ["0001", "0002"],
+        voters_total: 500,
+        share_percent: 5.5
+      }
+    ]
+  }),
+  getElectorateElectionContext: vi.fn().mockResolvedValue({
+    year: 2024,
+    office: "PREFEITO",
+    election_round: 1,
+    election_type: "Municipal",
+    level: "municipality",
+    total_votes: 27941,
+    metadata: { source_name: "silver.fact_election_result", updated_at: null, coverage_note: "territorial_aggregated", unit: "votes", notes: null },
+    available_offices: [
+      {
+        office: "PREFEITO",
+        election_round: 1,
+        election_type: "Municipal",
+        total_votes: 27941,
+        is_primary: true
+      }
+    ],
+    items: [
+      {
+        candidate_id: "cand-1",
+        candidate_number: "15",
+        candidate_name: "Geferson Giordani Burgarelli",
+        ballot_name: "GEFERSON GIORDANI BURGARELLI",
+        party_abbr: "MDB",
+        party_number: "15",
+        party_name: "Movimento Democr?tico Brasileiro",
+        votes: 12334,
+        share_percent: 44.14
+      }
+    ]
   })
 }));
 
@@ -219,9 +307,9 @@ describe("E2E decision flow", () => {
     const user = userEvent.setup();
 
     // ── Step 1: Home (QG / Situação Geral) ──
-    await screen.findByText("Situacao geral");
+    await screen.findByText("Contexto eleitoral de referência");
     // KPI summary cards are visible (Layout B sidebar)
-    expect(screen.getByText("Criticos")).toBeInTheDocument();
+    expect(screen.getByText("Críticos")).toBeInTheDocument();
     // Top priority preview is visible
     expect(screen.getByText("Diamantina")).toBeInTheDocument();
     // Quick action links exist
@@ -229,9 +317,9 @@ describe("E2E decision flow", () => {
     expect(priorityLinks.length).toBeGreaterThanOrEqual(1);
 
     // ── Step 2: Navigate to Prioridades ──
-    const mainNav = screen.getByRole("navigation", { name: "Navegacao principal" });
+    const mainNav = screen.getByRole("navigation", { name: "Navegação principal" });
     await user.click(within(mainNav).getByRole("link", { name: "Prioridades" }));
-    await screen.findByText("Prioridades estrategicas");
+    await screen.findByText("Prioridades estratégicas");
     expect(screen.getByText("Cobertura abaixo da meta regional")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Exportar CSV" })).toBeInTheDocument();
 
@@ -242,7 +330,7 @@ describe("E2E decision flow", () => {
 
     // ── Step 3: Navigate to Mapa ──
     await user.click(screen.getByRole("link", { name: "Mapa" }));
-    await screen.findByLabelText("Buscar territorio");
+    await screen.findByLabelText("Buscar território");
     // Export buttons visible
     expect(screen.getByRole("button", { name: /Exportar.*CSV/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Exportar.*SVG/ })).toBeInTheDocument();
@@ -252,23 +340,23 @@ describe("E2E decision flow", () => {
 
     // ── Step 4: Navigate to Território 360 (via profile link) ──
     await user.click(screen.getAllByRole("link", { name: "Abrir perfil" })[0]);
-    await screen.findByRole("heading", { name: "Status geral do territorio" });
+    await screen.findByRole("heading", { name: "Status geral do território" });
     // Overall score/status displayed
-    expect(screen.getByText("atencao")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Gerar brief deste território" })).toBeInTheDocument();
 
     // ── Step 5: Navigate to Eleitorado ──
     await user.click(screen.getByRole("link", { name: "Eleitorado" }));
-    await screen.findByText("Eleitorado e participacao");
+    await screen.findByText("Eleitorado e participação");
 
     // ── Step 6: Navigate to Cenários ──
-    await user.click(screen.getByRole("link", { name: "Cenarios" }));
-    await screen.findByText("Cenarios estrategicos");
+    await user.click(screen.getByRole("link", { name: "Cenários" }));
+    await screen.findByText("Cenários estratégicos");
     // Submit a simulation
     await user.clear(screen.getByLabelText("Percentual de ajuste"));
     await user.type(screen.getByLabelText("Percentual de ajuste"), "10");
     await user.click(screen.getByRole("button", { name: "Simular" }));
     await screen.findByText("Resultado: Diamantina");
-    expect(screen.getByText("APS subiria para 77%, reduzindo criticidade.")).toBeInTheDocument();
+    expect(screen.getByText("Score antes/depois")).toBeInTheDocument();
 
     // ── Step 7: Navigate to Briefs ──
     await user.click(screen.getByRole("link", { name: "Briefs" }));
@@ -286,18 +374,18 @@ describe("E2E decision flow", () => {
     renderApp(["/mapa?territory_id=3121605"]);
     const user = userEvent.setup();
 
-    await screen.findByLabelText("Buscar territorio");
+    await screen.findByLabelText("Buscar território");
     const profileLink = screen.getAllByRole("link", { name: "Abrir perfil" })[0];
     expect(profileLink).toBeInTheDocument();
 
     await user.click(profileLink);
-    await screen.findByRole("heading", { name: "Status geral do territorio" });
+    await screen.findByRole("heading", { name: "Status geral do território" });
   });
 
   it("deep-links propagate context: territory → cenários with query params", async () => {
     renderApp(["/cenarios?territory_id=3121605&period=2025&domain=saude"]);
 
-    await screen.findByText("Cenarios estrategicos");
+    await screen.findByText("Cenários estratégicos");
     // Verify territory was pre-loaded
     await screen.findByLabelText("Percentual de ajuste");
   });
@@ -314,15 +402,15 @@ describe("E2E decision flow", () => {
     const user = userEvent.setup();
 
     // Start in Home
-    await screen.findByText("Situacao geral");
+    await screen.findByText("Contexto eleitoral de referência");
 
     // Go to Admin
     await user.click(screen.getByRole("link", { name: "Admin" }));
-    await screen.findByText("Admin tecnico");
+    await screen.findByText("Admin técnico");
 
     // Return to Prioridades
     await user.click(screen.getByRole("link", { name: "Prioridades" }));
-    await screen.findByText("Prioridades estrategicas");
+    await screen.findByText("Prioridades estratégicas");
     expect(screen.getByText("Diamantina")).toBeInTheDocument();
   });
 });

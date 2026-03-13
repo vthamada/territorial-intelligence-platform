@@ -1,12 +1,12 @@
 # Territorial Intelligence Platform - Handoff
 
-Data de referência: 2026-03-11
+Data de referência: 2026-03-12
 Planejamento principal: `docs/PLANO_IMPLEMENTACAO_QG.md`
 North star de produto: `docs/VISION.md`
 Contrato técnico principal: `CONTRATO.md`
 Papel deste documento: memória operacional viva do projeto, preservando estado atual, contexto recente, evidências, decisões e próximos passos para retomada segura.
 
-## Trilha ativa unica (executável no ciclo atual)
+## Trilha ativa única (executável no ciclo atual)
 
 1. Estado oficial da trilha (WIP=1):
    - `D4-mobilidade/frota` encerrada com entregas `BD-040`, `BD-041` e `BD-042`.
@@ -14,33 +14,170 @@ Papel deste documento: memória operacional viva do projeto, preservando estado 
    - `D6` concluido tecnicamente (`BD-060`, `BD-061`, `BD-062`).
    - `D7` concluido tecnicamente (`BD-070`, `BD-071`, `BD-072`), incluindo fechamento adicional em `2026-03-03` para explicabilidade e auditoria de pesos.
    - `D8` concluido tecnicamente (`BD-080`, `BD-081`, `BD-082`).
-   - pendencias historicas de mapa executivo, geocodificacao de locais de votacao, refatoracao das telas QG e estabilizacao de `QgPages.test.tsx` devem ser consideradas encerradas pelos commits `8dc6c86`, `b2ad30f`, `6c01e12`, `56bea7b` e `eb9a4c6`.
+   - pendências históricas de mapa executivo, geocodificação de locais de votação, refatoração das telas QG e estabilização de `QgPages.test.tsx` devem ser consideradas encerradas pelos commits `8dc6c86`, `b2ad30f`, `6c01e12`, `56bea7b` e `eb9a4c6`.
 2. Estado funcional consolidado:
-   - mapa executivo consolidado em fluxo unico (OSM-only), sem branch simplificado paralelo;
-   - `/v1/electorate/map` suporta `aggregate_by=polling_place`, com fallback automatico para ano eleitoral com dados quando necessario;
+   - mapa executivo consolidado em fluxo único (OSM-only), sem branch simplificado paralelo;
+   - `/v1/electorate/map` suporta `aggregate_by=polling_place`, com fallback automático para ano eleitoral com dados quando necessário;
    - `/v1/electorate/history` e `/v1/electorate/polling-places` sustentam `UX-1` com série histórica, ranking executivo e sincronização cartográfica por local de votação;
-   - geolocalizacao de locais de votacao estabilizada com seed `data/seed/polling_places_diamantina.csv` (`36/36` locais) e auditoria geoespacial dedicada;
-   - telas executivas (`Home`, `Prioridades`, `Mapa`, `Insights`, `Cenarios`, `Eleitorado`) alinhadas ao contrato atual e com suite QG estabilizada;
+   - geolocalização de locais de votação estabilizada com seed `data/seed/polling_places_diamantina.csv` (`36/36` locais) e auditoria geoespacial dedicada;
+   - telas executivas (`Home`, `Prioridades`, `Mapa`, `Insights`, `Cenários`, `Eleitorado`) alinhadas ao contrato atual e com suíte QG estabilizada;
    - `ElectorateExecutivePage` deixou de expor apenas uma tabela municipal simples e passou a mostrar histórico anual + ranking de locais de votação, com seletor controlado de cargo/turno no contexto nominal;
+   - `QgOverviewPage` e `QgPrioritiesPage` agora também exibem contexto eleitoral nominal de referência (ano, cargo principal, liderança e votos válidos) usando `GET /v1/electorate/election-context`;
    - `QgMapPage` agora permite alternar a métrica eleitoral do local e mantém ranking, tooltip e drawer no mesmo contexto;
-   - referencia vigente da refatoracao visual/estrutural do mapa esta consolidada em `docs/REFATORACAO_TELAS.md`.
-3. Validacao consolidada mais recente:
-   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_candidate_votes.py -q` -> `40 passed`.
-   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_electorate.py -q` -> `41 passed`.
+   - Admin passou a expor operação assistida governada para validação e sincronização do ambiente, usando a mesma rotina oficial do terminal sem criar trilha paralela;
+   - o Admin também passou a expor histórico persistido de jobs, autenticação opcional via `x-admin-ops-token` e mensagens explícitas de 403/404 no frontend;
+   - referência vigente da refatoração visual/estrutural do mapa está consolidada em `docs/REFATORACAO_TELAS.md`.
+3. Validação consolidada mais recente:
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_candidate_votes.py tests/unit/test_tse_electorate.py -q` -> `55 passed`.
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_routes.py -q` -> `35 passed`.
    - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`.
-   - `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `8 passed`.
+   - `npm.cmd --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `8 passed`.
+   - `npm.cmd --prefix frontend run test -- --run src/modules/admin/pages/AdminHubPage.test.tsx` -> `5 passed`.
    - `npm --prefix frontend run build` -> `OK`.
-   - `./.venv/Scripts/python.exe scripts/audit_electorate_consistency.py` -> relat?rio atualizado.
+   - `./.venv/Scripts/python.exe scripts/audit_electorate_consistency.py` -> relatório atualizado.
 4. Próximo passo executável real:
-   - propagar contexto eleitoral nominal agora validado para `Home`/`Prioridades`, sem abrir `UX-2` antes da hora;
+   - propagar a mesma leitura nominal já validada para `Insights` e deep-links executivos relacionados, sem abrir `UX-2` antes da hora;
    - manter a limpeza do legado em `electoral_zone` automatizada via `scripts/cleanup_candidate_vote_zone_legacy.py` e `scripts/equalize_database_env.ps1`;
    - preservar `Presidente` como cargo principal dos anos gerais (`2018`/`2022`) e `Prefeito` como cargo principal dos anos municipais;
    - manter rotina recorrente da janela de 30 dias com persistência de snapshots (`scripts/persist_ops_robustness_window.py`);
    - acompanhar drift para sustentar `status=READY`, `severity=normal` e `gates.all_pass=true`;
-   - manter `#7` (`CadUnico/CECAD`) fora do ciclo ativo até desbloqueio externo.
+   - manter `#7` (`CadÚnico/CECAD`) fora do ciclo ativo até desbloqueio externo.
 5. Regra de leitura:
-   - apenas esta secao define o "próximo passo executável" vigente;
-   - secoes abaixo preservam histórico de entregas/rodadas e não reabrem pendencias já concluídas, salvo regressao comprovada.
+   - apenas esta seção define o "próximo passo executável" vigente;
+   - seções abaixo preservam histórico de entregas/rodadas e não reabrem pendências já concluídas, salvo regressão comprovada.
+
+## Atualização técnica (2026-03-13) - Home eleitoral resiliente e resumo executivo alinhado ao histórico
+
+1. Correção funcional no backend eleitoral:
+   - `GET /v1/electorate/summary` passou a usar o mesmo fallback oficial por granularidade já adotado em `GET /v1/electorate/history`;
+   - com isso, anos como `2022` deixam de retornar apenas `total_voters` no resumo e passam a expor também `turnout`, `turnout_rate`, `abstention_rate`, `blank_rate` e `null_rate`.
+2. Correção funcional no frontend do eleitorado:
+   - `ElectorateExecutivePage` passou a reconciliar o card `Resumo executivo` com a linha do mesmo ano em `Histórico eleitoral` quando o payload de resumo vier incompleto;
+   - o resumo também passou a exibir explicitamente `Comparecimento`, reduzindo a inconsistência entre o bloco executivo e a tabela histórica.
+3. Hardening na Home/Prioridades:
+   - `QgOverviewPage` e `QgPrioritiesPage` passaram a resolver o contexto eleitoral nominal com fallback controlado para `municipality` quando o nível filtrado não trouxer payload nominal consistente;
+   - isso reduz o risco de erro isolado no painel `Contexto eleitoral de referência` sem reabrir a modelagem nominal.
+4. Validação:
+   - `.\\.venv\\Scripts\\python.exe -m pytest tests/unit/test_qg_routes.py -q` -> `34 passed`;
+   - `npm.cmd --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `33 passed`;
+   - `npm.cmd --prefix frontend run build` -> `OK`.
+
+## Atualização técnica (2026-03-12) - Hotfix do Admin operacional e limpeza residual de acentuação
+
+1. Correção funcional no frontend operacional:
+   - `frontend/src/modules/ops/pages/OpsRunsPage.tsx` teve os rótulos residuais corrigidos (`Execuções de pipeline`, `Início`, `Duração`, `Página`, `Próxima`), removendo a degradação visual que ainda aparecia na navegação operacional.
+   - `frontend/src/modules/admin/pages/AdminHubPage.tsx` permaneceu alinhado ao contrato de operação assistida, preservando os estados explícitos de `404`/`403` no painel.
+2. Regressão do fluxo central:
+   - `frontend/src/app/e2e-flow.test.tsx` foi ajustado para validar elementos estáveis do fluxo executivo atual em `Território 360` e `Cenários`, evitando asserts frágeis em textos narrativos não estruturais.
+   - `frontend/src/app/router.smoke.test.tsx` continuou cobrindo a navegação entre `Visão Geral`, `Mapa`, `Prioridades`, `Insights`, `Cenários`, `Eleitorado`, `Briefs` e `Admin`.
+3. Documentação e encoding:
+   - `docs/HANDOFF.md` e `docs/CHANGELOG.md` tiveram os trechos mais recentes revisados para remover headings/bullets com `?` literal.
+   - `scripts/fix_docs_encoding.py` foi reaplicado após a revisão manual e o guardrail de documentação voltou a passar.
+4. Próximo passo operacional:
+   - sincronizar esse delta para o clone oficial em `D:` e reiniciar o runtime que o usuário efetivamente utiliza, eliminando o cenário em que a UI aponta para um backend/frontend defasados.
+5. Validação:
+   - `.\\.venv\\Scripts\\python.exe -m pytest tests/unit/test_docs_encoding.py tests/unit/test_ops_routes.py -q` -> `39 passed`;
+   - `npm.cmd --prefix frontend run test -- --run src/modules/admin/pages/AdminHubPage.test.tsx src/modules/territory/pages/TerritoryProfilePage.test.tsx src/modules/qg/pages/QgPages.test.tsx src/app/router.smoke.test.tsx src/app/e2e-flow.test.tsx` -> `40 passed`;
+   - `npm.cmd --prefix frontend run build` -> `OK`.
+
+## Atualização técnica (2026-03-12) - Operação assistida no Admin
+
+1. Backend operacional:
+   - `src/app/api/routes_ops.py` passou a expor execução assistida em background com `POST /v1/ops/admin/sync/start`, `GET /v1/ops/admin/sync/status`, `GET /v1/ops/admin/sync/history` e `GET /v1/ops/admin/sync/jobs/{job_id}`;
+   - o gerenciador controla um job administrativo por vez, com etapas, logs recentes, status do passo atual e bloqueio de concorrência para evitar equalizações sobrepostas;
+   - o histórico agora fica persistido em `ops.admin_sync_jobs` e `ops.admin_sync_job_steps`, materializados por `db/sql/020_admin_sync_jobs.sql`, fechando a perda de contexto após restart do backend;
+   - o backend passou a aceitar `x-admin-ops-token` quando `ADMIN_OPS_TOKEN` estiver configurado, evitando expor a rotina de equalização sem governança fora do ambiente local.
+2. Fluxos governados:
+   - modo `validate` roda somente checks oficiais sem escrita (`export_data_coverage_scorecard`, `audit_polling_places_geolocation`, `backend_readiness`);
+   - modo `sync` dispara a rotina oficial `scripts/equalize_database_env.ps1`, preservando `-IncludeWave7` e `-AllowBackfillBlocked` como defaults operacionais homologados.
+3. Frontend Admin:
+   - `AdminHubPage` passou a exibir painel de operação assistida com botões `Validar ambiente` e `Sincronizar ambiente`;
+   - a sincronização exige confirmação explícita antes de iniciar;
+   - o painel mostra status do último job, etapa atual, tabela de etapas, logs recentes e polling automático enquanto houver job ativo;
+   - os estados de erro agora diferenciam `404` (backend sem suporte ao recurso) e `403` (token administrativo ausente ou inválido), com mensagens explícitas no painel.
+4. Validação:
+   - `$env:PYTHONPATH='src'; .\.venv\Scripts\python.exe scripts/init_db.py` -> `Applied 22 SQL scripts`;
+   - `.\\.venv\\Scripts\\python.exe -m pytest tests/unit/test_ops_routes.py -q` -> `38 passed`;
+   - `npm.cmd --prefix frontend run test -- --run src/modules/admin/pages/AdminHubPage.test.tsx` -> `6 passed`;
+   - `npm.cmd --prefix frontend run build` -> `OK`;
+   - smoke real:
+     - `GET /v1/ops/admin/sync/status` -> `200`, `{ "job": null }` em banco limpo;
+     - `GET /v1/ops/admin/sync/jobs/{uuid}` -> `200`, `{ "job": null }` para job inexistente.
+## Atualização técnica (2026-03-12) - Histórico eleitoral e seções nominais esclarecidas
+
+1. Histórico eleitoral executivo:
+   - `GET /v1/electorate/history` passou a calcular comparecimento, absten??o, brancos e nulos por ano com fallback expl?cito de granularidade oficial;
+   - para anos em que `municipality` n?o possui consolida??o em `silver.fact_election_result`, a API agora utiliza `electoral_zone`, preservando a s?rie hist?rica da UI sem duplicar contagens.
+2. Distribui??o territorial do candidato:
+   - `GET /v1/electorate/candidate-territories` passou a expor `polling_place_section_count` e `polling_place_sections` no agregado por local de vota??o;
+   - a diferenca entre `Distribuicao territorial do candidato` e `Ranking de locais de votacao` foi formalizada:
+     - ranking = todas as seções do local;
+     - distribuição do candidato = somente as seções em que o candidato recebeu votos.
+3. UX da coluna `Se??es`:
+   - `ElectorateExecutivePage` passou a usar o mesmo layout em bloco do ranking de locais, com linha principal e preview secundário;
+   - quando o candidato tem votos em apenas parte do local, a UI agora explicita `X de Y secoes com votos`, reduzindo ambiguidade como no caso da `E. E. PROF.ª GABRIELA NEVES`.
+4. Valida??o:
+   - `.\\.venv\\Scripts\\python.exe -m pytest tests/unit/test_qg_routes.py -q` -> `33 passed`;
+   - `npm.cmd --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `8 passed`;
+   - `npm.cmd --prefix frontend run build` -> `OK`.
+
+## Atualizacao tecnica (2026-03-12) - Partido derivado no eleitorado nominal
+
+1. Lacuna fechada na base:
+   - o bruto `tse_votacao_secao` materializado neste ambiente nao expõe `SG_PARTIDO`, `NR_PARTIDO` nem `NM_PARTIDO`;
+   - para evitar que `silver.dim_candidate` continue nulo nesses campos, foi introduzido o modulo `src/pipelines/tse_party_registry.py`, que deriva partido a partir:
+     - do prefixo do numero do candidato;
+     - dos votos de legenda ja presentes na base nominal do mesmo ano;
+     - de um registro historico controlado para sigla/nome partidario.
+2. Pipeline e rotina operacional:
+   - `src/pipelines/tse_candidate_votes.py` agora enriquece `party_abbr`, `party_number` e `party_name` antes do upsert;
+   - `scripts/backfill_candidate_party_identity.py` foi adicionado para corrigir o estoque ja carregado em `silver.dim_candidate`;
+   - `scripts/equalize_database_env.ps1` passou a executar esse backfill automaticamente apos `cleanup_candidate_vote_zone_legacy`.
+3. Efeito funcional validado:
+   - `GET /v1/electorate/election-context?year=2024&office=Prefeito` passou a expor `MDB` e `REDE` nos candidatos principais;
+   - `GET /v1/electorate/election-context?year=2022&office=PRESIDENTE` passou a expor `PT`, `PL`, `MDB`, `PDT` e demais partidos no contexto nominal;
+   - a correcao vale tambem para a serie municipal de `2020`, removendo a lacuna visual de partido na aba `Eleitorado`.
+4. Valida??o:
+   - `.\\.venv\\Scripts\\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_candidate_votes.py -q` -> `42 passed`;
+   - `PYTHONPATH=src .\\.venv\\Scripts\\python.exe scripts/backfill_candidate_party_identity.py --apply` -> `rows_updated=2528`;
+   - smoke real:
+     - `GET http://127.0.0.1:8000/v1/electorate/election-context?year=2024&office=Prefeito` -> partidos preenchidos;
+     - `GET http://127.0.0.1:8000/v1/electorate/election-context?year=2022&office=PRESIDENTE` -> partidos preenchidos.
+
+## Atualização técnica (2026-03-12) - Sincronização do ambiente local de banco
+
+1. Correção estrutural do banco neste computador:
+   - `scripts/init_db.py` executado com sucesso (`Applied 21 SQL scripts`) para materializar o schema SQL oficial faltante, incluindo `silver.dim_election`.
+2. Equalização operacional:
+   - `scripts/equalize_database_env.ps1 -IncludeWave7 -AllowBackfillBlocked` foi reexecutado com sucesso material nas etapas de connector registry, schema contracts, reprocessamento TSE 2024, backfill robusto, cleanup do legado nominal e incremental full sources.
+   - as únicas fontes que permaneceram como `blocked` no incremental foram `cecad_social_protection_fetch` e `censo_suas_fetch`, mantendo o comportamento esperado para dependências externas fora do ciclo ativo.
+3. Seed e geolocalização:
+   - `scripts/build_seed.py` recompilou `data/seed/polling_places_diamantina.csv` neste ambiente;
+   - `scripts/apply_seed.py` reaplicou o seed com verificação final de `36` pontos únicos para `286` seções;
+   - `scripts/audit_polling_places_geolocation.py --output-json data/reports/polling_places_geolocation_audit.current_env.json` retornou `status=pass` sem violações de distrito.
+4. Readiness final:
+   - `scripts/export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.current_env.json` -> `pass=29`, `warn=3`;
+   - `scripts/backfill_missing_pipeline_checks.py --window-days 7 --apply` preencheu o run legado sem checks (`d431b7b6-f6aa-4b5d-8892-38f342a935cf`);
+   - `scripts/backend_readiness.py --output-json` voltou para `READY`, `hard_failures=0`, `warnings=0`.
+5. Hardening aplicado:
+   - `scripts/equalize_database_env.ps1` foi ajustado para enviar o `stdout` dos subprocessos para `Out-Host` e preservar apenas o inteiro de `$LASTEXITCODE`, eliminando o falso-aborto observado quando a etapa incremental terminava com `exit code 0`.
+
+## Atualização técnica (2026-03-12) - Contexto eleitoral nominal em Home e Prioridades
+
+1. Frontend executivo:
+   - `QgOverviewPage` passou a exibir painel de contexto eleitoral nominal com:
+     - ano eleitoral de referência;
+     - cargo principal;
+     - liderança nominal;
+     - total de votos válidos;
+     - top 3 candidatos do recorte.
+   - `QgPrioritiesPage` passou a exibir resumo nominal no topo, alinhado ao `level` filtrado.
+2. Decisão de escopo:
+   - a propagação foi feita como camada de leitura executiva, sem alterar o contrato principal de `priority/list` nem abrir filtro adicional de ano eleitoral nesta rodada;
+   - o ano/cargo continuam sendo resolvidos pelo backend a partir do melhor recorte nominal oficial disponível para o nível solicitado.
+3. Validação:
+   - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`;
+   - `npm --prefix frontend run build` -> `OK`.
 
 ## Atualização técnica (2026-03-11) - Encoding dos documentos normalizado
 
@@ -904,7 +1041,7 @@ Papel deste documento: memória operacional viva do projeto, preservando estado 
 4. Governança de qualidade atualizada:
   - `quality.py` e `quality_thresholds.yml` ajustados para cobertura de `PORTAL_TRANSPARENCIA` em `check_fact_indicator_source_rows`.
 5. Evidência técnica da rodada:
-  - `\.venv\Scripts\python.exe -m pytest tests/unit/test_portal_transparencia.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_onda_b_connectors.py -q` -> `26 passed`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_portal_transparencia.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_onda_b_connectors.py -q` -> `26 passed`.
 6. Próximo passo imediato (WIP=1):
   - configurar `PORTAL_TRANSPARENCIA_API_KEY` no `.env` de cada ambiente e executar `portal_transparencia_fetch` (ou incremental) para materializar indicadores reais na base operacional.
 
@@ -1016,7 +1153,7 @@ Papel deste documento: memória operacional viva do projeto, preservando estado 
   - cobertura adicionada para ingestão do evento `map_operational_state_changed` com atributos operacionais do mapa;
   - cobertura adicionada para filtro por nome (`name=map_operational_state_changed`) na listagem paginada.
 2. Evidência técnica da rodada:
-  - `\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_routes.py -q` -> `32 passed`.
+  - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_routes.py -q` -> `32 passed`.
 3. Resultado operacional:
   - frontend e backend ficam alinhados no fluxo de telemetria de estado operacional do mapa (emissão no frontend + aceitação/consulta no backend).
 4. Próximo passo imediato (WIP=1):
@@ -1082,7 +1219,7 @@ Papel deste documento: memória operacional viva do projeto, preservando estado 
 ## Atualizacao operacional (2026-02-23) - UX final do mapa executivo (drawer territorial)
 
 1. Implementacao de UX do mapa em ciclo curto concluida no frontend:
-  - `frontend/src/modules/qg/pages/QgMapPage.tsx` migrado para painel territorial em drawer com estrutura executiva (status, tendencia, valor, metricas, evidencias e acoes);
+  - `frontend/src/modules/qg/pages/QgMapPage.tsx` migrado para painel territorial em drawer com estrutura executiva (status, tendencia, valor, metricas, evid?ncias e acoes);
   - `frontend/src/styles/global.css` recebeu classes `territory-drawer-*` e `inline-link-button` para suportar o novo layout mantendo o `Drawer` compartilhado.
 2. Ajustes de estabilidade aplicados durante a rodada:
   - correcoes de regressao de hooks na pagina de mapa (ordem estável);
@@ -1730,7 +1867,7 @@ Próximo pacote técnico recomendado (WIP=1):
 3. Entrega esperada para demonstracao:
    - valor visivel no mapa com prioridade explicavel por território;
    - fluxo estavel em estados `loading/error/empty/data`;
-   - evidencias técnicas registradas em `CHANGELOG` e neste `HANDOFF`.
+   - evid?ncias técnicas registradas em `CHANGELOG` e neste `HANDOFF`.
 
 ## Atualizacao técnica (2026-02-22) - D7 BD-072 implementado (trilhas de explicabilidade para prioridade/insight)
 
@@ -1776,7 +1913,7 @@ Próximo pacote técnico recomendado (WIP=1):
    - novo script `scripts/sync_strategic_score_versions.py` para sincronizacao idempotente no banco;
    - `scripts/backfill_robust_database.py` passa a sincronizar `strategic_score_versions` e reportar cobertura.
 4. API executiva e contratos:
-   - `src/app/api/routes_qg.py` passa a expor metadados/evidencias com `score_version`, `scoring_method` e pesos;
+   - `src/app/api/routes_qg.py` passa a expor metadados/evid?ncias com `score_version`, `scoring_method` e pesos;
    - `src/app/schemas/qg.py` atualizado com campos opcionais de versão/pesos em prioridade, insights e briefs;
    - `src/app/api/strategic_engine_config.py` atualizado para carregar pesos versionados.
 5. Scorecard e testes:
@@ -2126,7 +2263,7 @@ Próximo pacote técnico recomendado (WIP=1):
      - `data/manual/senatran/senatran_diamantina_2022.csv`
      - `data/manual/senatran/senatran_diamantina_2023.csv`
      - `data/manual/senatran/senatran_diamantina_2024.csv`
-   - evidencias em `data/reports/bootstrap_senatran_history_report.json`.
+   - evid?ncias em `data/reports/bootstrap_senatran_history_report.json`.
 2. Backfill real do conector `senatran_fleet_fetch` executado para `2021..2025`:
    - `5/5` runs com `status=success`;
    - `rows_written=4` por ano em `silver.fact_indicator`.
@@ -2501,7 +2638,7 @@ Próximo pacote técnico recomendado (WIP=1):
 - Diretriz oficial de foco publicada e consolidada em `docs/BACKLOG_DADOS_NIVEL_MAXIMO.md` (secoes 7, 8 e 9).
 - Ordem de execução obrigatoria no ciclo atual:
   - 1) estabilizar telas e fluxo de decisão (`/visao-geral`, `/mapa`, `/territorio-360`, `/eleitorado`);
-  - 2) fechar gates de confiabilidade (qualidade/readiness/smokes e evidencias operacionais);
+  - 2) fechar gates de confiabilidade (qualidade/readiness/smokes e evid?ncias operacionais);
   - 3) fechar lacunas criticas de conectores e cobertura territorial;
   - 4) so entao ampliar escopo (D4/D5) com novas frentes.
 - Regra de priorização ativa:
@@ -2965,7 +3102,7 @@ Próximo pacote técnico recomendado (WIP=1):
 - Extensao v1.1 iniciada no backend:
   - `POST /v1/scenarios/simulate` (simulação simplificada por variação percentual).
   - simulação evoluida para calcular ranking antes/depois por indicador e delta de posicao.
-  - `POST /v1/briefs` para geracao de brief executivo com resumo e evidencias.
+  - `POST /v1/briefs` para geracao de brief executivo com resumo e evid?ncias.
 - Sprint 3/4 (Onda A) iniciado no backend:
   - `sidra_indicators_fetch` evoluido para ingestao real via SIDRA API (`implemented`).
   - `senatran_fleet_fetch` evoluido para ingestao real tabular (`implemented`).
@@ -3453,7 +3590,7 @@ Sprint atual recomendado:
 ## [HISTÓRICO] 5) Próximos passos recomendados
 
 ### Prioridade alta
-1. Fechar estabilizacao de UX nas telas executivas (`/mapa`, `/territorio/:id`, `/eleitorado`) e registrar evidencias de teste.
+1. Fechar estabilizacao de UX nas telas executivas (`/mapa`, `/territorio/:id`, `/eleitorado`) e registrar evid?ncias de teste.
 2. Revalidar homologação ponta a ponta em ambiente limpo (backend + frontend + benchmark + readiness).
 3. Concluir exposicao operacional da camada eleitoral territorial (`local_votacao`) no frontend.
 
@@ -3480,11 +3617,6 @@ Sprint atual recomendado:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_up.ps1`
 - Encerrar API + frontend iniciados pelo launcher:
   - `powershell -ExecutionPolicy Bypass -File scripts/dev_down.ps1`
-
-
-
-
-
 
 
 

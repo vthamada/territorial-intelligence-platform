@@ -192,7 +192,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
   if (shouldRenderNoDataState) {
     return (
       <main className="page-grid">
-        <Panel title="Perfil 360 do territorio" subtitle="Diagnóstico por dominio e comparação orientada">
+        <Panel title="Perfil 360 do território" subtitle="Diagnóstico por domínio e comparação orientada">
           <form
             className="filter-grid compact"
             onSubmit={(event) => {
@@ -236,8 +236,8 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
           </form>
           <StateBlock
             tone="empty"
-            title="Sem dados para o territorio selecionado"
-            message="Não ha indicadores disponiveis para esse recorte. Selecione outro territorio ou periodo."
+            title="Sem dados para o território selecionado"
+            message="Não há indicadores disponíveis para esse recorte. Selecione outro território ou período."
           />
         </Panel>
       </main>
@@ -273,11 +273,11 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
   if (!appliedTerritoryId && !territoryListQuery.isPending && territoryOptions.length === 0) {
     return (
       <main className="page-grid">
-        <Panel title="Perfil 360 do territorio" subtitle="Diagnóstico por dominio e comparação orientada">
+        <Panel title="Perfil 360 do território" subtitle="Diagnóstico por domínio e comparação orientada">
           <StateBlock
             tone="empty"
-            title="Sem territorios disponiveis"
-            message="Não ha territorios cadastrados para montar o perfil 360."
+            title="Sem territórios disponíveis"
+            message="Não há territórios cadastrados para montar o perfil 360."
           />
         </Panel>
       </main>
@@ -289,7 +289,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
       <StateBlock
         tone="loading"
         title="Preparando perfil territorial"
-        message="Selecionando territorio base para carregar o perfil 360."
+        message="Selecionando território base para carregar o perfil 360."
       />
     );
   }
@@ -306,7 +306,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
 
   return (
     <main className="page-grid">
-      <Panel title="Perfil 360 do territorio" subtitle="Diagnóstico por dominio e comparação orientada">
+      <Panel title="Perfil 360 do território" subtitle="Diagnóstico por domínio e comparação orientada">
         <form
           className="filter-grid compact"
           onSubmit={(event) => {
@@ -349,14 +349,14 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
           </div>
         </form>
         <SourceFreshnessBadge metadata={profile.metadata} />
-        <nav aria-label="Atalhos do territorio" className="quick-actions">
+        <nav aria-label="Atalhos do território" className="quick-actions">
           <Link
             className="quick-action-link"
             to={`/briefs?territory_id=${encodeURIComponent(appliedTerritoryId)}&period=${encodeURIComponent(
               appliedPeriod || profile.period || ""
             )}`}
           >
-            Gerar brief deste territorio
+            Gerar brief deste território
           </Link>
           <Link
             className="quick-action-link"
@@ -364,41 +364,41 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
               appliedPeriod || profile.period || ""
             )}`}
           >
-            Simular cenarios
+            Simular cenários
           </Link>
         </nav>
       </Panel>
 
-      <Panel title="Status geral do territorio" subtitle="Leitura executiva consolidada do recorte atual">
+      <Panel title="Status geral do território" subtitle="Leitura executiva consolidada do recorte atual">
         <div className="kpi-grid">
           <StrategicIndexCard
             label="Score territorial"
             value={overallScore === null ? "-" : formatDecimal(overallScore)}
             status={toStrategicStatus(profile.overall_status)}
             trend={toStrategicTrend(profile.overall_trend)}
-            helper="score agregado dos dominios com dados disponiveis"
+            helper="score agregado dos domínios com dados disponíveis"
           />
           <StrategicIndexCard
             label="Domínios monitorados"
             value={String(profile.domains.length)}
             status="info"
-            helper="dominios com indicadores no recorte atual"
+            helper="domínios com indicadores no recorte atual"
           />
           <StrategicIndexCard
             label="Indicadores totais"
             value={String(profile.domains.reduce((acc, domain) => acc + domain.indicators_count, 0))}
             status="info"
-            helper="volume de evidencias consideradas no perfil"
+            helper="volume de evidências consideradas no perfil"
           />
         </div>
       </Panel>
 
-      <Panel title={profile.territory_name} subtitle={`Nível ${formatLevelLabel(profile.territory_level)} - evidencias por dominio`}>
+      <Panel title={profile.territory_name} subtitle={`Nível ${formatLevelLabel(profile.territory_level)} - evidências por domínio`}>
         {profile.highlights.length === 0 ? (
           <StateBlock
             tone="empty"
             title="Sem destaques no recorte"
-            message="Não ha destaques narrativos para o territorio e periodo selecionados."
+            message="Não há destaques narrativos para o território e período selecionados."
           />
         ) : (
           <ul className="trend-list">
@@ -416,7 +416,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
 
       <Panel title="Pares recomendados" subtitle="Territórios similares para comparação rápida">
         {peersQuery.isPending ? (
-          <StateBlock tone="loading" title="Carregando pares" message="Calculando territorios similares para comparação." />
+          <StateBlock tone="loading" title="Carregando pares" message="Calculando territórios similares para comparação." />
         ) : peersQuery.error ? (
           <StateBlock
             tone="error"
@@ -426,7 +426,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
             onRetry={() => void peersQuery.refetch()}
           />
         ) : !peers || peers.items.length === 0 ? (
-          <StateBlock tone="empty" title="Sem pares sugeridos" message="Não ha pares com indicadores compartilhados no recorte." />
+          <StateBlock tone="empty" title="Sem pares sugeridos" message="Não há pares com indicadores compartilhados no recorte." />
         ) : (
           <div className="table-wrap">
             <table aria-label="Pares recomendados">
@@ -437,7 +437,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
                   <th>Similaridade</th>
                   <th>Indicadores em comum</th>
                   <th>Status</th>
-                  <th>Acao</th>
+                  <th>Ação</th>
                 </tr>
               </thead>
               <tbody>
@@ -464,14 +464,14 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
 
       <Panel title="Domínios e indicadores" subtitle="Visão consolidada do recorte atual">
         {profile.domains.length === 0 ? (
-          <StateBlock tone="empty" title="Sem indicadores" message="Não ha indicadores no recorte selecionado." />
+          <StateBlock tone="empty" title="Sem indicadores" message="Não há indicadores no recorte selecionado." />
         ) : (
           <>
             <div className="panel-actions-row">
               <label>
-                Itens por pagina
+                Itens por página
                 <select
-                  aria-label="Itens por pagina"
+                  aria-label="Itens por página"
                   value={indicatorsPageSize}
                   onChange={(event) => setIndicatorsPageSize(event.target.value)}
                 >
@@ -505,7 +505,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
               </table>
             </div>
             {flattenedIndicators.length > normalizedIndicatorsPageSize ? (
-              <div className="pagination-row" aria-label="Paginacao de indicadores">
+              <div className="pagination-row" aria-label="Paginação de indicadores">
                 <button
                   type="button"
                   className="button-secondary"
@@ -515,7 +515,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
                   Anterior
                 </button>
                 <span>
-                  Pagina {indicatorsPage} de {indicatorsTotalPages}
+                  Página {indicatorsPage} de {indicatorsTotalPages}
                 </span>
                 <button
                   type="button"
@@ -523,7 +523,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
                   onClick={() => setIndicatorsPage((page) => Math.min(indicatorsTotalPages, page + 1))}
                   disabled={indicatorsPage >= indicatorsTotalPages}
                 >
-                  Proxima
+                  Próxima
                 </button>
               </div>
             ) : null}
@@ -532,7 +532,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
       </Panel>
 
       {appliedCompareWithId ? (
-        <Panel title="Comparacao territorial" subtitle="Deltas entre territorio base e territorio de referencia">
+        <Panel title="Comparação territorial" subtitle="Deltas entre território base e território de referência">
           {compareQuery.isPending ? (
             <StateBlock tone="loading" title="Carregando comparação" message="Buscando indicadores compartilhados." />
           ) : compareQuery.error ? (
@@ -544,10 +544,10 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
               onRetry={() => void compareQuery.refetch()}
             />
           ) : !compare || compare.items.length === 0 ? (
-            <StateBlock tone="empty" title="Sem comparação" message="Não ha indicadores compartilhados para comparação." />
+            <StateBlock tone="empty" title="Sem comparação" message="Não há indicadores compartilhados para comparação." />
           ) : (
             <div className="table-wrap">
-              <table aria-label="Comparacao territorial">
+              <table aria-label="Comparação territorial">
                 <thead>
                   <tr>
                     <th>Domínio</th>
@@ -555,7 +555,7 @@ export function TerritoryProfilePage({ initialTerritoryId }: TerritoryProfilePag
                     <th>Base</th>
                     <th>Comparado</th>
                     <th>Delta</th>
-                    <th>Direcao</th>
+                    <th>Direção</th>
                   </tr>
                 </thead>
                 <tbody>

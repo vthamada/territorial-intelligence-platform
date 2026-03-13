@@ -387,6 +387,8 @@ class ElectorateCandidateTerritoryItem(BaseModel):
     zone_codes: list[str] = []
     section_count: int = 0
     sections: list[str] = []
+    polling_place_section_count: int = 0
+    polling_place_sections: list[str] = []
 
 
 class ElectorateCandidateTerritoriesResponse(BaseModel):

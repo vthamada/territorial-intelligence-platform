@@ -48,6 +48,16 @@ function formatSectionCountLabel(sectionCount: number) {
   return `${formatInteger(sectionCount)} seções`;
 }
 
+function formatCandidateSectionLabel(sectionCount: number, pollingPlaceSectionCount: number) {
+  if (sectionCount <= 0) {
+    return "-";
+  }
+  if (pollingPlaceSectionCount > sectionCount) {
+    return `${formatInteger(sectionCount)} de ${formatSectionCountLabel(pollingPlaceSectionCount)} com votos`;
+  }
+  return `${formatSectionCountLabel(sectionCount)} com votos`;
+}
+
 function metricLabel(metric: ElectorateMetric) {
   if (metric === "voters") {
     return "Total de eleitores";
@@ -109,18 +119,6 @@ function aggregateAgeBreakdown(items: BreakdownItem[]) {
   }
 
   return aggregatedItems.sort((left, right) => right.voters - left.voters || left.label.localeCompare(right.label));
-}
-
-function formatSections(sectionCount: number, sections: string[]) {
-  if (sectionCount <= 0) {
-    return "-";
-  }
-  if (sections.length === 0) {
-    return `${formatInteger(sectionCount)} seções`;
-  }
-  const preview = sections.slice(0, 6).join(", " );
-  const suffix = sections.length > 6 ? " ..." : "";
-  return `${formatInteger(sectionCount)} (${preview}${suffix})`;
 }
 
 function formatSectionsPreview(sections: string[]) {
@@ -463,6 +461,12 @@ export function ElectorateExecutivePage() {
   const effectivePollingPlaces: ElectoratePollingPlacesResponse = showingFallbackData
     ? fallbackPollingPlacesQuery.data!
     : pollingPlaces;
+  const summaryHistoryItem = effectiveHistory.items.find((item) => item.year === effectiveSummary.year) ?? null;
+  const effectiveSummaryTurnout = effectiveSummary.turnout ?? summaryHistoryItem?.turnout ?? null;
+  const effectiveSummaryTurnoutRate = effectiveSummary.turnout_rate ?? summaryHistoryItem?.turnout_rate ?? null;
+  const effectiveSummaryAbstentionRate = effectiveSummary.abstention_rate ?? summaryHistoryItem?.abstention_rate ?? null;
+  const effectiveSummaryBlankRate = effectiveSummary.blank_rate ?? summaryHistoryItem?.blank_rate ?? null;
+  const effectiveSummaryNullRate = effectiveSummary.null_rate ?? summaryHistoryItem?.null_rate ?? null;
   const selectedCandidate = electionContextQuery.data?.items.find((item) => item.candidate_id === effectiveCandidateId) ?? null;
   const candidateTerritories: ElectorateCandidateTerritoriesResponse | null = candidateTerritoriesQuery.data ?? null;
   const electionContextSourceLevel = extractMetadataFlag(electionContextQuery.data?.metadata.notes, "source_level");
@@ -571,20 +575,24 @@ export function ElectorateExecutivePage() {
             <strong>{effectiveSummary.total_voters ? formatInteger(effectiveSummary.total_voters) : "-"}</strong>
           </article>
           <article>
+            <span>Comparecimento</span>
+            <strong>{effectiveSummaryTurnout === null ? "-" : formatInteger(effectiveSummaryTurnout)}</strong>
+          </article>
+          <article>
             <span>Taxa comparecimento</span>
-            <strong>{formatPercent(effectiveSummary.turnout_rate)}</strong>
+            <strong>{formatPercent(effectiveSummaryTurnoutRate)}</strong>
           </article>
           <article>
             <span>Taxa abstenção</span>
-            <strong>{formatPercent(effectiveSummary.abstention_rate)}</strong>
+            <strong>{formatPercent(effectiveSummaryAbstentionRate)}</strong>
           </article>
           <article>
             <span>Brancos</span>
-            <strong>{formatPercent(effectiveSummary.blank_rate)}</strong>
+            <strong>{formatPercent(effectiveSummaryBlankRate)}</strong>
           </article>
           <article>
             <span>Nulos</span>
-            <strong>{formatPercent(effectiveSummary.null_rate)}</strong>
+            <strong>{formatPercent(effectiveSummaryNullRate)}</strong>
           </article>
         </div>
       </Panel>
@@ -800,7 +808,16 @@ export function ElectorateExecutivePage() {
                     <td>{item.polling_place_name ?? item.territory_name}</td>
                     <td>{item.district_name ?? "-"}</td>
                     <td>{formatZones(item.zone_codes)}</td>
-                    <td>{formatSections(item.section_count, item.sections)}</td>
+                    <td>
+                      <div style={{ display: "grid", gap: "0.18rem" }}>
+                        <strong>
+                          {formatCandidateSectionLabel(item.section_count, item.polling_place_section_count)}
+                        </strong>
+                        <span style={{ color: "var(--ink-soft)", fontSize: "0.82rem" }}>
+                          {formatSectionsPreview(item.sections)}
+                        </span>
+                      </div>
+                    </td>
                     <td>{formatInteger(item.votes)}</td>
                     <td>{formatPercent(item.share_percent)}</td>
                   </tr>

@@ -6,6 +6,7 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
+from app.api import routes_ops
 from app.api.deps import get_db
 from app.api.main import app
 
@@ -1349,3 +1350,156 @@ def test_ops_timeseries_endpoint_rejects_invalid_entity() -> None:
     payload = response.json()
     assert payload["error"]["code"] == "validation_error"
     app.dependency_overrides.clear()
+
+
+def test_admin_sync_start_endpoint_returns_job_snapshot(monkeypatch: Any) -> None:
+    client = TestClient(app, raise_server_exceptions=False)
+
+    def _fake_start_job(_payload: Any) -> dict[str, Any]:
+        return {
+            "job_id": "job-ops-001",
+            "mode": "validate",
+            "status": "queued",
+            "started_at_utc": "2026-03-12T18:00:00Z",
+            "finished_at_utc": None,
+            "is_active": True,
+            "current_step": None,
+            "last_message": "Job enfileirado.",
+            "recent_logs": ["Job enfileirado."],
+            "steps": [
+                {
+                    "name": "backend_readiness",
+                    "status": "pending",
+                    "started_at_utc": None,
+                    "finished_at_utc": None,
+                    "exit_code": None,
+                    "summary": None,
+                }
+            ],
+        }
+
+    monkeypatch.setattr(routes_ops._admin_sync_manager, "start_job", _fake_start_job)
+
+    response = client.post(
+        "/v1/ops/admin/sync/start",
+        json={"mode": "validate", "include_wave7": True, "allow_backfill_blocked": True},
+    )
+
+    assert response.status_code == 202
+    payload = response.json()
+    assert payload["job_id"] == "job-ops-001"
+    assert payload["mode"] == "validate"
+    assert payload["status"] == "queued"
+    assert payload["is_active"] is True
+
+
+def test_admin_sync_status_endpoint_returns_latest_job(monkeypatch: Any) -> None:
+    client = TestClient(app, raise_server_exceptions=False)
+
+    monkeypatch.setattr(
+        routes_ops._admin_sync_manager,
+        "get_latest_job",
+        lambda: {
+            "job_id": "job-ops-002",
+            "mode": "sync",
+            "status": "running",
+            "started_at_utc": "2026-03-12T18:05:00Z",
+            "finished_at_utc": None,
+            "is_active": True,
+            "current_step": "equalize_database_env",
+            "last_message": "Etapa em execucao.",
+            "recent_logs": ["Etapa em execucao."],
+            "steps": [
+                {
+                    "name": "equalize_database_env",
+                    "status": "running",
+                    "started_at_utc": "2026-03-12T18:05:05Z",
+                    "finished_at_utc": None,
+                    "exit_code": None,
+                    "summary": None,
+                }
+            ],
+        },
+    )
+
+    response = client.get("/v1/ops/admin/sync/status")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["job"]["job_id"] == "job-ops-002"
+    assert payload["job"]["current_step"] == "equalize_database_env"
+    assert payload["job"]["status"] == "running"
+
+
+def test_admin_sync_job_endpoint_returns_null_for_unknown_job(monkeypatch: Any) -> None:
+    client = TestClient(app, raise_server_exceptions=False)
+
+    monkeypatch.setattr(routes_ops._admin_sync_manager, "get_job", lambda _job_id: None)
+
+    response = client.get("/v1/ops/admin/sync/jobs/job-missing")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["job"] is None
+
+
+def test_admin_sync_history_endpoint_returns_paginated_payload(monkeypatch: Any) -> None:
+    client = TestClient(app, raise_server_exceptions=False)
+
+    monkeypatch.setattr(
+        routes_ops._admin_sync_manager,
+        "get_job_history",
+        lambda page, page_size: {
+            "page": page,
+            "page_size": page_size,
+            "total": 2,
+            "items": [
+                {
+                    "job_id": "job-ops-010",
+                    "mode": "sync",
+                    "status": "success",
+                    "started_at_utc": "2026-03-12T18:00:00Z",
+                    "finished_at_utc": "2026-03-12T18:10:00Z",
+                    "is_active": False,
+                    "current_step": None,
+                    "last_message": "Job concluido com sucesso.",
+                }
+            ],
+        },
+    )
+
+    response = client.get("/v1/ops/admin/sync/history?page=1&page_size=10")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["page"] == 1
+    assert payload["page_size"] == 10
+    assert payload["total"] == 2
+    assert payload["items"][0]["job_id"] == "job-ops-010"
+    assert payload["items"][0]["mode"] == "sync"
+
+
+def test_admin_sync_endpoints_require_token_when_configured(monkeypatch: Any) -> None:
+    client = TestClient(app, raise_server_exceptions=False)
+    monkeypatch.setattr(routes_ops.settings, "admin_ops_token", "segredo-admin")
+
+    response = client.get("/v1/ops/admin/sync/status")
+
+    assert response.status_code == 403
+    payload = response.json()
+    assert payload["error"]["message"] == "Acesso administrativo negado."
+
+
+def test_admin_sync_endpoints_accept_token_when_configured(monkeypatch: Any) -> None:
+    client = TestClient(app, raise_server_exceptions=False)
+    monkeypatch.setattr(routes_ops.settings, "admin_ops_token", "segredo-admin")
+    monkeypatch.setattr(routes_ops._admin_sync_manager, "get_latest_job", lambda: None)
+
+    response = client.get(
+        "/v1/ops/admin/sync/status",
+        headers={"x-admin-ops-token": "segredo-admin"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["job"] is None

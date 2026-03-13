@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     app_env: str = "local"
     log_level: str = "INFO"
     api_version_prefix: str = "/v1"
+    admin_ops_token: str | None = None
     cors_allow_origins: str = (
         "http://localhost:5173,"
         "http://127.0.0.1:5173,"

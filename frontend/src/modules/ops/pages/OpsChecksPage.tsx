@@ -185,7 +185,7 @@ export function OpsChecksPage() {
                 Anterior
               </button>
               <span>
-                Pagina {page} de {totalPages}
+                Página {page} de {totalPages}
               </span>
               <button
                 type="button"
@@ -193,7 +193,7 @@ export function OpsChecksPage() {
                 disabled={page >= totalPages}
                 onClick={() => setPage((old) => old + 1)}
               >
-                Proxima
+                Próxima
               </button>
             </div>
           </>

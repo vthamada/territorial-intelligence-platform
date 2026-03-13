@@ -11,6 +11,10 @@ from pipelines.tse_candidate_votes import (
     _pick_candidate_votes_resources,
     _pick_candidate_votes_resource,
 )
+from pipelines.tse_party_registry import (
+    build_party_lookup,
+    enrich_candidate_row_party,
+)
 
 
 def _zip_with_csv(csv_name: str, csv_content: str) -> bytes:
@@ -157,6 +161,54 @@ def test_merge_candidate_vote_rows_avoids_double_counting_duplicates() -> None:
 
     assert len(combined) == 1
     assert warnings == []
+
+
+def test_party_lookup_infers_prefeito_party_from_vereador_legend_rows() -> None:
+    rows = [
+        {
+            "election_year": 2024,
+            "office": "Vereador",
+            "candidate_number": "15",
+            "candidate_name": "Movimento Democrático Brasileiro",
+            "party_abbr": None,
+            "party_number": None,
+            "party_name": None,
+        },
+        {
+            "election_year": 2024,
+            "office": "Prefeito",
+            "candidate_number": "15",
+            "candidate_name": "Candidato A",
+            "party_abbr": None,
+            "party_number": None,
+            "party_name": None,
+        },
+    ]
+
+    lookup = build_party_lookup(rows)
+    enriched = enrich_candidate_row_party(dict(rows[1]), party_lookup=lookup)
+
+    assert enriched["party_number"] == "15"
+    assert enriched["party_abbr"] == "MDB"
+    assert enriched["party_name"] == "Movimento Democrático Brasileiro"
+
+
+def test_party_lookup_uses_historical_registry_when_legend_row_missing() -> None:
+    row = {
+        "election_year": 2022,
+        "office": "PRESIDENTE",
+        "candidate_number": "22",
+        "candidate_name": "JAIR MESSIAS BOLSONARO",
+        "party_abbr": None,
+        "party_number": None,
+        "party_name": None,
+    }
+
+    enriched = enrich_candidate_row_party(dict(row), party_lookup={})
+
+    assert enriched["party_number"] == "22"
+    assert enriched["party_abbr"] == "PL"
+    assert enriched["party_name"] == "Partido Liberal"
 
 
 def test_derive_election_type_uses_office_semantics() -> None:

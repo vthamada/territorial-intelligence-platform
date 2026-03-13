@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { formatApiError } from "../../../shared/api/http";
-import { getPriorityList } from "../../../shared/api/qg";
+import { getElectorateElectionContext, getPriorityList } from "../../../shared/api/qg";
 import { getQgDomainLabel, normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
 import { Panel } from "../../../shared/ui/Panel";
 import { PriorityItemCard } from "../../../shared/ui/PriorityItemCard";
@@ -46,6 +46,52 @@ function normalizeSort(value: string | null): PrioritySort {
   return "criticality_desc";
 }
 
+function formatOfficeLabel(value: string | null) {
+  if (!value) {
+    return "-";
+  }
+  return value
+    .toLocaleLowerCase("pt-BR")
+    .split(" ")
+    .map((part) => part.charAt(0).toLocaleUpperCase("pt-BR") + part.slice(1))
+    .join(" ");
+}
+
+function formatCandidateLabel(ballotName: string | null, candidateName: string | null) {
+  return ballotName || candidateName || "-";
+}
+
+function formatInteger(value: number | null | undefined) {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(value);
+}
+
+function formatPercent(value: number | null | undefined) {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+  return `${value.toLocaleString("pt-BR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })}%`;
+}
+
+async function getExecutiveElectionContext(level: string) {
+  try {
+    const payload = await getElectorateElectionContext({ level, limit: 5 });
+    if (payload.items.length > 0 || level === "municipality") {
+      return payload;
+    }
+  } catch (error) {
+    if (level === "municipality") {
+      throw error;
+    }
+  }
+  return getElectorateElectionContext({ level: "municipality", limit: 5 });
+}
+
 export function QgPrioritiesPage() {
   const [searchParams] = useSearchParams();
   const initialPeriod = searchParams.get("period") || "";
@@ -82,6 +128,10 @@ export function QgPrioritiesPage() {
   const prioritiesQuery = useQuery({
     queryKey: ["qg", "priority-list", query],
     queryFn: () => getPriorityList(query)
+  });
+  const electionContextQuery = useQuery({
+    queryKey: ["qg", "priority-list", "election-context", appliedLevel],
+    queryFn: () => getExecutiveElectionContext(appliedLevel),
   });
 
   function applyFilters() {
@@ -160,6 +210,9 @@ export function QgPrioritiesPage() {
     const start = (currentPage - 1) * normalizedPageSize;
     return sortedItems.slice(start, start + normalizedPageSize);
   }, [currentPage, normalizedPageSize, sortedItems]);
+  const electionContext = electionContextQuery.data ?? null;
+  const electionContextError = electionContextQuery.error ? formatApiError(electionContextQuery.error) : null;
+  const leadingCandidate = electionContext?.items[0] ?? null;
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -242,7 +295,7 @@ export function QgPrioritiesPage() {
 
   return (
     <main className="page-grid">
-      <Panel title="Prioridades estrategicas" subtitle="Ranking territorial por criticidade e evidencia">
+      <Panel title="Prioridades estratégicas" subtitle="Ranking territorial por criticidade e evidência">
         <form
           className="filter-grid compact"
           onSubmit={(event) => {
@@ -288,7 +341,7 @@ export function QgPrioritiesPage() {
               <option value="criticality_desc">criticidade (maior score)</option>
               <option value="criticality_asc">criticidade (menor score)</option>
               <option value="trend_desc">tendência (pior primeiro)</option>
-              <option value="territory_asc">territorio (A-Z)</option>
+              <option value="territory_asc">território (A-Z)</option>
             </select>
           </label>
           <label>
@@ -307,6 +360,48 @@ export function QgPrioritiesPage() {
           </div>
         </form>
         <SourceFreshnessBadge metadata={priorities!.metadata} />
+        {electionContextQuery.isPending && !electionContext ? (
+          <StateBlock
+            tone="loading"
+            title="Carregando contexto eleitoral"
+            message="Buscando o cargo principal e a liderança nominal do nível filtrado."
+          />
+        ) : electionContextError ? (
+          <StateBlock
+            tone="error"
+            title="Falha ao carregar contexto eleitoral"
+            message={electionContextError.message}
+            requestId={electionContextError.requestId}
+            onRetry={() => void electionContextQuery.refetch()}
+          />
+        ) : electionContext && electionContext.items.length > 0 ? (
+          <div className="kpi-grid" style={{ marginTop: "0.85rem" }}>
+            <StrategicIndexCard
+              label="Ano eleitoral"
+              value={electionContext.year ? String(electionContext.year) : "-"}
+              status="info"
+              helper="referência nominal"
+            />
+            <StrategicIndexCard
+              label="Cargo principal"
+              value={formatOfficeLabel(electionContext.office)}
+              status="info"
+              helper={electionContext.election_round ? `${electionContext.election_round}o turno` : "turno único"}
+            />
+            <StrategicIndexCard
+              label="Líder do recorte"
+              value={formatCandidateLabel(leadingCandidate?.ballot_name ?? null, leadingCandidate?.candidate_name ?? null)}
+              status="info"
+              helper={formatPercent(leadingCandidate?.share_percent)}
+            />
+            <StrategicIndexCard
+              label="Votos válidos"
+              value={formatInteger(electionContext.total_votes)}
+              status="info"
+              helper={formatLevelLabel(electionContext.level)}
+            />
+          </div>
+        ) : null}
         <div className="kpi-grid" style={{ marginTop: "0.85rem" }}>
           <StrategicIndexCard
             label="Itens"
@@ -315,19 +410,19 @@ export function QgPrioritiesPage() {
             helper="prioridades no recorte aplicado"
           />
           <StrategicIndexCard
-            label="Criticos"
+            label="Críticos"
             value={String(summaryByStatus.critical)}
             status="critical"
-            helper="acao imediata"
+            helper="ação imediata"
           />
           <StrategicIndexCard
-            label="Atencao"
+            label="Atenção"
             value={String(summaryByStatus.attention)}
             status="attention"
             helper="monitoramento"
           />
           <StrategicIndexCard
-            label="Estaveis"
+            label="Estáveis"
             value={String(summaryByStatus.stable)}
             status="stable"
             helper="sob controle"
@@ -335,15 +430,15 @@ export function QgPrioritiesPage() {
         </div>
       </Panel>
 
-      <Panel title="Lista priorizada" subtitle="Itens com justificativa e evidencia para decisao">
+      <Panel title="Lista priorizada" subtitle="Itens com justificativa e evidência para decisão">
         <div className="panel-actions-row">
           <button type="button" className="button-secondary" onClick={exportCsv} disabled={sortedItems.length === 0}>
             Exportar CSV
           </button>
           <label>
-            Itens por pagina
+            Itens por p?gina
             <select
-              aria-label="Itens por pagina"
+              aria-label="Itens por página"
               value={pageSize}
               onChange={(event) => setPageSize(event.target.value)}
             >
@@ -367,7 +462,7 @@ export function QgPrioritiesPage() {
           </div>
         )}
         {sortedItems.length > normalizedPageSize ? (
-          <div className="pagination-row" aria-label="Paginacao de prioridades">
+          <div className="pagination-row" aria-label="Paginação de prioridades">
             <button
               type="button"
               className="button-secondary"
@@ -377,7 +472,7 @@ export function QgPrioritiesPage() {
               Anterior
             </button>
             <span>
-              Pagina {currentPage} de {totalPages}
+              Página {currentPage} de {totalPages}
             </span>
             <button
               type="button"
@@ -385,7 +480,7 @@ export function QgPrioritiesPage() {
               onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
               disabled={currentPage >= totalPages}
             >
-              Proxima
+              Próxima
             </button>
           </div>
         ) : null}

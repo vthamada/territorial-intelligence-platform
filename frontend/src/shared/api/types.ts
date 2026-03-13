@@ -202,6 +202,51 @@ export type OpsReadinessResponse = {
   warnings: string[];
 };
 
+export type AdminSyncMode = "validate" | "sync";
+
+export type AdminSyncStartRequest = {
+  mode: AdminSyncMode;
+  include_wave7?: boolean;
+  allow_backfill_blocked?: boolean;
+};
+
+export type AdminSyncStepStatus = {
+  name: string;
+  status: "pending" | "running" | "success" | "failed";
+  started_at_utc: string | null;
+  finished_at_utc: string | null;
+  exit_code: number | null;
+  summary: string | null;
+};
+
+export type AdminSyncJobStatus = {
+  job_id: string;
+  mode: AdminSyncMode;
+  status: "queued" | "running" | "success" | "failed";
+  started_at_utc: string;
+  finished_at_utc: string | null;
+  is_active: boolean;
+  current_step: string | null;
+  last_message: string | null;
+  recent_logs: string[];
+  steps: AdminSyncStepStatus[];
+};
+
+export type AdminSyncJobEnvelopeResponse = {
+  job: AdminSyncJobStatus | null;
+};
+
+export type AdminSyncHistoryItem = {
+  job_id: string;
+  mode: AdminSyncMode;
+  status: "queued" | "running" | "success" | "failed";
+  started_at_utc: string;
+  finished_at_utc: string | null;
+  is_active: boolean;
+  current_step: string | null;
+  last_message: string | null;
+};
+
 export type TerritoryItem = {
   territory_id: string;
   level: string;
@@ -595,6 +640,8 @@ export type ElectorateCandidateTerritoryItem = {
   zone_codes: string[];
   section_count: number;
   sections: string[];
+  polling_place_section_count: number;
+  polling_place_sections: string[];
 };
 
 export type ElectorateCandidateTerritoriesResponse = {

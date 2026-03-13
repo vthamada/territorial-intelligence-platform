@@ -87,6 +87,19 @@ vi.mock("../shared/api/ops", () => ({
     reference_period: null,
     include_internal: false,
     items: []
+  }),
+  getAdminSyncStatus: vi.fn().mockResolvedValue({ job: null }),
+  getAdminSyncHistory: vi.fn().mockResolvedValue({ page: 1, page_size: 10, total: 0, items: [] }),
+  startAdminSync: vi.fn().mockResolvedValue({
+    job_id: "job-mock-001",
+    mode: "validate",
+    status: "queued",
+    started_at_utc: "2026-03-12T12:00:00Z",
+    finished_at_utc: null,
+    current_step: "queued",
+    is_active: true,
+    recent_logs: [],
+    steps: []
   })
 }));
 
@@ -126,7 +139,7 @@ vi.mock("../shared/api/domain", () => ({
     items: [
       {
         id: "territory_municipality",
-        label: "Municipios",
+        label: "Municípios",
         territory_level: "municipality",
         is_official: true,
         source: "silver.dim_territory",
@@ -141,9 +154,9 @@ vi.mock("../shared/api/domain", () => ({
     version: "v1",
     default_mode: "choropleth",
     severity_palette: [
-      { severity: "critical", label: "Critico", color: "#b91c1c" },
-      { severity: "attention", label: "Atencao", color: "#d97706" },
-      { severity: "stable", label: "Estavel", color: "#0f766e" }
+      { severity: "critical", label: "Crítico", color: "#b91c1c" },
+      { severity: "attention", label: "Atenção", color: "#d97706" },
+      { severity: "stable", label: "Estável", color: "#0f766e" }
     ],
     domain_palette: [],
     legend_ranges: [],
@@ -224,6 +237,43 @@ vi.mock("../shared/api/qg", () => ({
       }
     ]
   }),
+  getElectorateElectionContext: vi.fn().mockResolvedValue({
+    year: 2024,
+    office: "PREFEITO",
+    election_round: 1,
+    election_type: "Municipal",
+    level: "municipality",
+    total_votes: 27941,
+    metadata: {
+      source_name: "silver.fact_election_result",
+      updated_at: null,
+      coverage_note: "territorial_aggregated",
+      unit: "votes",
+      notes: "mock"
+    },
+    available_offices: [
+      {
+        office: "PREFEITO",
+        election_round: 1,
+        election_type: "Municipal",
+        total_votes: 27941,
+        is_primary: true
+      }
+    ],
+    items: [
+      {
+        candidate_id: "cand-1",
+        candidate_number: "15",
+        candidate_name: "Geferson Giordani Burgarelli",
+        ballot_name: "GEFERSON GIORDANI BURGARELLI",
+        party_abbr: "MDB",
+        party_number: "15",
+        party_name: "Movimento Democr?tico Brasileiro",
+        votes: 12334,
+        share_percent: 44.14
+      }
+    ]
+  }),
   getInsightsHighlights: vi.fn().mockResolvedValue({
     period: "2025",
     domain: null,
@@ -276,7 +326,7 @@ vi.mock("../shared/api/qg", () => ({
     territory_id: "3121605",
     domain: null,
     summary_lines: ["Resumo mock"],
-    recommended_actions: ["Acao mock"],
+    recommended_actions: ["Ação mock"],
     evidences: [
       {
         territory_id: "3121605",
@@ -381,6 +431,39 @@ vi.mock("../shared/api/qg", () => ({
       notes: "mock"
     },
     items: []
+  }),
+  getElectorateHistory: vi.fn().mockResolvedValue({
+    level: "municipio",
+    metadata: {
+      source_name: "silver.fact_electorate",
+      updated_at: null,
+      coverage_note: "territorial_aggregated",
+      unit: "voters",
+      notes: "mock"
+    },
+    items: [
+      {
+        year: 2024,
+        total_voters: 38607,
+        turnout: 27941,
+        turnout_rate: 72.37,
+        abstention_rate: 27.63,
+        blank_rate: 5.54,
+        null_rate: 7.62
+      }
+    ]
+  }),
+  getElectoratePollingPlaces: vi.fn().mockResolvedValue({
+    metric: "voters",
+    year: 2024,
+    metadata: {
+      source_name: "silver.fact_electorate + silver.dim_territory",
+      updated_at: null,
+      coverage_note: "polling_place_ranked",
+      unit: "voters",
+      notes: "mock"
+    },
+    items: []
   })
 }));
 
@@ -410,63 +493,63 @@ describe("Router smoke", () => {
       </QueryClientProvider>
     );
 
-    await screen.findByText("Situacao geral");
+    await screen.findByText("Contexto eleitoral de referência");
 
     const user = userEvent.setup();
-    const mainNav = screen.getByRole("navigation", { name: "Navegacao principal" });
+    const mainNav = screen.getByRole("navigation", { name: "Navegação principal" });
     await user.click(within(mainNav).getByRole("link", { name: "Prioridades" }));
-    await screen.findByText("Prioridades estrategicas");
+    await screen.findByText("Prioridades estratégicas");
 
     await user.click(screen.getByRole("link", { name: "Mapa" }));
-    await screen.findByLabelText("Buscar territorio");
+    await screen.findByLabelText("Buscar território");
     await user.click(screen.getAllByRole("link", { name: "Abrir perfil" })[0]);
     await screen.findByText("Belo Horizonte");
 
     await user.click(screen.getByRole("link", { name: "Insights" }));
-    await screen.findByText("Insights estrategicos");
+    await screen.findByText("Insights estratégicos");
 
-    await user.click(screen.getByRole("link", { name: "Cenarios" }));
-    await screen.findByText("Cenarios estrategicos");
+    await user.click(screen.getByRole("link", { name: "Cenários" }));
+    await screen.findByText("Cenários estratégicos");
 
     await user.click(screen.getByRole("link", { name: "Briefs" }));
     await screen.findByText("Briefs executivos");
 
-    await user.click(screen.getByRole("link", { name: "Territorio 360" }));
-    await screen.findByText("Perfil 360 do territorio");
+    await user.click(screen.getByRole("link", { name: "Território 360" }));
+    await screen.findByText("Perfil 360 do território");
 
     await user.click(screen.getByRole("link", { name: "Eleitorado" }));
-    await screen.findByText("Eleitorado e participacao");
+    await screen.findByText("Eleitorado e participação");
 
     await user.click(screen.getByRole("link", { name: "Admin" }));
-    await screen.findByText("Admin tecnico");
+    await screen.findByText("Admin técnico");
 
-    await user.click(screen.getByRole("link", { name: "Abrir Saude Ops" }));
+    await user.click(screen.getByRole("link", { name: "Abrir Saúde Ops" }));
     await screen.findByText("Status geral");
 
     await user.click(screen.getByRole("link", { name: "Admin" }));
-    await screen.findByText("Admin tecnico");
-    await user.click(screen.getByRole("link", { name: "Abrir Execucoes" }));
-    await screen.findByText("Execucoes de pipeline");
+    await screen.findByText("Admin técnico");
+    await user.click(screen.getByRole("link", { name: "Abrir Execuções" }));
+    await screen.findByText("Execuções de pipeline");
 
     await user.click(screen.getByRole("link", { name: "Admin" }));
-    await screen.findByText("Admin tecnico");
+    await screen.findByText("Admin técnico");
     await user.click(screen.getByRole("link", { name: "Abrir Checks" }));
     await screen.findByText("Checks de pipeline");
 
     await user.click(screen.getByRole("link", { name: "Admin" }));
-    await screen.findByText("Admin tecnico");
+    await screen.findByText("Admin técnico");
     await user.click(screen.getByRole("link", { name: "Abrir Conectores" }));
     await screen.findByText("Registry de conectores");
 
     await user.click(screen.getByRole("link", { name: "Admin" }));
-    await screen.findByText("Admin tecnico");
+    await screen.findByText("Admin técnico");
     await user.click(screen.getByRole("link", { name: "Abrir Eventos Frontend" }));
     await screen.findByText("Eventos frontend");
 
     await user.click(screen.getByRole("link", { name: "Admin" }));
-    await screen.findByText("Admin tecnico");
-    await user.click(screen.getByRole("link", { name: "Abrir Territorios e Indicadores" }));
-    await screen.findByText("Territorios");
+    await screen.findByText("Admin técnico");
+    await user.click(screen.getByRole("link", { name: "Abrir Territórios e Indicadores" }));
+    await screen.findByText("Territórios");
     await screen.findByText("Indicadores");
   });
 });

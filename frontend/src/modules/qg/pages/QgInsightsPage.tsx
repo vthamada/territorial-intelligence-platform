@@ -95,7 +95,7 @@ export function QgInsightsPage() {
   }
 
   if (insightsQuery.isPending) {
-    return <StateBlock tone="loading" title="Carregando insights" message="Consultando destaques por severidade e dominio." />;
+    return <StateBlock tone="loading" title="Carregando insights" message="Consultando destaques por severidade e domínio." />;
   }
 
   if (insightsQuery.error) {
@@ -114,7 +114,7 @@ export function QgInsightsPage() {
 
   return (
     <main className="page-grid">
-      <Panel title="Insights estrategicos" subtitle="Destaques priorizados para leitura executiva">
+      <Panel title="Insights estratégicos" subtitle="Destaques priorizados para leitura executiva">
         <form
           className="filter-grid compact"
           onSubmit={(event) => {
@@ -159,9 +159,9 @@ export function QgInsightsPage() {
       <Panel title="Lista de insights" subtitle="Narrativa curta com evidencias por item">
         <div className="panel-actions-row">
           <label>
-            Itens por pagina
+            Itens por p?gina
             <select
-              aria-label="Itens por pagina"
+              aria-label="Itens por p?gina"
               value={pageSize}
               onChange={(event) => setPageSize(event.target.value)}
             >
@@ -176,19 +176,19 @@ export function QgInsightsPage() {
         ) : (
           <>
             <CollapsiblePanel
-              title={`Criticos (${groupedVisibleItems.critical.length})`}
+              title={`Críticos (${groupedVisibleItems.critical.length})`}
               subtitle="Leituras de resposta imediata"
               defaultOpen={true}
             >
               {groupedVisibleItems.critical.length === 0 ? (
-                <StateBlock tone="empty" title="Sem itens criticos" message="Nenhum insight critico na pagina atual." />
+                <StateBlock tone="empty" title="Sem itens críticos" message="Nenhum insight crítico na página atual." />
               ) : (
-                <ul className="trend-list" aria-label="Insights criticos">
+                <ul className="trend-list" aria-label="Insights críticos">
                   {groupedVisibleItems.critical.map((item) => (
                     <li key={`${item.territory_id}-${item.evidence.indicator_code}-${item.severity}`}>
                       <div>
                         <strong>{item.title}</strong>
-                        <p>{item.explanation[0] ?? "Sem explicacao."}</p>
+                        <p>{item.explanation[0] ?? "Sem explicação."}</p>
                       </div>
                       <small>
                         {getQgDomainLabel(item.domain)} | {formatStatusLabel(item.severity)} |{" "}
@@ -213,19 +213,19 @@ export function QgInsightsPage() {
               )}
             </CollapsiblePanel>
             <CollapsiblePanel
-              title={`Atencao (${groupedVisibleItems.attention.length})`}
-              subtitle="Itens para monitoramento proximo"
+              title={`Atenção (${groupedVisibleItems.attention.length})`}
+              subtitle="Itens para monitoramento próximo"
               defaultOpen={false}
             >
               {groupedVisibleItems.attention.length === 0 ? (
-                <StateBlock tone="empty" title="Sem itens em atencao" message="Nenhum insight em atencao na pagina atual." />
+                <StateBlock tone="empty" title="Sem itens em atenção" message="Nenhum insight em atenção na página atual." />
               ) : (
-                <ul className="trend-list" aria-label="Insights atencao">
+                <ul className="trend-list" aria-label="Insights atenção">
                   {groupedVisibleItems.attention.map((item) => (
                     <li key={`${item.territory_id}-${item.evidence.indicator_code}-${item.severity}`}>
                       <div>
                         <strong>{item.title}</strong>
-                        <p>{item.explanation[0] ?? "Sem explicacao."}</p>
+                        <p>{item.explanation[0] ?? "Sem explicação."}</p>
                       </div>
                       <small>
                         {getQgDomainLabel(item.domain)} | {formatStatusLabel(item.severity)} |{" "}
@@ -255,14 +255,14 @@ export function QgInsightsPage() {
               defaultOpen={false}
             >
               {groupedVisibleItems.info.length === 0 ? (
-                <StateBlock tone="empty" title="Sem itens informativos" message="Nenhum insight informativo na pagina atual." />
+                <StateBlock tone="empty" title="Sem itens informativos" message="Nenhum insight informativo na página atual." />
               ) : (
                 <ul className="trend-list" aria-label="Insights informativos">
                   {groupedVisibleItems.info.map((item) => (
                     <li key={`${item.territory_id}-${item.evidence.indicator_code}-${item.severity}`}>
                       <div>
                         <strong>{item.title}</strong>
-                        <p>{item.explanation[0] ?? "Sem explicacao."}</p>
+                        <p>{item.explanation[0] ?? "Sem explicação."}</p>
                       </div>
                       <small>
                         {getQgDomainLabel(item.domain)} | {formatStatusLabel(item.severity)} |{" "}
@@ -289,7 +289,7 @@ export function QgInsightsPage() {
           </>
         )}
         {insightItems.length > normalizedPageSize ? (
-          <div className="pagination-row" aria-label="Paginacao de insights">
+          <div className="pagination-row" aria-label="Paginação de insights">
             <button
               type="button"
               className="button-secondary"
@@ -299,7 +299,7 @@ export function QgInsightsPage() {
               Anterior
             </button>
             <span>
-              Pagina {currentPage} de {totalPages}
+              Página {currentPage} de {totalPages}
             </span>
             <button
               type="button"
@@ -307,7 +307,7 @@ export function QgInsightsPage() {
               onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
               disabled={currentPage >= totalPages}
             >
-              Proxima
+              Próxima
             </button>
           </div>
         ) : null}

@@ -496,6 +496,49 @@ class _ElectorateSummarySession:
         raise AssertionError(f"Unexpected SQL in electorate summary test: {sql}")
 
 
+class _ElectorateSummaryHistoryFallbackSession:
+    def execute(self, *_args: Any, **_kwargs: Any) -> _ScalarResult | _RowsResult:
+        params = _kwargs.get("params")
+        if params is None and len(_args) >= 2 and isinstance(_args[1], dict):
+            params = _args[1]
+        sql = str(_args[0]).lower() if _args else ""
+
+        if "from silver.fact_electorate fe" in sql and "count(*)" in sql and "fe.reference_year = :year" in sql:
+            return _ScalarResult(1)
+        if "select coalesce(sum(fe.voters), 0)::bigint as total_voters" in sql:
+            return _ScalarResult(38097)
+        if "group by label" in sql and "fe.sex" in sql:
+            return _RowsResult([{"label": "MASCULINO", "voters": 17906}, {"label": "FEMININO", "voters": 20152}])
+        if "group by label" in sql and "fe.age_range" in sql:
+            return _RowsResult([{"label": "25-34", "voters": 8000}, {"label": "35-44", "voters": 7000}])
+        if "group by label" in sql and "fe.education" in sql:
+            return _RowsResult([{"label": "ENSINO MEDIO", "voters": 20000}, {"label": "SUPERIOR", "voters": 9000}])
+        if "group by fr.office, fr.election_round" in sql and "order by turnout desc nulls last" in sql:
+            level = str((params or {}).get("level"))
+            year = int((params or {}).get("year"))
+            if level == "municipality" and year == 2022:
+                return _RowsResult([])
+            if level == "electoral_zone" and year == 2022:
+                return _RowsResult([{"office": "PRESIDENTE", "election_round": 1, "turnout": 28448.0}])
+            return _RowsResult([])
+        if "group by fr.metric" in sql:
+            level = str((params or {}).get("level"))
+            year = int((params or {}).get("year"))
+            if level == "electoral_zone" and year == 2022:
+                return _RowsResult(
+                    [
+                        {"metric": "turnout", "total_value": 28448.0},
+                        {"metric": "abstention", "total_value": 9430.0},
+                        {"metric": "votes_total", "total_value": 27761.0},
+                        {"metric": "votes_blank", "total_value": 1815.0},
+                        {"metric": "votes_null", "total_value": 1054.0},
+                    ]
+                )
+            return _RowsResult([])
+
+        raise AssertionError(f"Unexpected SQL in electorate summary fallback test: {sql}")
+
+
 class _ElectorateMapSession:
     def execute(self, *_args: Any, **_kwargs: Any) -> _ScalarResult | _RowsResult:
         sql = str(_args[0]).lower() if _args else ""
@@ -592,6 +635,9 @@ class _ElectorateOutlierFallbackSession:
 
 class _ElectorateHistorySession:
     def execute(self, *_args: Any, **_kwargs: Any) -> _RowsResult:
+        params = _kwargs.get("params")
+        if params is None and len(_args) >= 2 and isinstance(_args[1], dict):
+            params = _args[1]
         sql = str(_args[0]).lower() if _args else ""
 
         if "sum(fe.voters)::bigint as total_voters" in sql and "group by fe.reference_year" in sql:
@@ -601,21 +647,38 @@ class _ElectorateHistorySession:
                     {"year": 2022, "total_voters": 11900},
                 ]
             )
-        if "row_number()" in sql and "group by fr.election_year, fr.metric" in sql:
-            return _RowsResult(
-                [
-                    {"year": 2024, "metric": "turnout", "total_value": 8200.0},
-                    {"year": 2024, "metric": "abstention", "total_value": 1800.0},
-                    {"year": 2024, "metric": "votes_total", "total_value": 8000.0},
-                    {"year": 2024, "metric": "votes_blank", "total_value": 200.0},
-                    {"year": 2024, "metric": "votes_null", "total_value": 300.0},
-                    {"year": 2022, "metric": "turnout", "total_value": 7600.0},
-                    {"year": 2022, "metric": "abstention", "total_value": 1700.0},
-                    {"year": 2022, "metric": "votes_total", "total_value": 7400.0},
-                    {"year": 2022, "metric": "votes_blank", "total_value": 150.0},
-                    {"year": 2022, "metric": "votes_null", "total_value": 250.0},
-                ]
-            )
+        if "group by fr.office, fr.election_round" in sql and "order by turnout desc nulls last" in sql:
+            level = str((params or {}).get("level"))
+            year = int((params or {}).get("year"))
+            if year == 2024 and level == "municipality":
+                return _RowsResult([{"office": "PREFEITO", "election_round": 1, "turnout": 8200.0}])
+            if year == 2022 and level == "electoral_zone":
+                return _RowsResult([{"office": "PRESIDENTE", "election_round": 1, "turnout": 7600.0}])
+            return _RowsResult([])
+        if "group by fr.metric" in sql:
+            level = str((params or {}).get("level"))
+            year = int((params or {}).get("year"))
+            if year == 2024 and level == "municipality":
+                return _RowsResult(
+                    [
+                        {"metric": "turnout", "total_value": 8200.0},
+                        {"metric": "abstention", "total_value": 1800.0},
+                        {"metric": "votes_total", "total_value": 8000.0},
+                        {"metric": "votes_blank", "total_value": 200.0},
+                        {"metric": "votes_null", "total_value": 300.0},
+                    ]
+                )
+            if year == 2022 and level == "electoral_zone":
+                return _RowsResult(
+                    [
+                        {"metric": "turnout", "total_value": 7600.0},
+                        {"metric": "abstention", "total_value": 1700.0},
+                        {"metric": "votes_total", "total_value": 7400.0},
+                        {"metric": "votes_blank", "total_value": 150.0},
+                        {"metric": "votes_null", "total_value": 250.0},
+                    ]
+                )
+            return _RowsResult([])
 
         raise AssertionError(f"Unexpected SQL in electorate history test: {sql}")
 
@@ -868,7 +931,11 @@ class _ElectorateCandidateTerritoriesSession:
             return _RowsResult(
                 [{"office": "PREFEITO", "election_round": 1, "election_type": "municipal", "total_votes": 8200.0}]
             )
-        if "polling_place_registry as" in sql and "md5(ppr.pp_key)::text as territory_id" in sql:
+        if (
+            "polling_place_registry as" in sql
+            and "polling_place_totals as" in sql
+            and "md5(ppr.pp_key)::text as territory_id" in sql
+        ):
             return _RowsResult(
                 [
                     {
@@ -890,6 +957,8 @@ class _ElectorateCandidateTerritoriesSession:
                         "votes": 1200.0,
                         "district_name": "Centro",
                         "share_percent": 27.906977,
+                        "polling_place_section_count": 4,
+                        "polling_place_sections": ["41", "177", "212", "221"],
                     }
                 ]
             )
@@ -1526,6 +1595,27 @@ def test_electorate_summary_uses_outlier_storage_year_when_requested_year_is_val
     app.dependency_overrides.clear()
 
 
+def test_electorate_summary_uses_election_history_fallback_for_municipal_year() -> None:
+    def _db() -> Generator[_ElectorateSummaryHistoryFallbackSession, None, None]:
+        yield _ElectorateSummaryHistoryFallbackSession()
+
+    app.dependency_overrides[get_db] = _db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/v1/electorate/summary?level=municipio&year=2022")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["year"] == 2022
+    assert payload["total_voters"] == 38097
+    assert payload["turnout"] == 28448.0
+    assert payload["turnout_rate"] == 75.104282
+    assert payload["abstention_rate"] == 24.895718
+    assert payload["blank_rate"] == 6.537949
+    assert payload["null_rate"] == 3.796693
+    app.dependency_overrides.clear()
+
+
 def test_electorate_history_returns_historical_series() -> None:
     def _db() -> Generator[_ElectorateHistorySession, None, None]:
         yield _ElectorateHistorySession()
@@ -1698,6 +1788,8 @@ def test_electorate_candidate_territories_returns_polling_place_ranking() -> Non
     assert payload["items"][0]["territory_id"] == "pp-1"
     assert payload["items"][0]["votes"] == 1200
     assert payload["items"][0]["sections"] == ["41", "177", "212"]
+    assert payload["items"][0]["polling_place_section_count"] == 4
+    assert payload["items"][0]["polling_place_sections"] == ["41", "177", "212", "221"]
     app.dependency_overrides.clear()
 
 

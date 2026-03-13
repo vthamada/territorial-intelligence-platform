@@ -2,7 +2,13 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { formatApiError } from "../../../shared/api/http";
-import { getInsightsHighlights, getKpisOverview, getPriorityList, getPrioritySummary } from "../../../shared/api/qg";
+import {
+  getElectorateElectionContext,
+  getInsightsHighlights,
+  getKpisOverview,
+  getPriorityList,
+  getPrioritySummary,
+} from "../../../shared/api/qg";
 import { useFilterStore } from "../../../shared/stores/filterStore";
 import { CollapsiblePanel } from "../../../shared/ui/CollapsiblePanel";
 import { Panel } from "../../../shared/ui/Panel";
@@ -43,12 +49,12 @@ function resolveStrategicTrend(byStatus: Record<string, number>): string {
   const critical = byStatus.critical ?? 0;
   const attention = byStatus.attention ?? 0;
   if (critical > 0) {
-    return "Atencao persistente";
+    return "Atenção persistente";
   }
   if (attention > 0) {
     return "Monitoramento ativo";
   }
-  return "Cenario estavel";
+  return "Cenário estável";
 }
 
 function normalizeLevel(value: string) {
@@ -56,6 +62,52 @@ function normalizeLevel(value: string) {
     return value;
   }
   return "municipality";
+}
+
+function formatOfficeLabel(value: string | null) {
+  if (!value) {
+    return "-";
+  }
+  return value
+    .toLocaleLowerCase("pt-BR")
+    .split(" ")
+    .map((part) => part.charAt(0).toLocaleUpperCase("pt-BR") + part.slice(1))
+    .join(" ");
+}
+
+function formatCandidateLabel(ballotName: string | null, candidateName: string | null) {
+  return ballotName || candidateName || "-";
+}
+
+function formatInteger(value: number | null | undefined) {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(value);
+}
+
+function formatPercent(value: number | null | undefined) {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+  return `${value.toLocaleString("pt-BR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })}%`;
+}
+
+async function getExecutiveElectionContext(level: string) {
+  try {
+    const payload = await getElectorateElectionContext({ level, limit: 5 });
+    if (payload.items.length > 0 || level === "municipality") {
+      return payload;
+    }
+  } catch (error) {
+    if (level === "municipality") {
+      throw error;
+    }
+  }
+  return getElectorateElectionContext({ level: "municipality", limit: 5 });
 }
 
 export function QgOverviewPage() {
@@ -88,6 +140,10 @@ export function QgOverviewPage() {
   const highlightsQuery = useQuery({
     queryKey: ["qg", "overview", "insights", baseQuery],
     queryFn: () => getInsightsHighlights({ ...baseQuery, limit: 5 }),
+  });
+  const electionContextQuery = useQuery({
+    queryKey: ["qg", "overview", "election-context", appliedLevel],
+    queryFn: () => getExecutiveElectionContext(appliedLevel),
   });
 
   const isLoading = kpiQuery.isPending || summaryQuery.isPending;
@@ -143,14 +199,17 @@ export function QgOverviewPage() {
 
   const prioritiesPreviewError = prioritiesPreviewQuery.error ? formatApiError(prioritiesPreviewQuery.error) : null;
   const highlightsError = highlightsQuery.error ? formatApiError(highlightsQuery.error) : null;
+  const electionContextError = electionContextQuery.error ? formatApiError(electionContextQuery.error) : null;
 
   const strategicScore = resolveStrategicScore(summary.by_status, summary.total_items);
   const strategicStatus = resolveStrategicStatus(strategicScore);
   const strategicTrend = resolveStrategicTrend(summary.by_status);
+  const electionContext = electionContextQuery.data ?? null;
+  const leadingCandidate = electionContext?.items[0] ?? null;
 
   return (
     <main className="page-grid">
-      <Panel title="Painel de inteligencia territorial" subtitle="Leitura executiva pronta para decisao">
+      <Panel title="Painel de inteligência territorial" subtitle="Leitura executiva pronta para decisão">
         <form
           className="filter-grid compact"
           onSubmit={(event) => {
@@ -159,11 +218,11 @@ export function QgOverviewPage() {
           }}
         >
           <label>
-            Periodo
+            Período
             <input value={period} onChange={(event) => setPeriod(event.target.value)} placeholder="2025" />
           </label>
           <label>
-            Nivel territorial
+            Nível territorial
             <select value={level} onChange={(event) => setLevel(event.target.value)}>
               <option value="municipality">{formatLevelLabel("municipality")}</option>
               <option value="district">{formatLevelLabel("district")}</option>
@@ -188,19 +247,19 @@ export function QgOverviewPage() {
             helper={strategicTrend}
           />
           <StrategicIndexCard
-            label="Criticos"
+            label="Críticos"
             value={String(summary.by_status.critical ?? 0)}
             status="critical"
             helper="resposta imediata"
           />
           <StrategicIndexCard
-            label="Atencao"
+            label="Atenção"
             value={String(summary.by_status.attention ?? 0)}
             status="attention"
             helper="monitoramento ativo"
           />
           <StrategicIndexCard
-            label="Estaveis"
+            label="Estáveis"
             value={String(summary.by_status.stable ?? 0)}
             status="stable"
             helper="sob controle"
@@ -222,7 +281,97 @@ export function QgOverviewPage() {
         <SourceFreshnessBadge metadata={summary.metadata} />
       </Panel>
 
-      <Panel title="Top prioridades" subtitle="Itens com justificativa e acao imediata">
+      <Panel
+        title="Contexto eleitoral de referência"
+        subtitle="Cargo principal e liderança nominal do último recorte oficial disponível neste nível."
+      >
+        {electionContextQuery.isPending && !electionContext ? (
+          <StateBlock
+            tone="loading"
+            title="Carregando contexto eleitoral"
+            message="Consultando cargo principal e liderança nominal do recorte."
+          />
+        ) : electionContextError ? (
+          <StateBlock
+            tone="error"
+            title="Falha ao carregar contexto eleitoral"
+            message={electionContextError.message}
+            requestId={electionContextError.requestId}
+            onRetry={() => void electionContextQuery.refetch()}
+          />
+        ) : !electionContext || electionContext.items.length === 0 ? (
+          <StateBlock
+            tone="empty"
+            title="Sem contexto eleitoral nominal"
+            message="Ainda não há dados nominais de candidatos para o nível territorial exibido."
+          />
+        ) : (
+          <>
+            <div className="kpi-grid">
+              <StrategicIndexCard
+                label="Ano eleitoral"
+                value={electionContext.year ? String(electionContext.year) : "-"}
+                status="info"
+                helper="último recorte oficial"
+              />
+              <StrategicIndexCard
+                label="Cargo principal"
+                value={formatOfficeLabel(electionContext.office)}
+                status="info"
+                helper={electionContext.election_round ? `${electionContext.election_round}o turno` : "turno unico"}
+              />
+              <StrategicIndexCard
+                label="Líder do recorte"
+                value={formatCandidateLabel(leadingCandidate?.ballot_name ?? null, leadingCandidate?.candidate_name ?? null)}
+                status="info"
+                helper={formatPercent(leadingCandidate?.share_percent)}
+              />
+              <StrategicIndexCard
+                label="Votos válidos"
+                value={formatInteger(electionContext.total_votes)}
+                status="info"
+                helper={formatLevelLabel(electionContext.level)}
+              />
+            </div>
+
+            <div className="table-wrap" style={{ marginTop: "0.85rem" }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Candidato</th>
+                    <th>Partido</th>
+                    <th>Votos</th>
+                    <th>% do recorte</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {electionContext.items.slice(0, 3).map((item) => (
+                    <tr key={item.candidate_id}>
+                      <td>{formatCandidateLabel(item.ballot_name, item.candidate_name)}</td>
+                      <td>{item.party_abbr ?? item.party_name ?? "-"}</td>
+                      <td>{formatInteger(item.votes)}</td>
+                      <td>{formatPercent(item.share_percent)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="panel-actions-row">
+              <Link className="inline-link" to="/eleitorado">
+                Abrir eleitorado
+              </Link>
+              <Link className="inline-link" to="/mapa?level=secao_eleitoral&layer_id=territory_polling_place">
+                Abrir mapa eleitoral
+              </Link>
+            </div>
+
+            <SourceFreshnessBadge metadata={electionContext.metadata} />
+          </>
+        )}
+      </Panel>
+
+      <Panel title="Top prioridades" subtitle="Itens com justificativa e ação imediata">
         {prioritiesPreviewQuery.isPending && !prioritiesPreviewQuery.data ? (
           <StateBlock tone="loading" title="Carregando top prioridades" message="Buscando os principais itens do recorte." />
         ) : prioritiesPreviewError ? (
@@ -244,7 +393,7 @@ export function QgOverviewPage() {
         )}
       </Panel>
 
-      <Panel title="Destaques" subtitle="Narrativa curta orientada a decisao">
+      <Panel title="Destaques" subtitle="Narrativa curta orientada à decisão">
         {highlightsQuery.isPending && !highlightsQuery.data ? (
           <StateBlock tone="loading" title="Carregando destaques" message="Consolidando os principais insights do recorte." />
         ) : highlightsError ? (
@@ -264,7 +413,7 @@ export function QgOverviewPage() {
                 <li key={`${item.territory_id}-${item.evidence.indicator_code}-${item.severity}`}>
                   <div>
                     <strong>{item.title}</strong>
-                    <p>{item.explanation[0] ?? "Sem explicacao."}</p>
+                    <p>{item.explanation[0] ?? "Sem explicação."}</p>
                   </div>
                   <small>
                     {getQgDomainLabel(item.domain)} | {formatStatusLabel(item.severity)} |{" "}
@@ -284,7 +433,7 @@ export function QgOverviewPage() {
 
       <CollapsiblePanel
         title="KPIs executivos"
-        subtitle="Indicadores agregados para consulta rapida"
+        subtitle="Indicadores agregados para consulta rápida"
         defaultOpen={false}
         badgeCount={kpis.items.length}
       >
@@ -295,10 +444,10 @@ export function QgOverviewPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Dominio</th>
+                  <th>Domínio</th>
                   <th>Indicador</th>
                   <th>Valor</th>
-                  <th>Nivel</th>
+                  <th>Nível</th>
                 </tr>
               </thead>
               <tbody>
@@ -317,16 +466,16 @@ export function QgOverviewPage() {
       </CollapsiblePanel>
 
       <CollapsiblePanel
-        title="Dominios Onda B/C"
-        subtitle="Atalhos para exploracao no mapa e prioridades"
+        title="Domínios Onda B/C"
+        subtitle="Atalhos para exploração no mapa e prioridades"
         defaultOpen={false}
         badgeCount={QG_ONDA_BC_SPOTLIGHT.length}
       >
         <div className="table-wrap">
-          <table aria-label="Dominios Onda B/C">
+          <table aria-label="Domínios Onda B/C">
             <thead>
               <tr>
-                <th>Dominio</th>
+                <th>Domínio</th>
                 <th>Fonte</th>
                 <th>Itens no recorte</th>
                 <th>Acoes</th>

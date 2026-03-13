@@ -33,12 +33,13 @@ def _error_response(*, status_code: int, payload: dict[str, Any], request: Reque
 
 
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-    details = exc.detail if isinstance(exc.detail, dict) else {"detail": exc.detail}
+    is_dict_detail = isinstance(exc.detail, dict)
+    details = exc.detail if is_dict_detail else {"detail": exc.detail}
     return _error_response(
         status_code=exc.status_code,
         payload=_build_error_payload(
             code="http_error",
-            message="Request failed.",
+            message=str(exc.detail) if not is_dict_detail and exc.detail else "Request failed.",
             request=request,
             details=details,
         ),

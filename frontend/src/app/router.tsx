@@ -67,7 +67,7 @@ const ElectorateExecutivePage = lazy(() =>
 function withPageFallback(element: ReactNode, routeLabel: string) {
   return (
     <RouteRuntimeErrorBoundary routeLabel={routeLabel}>
-      <Suspense fallback={<div className="state-block state-loading">Carregando pagina...</div>}>
+      <Suspense fallback={<div className="state-block state-loading">Carregando página...</div>}>
         {element}
       </Suspense>
     </RouteRuntimeErrorBoundary>
@@ -88,11 +88,11 @@ export const appRoutes: RouteObject[] = [
       { path: "prioridades", element: withPageFallback(<QgPrioritiesPage />, "Prioridades") },
       { path: "mapa", element: withPageFallback(<QgMapPage />, "Mapa") },
       { path: "insights", element: withPageFallback(<QgInsightsPage />, "Insights") },
-      { path: "cenarios", element: withPageFallback(<QgScenariosPage />, "Cenarios") },
+      { path: "cenarios", element: withPageFallback(<QgScenariosPage />, "Cenários") },
       { path: "briefs", element: withPageFallback(<QgBriefsPage />, "Briefs") },
       { path: "admin", element: withPageFallback(<AdminHubPage />, "Admin") },
       { path: "ops/health", element: withPageFallback(<OpsHealthPage />, "Ops Saúde") },
-      { path: "ops/runs", element: withPageFallback(<OpsRunsPage />, "Ops Execucoes") },
+      { path: "ops/runs", element: withPageFallback(<OpsRunsPage />, "Ops Execuções") },
       { path: "ops/checks", element: withPageFallback(<OpsChecksPage />, "Ops Checks") },
       { path: "ops/connectors", element: withPageFallback(<OpsConnectorsPage />, "Ops Conectores") },
       { path: "ops/frontend-events", element: withPageFallback(<OpsFrontendEventsPage />, "Ops Eventos Frontend") },

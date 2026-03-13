@@ -1,4 +1,4 @@
-import type { ApiErrorPayload } from "./types";
+﻿import type { ApiErrorPayload } from "./types";
 import { emitTelemetry } from "../observability/telemetry";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -71,7 +71,7 @@ export function formatApiError(error: unknown): { message: string; requestId?: s
   }
   if (error instanceof Error) {
     if (error.message === "Failed to fetch") {
-      return { message: "Não foi possível conectar com a API. Verifique se o backend esta ativo." };
+      return { message: "Não foi possível conectar com a API. Verifique se o backend está ativo." };
     }
     return { message: error.message };
   }
@@ -206,3 +206,4 @@ export async function requestJson<T>(path: string, options: RequestOptions = {})
     }
   }
 }
+

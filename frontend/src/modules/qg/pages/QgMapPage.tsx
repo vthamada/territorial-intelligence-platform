@@ -24,7 +24,7 @@ const BASEMAP_STREETS_URL =
   "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
 const VIZ_MODES: { value: VizMode; label: string }[] = [
-  { value: "choropleth", label: "Coropletico" },
+  { value: "choropleth", label: "Coroplético" },
   { value: "points", label: "Pontos" },
 ];
 
@@ -57,7 +57,7 @@ const LazyVectorMap = lazy(async () => {
 const FALLBACK_URBAN_LAYER_ITEMS: MapLayerItem[] = [
   {
     id: "urban_roads",
-    label: "Viario urbano",
+    label: "Viário urbano",
     territory_level: "urban",
     is_official: false,
     source: "map.urban_road_segment",
@@ -1728,7 +1728,7 @@ export function QgMapPage() {
           value={territorySearch}
           onChange={(event) => setTerritorySearch(event.target.value)}
           placeholder="Buscar território ou endereço..."
-          aria-label="Buscar territorio"
+          aria-label="Buscar território"
         />
         <button type="button" className="button-secondary" onClick={focusTerritoryFromSearch} disabled={searchableTerritoryItems.length === 0}>
           Buscar
@@ -1833,7 +1833,7 @@ export function QgMapPage() {
             />
           )}
         </div>
-        <aside className="map-layers-sidebar" aria-label="Painel de camadas estrategicas">
+        <aside className="map-layers-sidebar" aria-label="Painel de camadas estratégicas">
           <h3>Camadas</h3>
           {isPollingPlacesOverlayEnabled ? (
             <div className="map-layers-sidebar-group">
@@ -2079,7 +2079,7 @@ export function QgMapPage() {
                   <p>{drawerMetricTitle}</p>
                   <strong>{drawerScoreDisplay}</strong>
                 </div>
-                <div className="territory-detail-stats" role="list" aria-label="Metricas rápidas do territorio">
+                <div className="territory-detail-stats" role="list" aria-label="Métricas rápidas do território">
                   <article role="listitem">
                     <span>{isElectoralOverlayMode ? "Ano eleitoral" : "Período"}</span>
                     <strong>{isElectoralOverlayMode ? (selectedPollingPlaceItem?.year ?? effectivePollingPlaceRankingData?.year ?? effectiveElectorateSectionData?.year ?? appliedStrategicYear) : appliedPeriod}</strong>
@@ -2123,7 +2123,7 @@ export function QgMapPage() {
               ) : null}
 
               {selectedFeatureSectionCount > 0 ? (
-                <div className="territory-detail-section-list" aria-label="Seções do local de votacao">
+                <div className="territory-detail-section-list" aria-label="Seções do local de votação">
                   <p className="territory-detail-section-title">Seções no local</p>
                   <p>{selectedFeatureSectionCount} seções</p>
                   {selectedFeatureSections.length > 0 ? <p>{selectedFeatureSections.join(", ")}</p> : null}
@@ -2131,12 +2131,12 @@ export function QgMapPage() {
               ) : null}
 
               {selectedTerritoryActions ? (
-                <nav className="territory-detail-actions" aria-label="Acoes territoriais">
+                <nav className="territory-detail-actions" aria-label="Ações territoriais">
                   <Link className="button-secondary" to={selectedTerritoryActions.profile}>
                     Perfil 360
                   </Link>
                   <Link className="button-secondary" to={selectedTerritoryActions.scenarios}>
-                    Cenarios
+                    Cenários
                   </Link>
                   <Link className="button-secondary" to={selectedTerritoryActions.briefs}>
                     Adicionar ao Brief
@@ -2145,7 +2145,7 @@ export function QgMapPage() {
               ) : null}
 
               {selectedUrbanActions ? (
-                <nav className="territory-detail-actions" aria-label="Acoes urbanas">
+                <nav className="territory-detail-actions" aria-label="Ações urbanas">
                   <a className="button-secondary" href={selectedUrbanActions.scopedCollection} target="_blank" rel="noreferrer">
                     {selectedUrbanActions.scopedLabel}
                   </a>

@@ -26,6 +26,7 @@ $incrementalFullReport = Join-Path $OutputDir "incremental_full_sources.current_
 $scorecardReport = Join-Path $OutputDir "data_coverage_scorecard.current_env.json"
 $pollingAuditReport = Join-Path $OutputDir "polling_places_geolocation_audit.current_env.json"
 $candidateZoneCleanupReport = Join-Path $OutputDir "candidate_vote_zone_cleanup.current_env.json"
+$candidatePartyBackfillReport = Join-Path $OutputDir "candidate_party_backfill.current_env.json"
 
 function Invoke-Step {
     param(
@@ -36,14 +37,15 @@ function Invoke-Step {
 
     Write-Host ""
     Write-Host "==> $StepName"
-    & $pythonExe @ScriptArgs
-    $exitCode = $LASTEXITCODE
+    # Stream child stdout to the console without leaking it into the function return value.
+    & $pythonExe @ScriptArgs | Out-Host
+    $exitCode = if ($null -ne $LASTEXITCODE) { [int]$LASTEXITCODE } else { 0 }
 
     if ($exitCode -ne 0 -and -not $AllowNonZero.IsPresent) {
         throw "$StepName falhou com exit code $exitCode"
     }
 
-    return $exitCode
+    return [int]$exitCode
 }
 
 function Test-OnlyBlockedStatuses {
@@ -130,6 +132,12 @@ try {
         "--output-json", $candidateZoneCleanupReport
     )
 
+    Invoke-Step -StepName "backfill_candidate_party_identity" -ScriptArgs @(
+        "scripts/backfill_candidate_party_identity.py",
+        "--apply",
+        "--output-json", $candidatePartyBackfillReport
+    )
+
     if (-not $SkipFullIncremental.IsPresent) {
         $incrementalArgs = @(
             "scripts/run_incremental_backfill.py",
@@ -181,6 +189,7 @@ try {
     Write-Host " - $scorecardReport"
     Write-Host " - $pollingAuditReport"
     Write-Host " - $candidateZoneCleanupReport"
+    Write-Host " - $candidatePartyBackfillReport"
 }
 finally {
     Pop-Location

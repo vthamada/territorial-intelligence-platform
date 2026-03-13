@@ -159,16 +159,16 @@ describe("TerritoryProfilePage", () => {
     await waitFor(() => expect(getTerritories).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(getTerritoryProfile).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(getTerritoryPeers).toHaveBeenCalledTimes(1));
-    await screen.findByRole("heading", { name: "Status geral do territorio" });
+    await screen.findByRole("heading", { name: "Status geral do território" });
     expect(getTerritoryCompare).not.toHaveBeenCalled();
     expect(screen.getByRole("heading", { name: "Diamantina" })).toBeInTheDocument();
-    expect(screen.getByText("Status geral do territorio")).toBeInTheDocument();
+    expect(screen.getByText("Status geral do território")).toBeInTheDocument();
     expect(screen.getByText("74,50")).toBeInTheDocument();
     expect(screen.getByText(/Sa[úu]de/i)).toBeInTheDocument();
     expect(screen.getByText("Pares recomendados")).toBeInTheDocument();
     expect(screen.getAllByText("Belo Horizonte").length).toBeGreaterThan(0);
-    expect(screen.getByRole("link", { name: "Gerar brief deste territorio" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Simular cenarios" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Gerar brief deste território" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Simular cenários" })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Comparar" }));
 
@@ -178,7 +178,7 @@ describe("TerritoryProfilePage", () => {
       with_id: "3106200",
       limit: 80
     });
-    expect(screen.getByText("Comparacao territorial")).toBeInTheDocument();
+    expect(screen.getByText("Comparação territorial")).toBeInTheDocument();
   });
 
   it("keeps profile visible when peers endpoint fails", async () => {
@@ -190,7 +190,7 @@ describe("TerritoryProfilePage", () => {
     await waitFor(() => expect(getTerritoryProfile).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(getTerritoryPeers).toHaveBeenCalledTimes(1));
 
-    expect(screen.getByRole("heading", { name: "Status geral do territorio" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Status geral do território" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Diamantina" })).toBeInTheDocument();
     expect(screen.getByText("Falha ao carregar pares recomendados")).toBeInTheDocument();
   });
@@ -205,9 +205,9 @@ describe("TerritoryProfilePage", () => {
     await waitFor(() => expect(getTerritories).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(getTerritoryProfile).toHaveBeenCalledTimes(1));
 
-    await screen.findByText("Sem dados para o territorio selecionado");
+    await screen.findByText("Sem dados para o território selecionado");
     expect(
-      screen.getByText(/indicadores disponiveis para esse recorte/i)
+      screen.getByText(/indicadores disponíveis para esse recorte/i)
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/Territ[oó]rio base/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Aplicar filtros" })).toBeInTheDocument();
@@ -256,7 +256,7 @@ describe("TerritoryProfilePage", () => {
     await waitFor(() => expect(getTerritoryProfile).toHaveBeenCalledTimes(1));
     expect(await screen.findByText("Sem destaques no recorte")).toBeInTheDocument();
     expect(
-      screen.getByText(/destaques narrativos para o territorio e periodo selecionados/i),
+      screen.getByText(/destaques narrativos para o território e período selecionados/i),
     ).toBeInTheDocument();
   });
 });

@@ -35,19 +35,19 @@ export function App({ children }: AppProps) {
     { to: "/mapa", label: "Mapa", icon: "map" as const },
     { to: "/prioridades", label: "Prioridades", icon: "priorities" as const },
     { to: "/insights", label: "Insights", icon: "insights" as const },
-    { to: "/cenarios", label: "Cenarios", icon: "scenarios" as const },
+    { to: "/cenarios", label: "Cenários", icon: "scenarios" as const },
     { to: "/eleitorado", label: "Eleitorado", icon: "electorate" as const },
   ];
 
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">
-        Pular para o conteudo principal
+        Pular para o conteúdo principal
       </a>
       <div className="shape shape-left" />
       <div className="shape shape-right" />
       <div className="app-frame">
-        <aside className="app-sidebar slide-up" aria-label="Painel lateral de navegacao">
+        <aside className="app-sidebar slide-up" aria-label="Painel lateral de navegação">
           <nav className="app-nav app-nav-primary" aria-label="Navegação principal">
             {mainNavigation.map((item) => (
               <NavLink key={item.to} to={item.to} end={item.end}>

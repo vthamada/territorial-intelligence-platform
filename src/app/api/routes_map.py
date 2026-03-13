@@ -45,7 +45,7 @@ _STATIC_METADATA_GENERATED_AT = datetime.now(tz=UTC)
 _BASE_LAYER_ITEMS: list[MapLayerItem] = [
     MapLayerItem(
         id="territory_municipality",
-        label="Municipios",
+        label="Municípios",
         territory_level="municipality",
         is_official=True,
         official_status="official",
@@ -71,7 +71,7 @@ _BASE_LAYER_ITEMS: list[MapLayerItem] = [
     ),
     MapLayerItem(
         id="territory_census_sector",
-        label="Setores censitarios",
+        label="Setores censitários",
         territory_level="census_sector",
         is_official=False,
         official_status="proxy",
@@ -94,8 +94,8 @@ _BASE_LAYER_ITEMS: list[MapLayerItem] = [
         default_visibility=False,
         zoom_min=12,
         zoom_max=15,
-        proxy_method="Agrupamento proxy baseado em setor censitario com rotulo de bairro quando disponivel.",
-        notes="Camada de transicao ate a publicacao de malha oficial de bairros.",
+        proxy_method="Agrupamento proxy baseado em setor censitário com rótulo de bairro quando disponível.",
+        notes="Camada de transição até a publicação de malha oficial de bairros.",
     ),
     MapLayerItem(
         id="territory_electoral_zone",
@@ -108,12 +108,12 @@ _BASE_LAYER_ITEMS: list[MapLayerItem] = [
         default_visibility=False,
         zoom_min=9,
         zoom_max=12,
-        proxy_method="Agregacao eleitoral territorializada quando houver zona carregada no Silver.",
-        notes="Disponibilidade depende de consolidacao territorial da base eleitoral.",
+        proxy_method="Agregação eleitoral territorializada quando houver zona carregada no Silver.",
+        notes="Disponibilidade depende de consolidação territorial da base eleitoral.",
     ),
     MapLayerItem(
         id="territory_electoral_section",
-        label="Secoes eleitorais",
+        label="Seções eleitorais",
         territory_level="electoral_section",
         is_official=False,
         official_status="proxy",
@@ -122,8 +122,8 @@ _BASE_LAYER_ITEMS: list[MapLayerItem] = [
         default_visibility=False,
         zoom_min=12,
         zoom_max=None,
-        proxy_method="Representacao agregada por secao, com geometria de precisao limitada.",
-        notes="Camada fina com supressao recomendada para baixo volume.",
+        proxy_method="Representação agregada por seção, com geometria de precisão limitada.",
+        notes="Camada fina com supressão recomendada para baixo volume.",
     ),
     MapLayerItem(
         id="territory_polling_place",
@@ -136,7 +136,7 @@ _BASE_LAYER_ITEMS: list[MapLayerItem] = [
         default_visibility=False,
         zoom_min=12,
         zoom_max=None,
-        proxy_method="Pontos derivados da secao eleitoral com nome de local detectado no payload oficial.",
+        proxy_method="Pontos derivados da seção eleitoral com nome de local detectado no payload oficial.",
         notes="Camada de apoio para base eleitoral; geocodificação fina de endereço segue como evolução futura.",
     ),
 ]
@@ -407,9 +407,9 @@ def get_map_layers_coverage(
 
         notes: str | None = None
         if territories_total == 0:
-            notes = "Sem territorios carregados para esta camada."
+            notes = "Sem territórios carregados para esta camada."
         elif territories_with_geometry == 0:
-            notes = "Territorios sem geometria valida para renderizacao."
+            notes = "Territórios sem geometria válida para renderização."
         elif filters_applied and territories_with_indicator == 0:
             notes = "Sem indicadores para o recorte de metrica/periodo informado."
 
@@ -542,13 +542,13 @@ def get_map_layer_metadata(layer_id: str) -> MapLayerMetadataResponse:
     methodology_by_layer = {
         "territory_municipality": "Recorte oficial municipal em silver.dim_territory com geometria PostGIS.",
         "territory_district": "Recorte oficial distrital consolidado a partir da malha territorial IBGE.",
-        "territory_census_sector": "Setores censitarios carregados no Silver e simplificados para uso vetorial por zoom.",
+        "territory_census_sector": "Setores censitários carregados no Silver e simplificados para uso vetorial por zoom.",
         "territory_neighborhood_proxy": (
             "Bairros proxy gerados sobre base setorial com rotulo de bairro quando presente em metadata."
         ),
-        "territory_electoral_zone": "Agregacao por zona eleitoral dependente da consolidacao territorial em dim_territory.",
-        "territory_electoral_section": "Representacao agregada por secao eleitoral com precisao geometrica limitada.",
-        "territory_polling_place": "Local de votacao detectado no payload eleitoral e associado a geometria de secao.",
+        "territory_electoral_zone": "Agregação por zona eleitoral dependente da consolidação territorial em dim_territory.",
+        "territory_electoral_section": "Representação agregada por seção eleitoral com precisão geométrica limitada.",
+        "territory_polling_place": "Local de votação detectado no payload eleitoral e associado à geometria de seção.",
         "urban_roads": "Camada vetorial urbana de segmentos viarios consolidada em map.urban_road_segment.",
         "urban_pois": "Camada vetorial urbana de pontos de interesse consolidada em map.urban_poi.",
         "urban_transport_stops": (
@@ -558,7 +558,7 @@ def get_map_layer_metadata(layer_id: str) -> MapLayerMetadataResponse:
     }
     limitations_by_layer = {
         "territory_municipality": [
-            "Dependente de atualizacao do recorte oficial no ciclo de ingestao.",
+            "Dependente de atualização do recorte oficial no ciclo de ingestão.",
         ],
         "territory_district": [
             "Pode variar conforme disponibilidade da malha distrital por UF.",
@@ -568,36 +568,36 @@ def get_map_layer_metadata(layer_id: str) -> MapLayerMetadataResponse:
             "Recomenda-se supressao para volumes muito baixos.",
         ],
         "territory_neighborhood_proxy": [
-            "Representacao proxy dependente da granularidade de setor censitario no municipio.",
-            "Nomes de bairro podem nao estar disponiveis em todos os registros.",
+            "Representação proxy dependente da granularidade de setor censitário no município.",
+            "Nomes de bairro podem não estar disponíveis em todos os registros.",
         ],
         "territory_electoral_zone": [
-            "Camada depende de consolidacao da chave territorial eleitoral no Silver.",
-            "Pode nao ter indicador associado no recorte atual.",
+            "Camada depende de consolidação da chave territorial eleitoral no Silver.",
+            "Pode não ter indicador associado no recorte atual.",
         ],
         "territory_electoral_section": [
             "Granularidade fina com risco de baixa cobertura de dados.",
-            "Geometria pode ser proxy para representacao visual.",
+            "Geometria pode ser proxy para representação visual.",
         ],
         "territory_polling_place": [
-            "Cobertura depende da presenca de nome de local de votacao na base eleitoral.",
-            "Geometria segue proxy de secao; geocodificacao de endereco nao esta inclusa nesta fase.",
+            "Cobertura depende da presença de nome de local de votação na base eleitoral.",
+            "Geometria segue proxy de seção; geocodificação de endereço não está inclusa nesta fase.",
         ],
         "urban_roads": [
-            "Dependente da atualizacao do conector urbano e da abrangencia do recorte espacial.",
+            "Dependente da atualização do conector urbano e da abrangência do recorte espacial.",
         ],
         "urban_pois": [
-            "Dependente da atualizacao do conector urbano e da qualidade semantica de categorias.",
+            "Dependente da atualização do conector urbano e da qualidade semântica de categorias.",
         ],
         "urban_transport_stops": [
-            "Dependente da atualizacao do conector urbano e da cobertura de tags de transporte na fonte.",
+            "Dependente da atualização do conector urbano e da cobertura de tags de transporte na fonte.",
             "Pode incluir geometrias de centroide quando origem e way/relation.",
         ],
     }
     return MapLayerMetadataResponse(
         generated_at_utc=_STATIC_METADATA_GENERATED_AT,
         layer=layer,
-        methodology=methodology_by_layer.get(layer_id, "Metodologia nao registrada."),
+        methodology=methodology_by_layer.get(layer_id, "Metodologia não registrada."),
         limitations=limitations_by_layer.get(layer_id, ["Sem limitacoes registradas."]),
     )
 
@@ -609,16 +609,16 @@ def get_map_style_metadata() -> MapStyleMetadataResponse:
         version="v1",
         default_mode="choropleth",
         severity_palette=[
-            MapStyleSeverityItem(severity="critical", label="Critico", color="#b91c1c"),
-            MapStyleSeverityItem(severity="attention", label="Atencao", color="#d97706"),
-            MapStyleSeverityItem(severity="stable", label="Estavel", color="#0f766e"),
+            MapStyleSeverityItem(severity="critical", label="Crítico", color="#b91c1c"),
+            MapStyleSeverityItem(severity="attention", label="Atenção", color="#d97706"),
+            MapStyleSeverityItem(severity="stable", label="Estável", color="#0f766e"),
             MapStyleSeverityItem(severity="info", label="Informativo", color="#1d4ed8"),
         ],
         domain_palette=[
-            MapStyleDomainItem(domain="saude", label="Saude", color="#0f766e"),
-            MapStyleDomainItem(domain="educacao", label="Educacao", color="#2563eb"),
+            MapStyleDomainItem(domain="saude", label="Saúde", color="#0f766e"),
+            MapStyleDomainItem(domain="educacao", label="Educação", color="#2563eb"),
             MapStyleDomainItem(domain="trabalho", label="Trabalho", color="#c2410c"),
-            MapStyleDomainItem(domain="seguranca", label="Seguranca", color="#b91c1c"),
+            MapStyleDomainItem(domain="seguranca", label="Segurança", color="#b91c1c"),
             MapStyleDomainItem(domain="meio_ambiente", label="Meio ambiente", color="#15803d"),
             MapStyleDomainItem(domain="energia", label="Energia", color="#7c3aed"),
         ],

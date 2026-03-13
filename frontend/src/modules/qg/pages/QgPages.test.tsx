@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getChoropleth, getMapLayers, getMapLayersCoverage, getMapStyleMetadata, getTerritories } from "../../../shared/api/domain";
 import { ApiClientError } from "../../../shared/api/http";
 import {
+  getElectorateElectionContext,
   getElectorateMap,
   getElectoratePollingPlaces,
   getInsightsHighlights,
@@ -25,6 +26,7 @@ import { QgPrioritiesPage } from "./QgPrioritiesPage";
 import { QgScenariosPage } from "./QgScenariosPage";
 
 vi.mock("../../../shared/api/qg", () => ({
+  getElectorateElectionContext: vi.fn(),
   getKpisOverview: vi.fn(),
   getPrioritySummary: vi.fn(),
   getPriorityList: vi.fn(),
@@ -237,6 +239,55 @@ describe("QG pages", () => {
       ],
     });
 
+    vi.mocked(getElectorateElectionContext).mockResolvedValue({
+      level: "municipality",
+      year: 2024,
+      election_round: 1,
+      office: "PREFEITO",
+      election_type: "municipal",
+      total_votes: 10000,
+      metadata: {
+        source_name: "silver.dim_election + silver.dim_candidate + silver.fact_candidate_vote",
+        updated_at: null,
+        coverage_note: "candidate_context",
+        unit: "votes",
+        notes: "electorate_election_context_v1",
+      },
+      available_offices: [
+        {
+          office: "PREFEITO",
+          election_round: 1,
+          election_type: "municipal",
+          total_votes: 10000,
+          is_primary: true,
+        },
+      ],
+      items: [
+        {
+          candidate_id: "cand-1",
+          candidate_number: "45",
+          candidate_name: "Maria Silva",
+          ballot_name: "Maria Silva",
+          party_abbr: "ABC",
+          party_number: "45",
+          party_name: "Partido ABC",
+          votes: 6200,
+          share_percent: 62,
+        },
+        {
+          candidate_id: "cand-2",
+          candidate_number: "13",
+          candidate_name: "Joao Souza",
+          ballot_name: "Joao Souza",
+          party_abbr: "XYZ",
+          party_number: "13",
+          party_name: "Partido XYZ",
+          votes: 3800,
+          share_percent: 38,
+        },
+      ],
+    });
+
     vi.mocked(getChoropleth).mockResolvedValue({
       page: 1,
       page_size: 1000,
@@ -261,7 +312,7 @@ describe("QG pages", () => {
       items: [
         {
           id: "territory_municipality",
-          label: "Municipios",
+          label: "Municípios",
           territory_level: "municipality",
           is_official: true,
           official_status: "official",
@@ -288,9 +339,9 @@ describe("QG pages", () => {
       version: "v1",
       default_mode: "choropleth",
       severity_palette: [
-        { severity: "critical", label: "Critico", color: "#b91c1c" },
-        { severity: "attention", label: "Atencao", color: "#d97706" },
-        { severity: "stable", label: "Estavel", color: "#0f766e" }
+        { severity: "critical", label: "Crítico", color: "#b91c1c" },
+        { severity: "attention", label: "Atenção", color: "#d97706" },
+        { severity: "stable", label: "Estável", color: "#0f766e" }
       ],
       domain_palette: [],
       legend_ranges: [],
@@ -410,6 +461,7 @@ describe("QG pages", () => {
     renderWithQueryClient(<QgOverviewPage />);
     await waitFor(() => expect(getKpisOverview).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(getPriorityList).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getElectorateElectionContext).toHaveBeenCalledTimes(1));
     await screen.findByLabelText(/Per/i);
 
     await userEvent.clear(screen.getByLabelText(/Per/i));
@@ -421,6 +473,7 @@ describe("QG pages", () => {
     await userEvent.click(screen.getByRole("button", { name: /Aplicar filtros/i }));
     await waitFor(() => expect(getKpisOverview).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(getPriorityList).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(getElectorateElectionContext).toHaveBeenCalledTimes(2));
 
     expect(vi.mocked(getKpisOverview).mock.calls[1]?.[0]).toMatchObject({
       period: "2024",
@@ -432,6 +485,12 @@ describe("QG pages", () => {
       level: "district",
       limit: 5
     });
+    expect(vi.mocked(getElectorateElectionContext).mock.calls[1]?.[0]).toMatchObject({
+      level: "district",
+      limit: 5,
+    });
+    expect(screen.getByText("Contexto eleitoral de referência")).toBeInTheDocument();
+    expect(screen.getAllByText("Maria Silva").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "Ver prioridades" })).toHaveAttribute("href", "/prioridades");
     expect(screen.getByRole("link", { name: "Ver insights" })).toHaveAttribute("href", "/insights");
     expect(screen.getByRole("link", { name: "Ver no mapa" })).toHaveAttribute("href", "/mapa?territory_id=3121605");
@@ -439,16 +498,16 @@ describe("QG pages", () => {
 
   it("keeps overview operational when priorities and highlights fail", async () => {
     vi.mocked(getPriorityList).mockRejectedValueOnce(
-      new ApiClientError("Prioridades indisponiveis no backend", 503, "req-priority-preview-001"),
+      new ApiClientError("Prioridades indisponíveis no backend", 503, "req-priority-preview-001"),
     );
     vi.mocked(getInsightsHighlights).mockRejectedValueOnce(
-      new ApiClientError("Destaques indisponiveis no backend", 503, "req-highlights-001"),
+      new ApiClientError("Destaques indisponíveis no backend", 503, "req-highlights-001"),
     );
 
     renderWithQueryClient(<QgOverviewPage />);
     await waitFor(() => expect(getKpisOverview).toHaveBeenCalledTimes(1));
 
-    expect(await screen.findByRole("heading", { name: "Painel de inteligencia territorial" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Painel de inteligência territorial" })).toBeInTheDocument();
     expect(await screen.findByText("Falha ao carregar top prioridades")).toBeInTheDocument();
     expect(await screen.findByText("Falha ao carregar destaques")).toBeInTheDocument();
     expect(screen.getByText("request_id: req-priority-preview-001")).toBeInTheDocument();
@@ -478,7 +537,7 @@ describe("QG pages", () => {
       items: [
         {
           id: "territory_municipality",
-          label: "MunicÃ­pios",
+          label: "Municípios",
           territory_level: "municipality",
           is_official: true,
           source: "silver.dim_territory",
@@ -488,7 +547,7 @@ describe("QG pages", () => {
         },
         {
           id: "territory_electoral_section",
-          label: "SeÃ§Ãµes eleitorais",
+          label: "Seções eleitorais",
           territory_level: "electoral_section",
           is_official: false,
           official_status: "proxy",
@@ -499,7 +558,7 @@ describe("QG pages", () => {
         },
         {
           id: "territory_polling_place",
-          label: "Locais de votaÃ§Ã£o",
+          label: "Locais de votação",
           territory_level: "electoral_section",
           is_official: false,
           official_status: "proxy",
@@ -528,6 +587,7 @@ describe("QG pages", () => {
   it("applies priority filters only on submit", async () => {
     renderWithQueryClient(<QgPrioritiesPage />);
     await waitFor(() => expect(getPriorityList).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getElectorateElectionContext).toHaveBeenCalledTimes(1));
     await screen.findByLabelText(/Dom/i);
 
     await userEvent.selectOptions(screen.getByLabelText(/Dom/i), "saude");
@@ -542,6 +602,8 @@ describe("QG pages", () => {
       level: "municipality",
       limit: 24
     });
+    expect(screen.getByText("Cargo principal")).toBeInTheDocument();
+    expect(screen.getByText("Maria Silva")).toBeInTheDocument();
     expect(screen.getByText("Racional critico")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Exportar CSV" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Ver no mapa" })).toHaveAttribute(
@@ -592,14 +654,14 @@ describe("QG pages", () => {
     const firstPageMatches = await screen.findAllByText((_, element) => element?.textContent?.includes("Indicador 1") ?? false);
     expect(firstPageMatches.length).toBeGreaterThan(0);
 
-    expect(screen.getByText("Pagina 1 de 2")).toBeInTheDocument();
+    expect(screen.getByText("Página 1 de 2")).toBeInTheDocument();
     expect(
       screen.queryAllByText((_, element) => element?.textContent?.includes("Indicador 30") ?? false).length
     ).toBe(0);
 
-    await userEvent.click(screen.getByRole("button", { name: "Proxima" }));
+    await userEvent.click(screen.getByRole("button", { name: "Próxima" }));
 
-    expect(screen.getByText("Pagina 2 de 2")).toBeInTheDocument();
+    expect(screen.getByText("Página 2 de 2")).toBeInTheDocument();
     const secondPageMatches = await screen.findAllByText(
       (_, element) => element?.textContent?.includes("Indicador 30") ?? false
     );
@@ -612,7 +674,7 @@ describe("QG pages", () => {
   it("applies choropleth filters only on submit", async () => {
     renderWithQueryClient(<QgMapPage />);
     await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
-    await screen.findByLabelText("Buscar territorio");
+    await screen.findByLabelText("Buscar território");
     expect(screen.getByRole("button", { name: /Exportar.*SVG/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Exportar.*PNG/ })).toBeInTheDocument();
   });
@@ -758,7 +820,7 @@ describe("QG pages", () => {
     renderWithQueryClient(<QgMapPage />);
 
     await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
-    const strategicPanel = await screen.findByLabelText("Painel de camadas estrategicas");
+    const strategicPanel = await screen.findByLabelText("Painel de camadas estratégicas");
     expect(strategicPanel).toBeInTheDocument();
     const scoped = within(strategicPanel);
     expect(scoped.getByRole("heading", { name: /Territ[óo]rio/i })).toBeInTheDocument();
@@ -774,7 +836,7 @@ describe("QG pages", () => {
   it("toggles overlay layers on and off via checkboxes", async () => {
     renderWithQueryClient(<QgMapPage />);
     await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
-    const strategicPanel = await screen.findByLabelText("Painel de camadas estrategicas");
+    const strategicPanel = await screen.findByLabelText("Painel de camadas estratégicas");
     const scoped = within(strategicPanel);
 
     const schoolsCheckbox = scoped.getByLabelText("Ativar camada Escolas") as HTMLInputElement;
@@ -797,7 +859,7 @@ describe("QG pages", () => {
       items: [
         {
           id: "territory_electoral_section",
-          label: "SeÃ§Ãµes eleitorais",
+          label: "Seções eleitorais",
           territory_level: "electoral_section",
           is_official: false,
           source: "silver.dim_territory",
@@ -838,7 +900,7 @@ describe("QG pages", () => {
   it("syncs map query params after applying filters and view controls", async () => {
     renderWithQueryClient(<QgMapPage />, ["/mapa"], { includeLocationProbe: true });
     await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
-    await screen.findByLabelText("Buscar territorio");
+    await screen.findByLabelText("Buscar território");
 
     await waitFor(() => {
       const search = screen.getByTestId("location-search").textContent ?? "";
@@ -855,7 +917,7 @@ describe("QG pages", () => {
       ["/mapa?scope=urban&layer_id=urban_roads&metric=MTE_NOVO_CAGED_SALDO_TOTAL&period=2025"],
     );
 
-    await screen.findByLabelText("Buscar territorio");
+    await screen.findByLabelText("Buscar território");
     expect(getChoropleth).not.toHaveBeenCalled();
   });
 
@@ -867,7 +929,7 @@ describe("QG pages", () => {
       items: [
         {
           id: "territory_municipality",
-          label: "Municipios",
+          label: "Municípios",
           territory_level: "municipality",
           is_official: true,
           official_status: "official",
@@ -878,7 +940,7 @@ describe("QG pages", () => {
         },
         {
           id: "territory_electoral_section",
-          label: "SeÃ§Ãµes eleitorais",
+          label: "Seções eleitorais",
           territory_level: "electoral_section",
           is_official: false,
           official_status: "proxy",
@@ -977,7 +1039,7 @@ describe("QG pages", () => {
 
     renderWithQueryClient(<QgMapPage />, ["/mapa"]);
 
-    await screen.findByLabelText("Buscar territorio");
+    await screen.findByLabelText("Buscar território");
     await userEvent.click(screen.getByLabelText(/Ativar camada Locais de vota[çc][ãa]o/i));
     await waitFor(() => expect(getElectorateMap).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(getElectoratePollingPlaces).toHaveBeenCalledTimes(2));
@@ -996,7 +1058,7 @@ describe("QG pages", () => {
       items: [
         {
           id: "territory_municipality",
-          label: "Municipios",
+          label: "Municípios",
           territory_level: "municipality",
           is_official: true,
           official_status: "official",
@@ -1021,7 +1083,7 @@ describe("QG pages", () => {
 
     renderWithQueryClient(<QgMapPage />, ["/mapa"]);
 
-    await screen.findByLabelText("Buscar territorio");
+    await screen.findByLabelText("Buscar território");
     await userEvent.click(screen.getByLabelText(/Ativar camada Locais de vota[çc][ãa]o/i));
     await screen.findByLabelText("Leitura por local");
     await userEvent.selectOptions(screen.getByLabelText("Leitura por local"), "abstention_rate");
@@ -1046,10 +1108,10 @@ describe("QG pages", () => {
 
   it("shows retryable manifest and style metadata errors", async () => {
     vi.mocked(getMapLayers).mockRejectedValueOnce(
-      new ApiClientError("Manifesto de camadas indisponivel no backend", 503, "req-map-layers-001"),
+      new ApiClientError("Manifesto de camadas indisponível no backend", 503, "req-map-layers-001"),
     );
     vi.mocked(getMapStyleMetadata).mockRejectedValueOnce(
-      new ApiClientError("Metadados de estilo indisponiveis no backend", 503, "req-style-001"),
+      new ApiClientError("Metadados de estilo indisponíveis no backend", 503, "req-style-001"),
     );
 
     renderWithQueryClient(<QgMapPage />);
@@ -1071,10 +1133,10 @@ describe("QG pages", () => {
   it("focuses territory from quick search and syncs territory_id in URL", async () => {
     renderWithQueryClient(<QgMapPage />, ["/mapa"], { includeLocationProbe: true });
     await waitFor(() => expect(getChoropleth).toHaveBeenCalledTimes(1));
-    await screen.findByLabelText("Buscar territorio");
+    await screen.findByLabelText("Buscar território");
 
-    await userEvent.clear(screen.getByLabelText("Buscar territorio"));
-    await userEvent.type(screen.getByLabelText("Buscar territorio"), "Diamantina");
+    await userEvent.clear(screen.getByLabelText("Buscar território"));
+    await userEvent.type(screen.getByLabelText("Buscar território"), "Diamantina");
     await userEvent.click(screen.getByRole("button", { name: "Buscar" }));
 
     await waitFor(() => {
@@ -1126,5 +1188,3 @@ describe("QG pages", () => {
     expect((screen.getByLabelText("Severidade") as HTMLSelectElement).value).toBe("critical");
   });
 });
-
-

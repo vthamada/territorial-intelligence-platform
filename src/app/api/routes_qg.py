@@ -850,6 +850,14 @@ def _resolve_election_scope(
     return row.get("office"), row.get("election_round")
 
 
+def _election_result_context_levels(level: str) -> list[str]:
+    if level == "municipality":
+        return ["municipality", "electoral_zone"]
+    if level == "electoral_section":
+        return ["electoral_section", "electoral_zone"]
+    return [level]
+
+
 def _fetch_election_metrics(
     db: Session,
     *,
@@ -877,6 +885,32 @@ def _fetch_election_metrics(
         {"level": level, "year": year, "office": office, "election_round": election_round},
     ).mappings().all()
     return {str(row["metric"]): float(row["total_value"]) for row in rows}
+
+
+def _fetch_election_metrics_with_fallback(
+    db: Session,
+    *,
+    level: str,
+    year: int,
+) -> dict[str, float]:
+    for result_level in _election_result_context_levels(level):
+        office, election_round = _resolve_election_scope(
+            db,
+            level=result_level,
+            year=year,
+        )
+        if office is None and election_round is None:
+            continue
+        metrics = _fetch_election_metrics(
+            db,
+            level=result_level,
+            year=year,
+            office=office,
+            election_round=election_round,
+        )
+        if metrics:
+            return metrics
+    return {}
 
 
 def _build_election_metric_payload(metrics: dict[str, float]) -> dict[str, float | None]:
@@ -2299,42 +2333,18 @@ def get_electorate_summary(
     by_age = _fetch_electorate_breakdown(db, level=level_en, year=electorate_storage_year, breakdown_kind="age")
     by_education = _fetch_electorate_breakdown(db, level=level_en, year=electorate_storage_year, breakdown_kind="education")
 
-    election_year = _resolve_available_year(
+    election_metrics = _fetch_election_metrics_with_fallback(
         db,
         level=level_en,
-        requested_year=effective_year,
-        table_kind="election",
+        year=effective_year,
     )
-    election_metrics: dict[str, float] = {}
-    if election_year is not None:
-        office, election_round = _resolve_election_scope(db, level=level_en, year=election_year)
-        election_metrics = _fetch_election_metrics(
-            db,
-            level=level_en,
-            year=election_year,
-            office=office,
-            election_round=election_round,
-        )
+    metric_payload = _build_election_metric_payload(election_metrics)
 
-    turnout = election_metrics.get("turnout")
-    abstention = election_metrics.get("abstention")
-    votes_total = election_metrics.get("votes_total")
-    votes_blank = election_metrics.get("votes_blank")
-    votes_null = election_metrics.get("votes_null")
-
-    turnout_rate = None
-    abstention_rate = None
-    if turnout is not None and abstention is not None and (turnout + abstention) > 0:
-        turnout_rate = round((turnout / (turnout + abstention)) * 100, 6)
-        abstention_rate = round((abstention / (turnout + abstention)) * 100, 6)
-
-    blank_rate = None
-    null_rate = None
-    if votes_total is not None and votes_total > 0:
-        if votes_blank is not None:
-            blank_rate = round((votes_blank / votes_total) * 100, 6)
-        if votes_null is not None:
-            null_rate = round((votes_null / votes_total) * 100, 6)
+    turnout = metric_payload["turnout"]
+    turnout_rate = metric_payload["turnout_rate"]
+    abstention_rate = metric_payload["abstention_rate"]
+    blank_rate = metric_payload["blank_rate"]
+    null_rate = metric_payload["null_rate"]
 
     return ElectorateSummaryResponse(
         level=to_external_level(level_en),
@@ -2387,57 +2397,14 @@ def get_electorate_history(
         {"level": level_en, "min_year": _MIN_ALLOWED_YEAR, "max_year": max_allowed_year, "limit": limit},
     ).mappings().all()
 
-    election_rows = db.execute(
-        text(
-            """
-            WITH scope AS (
-                SELECT
-                    fr.election_year,
-                    fr.office,
-                    fr.election_round,
-                    SUM(CASE WHEN fr.metric = 'turnout' THEN fr.value ELSE 0 END)::double precision AS turnout
-                FROM silver.fact_election_result fr
-                JOIN silver.dim_territory dt ON dt.territory_id = fr.territory_id
-                WHERE dt.level::text = :level
-                  AND fr.election_year BETWEEN :min_year AND :max_year
-                GROUP BY fr.election_year, fr.office, fr.election_round
-            ),
-            ranked AS (
-                SELECT
-                    election_year,
-                    office,
-                    election_round,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY election_year
-                        ORDER BY turnout DESC NULLS LAST, office ASC NULLS LAST
-                    ) AS rn
-                FROM scope
-            )
-            SELECT
-                fr.election_year AS year,
-                fr.metric,
-                SUM(fr.value)::double precision AS total_value
-            FROM silver.fact_election_result fr
-            JOIN silver.dim_territory dt ON dt.territory_id = fr.territory_id
-            JOIN ranked r
-              ON r.election_year = fr.election_year
-             AND r.rn = 1
-             AND fr.office IS NOT DISTINCT FROM r.office
-             AND fr.election_round IS NOT DISTINCT FROM r.election_round
-            WHERE dt.level::text = :level
-              AND fr.election_year BETWEEN :min_year AND :max_year
-              AND fr.metric IN ('turnout', 'abstention', 'votes_blank', 'votes_null', 'votes_total')
-            GROUP BY fr.election_year, fr.metric
-            ORDER BY fr.election_year DESC, fr.metric ASC
-            """
-        ),
-        {"level": level_en, "min_year": _MIN_ALLOWED_YEAR, "max_year": max_allowed_year},
-    ).mappings().all()
-
     election_metrics_by_year: dict[int, dict[str, float]] = {}
-    for row in election_rows:
-        year_key = int(row["year"])
-        election_metrics_by_year.setdefault(year_key, {})[str(row["metric"])] = float(row["total_value"])
+    for row in electorate_rows:
+        row_year = int(row["year"])
+        election_metrics_by_year[row_year] = _fetch_election_metrics_with_fallback(
+            db,
+            level=level_en,
+            year=row_year,
+        )
 
     items = []
     for row in electorate_rows:
@@ -3123,8 +3090,23 @@ def get_electorate_candidate_territories(
                 + _polling_place_registry_cte_sql()
                 + """
                 ,
+                polling_place_totals AS (
+                    SELECT
+                        ppr.pp_key,
+                        COUNT(DISTINCT dt.tse_section)::int AS polling_place_section_count,
+                        ARRAY_AGG(DISTINCT dt.tse_section ORDER BY dt.tse_section)
+                            FILTER (WHERE dt.tse_section IS NOT NULL) AS polling_place_sections
+                    FROM silver.dim_territory dt
+                    JOIN polling_place_registry ppr
+                      ON ppr.pp_key = """
+                        + _polling_place_key_sql("dt")
+                        + """
+                    WHERE dt.level::text = 'electoral_section'
+                    GROUP BY ppr.pp_key
+                ),
                 grouped AS (
                     SELECT
+                        ppr.pp_key,
                         md5(ppr.pp_key)::text AS territory_id,
                         ppr.polling_place_name AS territory_name,
                         'polling_place'::text AS territory_level,
@@ -3176,11 +3158,14 @@ def get_electorate_candidate_territories(
                 )
                 SELECT
                     g.*,
+                    ppt.polling_place_section_count,
+                    ppt.polling_place_sections,
                     CASE
                         WHEN t.total_votes > 0 THEN (g.votes / t.total_votes) * 100
                         ELSE NULL
                     END::double precision AS share_percent
                 FROM grouped g
+                JOIN polling_place_totals ppt ON ppt.pp_key = g.pp_key
                 CROSS JOIN total t
                 ORDER BY g.votes DESC, g.territory_name ASC
                 LIMIT :limit
@@ -3232,6 +3217,10 @@ def get_electorate_candidate_territories(
                 zone_codes=[str(code) for code in (row["zone_codes"] or [])],
                 section_count=int(row["section_count"] or 0),
                 sections=[str(section) for section in (row["sections"] or [])],
+                polling_place_section_count=int(row.get("polling_place_section_count") or row["section_count"] or 0),
+                polling_place_sections=[
+                    str(section) for section in (row.get("polling_place_sections") or row["sections"] or [])
+                ],
             )
             for row in rows
         ],

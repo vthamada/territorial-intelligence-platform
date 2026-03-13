@@ -104,7 +104,7 @@ export function TerritoryIndicatorsPage() {
 
   return (
     <div className="page-grid">
-      <Panel title="Territórios" subtitle="Consulta por nivel territorial com seleção para filtrar indicadores">
+      <Panel title="Territórios" subtitle="Consulta por nível territorial com seleção para filtrar indicadores">
         <form
           className="filter-grid compact"
           onSubmit={(event) => {
@@ -131,14 +131,14 @@ export function TerritoryIndicatorsPage() {
         </form>
 
         {territoryQuery.isPending ? (
-          <StateBlock tone="loading" title="Carregando territorios" message="Consultando /v1/territories." />
+          <StateBlock tone="loading" title="Carregando territórios" message="Consultando /v1/territories." />
         ) : territoryQuery.error ? (
           (() => {
             const { message, requestId } = formatApiError(territoryQuery.error);
             return (
               <StateBlock
                 tone="error"
-                title="Falha ao carregar territorios"
+                title="Falha ao carregar territórios"
                 message={message}
                 requestId={requestId}
                 onRetry={() => void territoryQuery.refetch()}
@@ -146,7 +146,7 @@ export function TerritoryIndicatorsPage() {
             );
           })()
         ) : territoryQuery.data && territoryQuery.data.items.length === 0 ? (
-          <StateBlock tone="empty" title="Sem territorios" message="Nenhum territorio retornado para o nivel selecionado." />
+          <StateBlock tone="empty" title="Sem territórios" message="Nenhum território retornado para o nível selecionado." />
         ) : (
           <>
             <div className="table-wrap">
@@ -191,7 +191,7 @@ export function TerritoryIndicatorsPage() {
                 Anterior
               </button>
               <span>
-                Pagina {territoryPage} de {territoryTotalPages}
+                Página {territoryPage} de {territoryTotalPages}
               </span>
               <button
                 type="button"
@@ -199,7 +199,7 @@ export function TerritoryIndicatorsPage() {
                 disabled={territoryPage >= territoryTotalPages}
                 onClick={() => setTerritoryPage((old) => old + 1)}
               >
-                Proxima
+                Próxima
               </button>
             </div>
           </>
@@ -219,7 +219,7 @@ export function TerritoryIndicatorsPage() {
             <input
               value={selectedTerritoryName || ""}
               readOnly
-              placeholder="Selecione na tabela de territorios"
+              placeholder="Selecione na tabela de territórios"
               aria-label="Território selecionado"
             />
           </label>
@@ -313,7 +313,7 @@ export function TerritoryIndicatorsPage() {
                 Anterior
               </button>
               <span>
-                Pagina {indicatorPage} de {indicatorTotalPages}
+                Página {indicatorPage} de {indicatorTotalPages}
               </span>
               <button
                 type="button"
@@ -321,7 +321,7 @@ export function TerritoryIndicatorsPage() {
                 disabled={indicatorPage >= indicatorTotalPages}
                 onClick={() => setIndicatorPage((old) => old + 1)}
               >
-                Proxima
+                Próxima
               </button>
             </div>
           </>
