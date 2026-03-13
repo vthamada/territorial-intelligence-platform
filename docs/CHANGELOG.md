@@ -765,7 +765,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ### Changed
 - `data/seed/polling_places_overrides_diamantina.csv`:
   - correções adicionais com evidência pública de internet para distritos/povoados:
-    - `1406` (E. M. BAIXADÃƒO) -> `Planalto de Minas` com coordenada OSM/Nominatim (`-17.478430,-43.269049`);
+    - `1406` (E. M. BAIXADÃO) -> `Planalto de Minas` com coordenada OSM/Nominatim (`-17.478430,-43.269049`);
     - `1457` (E. M. BATATAL) -> `Conselheiro Mata` com proxy de assentamento local (`-18.288633,-43.981851`);
     - `1414` (E. M. ROGERIO FIRMINO LOPES) -> `Desembargador Otoni` com proxy distrital (`point_on_surface`);
     - `1422` (E. M. MAO TORTA) -> `Desembargador Otoni` com proxy distrital (`centroid`).
@@ -881,8 +881,8 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `data/seed/polling_places_diamantina.csv`:
   - refinadas coordenadas de locais que ainda estavam com inconsistência distrital/posicional:
     - `1244` (`E. E. PROF.ª AYNA TORRES`) -> `inep_road:Rua Prof. Paulino Guimaraes Junior`;
-    - `1252` (`E. E. D. JOAQUIM SILVÃ‰RIO DE SOUZA`) -> `osm_school:EE Dom Joaquim Silverio de Souza`;
-    - `1333` (`E. E. DURVAL CÃ‚NDIDO CRUZ`) -> `osm_school:EE Durval Candido Cruz`;
+    - `1252` (`E. E. D. JOAQUIM SILVÉRIO DE SOUZA`) -> `osm_school:EE Dom Joaquim Silverio de Souza`;
+    - `1333` (`E. E. DURVAL CÂNDIDO CRUZ`) -> `osm_school:EE Durval Candido Cruz`;
     - `1341` (`E. E. GOV. JUSCELINO KUBITSCHEK`) -> `nominatim:Conselheiro Mata`;
     - `1384` (`E. M. PEDRARIA`) -> `district_centroid:senador_mourao`.
 - `scripts/build_seed.py`:

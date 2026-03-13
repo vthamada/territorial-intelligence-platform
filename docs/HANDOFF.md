@@ -657,9 +657,9 @@ Papel deste documento: memória operacional viva do projeto, preservando estado 
 ## Atualizacao operacional (2026-02-26) - Revisao de pontos suspeitos em distritos (imagem de homologacao)
 
 1. Locais revisados na rodada:
-   - `1376` (E. M. SOPA), `1422` (E. M. MÃƒO TORTA), `1341` (E. E. GOV. JUSCELINO KUBITSCHEK),
+   - `1376` (E. M. SOPA), `1422` (E. M. MÃO TORTA), `1341` (E. E. GOV. JUSCELINO KUBITSCHEK),
      `1325` (E. M. PROF.ª ANA CÉLIA DE O. SOUZA), `1457` (E. M. BATATAL),
-     `1414` (E. M. ROGÃ‰RIO FIRMINO LOPES), `1406` (E. M. BAIXADÃƒO).
+     `1414` (E. M. ROGÉRIO FIRMINO LOPES), `1406` (E. M. BAIXADÃO).
 2. Resultado da verificação:
    - todos permanecem dentro do distrito esperado;
    - correção aplicada em `1341`, que foi deslocado para o núcleo de Conselheiro Mata com
