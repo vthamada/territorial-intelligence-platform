@@ -160,7 +160,7 @@ vi.mock("../shared/api/qg", () => ({
     explanation: ["APS subiria para 77%, reduzindo criticidade."]
   }),
   postBriefGenerate: vi.fn().mockResolvedValue({
-    brief_id: "brief-e2e-001", title: "Brief Executivo - Diamantina",
+    brief_id: "brief-e2e-001", report_type: "strategic", title: "Brief Executivo - Diamantina",
     generated_at: "2026-02-13T21:00:00Z", period: "2025", level: "municipio",
     territory_id: "3121605", domain: null,
     summary_lines: ["Diamantina apresenta criticidade em saude."],

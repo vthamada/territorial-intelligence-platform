@@ -133,6 +133,7 @@ Atualização complementar 2026-03-07:
   - `GET /v1/electorate/election-context`
   - `GET /v1/electorate/candidate-territories`
 - O slice 3 já foi exposto no frontend executivo com contexto da eleição, top candidatos e distribuição territorial do candidato selecionado.
+- O eixo de `Eleitorado` também passou a expor geração configurável de relatório eleitoral no próprio fluxo da tela, com seleção explícita de blocos e exportação HTML/PDF a partir do contexto já carregado.
 - O estudo `docs/ESTUDO_TSE_SECAO_LOCAL_VOTACAO.md` concluiu que o TSE já publica `votacao_secao` com `NR_SECAO`, `NR_LOCAL_VOTACAO`, `NM_LOCAL_VOTACAO`, endereço do local, `SQ_CANDIDATO` e `QT_VOTOS` para `2016`, `2018`, `2020`, `2022` e `2024`.
 - Portanto, a granularidade nominal atual em `zona eleitoral` deve ser tratada como provisória.
 - O próximo passo funcional de `UX-1` deixa de ser propagar a base nominal atual para `Home` e `Prioridades`.
@@ -149,7 +150,9 @@ Atualização complementar 2026-03-07:
   - `2018` e `2022` já foram reprocessados com suplemento presidencial (`BR`) e agora expõem `Presidente` como cargo principal dos anos gerais;
   - a `ElectorateExecutivePage` agora também permite alternar cargo/turno quando o ano possui mais de um cargo nominal, mantendo contexto e distribuição territorial sincronizados;
   - `Home` e `Prioridades` já passaram a consumir o contexto eleitoral nominal validado;
-  - o próximo passo funcional passa a ser estender a mesma leitura para `Insights` e deep-links executivos relacionados, sem reabrir infraestrutura do nominal.
+  - `Insights` já passou a consumir o mesmo contexto eleitoral nominal validado, com deep-links executivos coerentes para `Eleitorado` e `Mapa`;
+  - `ElectorateExecutivePage` já aceita `year`, `metric`, `office`, `election_round` e `candidate_id` por query string para abertura direta no recorte executivo;
+  - o próximo passo funcional passa a ser amadurecer a geração de relatório eleitoral modular e avaliar, sem abrir frente paralela, se a evolução para formatos adicionais deve continuar frontend-local ou migrar para endpoint dedicado.
 
 
 

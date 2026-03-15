@@ -1656,6 +1656,39 @@ label {
   font-size: 0.85rem;
 }
 
+.report-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.65rem;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: #fff9f1;
+  padding: 0.75rem;
+  color: var(--ink);
+}
+
+.report-option input {
+  width: auto;
+  min-height: auto;
+  margin-top: 0.15rem;
+}
+
+.report-option span {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.report-option small {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.report-option-disabled {
+  opacity: 0.65;
+  background: #f5f3ed;
+}
+
 .inline-link {
   color: var(--brand);
   text-decoration: none;

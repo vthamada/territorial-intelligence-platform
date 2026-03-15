@@ -1901,11 +1901,214 @@ def simulate_scenario(
     )
 
 
+def _electorate_metric_label(metric: str | None) -> str:
+    if metric == "turnout":
+        return "Comparecimento"
+    if metric == "abstention_rate":
+        return "Taxa de abstenção"
+    if metric == "blank_rate":
+        return "Taxa de brancos"
+    if metric == "null_rate":
+        return "Taxa de nulos"
+    return "Total de eleitores"
+
+
+def _humanize_office_label(value: str | None) -> str:
+    if not value:
+        return "Eleição"
+    return " ".join(chunk.capitalize() for chunk in value.lower().split())
+
+
+def _build_electorate_brief(
+    payload: BriefGenerateRequest,
+    db: Session,
+) -> BriefGenerateResponse:
+    level_en = normalize_level(payload.level) or "municipality"
+    metric = payload.metric or "voters"
+
+    summary = get_electorate_summary(level=level_en, year=payload.year, db=db)
+    history = get_electorate_history(level=level_en, limit=min(max(payload.limit, 3), 10), db=db)
+    polling_places = get_electorate_polling_places(
+        metric=metric,
+        year=payload.year,
+        limit=min(max(payload.limit, 5), 12),
+        db=db,
+    )
+    context = get_electorate_election_context(
+        level=level_en,
+        year=summary.year or payload.year,
+        office=payload.office,
+        election_round=payload.election_round,
+        limit=min(max(payload.limit, 3), 8),
+        db=db,
+    )
+
+    selected_candidate = None
+    if payload.candidate_id:
+        selected_candidate = next(
+            (item for item in context.items if item.candidate_id == payload.candidate_id),
+            None,
+        )
+    if selected_candidate is None and context.items:
+        selected_candidate = context.items[0]
+
+    candidate_territories = None
+    if selected_candidate is not None:
+        candidate_territories = get_electorate_candidate_territories(
+            candidate_id=selected_candidate.candidate_id,
+            aggregate_by="polling_place",
+            year=context.year or payload.year,
+            office=context.office,
+            election_round=context.election_round,
+            limit=min(max(payload.limit, 5), 10),
+            db=db,
+        )
+
+    display_year = summary.year or context.year or payload.year
+    display_level = summary.level if summary.year is not None else to_external_level(level_en)
+    office_label = _humanize_office_label(context.office)
+    round_label = f"{context.election_round}º turno" if context.election_round else "turno não informado"
+    metric_label = _electorate_metric_label(metric)
+
+    summary_lines = [
+        f"Relatório eleitoral do recorte {display_level} para o ano {display_year or '-'} com foco em {office_label}.",
+        f"Eleitorado total: {summary.total_voters} e comparecimento estimado de {int(round(summary.turnout or 0))} ({(summary.turnout_rate or 0):.2f}%).",
+        f"Abstenção {((summary.abstention_rate or 0)):.2f}%, brancos {((summary.blank_rate or 0)):.2f}% e nulos {((summary.null_rate or 0)):.2f}%.",
+    ]
+    if context.items:
+        leader = context.items[0]
+        runner_up = context.items[1] if len(context.items) > 1 else None
+        leader_line = (
+            f"Liderança nominal: {leader.ballot_name or leader.candidate_name} "
+            f"com {leader.votes} votos ({(leader.share_percent or 0):.2f}%)."
+        )
+        if runner_up:
+            leader_line += (
+                f" Segundo colocado: {runner_up.ballot_name or runner_up.candidate_name} "
+                f"com {runner_up.votes} votos ({(runner_up.share_percent or 0):.2f}%)."
+            )
+        summary_lines.append(leader_line)
+    if polling_places.items:
+        summary_lines.append(
+            f"Principal local de votação no ranking de {metric_label.lower()}: "
+            f"{polling_places.items[0].polling_place_name or polling_places.items[0].territory_name}."
+        )
+    summary_lines.append(f"Escopo nominal considerado: {office_label}, {round_label}.")
+
+    previous_history = history.items[1] if len(history.items) > 1 else None
+    recommended_actions: list[str] = [
+        "Usar este relatório como referência executiva para comunicação institucional do recorte eleitoral.",
+    ]
+    if previous_history and history.items:
+        current_turnout_rate = history.items[0].turnout_rate or 0
+        previous_turnout_rate = previous_history.turnout_rate or 0
+        if current_turnout_rate < previous_turnout_rate:
+            recommended_actions.append(
+                "Aprofundar leitura de participação por local de votação para entender a queda relativa de comparecimento."
+            )
+    if candidate_territories and candidate_territories.items:
+        recommended_actions.append(
+            "Cruzar os locais com maior votação nominal com serviços e cobertura territorial antes de avançar para narrativa política."
+        )
+    if summary.abstention_rate is not None and summary.abstention_rate >= 25:
+        recommended_actions.append(
+            "Monitorar distritos e locais com maior abstenção para orientar ações de mobilização e acesso."
+        )
+
+    evidences: list[BriefEvidenceItem] = []
+    for item in context.items[: min(5, payload.limit)]:
+        evidences.append(
+            BriefEvidenceItem(
+                territory_id=payload.territory_id or "municipality",
+                territory_name="Diamantina",
+                territory_level=display_level,
+                domain="eleitorado_contexto",
+                indicator_code=f"CANDIDATE_{item.candidate_number}",
+                indicator_name=f"{item.ballot_name or item.candidate_name} ({item.party_abbr or 's/ partido'})",
+                value=float(item.votes),
+                unit="votos",
+                score=float(item.share_percent or 0),
+                status="contexto",
+                source="TSE",
+                dataset="fact_candidate_vote",
+                reference_period=str(display_year or "-"),
+            )
+        )
+    for item in polling_places.items[: min(8, payload.limit)]:
+        polling_place_unit = "%" if metric.endswith("_rate") else ("eleitores" if metric == "voters" else "votos")
+        evidences.append(
+            BriefEvidenceItem(
+                territory_id=item.territory_id,
+                territory_name=item.polling_place_name or item.territory_name,
+                territory_level=item.territory_level,
+                domain="local_votacao",
+                indicator_code=f"POLLING_PLACE_{metric.upper()}",
+                indicator_name=(
+                    f"{metric_label} | {item.district_name or 'Sem distrito'} | "
+                    f"{item.section_count} seções"
+                ),
+                value=float(item.value or 0),
+                unit=polling_place_unit,
+                score=float(item.share_percent or 0),
+                status="territorial",
+                source="TSE",
+                dataset="fact_electorate",
+                reference_period=str(item.year or display_year or "-"),
+            )
+        )
+    if candidate_territories and selected_candidate is not None:
+        for item in candidate_territories.items[: min(8, payload.limit)]:
+            evidences.append(
+                BriefEvidenceItem(
+                    territory_id=item.territory_id,
+                    territory_name=item.polling_place_name or item.territory_name,
+                    territory_level=item.territory_level,
+                    domain="voto_nominal_local",
+                    indicator_code=f"CANDIDATE_TERRITORY_{selected_candidate.candidate_number}",
+                    indicator_name=(
+                        f"{selected_candidate.ballot_name or selected_candidate.candidate_name} | "
+                        f"{item.section_count} seções com votos"
+                    ),
+                    value=float(item.votes),
+                    unit="votos",
+                    score=float(item.share_percent or 0),
+                    status="nominal",
+                    source="TSE",
+                    dataset="fact_candidate_vote",
+                    reference_period=str(candidate_territories.year or display_year or "-"),
+                )
+            )
+
+    metadata_updated_at = summary.metadata.updated_at or context.metadata.updated_at
+    return BriefGenerateResponse(
+        brief_id=f"brief-{uuid4().hex[:12]}",
+        report_type="electorate",
+        title=f"Relatório Eleitoral - {display_year or '-'} / {office_label}",
+        generated_at=datetime.now(UTC),
+        period=str(display_year) if display_year is not None else payload.period,
+        level=display_level,
+        territory_id=payload.territory_id,
+        domain="eleitorado",
+        summary_lines=summary_lines,
+        recommended_actions=recommended_actions,
+        evidences=evidences,
+        metadata=_qg_metadata(
+            metadata_updated_at,
+            notes=f"electorate_brief_v1|office={context.office or '-'}|round={context.election_round or '-'}|metric={metric}",
+            config_version=load_strategic_engine_config().version,
+            source_name="silver.fact_electorate + silver.fact_election_result + silver.fact_candidate_vote",
+        ),
+    )
+
+
 @router.post("/briefs", response_model=BriefGenerateResponse)
 def generate_brief(
     payload: BriefGenerateRequest,
     db: Session = Depends(get_db),  # noqa: B008
 ) -> BriefGenerateResponse:
+    if payload.report_type == "electorate":
+        return _build_electorate_brief(payload, db)
+
     level_en = normalize_level(payload.level) or "municipality"
     rows = _fetch_priority_rows(
         db=db,
@@ -1983,6 +2186,7 @@ def generate_brief(
     )
     return BriefGenerateResponse(
         brief_id=f"brief-{uuid4().hex[:12]}",
+        report_type="strategic",
         title=f"Brief Executivo - {title_scope}",
         generated_at=datetime.now(UTC),
         period=payload.period,

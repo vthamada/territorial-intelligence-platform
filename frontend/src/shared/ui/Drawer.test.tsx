@@ -37,12 +37,12 @@ describe("Drawer", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it("is hidden when closed", () => {
+  it("does not render when closed", () => {
     render(
       <Drawer open={false} onClose={vi.fn()} title="Oculto">
         <p>Invisivel</p>
       </Drawer>
     );
-    expect(screen.getByRole("dialog", { hidden: true })).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryByRole("dialog", { name: "Oculto" })).not.toBeInTheDocument();
   });
 });

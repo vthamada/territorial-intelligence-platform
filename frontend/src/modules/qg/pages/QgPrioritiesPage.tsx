@@ -1,9 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { formatApiError } from "../../../shared/api/http";
-import { getElectorateElectionContext, getPriorityList } from "../../../shared/api/qg";
+import { getPriorityList } from "../../../shared/api/qg";
 import { getQgDomainLabel, normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
+import {
+  buildElectoralMapDeepLink,
+  buildElectorateDeepLink,
+  formatCandidateLabel,
+  formatInteger,
+  formatOfficeLabel,
+  formatPercent,
+  getExecutiveElectionContext,
+  normalizeExecutiveLevel,
+} from "../electionContextUtils";
 import { Panel } from "../../../shared/ui/Panel";
 import { PriorityItemCard } from "../../../shared/ui/PriorityItemCard";
 import { formatLevelLabel } from "../../../shared/ui/presentation";
@@ -32,13 +42,6 @@ function csvEscape(value: string) {
   return `"${escaped}"`;
 }
 
-function normalizeLevel(value: string | null) {
-  if (value === "district" || value === "census_sector" || value === "electoral_zone" || value === "electoral_section") {
-    return value;
-  }
-  return "municipality";
-}
-
 function normalizeSort(value: string | null): PrioritySort {
   if (value === "criticality_desc" || value === "criticality_asc" || value === "territory_asc" || value === "trend_desc") {
     return value;
@@ -46,56 +49,10 @@ function normalizeSort(value: string | null): PrioritySort {
   return "criticality_desc";
 }
 
-function formatOfficeLabel(value: string | null) {
-  if (!value) {
-    return "-";
-  }
-  return value
-    .toLocaleLowerCase("pt-BR")
-    .split(" ")
-    .map((part) => part.charAt(0).toLocaleUpperCase("pt-BR") + part.slice(1))
-    .join(" ");
-}
-
-function formatCandidateLabel(ballotName: string | null, candidateName: string | null) {
-  return ballotName || candidateName || "-";
-}
-
-function formatInteger(value: number | null | undefined) {
-  if (value === null || value === undefined) {
-    return "-";
-  }
-  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(value);
-}
-
-function formatPercent(value: number | null | undefined) {
-  if (value === null || value === undefined) {
-    return "-";
-  }
-  return `${value.toLocaleString("pt-BR", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  })}%`;
-}
-
-async function getExecutiveElectionContext(level: string) {
-  try {
-    const payload = await getElectorateElectionContext({ level, limit: 5 });
-    if (payload.items.length > 0 || level === "municipality") {
-      return payload;
-    }
-  } catch (error) {
-    if (level === "municipality") {
-      throw error;
-    }
-  }
-  return getElectorateElectionContext({ level: "municipality", limit: 5 });
-}
-
 export function QgPrioritiesPage() {
   const [searchParams] = useSearchParams();
   const initialPeriod = searchParams.get("period") || "";
-  const initialLevel = normalizeLevel(searchParams.get("level"));
+  const initialLevel = normalizeExecutiveLevel(searchParams.get("level"));
   const initialDomain = normalizeQgDomain(searchParams.get("domain"));
   const initialOnlyCritical = searchParams.get("only_critical") === "true";
   const initialSortBy = normalizeSort(searchParams.get("sort"));
@@ -375,32 +332,42 @@ export function QgPrioritiesPage() {
             onRetry={() => void electionContextQuery.refetch()}
           />
         ) : electionContext && electionContext.items.length > 0 ? (
-          <div className="kpi-grid" style={{ marginTop: "0.85rem" }}>
-            <StrategicIndexCard
-              label="Ano eleitoral"
-              value={electionContext.year ? String(electionContext.year) : "-"}
-              status="info"
-              helper="referência nominal"
-            />
-            <StrategicIndexCard
-              label="Cargo principal"
-              value={formatOfficeLabel(electionContext.office)}
-              status="info"
-              helper={electionContext.election_round ? `${electionContext.election_round}o turno` : "turno único"}
-            />
-            <StrategicIndexCard
-              label="Líder do recorte"
-              value={formatCandidateLabel(leadingCandidate?.ballot_name ?? null, leadingCandidate?.candidate_name ?? null)}
-              status="info"
-              helper={formatPercent(leadingCandidate?.share_percent)}
-            />
-            <StrategicIndexCard
-              label="Votos válidos"
-              value={formatInteger(electionContext.total_votes)}
-              status="info"
-              helper={formatLevelLabel(electionContext.level)}
-            />
-          </div>
+          <>
+            <div className="kpi-grid" style={{ marginTop: "0.85rem" }}>
+              <StrategicIndexCard
+                label="Ano eleitoral"
+                value={electionContext.year ? String(electionContext.year) : "-"}
+                status="info"
+                helper="referência nominal"
+              />
+              <StrategicIndexCard
+                label="Cargo principal"
+                value={formatOfficeLabel(electionContext.office)}
+                status="info"
+                helper={electionContext.election_round ? `${electionContext.election_round}o turno` : "turno único"}
+              />
+              <StrategicIndexCard
+                label="Líder do recorte"
+                value={formatCandidateLabel(leadingCandidate?.ballot_name ?? null, leadingCandidate?.candidate_name ?? null)}
+                status="info"
+                helper={formatPercent(leadingCandidate?.share_percent)}
+              />
+              <StrategicIndexCard
+                label="Votos válidos"
+                value={formatInteger(electionContext.total_votes)}
+                status="info"
+                helper={formatLevelLabel(electionContext.level)}
+              />
+            </div>
+            <div className="panel-actions-row">
+              <Link className="inline-link" to={buildElectorateDeepLink(electionContext)}>
+                Abrir eleitorado
+              </Link>
+              <Link className="inline-link" to={buildElectoralMapDeepLink(electionContext)}>
+                Abrir mapa eleitoral
+              </Link>
+            </div>
+          </>
         ) : null}
         <div className="kpi-grid" style={{ marginTop: "0.85rem" }}>
           <StrategicIndexCard

@@ -422,6 +422,7 @@ describe("QG pages", () => {
 
     vi.mocked(postBriefGenerate).mockResolvedValue({
       brief_id: "brief-mock-001",
+      report_type: "strategic",
       title: "Brief Executivo - Diamantina",
       generated_at: "2026-02-11T12:00:00Z",
       period: "2025",
@@ -713,6 +714,7 @@ describe("QG pages", () => {
   it("applies insights filters only on submit", async () => {
     renderWithQueryClient(<QgInsightsPage />);
     await waitFor(() => expect(getInsightsHighlights).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getElectorateElectionContext).toHaveBeenCalled());
     await screen.findByLabelText(/Dom/i);
 
     await userEvent.selectOptions(screen.getByLabelText(/Dom/i), "saude");
@@ -728,6 +730,15 @@ describe("QG pages", () => {
       limit: 50
     });
     expect(screen.getByText("Saude: Diamantina")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Abrir eleitorado" })).toHaveAttribute(
+      "href",
+      "/eleitorado?year=2024&office=PREFEITO&election_round=1",
+    );
+    expect(screen.getByRole("link", { name: "Abrir mapa eleitoral" })).toHaveAttribute(
+      "href",
+      "/mapa?level=secao_eleitoral&layer_id=territory_polling_place&electoral_metric=voters&period=2024",
+    );
+    expect(screen.getAllByRole("link", { name: "Ver eleitorado" }).length).toBeGreaterThan(0);
   });
 
   it("submits scenario simulation and renders result", async () => {

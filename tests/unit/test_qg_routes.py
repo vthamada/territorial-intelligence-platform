@@ -4,10 +4,26 @@ from collections.abc import Generator
 from datetime import UTC, datetime
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.api.deps import get_db
+from app.api import routes_qg
 from app.api.main import app
+from app.schemas.qg import (
+    BriefEvidenceItem,
+    ElectorateCandidateTerritoriesResponse,
+    ElectorateCandidateTerritoryItem,
+    ElectorateElectionContextResponse,
+    ElectorateHistoryItem,
+    ElectorateHistoryResponse,
+    ElectoratePollingPlaceItem,
+    ElectoratePollingPlacesResponse,
+    ElectorateSummaryResponse,
+    ElectionContextCandidateItem,
+    ElectionContextOfficeOption,
+    QgMetadata,
+)
 
 
 class _RowsResult:
@@ -1438,6 +1454,213 @@ def test_briefs_generate_returns_not_found_for_unknown_territory() -> None:
     )
 
     assert response.status_code == 404
+    app.dependency_overrides.clear()
+
+
+def test_briefs_generate_supports_electorate_report(monkeypatch: pytest.MonkeyPatch) -> None:
+    app.dependency_overrides[get_db] = _qg_db
+    client = TestClient(app, raise_server_exceptions=False)
+
+    monkeypatch.setattr(
+        routes_qg,
+        "get_electorate_summary",
+        lambda **_kwargs: ElectorateSummaryResponse(
+            level="municipio",
+            year=2024,
+            metadata=QgMetadata(
+                source_name="silver.fact_electorate",
+                updated_at=None,
+                coverage_note="territorial_aggregated",
+                unit="voters",
+                notes="electorate_summary_v1",
+            ),
+            total_voters=38607,
+            turnout=27941,
+            turnout_rate=72.37,
+            abstention_rate=27.63,
+            blank_rate=5.54,
+            null_rate=7.62,
+            by_sex=[],
+            by_age=[],
+            by_education=[],
+        ),
+    )
+    monkeypatch.setattr(
+        routes_qg,
+        "get_electorate_history",
+        lambda **_kwargs: ElectorateHistoryResponse(
+            level="municipio",
+            metadata=QgMetadata(
+                source_name="silver.fact_electorate + silver.fact_election_result",
+                updated_at=None,
+                coverage_note="historical_series",
+                unit="voters",
+                notes="electorate_history_v1",
+            ),
+            items=[
+                ElectorateHistoryItem(
+                    year=2024,
+                    total_voters=38607,
+                    turnout=27941,
+                    turnout_rate=72.37,
+                    abstention_rate=27.63,
+                    blank_rate=5.54,
+                    null_rate=7.62,
+                ),
+                ElectorateHistoryItem(
+                    year=2022,
+                    total_voters=38097,
+                    turnout=28448,
+                    turnout_rate=75.11,
+                    abstention_rate=24.89,
+                    blank_rate=6.54,
+                    null_rate=3.8,
+                ),
+            ],
+        ),
+    )
+    monkeypatch.setattr(
+        routes_qg,
+        "get_electorate_polling_places",
+        lambda **_kwargs: ElectoratePollingPlacesResponse(
+            metric="voters",
+            year=2024,
+            metadata=QgMetadata(
+                source_name="silver.fact_electorate",
+                updated_at=None,
+                coverage_note="polling_place_ranked",
+                unit="voters",
+                notes="electorate_polling_places_v1",
+            ),
+            items=[
+                ElectoratePollingPlaceItem(
+                    territory_id="pp-1",
+                    territory_name="UEMG (ANTIGA FEVALE)",
+                    territory_level="polling_place",
+                    metric="voters",
+                    value=2327,
+                    year=2024,
+                    polling_place_name="UEMG (ANTIGA FEVALE)",
+                    polling_place_code="101",
+                    district_name="Centro",
+                    zone_codes=["101"],
+                    section_count=13,
+                    sections=["41", "177", "212"],
+                    voters_total=2327,
+                    share_percent=6.03,
+                )
+            ],
+        ),
+    )
+    monkeypatch.setattr(
+        routes_qg,
+        "get_electorate_election_context",
+        lambda **_kwargs: ElectorateElectionContextResponse(
+            level="municipio",
+            year=2024,
+            election_round=1,
+            office="PREFEITO",
+            election_type="municipal",
+            metadata=QgMetadata(
+                source_name="silver.fact_candidate_vote",
+                updated_at=None,
+                coverage_note="candidate_context",
+                unit="votes",
+                notes="electorate_election_context_v1",
+            ),
+            total_votes=24265,
+            available_offices=[
+                ElectionContextOfficeOption(
+                    office="PREFEITO",
+                    election_round=1,
+                    election_type="municipal",
+                    total_votes=24265,
+                    is_primary=True,
+                )
+            ],
+            items=[
+                ElectionContextCandidateItem(
+                    candidate_id="cand-1",
+                    candidate_number="15",
+                    candidate_name="Paquito",
+                    ballot_name="Paquito",
+                    party_abbr="MDB",
+                    party_number="15",
+                    party_name="Movimento Democrático Brasileiro",
+                    votes=12334,
+                    share_percent=50.83,
+                )
+            ],
+        ),
+    )
+    monkeypatch.setattr(
+        routes_qg,
+        "get_electorate_candidate_territories",
+        lambda **_kwargs: ElectorateCandidateTerritoriesResponse(
+            level="secao_eleitoral",
+            aggregate_by="polling_place",
+            year=2024,
+            election_round=1,
+            office="PREFEITO",
+            election_type="municipal",
+            candidate_id="cand-1",
+            metadata=QgMetadata(
+                source_name="silver.fact_candidate_vote",
+                updated_at=None,
+                coverage_note="candidate_territorial",
+                unit="votes",
+                notes="electorate_candidate_territories_v1",
+            ),
+            items=[
+                ElectorateCandidateTerritoryItem(
+                    territory_id="pp-1",
+                    territory_name="UEMG (ANTIGA FEVALE)",
+                    territory_level="polling_place",
+                    candidate_id="cand-1",
+                    candidate_number="15",
+                    candidate_name="Paquito",
+                    ballot_name="Paquito",
+                    party_abbr="MDB",
+                    party_number="15",
+                    party_name="Movimento Democrático Brasileiro",
+                    votes=623,
+                    share_percent=5.05,
+                    polling_place_name="UEMG (ANTIGA FEVALE)",
+                    polling_place_code="101",
+                    district_name="Centro",
+                    zone_codes=["101"],
+                    section_count=7,
+                    sections=["21", "23"],
+                    polling_place_section_count=13,
+                    polling_place_sections=["21", "23", "41"],
+                )
+            ],
+        ),
+    )
+
+    response = client.post(
+        "/v1/briefs",
+        json={
+            "report_type": "electorate",
+            "level": "municipio",
+            "year": 2024,
+            "office": "PREFEITO",
+            "election_round": 1,
+            "metric": "voters",
+            "candidate_id": "cand-1",
+            "limit": 8,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["report_type"] == "electorate"
+    assert payload["domain"] == "eleitorado"
+    assert payload["title"] == "Relatório Eleitoral - 2024 / Prefeito"
+    assert any("Liderança nominal" in line for line in payload["summary_lines"])
+    assert len(payload["evidences"]) >= 2
+    assert payload["evidences"][0]["domain"] == "eleitorado_contexto"
+    assert payload["metadata"]["notes"].startswith("electorate_brief_v1")
     app.dependency_overrides.clear()
 
 

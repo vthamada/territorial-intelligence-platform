@@ -21,7 +21,7 @@ vi.mock("../../../shared/api/qg", () => ({
   getElectorateCandidateTerritories: vi.fn(),
 }));
 
-function renderWithQueryClient(ui: ReactElement) {
+function renderWithQueryClient(ui: ReactElement, initialEntries: string[] = ["/"]) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -32,7 +32,7 @@ function renderWithQueryClient(ui: ReactElement) {
   });
 
   return render(
-    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={initialEntries} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
     </MemoryRouter>,
   );
@@ -406,7 +406,7 @@ describe("ElectorateExecutivePage", () => {
     await screen.findByText("Ano 2022 sem dados consolidados");
     expect(screen.getByText(/Mostrando automaticamente o último recorte com dados \(2024\)/)).toBeInTheDocument();
     expect((await screen.findAllByText("UEMG (ANTIGA FEVALE)")).length).toBeGreaterThan(0);
-    expect(screen.getByText("Contexto da eleição")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Contexto da eleição" })).toBeInTheDocument();
   });
 
   it("renders election context and allows switching candidate territorial distribution", async () => {
@@ -648,6 +648,64 @@ describe("ElectorateExecutivePage", () => {
     expect(screen.queryByText("18 anos")).not.toBeInTheDocument();
     expect(screen.queryByText("19 anos")).not.toBeInTheDocument();
     expect(screen.queryByText("20 anos")).not.toBeInTheDocument();
+  });
+
+  it("opens the electorate report drawer and generates the selected file locally", async () => {
+    const createObjectUrlMock = vi.fn(() => "blob:test");
+    const revokeObjectUrlMock = vi.fn();
+    const anchorClickMock = vi.fn();
+
+    URL.createObjectURL = createObjectUrlMock;
+    URL.revokeObjectURL = revokeObjectUrlMock;
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(anchorClickMock);
+
+    renderWithQueryClient(<ElectorateExecutivePage />);
+
+    await waitFor(() => expect(getElectorateSummary).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getElectorateElectionContext).toHaveBeenCalledTimes(1));
+
+    await userEvent.click(screen.getByRole("button", { name: "Gerar relatório eleitoral" }));
+
+    const drawer = await screen.findByRole("dialog", { name: "Gerar relatório eleitoral" });
+    expect(drawer).toBeInTheDocument();
+    expect(within(drawer).getByText("Blocos do relatório")).toBeInTheDocument();
+    expect(within(drawer).getByLabelText(/Resumo executivo/)).toBeInTheDocument();
+    expect(within(drawer).getByLabelText(/Composição do eleitorado/)).toBeInTheDocument();
+
+    await userEvent.click(within(drawer).getByRole("button", { name: "Gerar arquivo" }));
+
+    expect(createObjectUrlMock).toHaveBeenCalledTimes(1);
+    expect(anchorClickMock).toHaveBeenCalledTimes(1);
+    expect(revokeObjectUrlMock).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Gerar relatório eleitoral" })).not.toBeInTheDocument(),
+    );
+  });
+
+  it("opens the PDF preview in a printable HTML tab and closes the drawer", async () => {
+    const createObjectUrlMock = vi.fn(() => "blob:test");
+    const revokeObjectUrlMock = vi.fn();
+    const anchorClickMock = vi.fn();
+
+    URL.createObjectURL = createObjectUrlMock;
+    URL.revokeObjectURL = revokeObjectUrlMock;
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(anchorClickMock);
+
+    renderWithQueryClient(<ElectorateExecutivePage />);
+
+    await waitFor(() => expect(getElectorateSummary).toHaveBeenCalledTimes(1));
+    await userEvent.click(await screen.findByRole("button", { name: "Gerar relatório eleitoral" }));
+
+    const drawer = await screen.findByRole("dialog", { name: "Gerar relatório eleitoral" });
+    await userEvent.click(within(drawer).getByLabelText(/PDF/i));
+    await userEvent.click(within(drawer).getByRole("button", { name: "Gerar arquivo" }));
+
+    expect(createObjectUrlMock).toHaveBeenCalledTimes(1);
+    expect(anchorClickMock).toHaveBeenCalledTimes(1);
+    expect(revokeObjectUrlMock).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Gerar relatório eleitoral" })).not.toBeInTheDocument(),
+    );
   });
 
   it("uses historical metrics in resumo executivo when summary lacks rates for the selected year", async () => {
@@ -896,5 +954,35 @@ describe("ElectorateExecutivePage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
 
     expect(await screen.findByText("Falha ao carregar fallback do eleitorado")).toBeInTheDocument();
+  });
+
+  it("accepts executive deep-link params for year, metric, office and candidate", async () => {
+    renderWithQueryClient(
+      <ElectorateExecutivePage />,
+      ["/eleitorado?year=2024&metric=turnout&office=VEREADOR&election_round=1&candidate_id=cand-2"],
+    );
+
+    expect(await screen.findByDisplayValue("2024")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Comparecimento")).toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(vi.mocked(getElectorateElectionContext)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          year: 2024,
+          office: "VEREADOR",
+          election_round: 1,
+          limit: 8,
+        }),
+      ),
+    );
+
+    await waitFor(() =>
+      expect(vi.mocked(getElectorateCandidateTerritories)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          candidate_id: "cand-2",
+          aggregate_by: "polling_place",
+        }),
+      ),
+    );
   });
 });

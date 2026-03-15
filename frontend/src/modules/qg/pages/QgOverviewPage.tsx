@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { formatApiError } from "../../../shared/api/http";
 import {
-  getElectorateElectionContext,
   getInsightsHighlights,
   getKpisOverview,
   getPriorityList,
@@ -18,6 +17,16 @@ import { formatLevelLabel, formatStatusLabel, formatValueWithUnit, humanizeDatas
 import { StateBlock } from "../../../shared/ui/StateBlock";
 import { StrategicIndexCard } from "../../../shared/ui/StrategicIndexCard";
 import { getQgDomainLabel, QG_ONDA_BC_SPOTLIGHT } from "../domainCatalog";
+import {
+  buildElectoralMapDeepLink,
+  buildElectorateDeepLink,
+  formatCandidateLabel,
+  formatInteger,
+  formatOfficeLabel,
+  formatPercent,
+  getExecutiveElectionContext,
+  normalizeExecutiveLevel,
+} from "../electionContextUtils";
 
 type StrategicStatus = "critical" | "attention" | "stable" | "info";
 
@@ -57,65 +66,12 @@ function resolveStrategicTrend(byStatus: Record<string, number>): string {
   return "Cenário estável";
 }
 
-function normalizeLevel(value: string) {
-  if (value === "district" || value === "census_sector" || value === "electoral_zone" || value === "electoral_section") {
-    return value;
-  }
-  return "municipality";
-}
-
-function formatOfficeLabel(value: string | null) {
-  if (!value) {
-    return "-";
-  }
-  return value
-    .toLocaleLowerCase("pt-BR")
-    .split(" ")
-    .map((part) => part.charAt(0).toLocaleUpperCase("pt-BR") + part.slice(1))
-    .join(" ");
-}
-
-function formatCandidateLabel(ballotName: string | null, candidateName: string | null) {
-  return ballotName || candidateName || "-";
-}
-
-function formatInteger(value: number | null | undefined) {
-  if (value === null || value === undefined) {
-    return "-";
-  }
-  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(value);
-}
-
-function formatPercent(value: number | null | undefined) {
-  if (value === null || value === undefined) {
-    return "-";
-  }
-  return `${value.toLocaleString("pt-BR", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  })}%`;
-}
-
-async function getExecutiveElectionContext(level: string) {
-  try {
-    const payload = await getElectorateElectionContext({ level, limit: 5 });
-    if (payload.items.length > 0 || level === "municipality") {
-      return payload;
-    }
-  } catch (error) {
-    if (level === "municipality") {
-      throw error;
-    }
-  }
-  return getElectorateElectionContext({ level: "municipality", limit: 5 });
-}
-
 export function QgOverviewPage() {
   const globalFilters = useFilterStore();
   const [period, setPeriod] = useState(globalFilters.period || "2025");
-  const [level, setLevel] = useState(normalizeLevel(globalFilters.level || "municipality"));
+  const [level, setLevel] = useState(normalizeExecutiveLevel(globalFilters.level || "municipality"));
   const [appliedPeriod, setAppliedPeriod] = useState(globalFilters.period || "2025");
-  const [appliedLevel, setAppliedLevel] = useState(normalizeLevel(globalFilters.level || "municipality"));
+  const [appliedLevel, setAppliedLevel] = useState(normalizeExecutiveLevel(globalFilters.level || "municipality"));
 
   const baseQuery = useMemo(
     () => ({
@@ -358,10 +314,10 @@ export function QgOverviewPage() {
             </div>
 
             <div className="panel-actions-row">
-              <Link className="inline-link" to="/eleitorado">
+              <Link className="inline-link" to={buildElectorateDeepLink(electionContext)}>
                 Abrir eleitorado
               </Link>
-              <Link className="inline-link" to="/mapa?level=secao_eleitoral&layer_id=territory_polling_place">
+              <Link className="inline-link" to={buildElectoralMapDeepLink(electionContext)}>
                 Abrir mapa eleitoral
               </Link>
             </div>

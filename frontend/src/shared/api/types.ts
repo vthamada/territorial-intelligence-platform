@@ -397,10 +397,16 @@ export type ScenarioSimulateResponse = {
 };
 
 export type BriefGenerateRequest = {
+  report_type?: "strategic" | "electorate" | string;
   period?: string;
   level?: string;
   territory_id?: string;
   domain?: string;
+  year?: number;
+  office?: string;
+  election_round?: number;
+  metric?: string;
+  candidate_id?: string;
   limit?: number;
 };
 
@@ -422,6 +428,7 @@ export type BriefEvidenceItem = {
 
 export type BriefGenerateResponse = {
   brief_id: string;
+  report_type: "strategic" | "electorate" | string;
   title: string;
   generated_at: string;
   period: string | null;

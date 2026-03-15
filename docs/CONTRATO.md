@@ -130,7 +130,7 @@ Endpoints executivos (QG estratégico):
 - `GET /v1/mobility/access` — leitura territorial de acesso a mobilidade com score de déficit e método de alocação
 - `GET /v1/environment/risk` — leitura territorial de risco ambiental (mart Gold) com ranking e prioridade por nível
 - `POST /v1/scenarios/simulate` — simulação antes/depois com delta de score e ranking
-- `POST /v1/briefs` — geração de brief executivo estruturado
+- `POST /v1/briefs` — geração de brief executivo estruturado (`strategic`)
 - `GET /v1/territory/{territory_id}/profile` — perfil 360 do território
 - `GET /v1/territory/{territory_id}/compare` — comparação entre territórios
 - `GET /v1/territory/{territory_id}/peers` — territórios pares
@@ -195,7 +195,8 @@ Escopo funcional executivo (QG estratégico):
 9. Perfil territorial 360:
 - KPIs, indicadores, ranking, pares comparáveis
 10. Eleitorado executivo:
-- resumo eleitoral agregado e visualização em mapa
+- resumo eleitoral agregado, visualização em mapa e geração configurável de relatório eleitoral em HTML/PDF
+- o relatório eleitoral deve nascer da própria tela de `Eleitorado`, usando o contexto já filtrado e seleção explícita de blocos (`resumo`, `histórico`, `contexto da eleição`, `distribuição territorial do candidato`, `ranking de locais de votação`, `composição do eleitorado`)
 11. Hub administrativo:
 - banner de readiness consolidado
 - separação completa executive vs. admin

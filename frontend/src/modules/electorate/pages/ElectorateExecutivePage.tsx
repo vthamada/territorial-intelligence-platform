@@ -1,6 +1,7 @@
 ﻿import { useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { formatApiError } from "../../../shared/api/http";
 import {
   getElectorateCandidateTerritories,
@@ -14,6 +15,13 @@ import type {
   ElectorateHistoryResponse,
   ElectoratePollingPlacesResponse,
 } from "../../../shared/api/types";
+import {
+  buildElectorateReportHtml,
+  sanitizeFilePart,
+  type ElectorateReportFormat,
+  type ElectorateReportSection,
+} from "../../../shared/reports/electorateReport";
+import { Drawer } from "../../../shared/ui/Drawer";
 import { Panel } from "../../../shared/ui/Panel";
 import { formatDecimal, formatInteger } from "../../../shared/ui/presentation";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
@@ -72,6 +80,19 @@ function metricLabel(metric: ElectorateMetric) {
     return "Taxa de brancos";
   }
   return "Taxa de nulos";
+}
+
+function normalizeElectorateMetricParam(value: string | null): ElectorateMetric {
+  if (
+    value === "voters" ||
+    value === "turnout" ||
+    value === "abstention_rate" ||
+    value === "blank_rate" ||
+    value === "null_rate"
+  ) {
+    return value;
+  }
+  return "voters";
 }
 
 function breakdownGroupLabel(group: "sex" | "age" | "education") {
@@ -212,14 +233,126 @@ function sourceLevelLabel(level: string | null | undefined) {
   return level ?? null;
 }
 
+function buildReportFileName(year: number, office: string | null | undefined) {
+  return `relatorio_eleitoral_${sanitizeFilePart(String(year))}_${sanitizeFilePart(office ?? "eleitorado")}`;
+}
+
+function downloadElectorateReportHtml(html: string, year: number, office: string | null | undefined) {
+  const fileName = `${buildReportFileName(year, office)}.html`;
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.target = "_blank";
+  anchor.rel = "noopener noreferrer";
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+}
+
+function buildPrintableReportHtml(html: string) {
+  const printScript = `
+    <script>
+      window.addEventListener("load", function () {
+        window.setTimeout(function () {
+          window.focus();
+          window.print();
+        }, 120);
+      });
+    </script>
+  `;
+  if (html.includes("</body>")) {
+    return html.replace("</body>", `${printScript}</body>`);
+  }
+  return `${html}${printScript}`;
+}
+
+function openElectorateReportPdfPreview(html: string, year: number, office: string | null | undefined) {
+  const blob = new Blob([buildPrintableReportHtml(html)], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.target = "_blank";
+  anchor.rel = "noopener noreferrer";
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+const REPORT_SECTION_OPTIONS: Array<{
+  key: ElectorateReportSection;
+  label: string;
+  description: string;
+}> = [
+  {
+    key: "summary",
+    label: "Resumo executivo",
+    description: "Ano, eleitores, comparecimento, abstenção, brancos e nulos.",
+  },
+  {
+    key: "history",
+    label: "Histórico eleitoral",
+    description: "Série anual do eleitorado e da participação.",
+  },
+  {
+    key: "election_context",
+    label: "Contexto da eleição",
+    description: "Tipo da eleição, cargo em exibição e candidatos mais votados.",
+  },
+  {
+    key: "candidate_territories",
+    label: "Distribuição territorial do candidato",
+    description: "Votação do candidato selecionado por local de votação.",
+  },
+  {
+    key: "polling_places",
+    label: "Ranking de locais de votação",
+    description: "Locais, distritos, seções e ranking pela métrica escolhida.",
+  },
+  {
+    key: "composition",
+    label: "Composição do eleitorado",
+    description: "Sexo, idade e escolaridade do eleitorado.",
+  },
+];
+
+const DEFAULT_REPORT_SECTIONS: Record<ElectorateReportSection, boolean> = {
+  summary: true,
+  history: true,
+  election_context: true,
+  candidate_territories: true,
+  polling_places: true,
+  composition: true,
+};
+
 export function ElectorateExecutivePage() {
-  const [yearInput, setYearInput] = useState("");
-  const [metric, setMetric] = useState<ElectorateMetric>("voters");
-  const [appliedYear, setAppliedYear] = useState<number | undefined>(undefined);
-  const [appliedMetric, setAppliedMetric] = useState<ElectorateMetric>("voters");
+  const [searchParams] = useSearchParams();
+  const initialYearInput = searchParams.get("year") || "";
+  const parsedInitialYear = initialYearInput.trim() ? Number(initialYearInput) : undefined;
+  const initialMetric = normalizeElectorateMetricParam(searchParams.get("metric"));
+  const initialOfficeKey = buildOfficeSelectionKey(
+    searchParams.get("office"),
+    searchParams.get("election_round") ? Number(searchParams.get("election_round")) : undefined,
+  );
+  const initialCandidateId = searchParams.get("candidate_id");
+
+  const [yearInput, setYearInput] = useState(initialYearInput);
+  const [metric, setMetric] = useState<ElectorateMetric>(initialMetric);
+  const [appliedYear, setAppliedYear] = useState<number | undefined>(
+    Number.isFinite(parsedInitialYear) ? parsedInitialYear : undefined,
+  );
+  const [appliedMetric, setAppliedMetric] = useState<ElectorateMetric>(initialMetric);
   const [compositionTab, setCompositionTab] = useState<"sex" | "age" | "education">("sex");
-  const [selectedOfficeKey, setSelectedOfficeKey] = useState<string | null>(null);
-  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
+  const [selectedOfficeKey, setSelectedOfficeKey] = useState<string | null>(initialOfficeKey);
+  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(initialCandidateId);
+  const [reportDrawerOpen, setReportDrawerOpen] = useState(false);
+  const [reportFormat, setReportFormat] = useState<ElectorateReportFormat>("html");
+  const [reportSections, setReportSections] =
+    useState<Record<ElectorateReportSection, boolean>>(DEFAULT_REPORT_SECTIONS);
+  const [reportExportError, setReportExportError] = useState<string | null>(null);
   const requestedOfficeSelection = useMemo(() => parseOfficeSelectionKey(selectedOfficeKey), [selectedOfficeKey]);
 
   const baseQuery = useMemo(
@@ -473,6 +606,98 @@ export function ElectorateExecutivePage() {
   const candidateTerritoriesSourceLevel = extractMetadataFlag(candidateTerritories?.metadata.notes, "source_level");
   const candidateTerritoriesRequestedAggregate = extractMetadataFlag(candidateTerritories?.metadata.notes, "requested_aggregate");
   const candidateTerritoriesUnavailable = candidateTerritories?.metadata.notes?.startsWith("candidate_territories_unavailable") ?? false;
+  const availableReportSections = {
+    summary: true,
+    history: effectiveHistory.items.length > 0,
+    election_context: Boolean(electionContextQuery.data?.items.length),
+    candidate_territories: Boolean(selectedCandidate && candidateTerritories && candidateTerritories.items.length > 0),
+    polling_places: effectivePollingPlaces.items.length > 0,
+    composition:
+      effectiveSummary.by_sex.length > 0 || ageBreakdown.length > 0 || effectiveSummary.by_education.length > 0,
+  };
+  const selectedReportSections = REPORT_SECTION_OPTIONS.map((option) => option.key).filter(
+    (key) => reportSections[key] && availableReportSections[key],
+  );
+
+  function toggleReportSection(section: ElectorateReportSection) {
+    setReportSections((current) => ({
+      ...current,
+      [section]: !current[section],
+    }));
+  }
+
+  function openReportDrawer() {
+    setReportExportError(null);
+    setReportDrawerOpen(true);
+  }
+
+  function closeReportDrawer() {
+    setReportDrawerOpen(false);
+  }
+
+  function generateElectorateReportFile() {
+    if (effectiveDisplayYear === null || selectedReportSections.length === 0) {
+      return;
+    }
+
+    setReportExportError(null);
+    const html = buildElectorateReportHtml({
+      generatedAt: new Date(),
+      year: effectiveDisplayYear,
+      metricLabel: metricLabel(appliedMetric),
+      officeLabel: formatOfficeLabel(electionContextQuery.data?.office ?? null),
+      electionTypeLabel: formatElectionType(electionContextQuery.data?.election_type ?? null),
+      electionRoundLabel: electionContextQuery.data?.election_round
+        ? `${electionContextQuery.data.election_round}º turno`
+        : "-",
+      candidateLabel: selectedCandidate
+        ? formatCandidateLabel(selectedCandidate.ballot_name, selectedCandidate.candidate_name)
+        : null,
+      sections: selectedReportSections,
+      summary: effectiveSummary,
+      summaryTurnout: effectiveSummaryTurnout,
+      summaryTurnoutRate: effectiveSummaryTurnoutRate,
+      summaryAbstentionRate: effectiveSummaryAbstentionRate,
+      summaryBlankRate: effectiveSummaryBlankRate,
+      summaryNullRate: effectiveSummaryNullRate,
+      history: effectiveHistory,
+      electionContext: electionContextQuery.data ?? null,
+      candidateTerritories,
+      pollingPlaces: effectivePollingPlaces,
+      ageBreakdown,
+    });
+
+    if (reportFormat === "html") {
+      flushSync(() => {
+        setReportDrawerOpen(false);
+      });
+      downloadElectorateReportHtml(
+        html,
+        effectiveDisplayYear,
+        electionContextQuery.data?.office ?? "eleitorado",
+      );
+      return;
+    }
+
+    try {
+      flushSync(() => {
+        setReportDrawerOpen(false);
+      });
+      openElectorateReportPdfPreview(
+        html,
+        effectiveDisplayYear,
+        electionContextQuery.data?.office ?? "eleitorado",
+      );
+    } catch (error) {
+      flushSync(() => {
+        setReportDrawerOpen(false);
+      });
+      setReportExportError(
+        error instanceof Error ? error.message : "Não foi possível preparar a impressão do relatório.",
+      );
+      return;
+    }
+  }
 
   return (
     <div className="page-grid">
@@ -502,6 +727,14 @@ export function ElectorateExecutivePage() {
             <button type="submit">Aplicar filtros</button>
             <button type="button" className="button-secondary" onClick={clearFilters}>
               Limpar
+            </button>
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={openReportDrawer}
+              disabled={effectiveDisplayYear === null}
+            >
+              Gerar relatório eleitoral
             </button>
           </div>
         </form>
@@ -974,6 +1207,105 @@ export function ElectorateExecutivePage() {
           </div>
         )}
       </Panel>
+
+      <Drawer
+        open={reportDrawerOpen}
+        onClose={closeReportDrawer}
+        title="Gerar relatório eleitoral"
+        width="440px"
+      >
+        <div style={{ display: "grid", gap: "1rem" }}>
+          <section style={{ display: "grid", gap: "0.5rem" }}>
+            <p className="panel-subtitle">
+              O arquivo será gerado a partir do contexto já aplicado na tela de Eleitorado.
+            </p>
+            <div className="source-freshness-badge" style={{ marginTop: 0 }}>
+              <span>Ano: {effectiveDisplayYear ?? "-"}</span>
+              <span>Cargo: {formatOfficeLabel(electionContextQuery.data?.office ?? null)}</span>
+              <span>Turno: {electionContextQuery.data?.election_round ? `${electionContextQuery.data.election_round}º turno` : "-"}</span>
+              <span>Candidato: {selectedCandidate ? formatCandidateLabel(selectedCandidate.ballot_name, selectedCandidate.candidate_name) : "Não selecionado"}</span>
+            </div>
+          </section>
+
+          <section style={{ display: "grid", gap: "0.6rem" }}>
+            <h3 style={{ fontSize: "1rem" }}>Formato do arquivo</h3>
+            <div style={{ display: "grid", gap: "0.45rem" }}>
+              <label className="report-option">
+                <input
+                  type="radio"
+                  name="electorate-report-format"
+                  value="html"
+                  checked={reportFormat === "html"}
+                  onChange={() => setReportFormat("html")}
+                />
+                <span>
+                  <strong>HTML</strong>
+                  <small>Arquivo navegável para compartilhamento e arquivamento.</small>
+                </span>
+              </label>
+              <label className="report-option">
+                <input
+                  type="radio"
+                  name="electorate-report-format"
+                  value="pdf"
+                  checked={reportFormat === "pdf"}
+                  onChange={() => setReportFormat("pdf")}
+                />
+                <span>
+                  <strong>PDF</strong>
+                  <small>Abre a impressão do navegador para salvar ou imprimir em PDF.</small>
+                </span>
+              </label>
+            </div>
+          </section>
+
+          <section style={{ display: "grid", gap: "0.6rem" }}>
+            <h3 style={{ fontSize: "1rem" }}>Blocos do relatório</h3>
+            <div style={{ display: "grid", gap: "0.55rem" }}>
+              {REPORT_SECTION_OPTIONS.map((option) => {
+                const available = availableReportSections[option.key];
+                return (
+                  <label key={option.key} className={`report-option${available ? "" : " report-option-disabled"}`}>
+                    <input
+                      type="checkbox"
+                      checked={available && reportSections[option.key]}
+                      disabled={!available}
+                      onChange={() => toggleReportSection(option.key)}
+                    />
+                    <span>
+                      <strong>{option.label}</strong>
+                      <small>{available ? option.description : "Indisponível no recorte atual."}</small>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </section>
+
+          <section style={{ display: "grid", gap: "0.5rem" }}>
+            <h3 style={{ fontSize: "1rem" }}>Resumo da geração</h3>
+            <p className="panel-subtitle">
+              {selectedReportSections.length === 0
+                ? "Selecione pelo menos um bloco para gerar o arquivo."
+                : `${selectedReportSections.length} blocos serão incluídos no arquivo.`}
+            </p>
+            {reportExportError ? <p className="brief-export-error">{reportExportError}</p> : null}
+          </section>
+
+          <div className="panel-actions-row" style={{ marginBottom: 0 }}>
+            <button type="button" className="button-secondary" onClick={closeReportDrawer}>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={generateElectorateReportFile}
+              disabled={effectiveDisplayYear === null || selectedReportSections.length === 0}
+            >
+              Gerar arquivo
+            </button>
+          </div>
+        </div>
+      </Drawer>
     </div>
   );
 }

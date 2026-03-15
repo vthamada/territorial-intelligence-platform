@@ -29,9 +29,13 @@ export function Drawer({ open, onClose, title, side = "right", width = "380px", 
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open, onClose]);
 
+  if (!open) {
+    return null;
+  }
+
   return (
     <>
-      {open && showBackdrop ? (
+      {showBackdrop ? (
         <div
           className="drawer-backdrop"
           onClick={onClose}
@@ -40,12 +44,11 @@ export function Drawer({ open, onClose, title, side = "right", width = "380px", 
       ) : null}
       <aside
         ref={panelRef}
-        className={`drawer drawer-${side} ${open ? "drawer-open" : ""}`}
+        className={`drawer drawer-${side} drawer-open`}
         style={{ width }}
         role="dialog"
-        aria-modal={open}
+        aria-modal={true}
         aria-label={title}
-        aria-hidden={!open}
         tabIndex={-1}
       >
         <header className="drawer-header">

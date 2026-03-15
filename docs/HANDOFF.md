@@ -31,12 +31,13 @@ Papel deste documento: memória operacional viva do projeto, preservando estado 
    - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py tests/unit/test_tse_candidate_votes.py tests/unit/test_tse_electorate.py -q` -> `55 passed`.
    - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_routes.py -q` -> `35 passed`.
    - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`.
-   - `npm.cmd --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `8 passed`.
+   - `npm.cmd --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `10 passed`.
    - `npm.cmd --prefix frontend run test -- --run src/modules/admin/pages/AdminHubPage.test.tsx` -> `5 passed`.
    - `npm --prefix frontend run build` -> `OK`.
    - `./.venv/Scripts/python.exe scripts/audit_electorate_consistency.py` -> relatório atualizado.
 4. Próximo passo executável real:
-   - propagar a mesma leitura nominal já validada para `Insights` e deep-links executivos relacionados, sem abrir `UX-2` antes da hora;
+   - sustentar o contexto eleitoral nominal já propagado para `Home`, `Prioridades` e `Insights`, preservando deep-links executivos consistentes para `Eleitorado` e `Mapa`;
+   - amadurecer a geração de relatório eleitoral modular na tela de `Eleitorado`, mantendo seleção explícita de blocos e avaliando evolução futura para formatos adicionais sem reabrir o fluxo inline;
    - manter a limpeza do legado em `electoral_zone` automatizada via `scripts/cleanup_candidate_vote_zone_legacy.py` e `scripts/equalize_database_env.ps1`;
    - preservar `Presidente` como cargo principal dos anos gerais (`2018`/`2022`) e `Prefeito` como cargo principal dos anos municipais;
    - manter rotina recorrente da janela de 30 dias com persistência de snapshots (`scripts/persist_ops_robustness_window.py`);
@@ -45,6 +46,80 @@ Papel deste documento: memória operacional viva do projeto, preservando estado 
 5. Regra de leitura:
    - apenas esta seção define o "próximo passo executável" vigente;
    - seções abaixo preservam histórico de entregas/rodadas e não reabrem pendências já concluídas, salvo regressão comprovada.
+
+## Atualização técnica (2026-03-14) - Hotfix do relatório eleitoral para fechamento real e preview de impressão
+
+1. Fluxo do drawer:
+   - `Drawer` deixou de ficar apenas oculto fora da tela e passou a ser desmontado quando `open=false`;
+   - isso elimina o falso positivo visual de modal “preso” após `Gerar arquivo`.
+2. Fluxo de PDF:
+   - o ramo `PDF` do relatório eleitoral deixou de usar `iframe` oculto com `print()`;
+   - a geração agora abre uma aba `blob:` com o HTML do relatório e dispara `window.print()` no carregamento;
+   - isso preserva melhor o gesto do usuário e evita o bloqueio silencioso que impedia a impressão em alguns navegadores.
+3. Estado validado:
+   - o ramo `HTML` continua baixando arquivo local;
+   - o ramo `PDF` agora fecha o drawer e abre preview imprimível em nova aba.
+4. Validação:
+   - `npm --prefix frontend run test -- --run src/shared/ui/Drawer.test.tsx src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `16 passed`;
+   - `npm --prefix frontend run build` -> `OK`;
+   - Playwright confirmou abertura de aba `Relatório Eleitoral - 2024` em `blob:` após gerar `PDF`.
+
+## Atualização técnica (2026-03-14) - Insights com contexto eleitoral e deep-links executivos
+
+1. Propagação do eixo nominal:
+   - `QgInsightsPage` passou a consumir o mesmo contexto eleitoral nominal executivo já homologado em `Home` e `Prioridades`;
+   - a tela agora mostra ano eleitoral de referência, cargo principal, liderança nominal e votos válidos como apoio de leitura dos insights.
+2. Deep-links executivos:
+   - `Home`, `Prioridades` e `Insights` passaram a compartilhar um helper único para montar links para `Eleitorado` e `Mapa eleitoral`;
+   - os links agora preservam `year`, `office` e `election_round`, reduzindo perda de contexto entre telas.
+3. Eleitorado:
+   - `ElectorateExecutivePage` passou a aceitar query string com `year`, `metric`, `office`, `election_round` e `candidate_id`;
+   - isso permite abertura direta no recorte executivo correto a partir das demais telas.
+4. Validação:
+   - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`;
+   - `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `11 passed`;
+   - `npm --prefix frontend run build` -> `OK`.
+
+## Atualização técnica (2026-03-13) - Relatório eleitoral no fluxo correto de Eleitorado
+
+1. Correção de direção de produto:
+   - o fluxo inicial de relatório inline na própria página foi descontinuado;
+   - a geração agora acontece por drawer configurável dentro da tela de `Eleitorado`, evitando poluição visual e deixando o usuário escolher exatamente quais blocos entram no arquivo final.
+2. Frontend/Eleitorado:
+   - `ElectorateExecutivePage` passou a abrir um drawer `Gerar relatório eleitoral` no bloco de filtros;
+   - o usuário agora escolhe:
+     - formato (`HTML` ou `PDF`);
+     - blocos do relatório (`Resumo executivo`, `Histórico eleitoral`, `Contexto da eleição`, `Distribuição territorial do candidato`, `Ranking de locais de votação`, `Composição do eleitorado`);
+   - a geração deixou de renderizar um relatório grande dentro da página.
+   - o fluxo de PDF deixou de depender de `window.open`; a impressão agora é acionada por `iframe` oculto, evitando bloqueio por pop-up e fechando o drawer corretamente.
+3. Builder de relatório:
+   - `frontend/src/shared/reports/electorateReport.ts` passou a concentrar a composição HTML do relatório eleitoral;
+   - o arquivo é montado com base no contexto já carregado na tela, sem depender de um relatório inline intermediário.
+4. Validação:
+   - `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `12 passed`;
+   - `npm --prefix frontend run build` -> `OK`.
+
+## Atualização técnica (2026-03-13) - Fluxo inicial de relatório via brief (substituído)
+
+1. Contexto histórico:
+   - `POST /v1/briefs` passou a aceitar `report_type=electorate`, reutilizando o motor de briefs para gerar relatório eleitoral contextual com:
+     - ano;
+     - cargo/turno;
+     - resumo executivo do eleitorado;
+     - contexto nominal;
+     - ranking territorial de locais de votação;
+     - distribuição nominal do candidato selecionado.
+2. Frontend/Eleitorado:
+   - `ElectorateExecutivePage` passou a exibir o botão `Gerar relatório eleitoral` no mesmo bloco de filtros do eleitorado;
+   - o relatório agora nasce do contexto já aplicado na tela, sem desviar o usuário para `Briefs`;
+   - após a geração, a página oferece `Exportar HTML` e `Imprimir / PDF`.
+3. Reuso controlado:
+   - `frontend/src/shared/reports/briefHtml.ts` consolidou o builder HTML compartilhado entre `QgBriefsPage` e o fluxo eleitoral, evitando duplicação de exportação.
+4. Validação:
+   - `.\\.venv\\Scripts\\python.exe -m pytest tests/unit/test_qg_routes.py -q` -> `35 passed`;
+   - `npm.cmd --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `10 passed`;
+   - `npm.cmd --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx src/app/router.smoke.test.tsx src/app/e2e-flow.test.tsx` -> `30 passed`;
+   - `npm.cmd --prefix frontend run build` -> `OK`.
 
 ## Atualização técnica (2026-03-13) - Home eleitoral resiliente e resumo executivo alinhado ao histórico
 

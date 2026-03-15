@@ -438,10 +438,16 @@ class ScenarioSimulateResponse(BaseModel):
 
 
 class BriefGenerateRequest(BaseModel):
+    report_type: str = "strategic"
     period: str | None = None
     level: str | None = "municipality"
     territory_id: str | None = None
     domain: str | None = None
+    year: int | None = Field(default=None, ge=1900, le=2100)
+    office: str | None = None
+    election_round: int | None = Field(default=None, ge=1, le=2)
+    metric: str | None = None
+    candidate_id: str | None = None
     limit: int = Field(default=20, ge=1, le=200)
 
 
@@ -468,6 +474,7 @@ class BriefEvidenceItem(BaseModel):
 
 class BriefGenerateResponse(BaseModel):
     brief_id: str
+    report_type: str = "strategic"
     title: str
     generated_at: datetime
     period: str | None

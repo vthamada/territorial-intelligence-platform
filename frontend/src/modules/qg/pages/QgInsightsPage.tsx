@@ -9,6 +9,16 @@ import { Panel } from "../../../shared/ui/Panel";
 import { formatStatusLabel, humanizeDatasetSource } from "../../../shared/ui/presentation";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
 import { StateBlock } from "../../../shared/ui/StateBlock";
+import { StrategicIndexCard } from "../../../shared/ui/StrategicIndexCard";
+import {
+  buildElectoralMapDeepLink,
+  buildElectorateDeepLink,
+  formatCandidateLabel,
+  formatInteger,
+  formatOfficeLabel,
+  formatPercent,
+  getExecutiveElectionContext,
+} from "../electionContextUtils";
 
 function normalizeSeverity(value: string | null) {
   if (value === "critical" || value === "attention" || value === "info") {
@@ -46,8 +56,15 @@ export function QgInsightsPage() {
     queryKey: ["qg", "insights-page", query],
     queryFn: () => getInsightsHighlights(query)
   });
+  const electionContextQuery = useQuery({
+    queryKey: ["qg", "insights-page", "election-context", "municipality"],
+    queryFn: () => getExecutiveElectionContext("municipality"),
+  });
   const insights = insightsQuery.data;
   const insightItems = insights?.items ?? [];
+  const electionContext = electionContextQuery.data ?? null;
+  const electionContextError = electionContextQuery.error ? formatApiError(electionContextQuery.error) : null;
+  const leadingCandidate = electionContext?.items[0] ?? null;
   const normalizedPageSize = Math.max(1, Number(pageSize) || 20);
   const totalPages = Math.max(1, Math.ceil(insightItems.length / normalizedPageSize));
   const visibleItems = useMemo(() => {
@@ -156,6 +173,71 @@ export function QgInsightsPage() {
         <SourceFreshnessBadge metadata={insightsData.metadata} />
       </Panel>
 
+      <Panel
+        title="Contexto eleitoral de referência"
+        subtitle="Leitura nominal de apoio para cruzar os insights com o ano eleitoral mais recente."
+      >
+        {electionContextQuery.isPending && !electionContext ? (
+          <StateBlock
+            tone="loading"
+            title="Carregando contexto eleitoral"
+            message="Consultando cargo principal e liderança nominal do recorte municipal."
+          />
+        ) : electionContextError ? (
+          <StateBlock
+            tone="error"
+            title="Falha ao carregar contexto eleitoral"
+            message={electionContextError.message}
+            requestId={electionContextError.requestId}
+            onRetry={() => void electionContextQuery.refetch()}
+          />
+        ) : !electionContext || electionContext.items.length === 0 ? (
+          <StateBlock
+            tone="empty"
+            title="Sem contexto eleitoral nominal"
+            message="Ainda não há dados nominais de candidatos para o recorte exibido."
+          />
+        ) : (
+          <>
+            <div className="kpi-grid">
+              <StrategicIndexCard
+                label="Ano eleitoral"
+                value={electionContext.year ? String(electionContext.year) : "-"}
+                status="info"
+                helper="referência nominal"
+              />
+              <StrategicIndexCard
+                label="Cargo principal"
+                value={formatOfficeLabel(electionContext.office)}
+                status="info"
+                helper={electionContext.election_round ? `${electionContext.election_round}o turno` : "turno único"}
+              />
+              <StrategicIndexCard
+                label="Líder do recorte"
+                value={formatCandidateLabel(leadingCandidate?.ballot_name ?? null, leadingCandidate?.candidate_name ?? null)}
+                status="info"
+                helper={formatPercent(leadingCandidate?.share_percent)}
+              />
+              <StrategicIndexCard
+                label="Votos válidos"
+                value={formatInteger(electionContext.total_votes)}
+                status="info"
+                helper="base nominal oficial"
+              />
+            </div>
+            <div className="panel-actions-row">
+              <Link className="inline-link" to={buildElectorateDeepLink(electionContext)}>
+                Abrir eleitorado
+              </Link>
+              <Link className="inline-link" to={buildElectoralMapDeepLink(electionContext)}>
+                Abrir mapa eleitoral
+              </Link>
+            </div>
+            <SourceFreshnessBadge metadata={electionContext.metadata} />
+          </>
+        )}
+      </Panel>
+
       <Panel title="Lista de insights" subtitle="Narrativa curta com evidencias por item">
         <div className="panel-actions-row">
           <label>
@@ -198,6 +280,11 @@ export function QgInsightsPage() {
                         <Link className="inline-link" to={`/mapa?territory_id=${encodeURIComponent(item.territory_id)}`}>
                           Ver no mapa
                         </Link>
+                        {electionContext ? (
+                          <Link className="inline-link" to={buildElectorateDeepLink(electionContext)}>
+                            Ver eleitorado
+                          </Link>
+                        ) : null}
                         <Link
                           className="inline-link"
                           to={`/briefs?territory_id=${encodeURIComponent(item.territory_id)}&period=${encodeURIComponent(
@@ -235,6 +322,11 @@ export function QgInsightsPage() {
                         <Link className="inline-link" to={`/mapa?territory_id=${encodeURIComponent(item.territory_id)}`}>
                           Ver no mapa
                         </Link>
+                        {electionContext ? (
+                          <Link className="inline-link" to={buildElectorateDeepLink(electionContext)}>
+                            Ver eleitorado
+                          </Link>
+                        ) : null}
                         <Link
                           className="inline-link"
                           to={`/briefs?territory_id=${encodeURIComponent(item.territory_id)}&period=${encodeURIComponent(
@@ -272,6 +364,11 @@ export function QgInsightsPage() {
                         <Link className="inline-link" to={`/mapa?territory_id=${encodeURIComponent(item.territory_id)}`}>
                           Ver no mapa
                         </Link>
+                        {electionContext ? (
+                          <Link className="inline-link" to={buildElectorateDeepLink(electionContext)}>
+                            Ver eleitorado
+                          </Link>
+                        ) : null}
                         <Link
                           className="inline-link"
                           to={`/briefs?territory_id=${encodeURIComponent(item.territory_id)}&period=${encodeURIComponent(

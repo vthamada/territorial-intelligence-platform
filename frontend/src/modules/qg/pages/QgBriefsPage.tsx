@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { getTerritories } from "../../../shared/api/domain";
 import { formatApiError } from "../../../shared/api/http";
 import { postBriefGenerate } from "../../../shared/api/qg";
-import type { BriefGenerateResponse } from "../../../shared/api/types";
+import { buildBriefHtml, sanitizeFilePart } from "../../../shared/reports/briefHtml";
 import { getQgDomainLabel, normalizeQgDomain, QG_DOMAIN_OPTIONS } from "../domainCatalog";
 import { usePersistedFormState } from "../../../shared/hooks/usePersistedFormState";
 import { Panel } from "../../../shared/ui/Panel";
@@ -17,88 +17,6 @@ function normalizeLevel(value: string | null) {
     return "district";
   }
   return "municipality";
-}
-
-function escapeHtml(value: string) {
-  return value
-    .split("&").join("&amp;")
-    .split("<").join("&lt;")
-    .split(">").join("&gt;")
-    .split('"').join("&quot;")
-    .split("'").join("&#39;");
-}
-
-function sanitizeFilePart(value: string) {
-  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "brief";
-}
-
-function buildBriefHtml(brief: BriefGenerateResponse) {
-  const summaryItems = brief.summary_lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
-  const actionItems = brief.recommended_actions.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
-  const evidenceRows = brief.evidences
-    .map(
-      (item) => `
-        <tr>
-          <td>${escapeHtml(item.territory_name)}</td>
-          <td>${escapeHtml(getQgDomainLabel(item.domain))}</td>
-          <td>${escapeHtml(item.indicator_name)}</td>
-          <td>${escapeHtml(formatValueWithUnit(item.value, item.unit))}</td>
-          <td>${escapeHtml(formatValueWithUnit(item.score, null))}</td>
-          <td>${escapeHtml(formatStatusLabel(item.status))}</td>
-          <td>${escapeHtml(humanizeDatasetSource(item.source, item.dataset))}</td>
-          <td>${escapeHtml(item.reference_period)}</td>
-        </tr>
-      `
-    )
-    .join("");
-
-  return `<!doctype html>
-<html lang="pt-BR">
-  <head>
-    <meta charset="utf-8" />
-    <title>${escapeHtml(brief.title)}</title>
-    <style>
-      body { font-family: Arial, sans-serif; margin: 24px; color: #1f2937; }
-      h1, h2, h3 { margin: 0 0 10px; }
-      h2 { margin-top: 18px; }
-      p { margin: 6px 0; }
-      ul { margin: 6px 0 0 18px; }
-      li { margin: 4px 0; }
-      .meta { color: #4b5563; font-size: 13px; margin-bottom: 16px; }
-      table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-      th, td { border: 1px solid #d1d5db; padding: 6px 8px; font-size: 13px; text-align: left; }
-      th { background: #f3f4f6; text-transform: uppercase; font-size: 12px; letter-spacing: 0.03em; }
-    </style>
-  </head>
-  <body>
-    <h1>${escapeHtml(brief.title)}</h1>
-    <p class="meta">Gerado em: ${escapeHtml(brief.generated_at)}</p>
-    <p class="meta">Período: ${escapeHtml(brief.period ?? "-")} | Nível: ${escapeHtml(formatLevelLabel(brief.level))} | Domínio: ${escapeHtml(getQgDomainLabel(brief.domain))}</p>
-
-    <h2>Resumo executivo</h2>
-    <ul>${summaryItems}</ul>
-
-    <h2>Acoes recomendadas</h2>
-    <ul>${actionItems}</ul>
-
-    <h2>Evidencias</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Território</th>
-          <th>Domínio</th>
-          <th>Indicador</th>
-          <th>Valor</th>
-          <th>Score</th>
-          <th>Status</th>
-          <th>Fonte</th>
-          <th>Período</th>
-        </tr>
-      </thead>
-      <tbody>${evidenceRows}</tbody>
-    </table>
-  </body>
-</html>`;
 }
 
 export function QgBriefsPage() {
