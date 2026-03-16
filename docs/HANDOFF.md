@@ -1,5 +1,21 @@
 # Territorial Intelligence Platform - Handoff
 
+## Atualização técnica (2026-03-16) - relatório eleitoral com quebra de página estável
+
+1. Relatório eleitoral/PDF:
+   - `frontend/src/shared/reports/electorateReport.ts` passou a aplicar regras de impressão para evitar títulos órfãos em fim de página, manter o cabeçalho da seção junto da tabela subsequente e repetir `thead` nas páginas seguintes do PDF.
+   - o ajuste corrige o caso em que `Ranking de locais de votação` iniciava no rodapé da página anterior enquanto a tabela seguia apenas na página seguinte.
+2. Regressão coberta:
+   - `frontend/src/shared/reports/electorateReport.test.ts` foi adicionado para validar as regras CSS de impressão no HTML exportado.
+   - `ElectorateExecutivePage.test.tsx` foi reexecutado para garantir que o fluxo de geração do relatório continua íntegro.
+3. Verificação documental:
+   - os documentos centrais (`VISION`, `PLANO_IMPLEMENTACAO_QG`, `HANDOFF`, `CHANGELOG` e specs ativos) foram relidos diretamente em UTF-8.
+   - não foi encontrado novo arquivo salvo com encoding incorreto; a degradação residual observada anteriormente estava restrita à exibição do terminal Windows em codepage legado.
+4. Validação:
+   - `npm --prefix frontend run test -- --run src/shared/reports/electorateReport.test.ts src/modules/electorate/pages/ElectorateExecutivePage.test.tsx`
+   - `npm --prefix frontend run build`
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_docs_encoding.py -q`
+
 ## Atualização técnica (2026-03-16) - saneamento final do Admin Hub
 
 1. Correção de UI no Admin:

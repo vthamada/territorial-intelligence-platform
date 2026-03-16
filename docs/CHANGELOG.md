@@ -2,6 +2,18 @@
 
 Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
+## 2026-03-16 - Relatório eleitoral com quebra de página estável e verificação documental
+
+### Changed
+- `frontend/src/shared/reports/electorateReport.ts` recebeu regras adicionais de impressão para manter o cabeçalho da seção acoplado ao conteúdo subsequente, repetir `thead` no PDF e evitar títulos órfãos antes de tabelas extensas.
+- `frontend/src/shared/reports/electorateReport.test.ts` foi adicionado para travar as regras de impressão do HTML exportado pelo módulo de `Eleitorado`.
+- Foi feita uma nova verificação dos documentos centrais do repositório (`VISION`, `PLANO_IMPLEMENTACAO_QG`, `HANDOFF`, `CHANGELOG` e specs ativos) diretamente em UTF-8; os arquivos seguem íntegros, e a distorção residual observada anteriormente estava restrita ao codepage do terminal Windows.
+
+### Verified
+- `npm --prefix frontend run test -- --run src/shared/reports/electorateReport.test.ts src/modules/electorate/pages/ElectorateExecutivePage.test.tsx`
+- `npm --prefix frontend run build`
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_docs_encoding.py -q`
+
 ## 2026-03-16 - saneamento final do Admin Hub
 
 ### Changed

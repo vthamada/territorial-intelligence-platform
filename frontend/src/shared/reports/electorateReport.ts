@@ -333,6 +333,9 @@ export function buildElectorateReportHtml(input: BuildElectorateReportInput) {
       .report-section { display: grid; gap: 12px; margin-top: 22px; }
       .report-section-header { display: grid; gap: 4px; }
       .report-section-header p { color: #4b5563; font-size: 13px; }
+      .report-section > table,
+      .report-section > .metric-grid,
+      .report-section > .empty-note { page-break-before: avoid; break-before: avoid-page; }
       .metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
       .metric-grid article { border: 1px solid #d1d5db; border-radius: 8px; padding: 10px; display: grid; gap: 4px; }
       .metric-grid span { color: #6b7280; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -340,6 +343,10 @@ export function buildElectorateReportHtml(input: BuildElectorateReportInput) {
       .empty-note { color: #6b7280; font-size: 13px; }
       @media print {
         body { margin: 16px; }
+        thead { display: table-header-group; }
+        tfoot { display: table-footer-group; }
+        tr, td, th { page-break-inside: avoid; break-inside: avoid; }
+        .report-section-header { page-break-inside: avoid; break-inside: avoid; page-break-after: avoid; break-after: avoid-page; }
         .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
     </style>
