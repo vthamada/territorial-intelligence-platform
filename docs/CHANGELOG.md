@@ -2,101 +2,43 @@
 
 Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
-## 2026-03-14 - Hotfix do relatório eleitoral para fechamento real do drawer e preview imprimível
+## 2026-03-16 - saneamento final do Admin Hub
 
 ### Changed
-- Frontend/Eleitorado:
-  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` deixou de usar `iframe` oculto para o ramo `PDF` do relatório eleitoral.
-  - a geração em `PDF` agora abre uma aba `blob:` com o HTML do relatório e script de `print()` no carregamento, preservando o gesto do usuário e eliminando o bloqueio silencioso do navegador.
-  - o ramo `HTML` continuou baixando arquivo local, mas sem manter o drawer preso no DOM visível.
-- Frontend/UI:
-  - `frontend/src/shared/ui/Drawer.tsx` passou a desmontar completamente quando `open=false`, em vez de apenas permanecer off-canvas com `aria-hidden`.
-  - isso remove o falso estado visual de drawer “ainda aberto” após a geração do relatório.
-- Testes:
-  - `frontend/src/shared/ui/Drawer.test.tsx` foi atualizado para validar a não renderização do drawer fechado.
-  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` foi ajustado para o novo fluxo de preview imprimível.
+- `frontend/src/modules/admin/pages/AdminHubPage.tsx` foi restaurado a partir da base estável e voltou a normalizar textos persistidos com mojibake no painel de operação assistida.
+- Os cards de `Ferramentas operacionais` voltaram a renderizar `NavIcon` SVG, eliminando a exibição do identificador cru do ícone e a sobreposição visual nos títulos.
+- `frontend/src/modules/admin/pages/AdminHubPage.test.tsx` foi ajustado para cobrir a normalização de mensagens persistidas degradadas e o estado atual da UI do Admin.
 
 ### Verified
-- `npm --prefix frontend run test -- --run src/shared/ui/Drawer.test.tsx src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `16 passed`.
-- `npm --prefix frontend run build` -> `OK`.
-- validação no navegador real com Playwright:
-  - clique em `PDF` fecha o drawer;
-  - abre nova aba `Relatório Eleitoral - 2024` em `blob:` para impressão.
+- `npm --prefix frontend run test -- --run src/modules/admin/pages/AdminHubPage.test.tsx`
+- `npm --prefix frontend run build`
+- `python scripts/fix_docs_encoding.py`
+- `pytest tests/unit/test_docs_encoding.py -q`
 
-## 2026-03-14 - Contexto eleitoral propagado para Insights e deep-links executivos
+## 2026-03-16 - Home sem contexto eleitoral e Admin resiliente
 
 ### Changed
-- Frontend/QG:
-  - novo helper compartilhado `frontend/src/modules/qg/electionContextUtils.ts` centralizou:
-    - formatação de cargo/candidato;
-    - fallback do contexto eleitoral executivo;
-    - geração de deep-links para `Eleitorado` e `Mapa`.
-  - `frontend/src/modules/qg/pages/QgInsightsPage.tsx` passou a exibir painel `Contexto eleitoral de referência`, alinhado ao mesmo eixo nominal já presente em `Home` e `Prioridades`.
-  - a tela de `Insights` agora expõe deep-links executivos para:
-    - `Eleitorado`, preservando `year`, `office` e `election_round`;
-    - `Mapa eleitoral`, preservando o recorte anual e a camada de `local de votação`.
-  - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` e `frontend/src/modules/qg/pages/QgPrioritiesPage.tsx` passaram a reutilizar o mesmo helper de deep-link/contexto, eliminando divergência entre telas.
-- Frontend/Eleitorado:
-  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` passou a aceitar deep-link por query string com:
-    - `year`
-    - `metric`
-    - `office`
-    - `election_round`
-    - `candidate_id`
-  - isso permite que `Insights`, `Home` e `Prioridades` abram o eixo eleitoral já no contexto correto, sem navegação manual adicional.
-- Testes:
-  - `frontend/src/modules/qg/pages/QgPages.test.tsx` ganhou cobertura para o painel eleitoral em `Insights` e para os novos links executivos.
-  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` ganhou cobertura para carregamento do contexto eleitoral via query string.
+- `frontend/src/modules/qg/pages/QgOverviewPage.tsx` deixou de renderizar o painel `Contexto eleitoral de referência` na Home, mantendo a visão geral focada no resumo territorial e nas prioridades.
+- `src/app/api/routes_ops.py` passou a normalizar jobs persistidos que ficaram `queued` ou `running` após reinício da API, liberando novamente os botões `Validar ambiente` e `Sincronizar ambiente` no Admin.
+- `frontend/src/modules/admin/pages/AdminHubPage.tsx` passou a normalizar textos persistidos do Admin em `summary`, `last_message` e `recent_logs`, mantendo também os ícones SVG das Ferramentas operacionais no mesmo padrão do menu lateral.
+- `frontend/src/modules/admin/pages/AdminHubPage.test.tsx`, `frontend/src/modules/qg/pages/QgPages.test.tsx` e `tests/unit/test_ops_routes.py` foram ajustados para cobrir o comportamento da Home e a limpeza de textos do Admin.
 
 ### Verified
-- `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `24 passed`.
-- `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `11 passed`.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_ops_routes.py -q` -> `39 passed`.
+- `npm --prefix frontend run test -- --run src/modules/admin/pages/AdminHubPage.test.tsx src/modules/qg/pages/QgPages.test.tsx` -> `30 passed`.
 - `npm --prefix frontend run build` -> `OK`.
 
-## 2026-03-14 - Relatório eleitoral modular no fluxo de Eleitorado
+## 2026-03-16 - Distribuição territorial do candidato sem truncamento
 
 ### Changed
-- Frontend/Eleitorado:
-  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` deixou de renderizar um relatório eleitoral grande dentro da própria página.
-  - o botão `Gerar relatório eleitoral` agora abre um drawer configurável no contexto da tela.
-  - o usuário passou a escolher:
-    - formato do arquivo (`HTML` ou `PDF`);
-    - blocos incluídos no relatório (`Resumo executivo`, `Histórico eleitoral`, `Contexto da eleição`, `Distribuição territorial do candidato`, `Ranking de locais de votação`, `Composição do eleitorado`).
-  - a geração do arquivo passou a usar exclusivamente os dados já carregados na página, sem depender de uma etapa intermediária de relatório inline.
-- Builder de relatório:
-  - novo `frontend/src/shared/reports/electorateReport.ts` adicionado para compor o documento eleitoral em HTML.
-  - o fluxo de exportação do eleitorado passou a ser especializado e modular, separado da renderização de `briefs` estratégicos.
-- Hotfix de geração:
-  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` deixou de depender de `window.open` para PDF.
-  - a exportação em PDF agora usa `iframe` oculto para acionar `print()`, evitando bloqueio por pop-up e fechando o drawer corretamente após o disparo.
-- Testes e estilo:
-  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` foi atualizado para validar a abertura do drawer, a seleção dos blocos e a geração local do arquivo.
-  - `frontend/src/styles/global.css` recebeu estilos dedicados para as opções do configurador de relatório.
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` deixou de limitar a distribuição territorial do candidato a `15` itens e passou a solicitar até `200` locais de votação no recorte, cobrindo na prática todos os locais do município com votos para o candidato selecionado.
+- O subtítulo do painel passou a explicitar que a tabela mostra todos os locais de votação com votos no recorte, além da quantidade total retornada.
+- O estado de loading da distribuição territorial foi ajustado para comunicar que a consulta agora busca todos os locais com votos do candidato, não apenas os de maior votação.
+- `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` passou a validar a chamada com `limit: 200`, a renderização de mais de um local e a legenda com a contagem total de locais com votos.
 
 ### Verified
-- `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `12 passed`.
-- `npm --prefix frontend run build` -> `OK`.
-
-## 2026-03-13 - Relatório eleitoral integrado à tela de Eleitorado (fluxo inicial substituído)
-
-### Changed
-- Backend/QG:
-  - `src/app/schemas/qg.py` e `src/app/api/routes_qg.py` passaram a suportar `report_type=electorate` em `POST /v1/briefs`, reaproveitando o motor de briefs para gerar um relatório eleitoral contextual a partir de ano, cargo, turno, métrica e candidato selecionado.
-  - o relatório eleitoral passou a consolidar `summary`, `history`, `election-context`, ranking de `polling_place` e distribuição nominal do candidato líder em um único artefato exportável.
-- Frontend/Eleitorado:
-  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` passou a exibir o botão `Gerar relatório eleitoral` no próprio contexto da tela, usando os filtros já aplicados.
-  - após a geração, a tela passou a expor exportação `HTML` e `Imprimir / PDF` sem redirecionar o usuário para a tela genérica de `Briefs`.
-  - `frontend/src/shared/reports/briefHtml.ts` foi criado para unificar a exportação HTML/PDF entre `QgBriefsPage` e o novo fluxo eleitoral.
-- Testes:
-  - `tests/unit/test_qg_routes.py` ganhou cobertura para `POST /v1/briefs` com `report_type=electorate`.
-  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` passou a validar o disparo do relatório eleitoral e a exibição das ações de exportação.
-  - mocks tipados de brief foram ajustados em `QgPages`, `router.smoke` e `e2e-flow` para incluir `report_type`.
-
-### Verified
-- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_qg_routes.py -q` -> `35 passed`.
-- `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` -> `10 passed`.
-- `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx src/app/router.smoke.test.tsx src/app/e2e-flow.test.tsx` -> `30 passed`.
-- `npm --prefix frontend run build` -> `OK`.
+- `npm --prefix frontend run test -- --run src/modules/electorate/pages/ElectorateExecutivePage.test.tsx`.
+- `npm --prefix frontend run build`.
 
 ## 2026-03-13 - Home eleitoral resiliente e resumo executivo alinhado ao histórico
 
@@ -176,8 +118,8 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
 ### Changed
 - Backend/API:
-  - `GET /v1/electorate/history` passou a resolver as m?tricas eleitorais por ano com fallback de n?vel, preservando o n?vel solicitado para o eleitorado e usando `electoral_zone` quando anos gerais n?o tiverem consolida??o em `municipality`.
-  - `GET /v1/electorate/candidate-territories` passou a retornar tamb?m `polling_place_section_count` e `polling_place_sections` no agregado por local de vota??o.
+  - `GET /v1/electorate/history` passou a resolver as métricas eleitorais por ano com fallback de nível, preservando o nível solicitado para o eleitorado e usando `electoral_zone` quando anos gerais não tiverem consolidação em `municipality`.
+  - `GET /v1/electorate/candidate-territories` passou a retornar também `polling_place_section_count` e `polling_place_sections` no agregado por local de votação.
 - Frontend eleitorado:
   - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.tsx` passou a renderizar a coluna `Seções` da distribuição territorial do candidato no mesmo padrão visual do ranking de locais.
   - a distribuicao nominal agora diferencia explicitamente:
@@ -185,8 +127,8 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
     - `X de Y seções com votos` quando o local possui mais seções do que aquelas onde o candidato recebeu votos.
   - a linha secundária continua listando somente as seções em que o candidato efetivamente recebeu votos, enquanto o ranking de locais segue mostrando o conjunto total de seções do local.
 - Testes:
-  - `tests/unit/test_qg_routes.py` atualizado para validar o fallback historico por ano e o enriquecimento de `candidate-territories`.
-  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` atualizado para validar o novo r?tulo/preview da coluna `Se??es`.
+  - `tests/unit/test_qg_routes.py` atualizado para validar o fallback histórico por ano e o enriquecimento de `candidate-territories`.
+  - `frontend/src/modules/electorate/pages/ElectorateExecutivePage.test.tsx` atualizado para validar o novo rótulo/preview da coluna `Seções`.
 
 ### Verified
 - `.\\.venv\\Scripts\\python.exe -m pytest tests/unit/test_qg_routes.py -q` -> `33 passed`.
@@ -197,14 +139,14 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
 ### Changed
 - Pipeline TSE nominal:
-  - novo modulo `src/pipelines/tse_party_registry.py` adicionado para inferir partido a partir do prefixo do numero do candidato e dos votos de legenda ja presentes na base nominal do mesmo ano.
+  - novo modulo `src/pipelines/tse_party_registry.py` adicionado para inferir partido a partir do prefixo do numero do candidato e dos votos de legenda já presentes na base nominal do mesmo ano.
   - `src/pipelines/tse_candidate_votes.py` passou a enriquecer `party_abbr`, `party_number` e `party_name` antes do upsert em `silver.dim_candidate`, evitando que novas cargas nominais voltem a gravar candidatos sem partido quando o bruto do `votacao_secao` nao trouxer essas colunas.
 - Backfill operacional:
-  - novo script `scripts/backfill_candidate_party_identity.py` adicionado para corrigir a base ja carregada, derivando partido para candidatos historicos a partir:
+  - novo script `scripts/backfill_candidate_party_identity.py` adicionado para corrigir a base já carregada, derivando partido para candidatos históricos a partir:
     - do prefixo numerico do candidato;
     - da legenda proporcional do mesmo ano;
-    - de um registro historico controlado para siglas/nomes de partido.
-  - `scripts/equalize_database_env.ps1` passou a executar esse backfill automaticamente apos a limpeza do legado em `electoral_zone`.
+    - de um registro histórico controlado para siglas/nomes de partido.
+  - `scripts/equalize_database_env.ps1` passou a executar esse backfill automaticamente após a limpeza do legado em `electoral_zone`.
 - Efeito funcional:
   - `GET /v1/electorate/election-context` passou a devolver partidos preenchidos para disputas como:
     - `2024 / Prefeito` -> `MDB`, `REDE`;
@@ -229,7 +171,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `scripts/backfill_missing_pipeline_checks.py --window-days 7 --apply` foi executado para preencher checks ausentes do run legado `d431b7b6-f6aa-4b5d-8892-38f342a935cf`, eliminando a violacao de `SLO-3`.
 
 ### Verified
-- `.\.venv\Scripts\python.exe scripts\audit_polling_places_geolocation.py --output-json data/reports/polling_places_geolocation_audit.current_env.json` -> `status=pass`, `36/36` locais com ponto unico e sem violacoes distritais.
+- `.\.venv\Scripts\python.exe scripts\audit_polling_places_geolocation.py --output-json data/reports/polling_places_geolocation_audit.current_env.json` -> `status=pass`, `36/36` locais com ponto único e sem violações distritais.
 - `.\.venv\Scripts\python.exe scripts\export_data_coverage_scorecard.py --output-json data/reports/data_coverage_scorecard.current_env.json` -> `pass=29`, `warn=3`.
 - `.\.venv\Scripts\python.exe scripts\backend_readiness.py --output-json` -> `READY`, `hard_failures=0`, `warnings=0`.
 - `data/reports/incremental_full_sources.current_env.json` -> `planned_pairs=29`, `executed_pairs=15`, `blocked=2` (`cecad_social_protection_fetch`, `censo_suas_fetch`), `Finished with all executions successful`.
@@ -710,17 +652,17 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Documentacao de estado:
   - `docs/HANDOFF.md`:
     - data de referencia atualizada para `2026-03-05`;
-    - topo consolidado para refletir que `D4` a `D8` ja estao concluidos tecnicamente;
+    - topo consolidado para refletir que `D4` a `D8` já estão concluídos tecnicamente;
     - pendencias historicas de mapa/QG/testes removidas da fila ativa;
     - referencia de mapa atualizada para `docs/REFATORACAO_TELAS.md` no lugar do documento removido `docs/UI_MAPA.md`.
   - `docs/PLANO_IMPLEMENTACAO_QG.md`:
     - status geral alinhado com os commits mais recentes (`8dc6c86`, `b2ad30f`, `6c01e12`, `56bea7b`, `eb9a4c6`);
     - secao `0` reduzida para a fila ativa real da rodada (cadencia operacional, readiness e governanca de issues);
-    - status por onda/sprint atualizado para remover itens que ainda apareciam como "em andamento" apesar de ja concluidos tecnicamente;
-    - secao `5` reclassificada como historica para evitar reabertura indevida de pendencias ja encerradas.
+    - status por onda/sprint atualizado para remover itens que ainda apareciam como "em andamento" apesar de já concluídos tecnicamente;
+    - secao `5` reclassificada como historica para evitar reabertura indevida de pendencias já encerradas.
 
 ### Verified
-- Revisao documental cruzada com historico Git:
+- Revisao documental cruzada com histórico Git:
   - `git log --date=short --pretty=format:'%h %ad %s' -n 5`.
 - Nenhum teste adicional executado nesta rodada:
   - alteracao restrita a documentacao de estado e governanca.
@@ -1015,7 +957,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `npm --prefix frontend run build` -> `OK`.
 - `npm --prefix frontend test -- --run` -> falha de ambiente local (`spawn EPERM` no `esbuild` ao carregar `vite.config.ts`).
 
-## 2026-02-26 - Script unico para equalizacao de banco entre ambientes
+## 2026-02-26 - Script único para equalizacao de banco entre ambientes
 
 ### Changed
 - `scripts/equalize_database_env.ps1` adicionado para executar, em sequencia unica:
@@ -1029,7 +971,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - validacao final de prontidao (`backend_readiness.py --output-json`).
 - suporte a tratamento controlado de fontes externas bloqueadas no backfill:
   - flag `-AllowBackfillBlocked` permite continuar somente quando os nao-success do relatorio forem exclusivamente `blocked`.
-- parametros de operacao no script:
+- parâmetros de operação no script:
   - `-TseYears` (default `2024,2022,2020,2018,2016`);
   - `-IndicatorPeriods` (default `2024,2025`);
   - `-IncludeWave7`;
@@ -1038,7 +980,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
 ### Verified
 - execucao real de equalizacao no ambiente atual:
-  - reprocesso TSE 2024 concluido com sucesso;
+  - reprocesso TSE 2024 concluído com sucesso;
   - `apply_seed.py`: `Total sections updated: 144`, `36 unique geometry points`;
   - sync de contratos: `prepared=27 upserted=27`;
   - scorecard reexportado: `pass=29`, `warn=3`;
@@ -1291,7 +1233,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - zoom control movido para toolbar inline (4º bloco);
   - territory search movido para sidebar das camadas;
   - ranking e detalhe territorial movidos para `<details>` collapsible no bottom panel;
-  - removidos: "Leitura executiva imediata", "Top secoes por eleitorado", legenda eleitoral inline, seletor "Camada eleitoral detalhada", notas de cobertura, guidance de local de votação, textos técnicos (proxy/classificacao/origem/metodo), "map-style-meta", "map-layer-guidance".
+  - removidos: "Leitura executiva imediata", "Top seções por eleitorado", legenda eleitoral inline, seletor "Camada eleitoral detalhada", notas de cobertura, guidance de local de votação, textos técnicos (proxy/classificacao/origem/metodo), "map-style-meta", "map-layer-guidance".
 - `frontend/src/styles/global.css`:
   - novos estilos: `.page-map-executive`, `.map-filter-bar`, `.map-filter-bar-form`, `.map-filter-bar-actions`, `.map-filter-bar-presets`, `.map-toolbar-zoom`, `.map-layers-sidebar-search`, `.map-layers-sidebar-search-actions`, `.map-bottom-panel`, `.map-bottom-panel-summary`, `.map-bottom-tab`, `.map-bottom-panel-content`, `.map-bottom-section`, `.map-bottom-section-header`, `.map-bottom-section-subtitle`, `.map-footer-error`;
   - estilos existentes atualizados: `.map-toolbar` (grid→flex), `.map-with-sidebar`, `.map-canvas-shell` (height ampliado para 72vh), `.map-layers-sidebar`, `.map-footer-bar`.
@@ -1400,7 +1342,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - metadados de contexto reforçados no drawer (`fonte`, `atualizacao`, `cobertura`, `proxy`).
 - `frontend/src/shared/ui/VectorMap.tsx` atualizado com:
   - suporte aos modos `critical` e `gap`;
-  - tooltip de hover com `nome`, `valor do indicador`, `tendencia`, `fonte` e `data de atualizacao`.
+  - tooltip de hover com `nome`, `valor do indicador`, `tendência`, `fonte` e `data de atualizacao`.
 - `frontend/src/modules/qg/pages/QgPages.test.tsx` ajustado/ampliado para refletir novos rótulos e validar painel estratégico de camadas + recorte territorial.
 
 ### Verified
@@ -1613,7 +1555,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `frontend/src/modules/qg/pages/QgMapPage.tsx` reforçado para leitura estratégica real:
   - presets diretos no topo (`Eleitorado por secao` e `Servicos por bairros`) para sair do recorte municipal agregado com um clique;
   - mensagem contextual quando o recorte municipal único limita decisão estratégica;
-  - painel novo `Top secoes por eleitorado` (consulta `getElectorateMap` com `metric=voters`) ao operar em `secao_eleitoral`.
+  - painel novo `Top seções por eleitorado` (consulta `getElectorateMap` com `metric=voters`) ao operar em `secao_eleitoral`.
 - `frontend/src/shared/ui/Drawer.tsx` evoluído com `showBackdrop` opcional e uso no mapa ajustado para não bloquear visualmente toda a tela;
 - `QgMapPage` passou a usar drawer com largura responsiva (`min(420px, 96vw)`) e sem overlay modal no contexto de navegação do mapa.
 - `frontend/src/modules/qg/pages/QgPages.test.tsx` ampliado com teste dos presets estratégicos e ajustes de mock para `getElectorateMap`.
@@ -1684,7 +1626,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `frontend/src/modules/qg/pages/QgMapPage.tsx` atualizado com evento dedicado `map_electoral_layer_toggled` para rastrear troca de camada eleitoral no nível `secao_eleitoral`:
   - emissão apenas quando há transição real entre `secao` e `local_votacao`;
   - atributos operacionais adicionados (`from_layer`, `to_layer`, `source`, `layer_id`, `layer_classification`, `scope`, `level`) para triagem direta no backend de observabilidade.
-- `frontend/src/modules/qg/pages/QgPages.test.tsx` ampliado com teste dedicado da interação de toggle (`Exibir locais de votacao` <-> `Exibir secoes eleitorais`) validando os dois sentidos do evento.
+- `frontend/src/modules/qg/pages/QgPages.test.tsx` ampliado com teste dedicado da interação de toggle (`Exibir locais de votacao` <-> `Exibir seções eleitorais`) validando os dois sentidos do evento.
 
 ### Verified
 - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `25 passed`.
@@ -1739,9 +1681,9 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
 ### Changed
 - `frontend/src/modules/qg/pages/QgMapPage.tsx` atualizado para fluxo de contexto territorial em drawer:
-  - painel lateral com status/tendencia, card de valor, metricas rapidas, evidencias e acoes de navegacao;
+  - painel lateral com status/tendência, card de valor, métricas rápidas, evidencias e ações de navegacao;
   - CTA inline para abrir painel quando houver territorio selecionado;
-  - autoabertura do drawer em selecao territorial e fechamento mantendo comportamento previsivel;
+  - autoabertura do drawer em selecao territorial e fechamento mantendo comportamento previsível;
   - ajuste de navegacao no link `Abrir perfil` da tabela (isolamento de propagacao de evento);
   - fallback de classificacao de status no drawer quando a feature nao traz `status` explicito (derivado de valor).
 - `frontend/src/styles/global.css` expandido com estilos `territory-drawer-*` e `inline-link-button`, preservando o `Drawer` compartilhado.
@@ -1943,7 +1885,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `territory_electoral_section`: `total=144`, `with_geometry=144`, `is_ready=true`;
   - `territory_polling_place`: `total=144`, `with_geometry=144`, `is_ready=true`.
 
-## 2026-02-23 - Backfill eleitoral historico (2022) executado
+## 2026-02-23 - Backfill eleitoral histórico (2022) executado
 
 ### Changed
 - ingestão histórica de eleitorado executada para `reference_period=2022` com a mesma estratégia de seção/local:
@@ -1962,7 +1904,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `GET /v1/electorate?level=zona_eleitoral&period=2022&page_size=5` -> `200`, `total=1`;
   - `GET /v1/electorate/map?level=secao_eleitoral&metric=voters&year=2022&limit=5&include_geometry=false` -> `200`, `items=5`.
 
-## 2026-02-23 - Backfill eleitoral historico (2020) executado
+## 2026-02-23 - Backfill eleitoral histórico (2020) executado
 
 ### Changed
 - ingestão histórica de eleitorado executada para `reference_period=2020`:
@@ -1980,7 +1922,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `GET /v1/electorate?level=zona_eleitoral&period=2020&page_size=5` -> `200`, `total=1`;
   - `GET /v1/electorate/map?level=secao_eleitoral&metric=voters&year=2020&limit=5&include_geometry=false` -> `200`, `items=5`.
 
-## 2026-02-23 - Hardening de NaN no eleitorado + Backfill historico (2018)
+## 2026-02-23 - Hardening de NaN no eleitorado + Backfill histórico (2018)
 
 ### Changed
 - `src/pipelines/tse_electorate.py` endurecido para sanitizar valores opcionais de metadata antes do upsert:
@@ -2084,7 +2026,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `npm --prefix frontend run test -- --run` -> `83 passed`.
 - `npm --prefix frontend run build` -> `OK`.
 
-## 2026-02-23 - Mapa eleitoral (local_votacao) consolidado com toggle rapido e legenda
+## 2026-02-23 - Mapa eleitoral (local_votacao) consolidado com toggle rápido e legenda
 
 ### Changed
 - `frontend/src/modules/qg/pages/QgMapPage.tsx` atualizado para consolidar o fluxo `com local_votacao` vs `sem local_votacao` no nível `secao_eleitoral`:
@@ -2093,7 +2035,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - manutenção das mensagens contextuais para indisponibilidade de `local_votacao` no manifesto.
 - `frontend/src/modules/qg/pages/QgPages.test.tsx` ampliado para cobrir a alternância rápida de camada eleitoral:
   - valida presença do botão `Exibir locais de votacao` quando a camada está disponível;
-  - valida presença do botão `Exibir secoes eleitorais` quando `local_votacao` está ativo.
+  - valida presença do botão `Exibir seções eleitorais` quando `local_votacao` está ativo.
 - `docs/HANDOFF.md` atualizado com matriz oficial de aderência `VISION x estado x gap x prioridade x aceite`.
 
 ### Verified
@@ -2271,12 +2213,12 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `npm --prefix frontend run test -- --run` -> `78 passed`.
 - `npm --prefix frontend run build` -> `OK`.
 
-## 2026-02-22 - Historico de robustez com drift entre snapshots
+## 2026-02-22 - Histórico de robustez com drift entre snapshots
 
 ### Changed
 - `GET /v1/ops/robustness-history` agora retorna `drift` por snapshot com:
   - `status_transition` e `severity_transition` (`improved|regressed|stable|baseline`);
-  - deltas de operacao: `delta_unresolved_failed_checks`, `delta_unresolved_failed_runs`, `delta_actionable_warnings`;
+  - deltas de operação: `delta_unresolved_failed_checks`, `delta_unresolved_failed_runs`, `delta_actionable_warnings`;
   - referencia temporal para comparacao (`previous_snapshot_id`, `previous_generated_at_utc`).
 - endpoint passou a calcular drift sobre snapshots consecutivos da serie filtrada (janela/strict/status/severity) antes da paginacao.
 
@@ -2724,7 +2666,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ## 2026-02-21 - D5 BD-050 implementado (histórico INMET/INPE/ANA multi-ano)
 
 ### Added
-- novo script operacional `scripts/backfill_environment_history.py` para executar `BD-050` em fluxo unico:
+- novo script operacional `scripts/backfill_environment_history.py` para executar `BD-050` em fluxo único:
   - bootstrap manual multi-ano para `INMET`, `INPE_QUEIMADAS` e `ANA`;
   - execução dos conectores ambientais por período;
   - execução opcional do `quality_suite` por período;
@@ -2986,7 +2928,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ## 2026-02-20 — Fase UX-P0 (auditoria visual completa)
 
 ### Fixed (frontend — presentation.ts)
-- UX-P0-01: `formatValueWithUnit()` agora mapeia unidades corretamente: `count` → sem unidade, `percent` → `%`, `ratio` → sem unidade, `C` → `?C`, `m3/s` → `m?/s`, `mm`/`ha`/`km`/`kwh` com símbolos corretos.
+- UX-P0-01: `formatValueWithUnit()` agora mapeia unidades corretamente: `count` → sem unidade, `percent` → `%`, `ratio` → sem unidade, `C` → `°C`, `m3/s` → `m³/s`, `mm`/`ha`/`km`/`kwh` com símbolos corretos.
 - UX-P0-02: Novos helpers `humanizeSourceName()`, `humanizeCoverageNote()`, `humanizeDatasetSource()` — convertem nomes técnicos de tabelas/datasets em labels legiveis.
 
 ### Fixed (frontend — SourceFreshnessBadge.tsx)
@@ -3009,7 +2951,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
 ### Fixed (frontend — QgScenariosPage.tsx)
 - UX-P0-13: Subtitulo usa `indicator_name` em vez de `indicator_code`.
-- UX-P0-14: "Leitura N" substituido por "Analise N" nas explicacoes.
+- UX-P0-14: "Leitura N" substituido por "Analise N" nas explicações.
 - UX-P0-15: Label do campo de indicador alterado de "Codigo do indicador" para "Indicador".
 
 ### Fixed (frontend — TerritoryProfilePage.tsx)
@@ -3026,7 +2968,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - UX-P0-20: Coluna "Métrica" removida da tabela de ranking (redundante — todas as linhas usam a métrica filtrada).
 
 ### Fixed (backend — routes_qg.py)
-- UX-P0-21: `_format_highlight_value()` agora trata `percent` → `%`, `count` → sem unidade, `ratio` → sem unidade, `C` → `?C`, `m3/s` → `m?/s`.
+- UX-P0-21: `_format_highlight_value()` agora trata `percent` → `%`, `count` → sem unidade, `ratio` → sem unidade, `C` → `°C`, `m3/s` → `m³/s`.
 - UX-P0-22: Explicacao de cenarios usa `_format_highlight_value()` para valores e traduz `impact` para pt-BR ("melhora"/"piora"/"inalterado").
 
 ### Changed (testes)
@@ -3065,7 +3007,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Layout e formatacao do painel de filtros no mapa situacional (Home):
   - `frontend/src/styles/global.css` ajustado para o painel lateral operar em coluna dedicada no desktop (sem sobreposicao sobre o mapa).
   - `frontend/src/styles/global.css` ajustado para alinhar botoes e controles internos (`Aplicar/Limpar`, `Mapa base`, `Focar selecionado`, `Recentrar mapa`).
-  - `frontend/src/styles/global.css` ajustado com `overflow-wrap` em secoes/cards do painel para evitar texto vazando dos blocos.
+  - `frontend/src/styles/global.css` ajustado com `overflow-wrap` em seções/cards do painel para evitar texto vazando dos blocos.
   - `frontend/src/shared/ui/MapDominantLayout.tsx` atualizado com semantica do layout dominante com sidebar colapsavel.
 - Legibilidade dos controles de mapa no frontend:
   - `frontend/src/styles/global.css` corrigido para botoes de `Modo de visualizacao` e `Mapa base` manterem contraste em estado não selecionado.
@@ -3111,15 +3053,15 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - paginacao client-side em `QgInsightsPage` e tabela de indicadores do `TerritoryProfilePage`.
 
 ### Changed
-- Backlog UX executivo consolidado para ciclo unico:
+- Backlog UX executivo consolidado para ciclo único:
   - novo `docs/BACKLOG_UX_EXECUTIVO_QG.md` com mapeamento `P0/P1/P2`, arquivos/componentes alvo e critérios de aceite.
   - `docs/PLANO_IMPLEMENTACAO_QG.md` atualizado para apontar o backlog como fonte unica da próxima trilha de UX.
   - `docs/HANDOFF.md` atualizado com regra operacional de foco nos itens `UX-P0-*` antes de novas frentes.
 - Ops Health com refresh manual e regressão de readiness:
   - `frontend/src/modules/ops/pages/OpsHealthPage.tsx` recebeu ação `Atualizar painel` para refetch explicito dos dados operacionais.
   - refetch de queries foi centralizado em função unica (`refetchAll`) e reutilizado em `onRetry`.
-  - `frontend/src/modules/ops/pages/OpsPages.test.tsx` ganhou teste de transição `READY -> NOT_READY` apos refresh manual, incluindo exibição de hard failure.
-- Home executiva com camada detalhada eleitoral mais previsivel:
+  - `frontend/src/modules/ops/pages/OpsPages.test.tsx` ganhou teste de transição `READY -> NOT_READY` após refresh manual, incluindo exibição de hard failure.
+- Home executiva com camada detalhada eleitoral mais previsível:
   - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` agora exibe `Camada detalhada (Mapa)` apenas em `Nivel territorial = secao_eleitoral`.
   - propagacao de `layer_id` para links de mapa passou a ser condicionada ao contexto valido (sem carregar camada detalhada fora de secao eleitoral).
   - deep-link de `Mapa detalhado` com camada detalhada agora inclui `level=secao_eleitoral` para evitar ambiguidade de contexto.
@@ -3141,7 +3083,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `docs/GITHUB_ISSUES_BACKLOG_DADOS_NIVEL_MAXIMO.md` reforcou uso como snapshot/template, sem definir ordem operacional.
 - Governança de execução no GitHub alinhada com trilha única:
   - issue `BD-033` criada em `#28` e marcada como trilha ativa (`status:active`).
-  - issue `BD-033` (`#28`) encerrada apos fechamento de gate e fase 2.
+  - issue `BD-033` (`#28`) encerrada após fechamento de gate e fase 2.
   - issue `BD-021` (`#8`) encerrada por entrega técnica concluida.
   - labels operacionais adicionadas: `status:active`, `status:blocked`, `status:external`.
   - `BD-020` (`#7`) marcada como `status:external` + `status:blocked` por dependencia externa.
@@ -3170,7 +3112,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `frontend/src/modules/qg/pages/QgMapPage.tsx` agora exibe chip explicito `Sem dado`.
 - Transparencia de classificação das camadas do mapa:
   - `frontend/src/modules/qg/pages/QgMapPage.tsx` agora explicita `classificacao` (`oficial`, `proxy`, `hibrida`) em camada recomendada, camada ativa e metadados visuais.
-  - tooltip da camada passou a priorizar `proxy_method` quando disponível para expor limitacoes/metodologia.
+  - tooltip da camada passou a priorizar `proxy_method` quando disponível para expor limitações/metodologia.
   - `frontend/src/modules/qg/pages/QgOverviewPage.tsx` passou a exibir classificação da camada detalhada ativa no painel lateral da Home.
 - Cobertura de regressão para transparencia de camada:
   - `frontend/src/modules/qg/pages/QgPages.test.tsx` valida exibição de classificação no fluxo eleitoral detalhado (`territory_polling_place`).
@@ -3238,7 +3180,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - melhorias de contraste, hover e responsividade em botões/escala/atribuição.
 - Frontend QG Prioridades:
   - lista priorizada agora suporta paginacao client-side com controles `Anterior`/`Proxima`, indicador `Pagina X de Y` e seletor `Itens por pagina` (`12`, `24`, `48`) em `frontend/src/modules/qg/pages/QgPrioritiesPage.tsx`.
-  - página atual e tamanho de página resetam de forma previsivel ao aplicar/limpar filtros.
+  - página atual e tamanho de página resetam de forma previsível ao aplicar/limpar filtros.
   - cobertura de regressão adicionada em `frontend/src/modules/qg/pages/QgPages.test.tsx` para cenario com volume alto de cards (`30` itens).
   - validação executada:
     - `npm --prefix frontend run test -- --run src/modules/qg/pages/QgPages.test.tsx` -> `19 passed`.
@@ -3353,7 +3295,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
       - `urban_pois`: `category`, `subcategory`, `source`.
     - `frontend/src/shared/ui/VectorMap.tsx` agora envia `lon`/`lat` do clique no payload de seleção.
     - `frontend/src/modules/qg/pages/QgMapPage.tsx` adiciona ações contextuais urbanas:
-      - filtro rapido por classe/categoria.
+      - filtro rápido por classe/categoria.
       - geocodificacao contextual da seleção.
       - consulta de POIs próximos ao ponto clicado.
     - `territory_id` na URL do mapa passa a ser persistido apenas no escopo territorial.
@@ -3383,10 +3325,10 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
     - `/v1/map/layers` mantido com `max-age=3600`.
   - monitor técnico de camadas em `OpsLayersPage` recebeu resumo operacional adicional:
     - cards agregados de readiness (`pass`, `warn`, `fail`, `pending`) por recorte.
-    - grade de "Resumo rapido das camadas" com status de `rows`, `geom` e `readiness`.
-    - estilos dedicados para leitura rapida em `frontend/src/styles/global.css`.
+    - grade de "Resumo rápido das camadas" com status de `rows`, `geom` e `readiness`.
+    - estilos dedicados para leitura rápida em `frontend/src/styles/global.css`.
   - suite de testes da página ops de camadas ampliada:
-    - novo caso em `frontend/src/modules/ops/pages/OpsPages.test.tsx` cobrindo render do resumo rapido.
+    - novo caso em `frontend/src/modules/ops/pages/OpsPages.test.tsx` cobrindo render do resumo rápido.
 
 ### Verified
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_urban_connectors.py tests/unit/test_api_contract.py tests/unit/test_prefect_wave3_flow.py tests/unit/test_quality_core_checks.py tests/unit/test_quality_ops_pipeline_runs.py tests/contracts/test_sql_contracts.py -p no:cacheprovider`:
@@ -3406,11 +3348,11 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `npm --prefix frontend run test`:
   - `69 passed`.
 - `npm --prefix frontend run test`:
-  - `69 passed` (revalidado apos evolução do mapa dominante e ajustes de smoke/e2e).
+  - `69 passed` (revalidado após evolução do mapa dominante e ajustes de smoke/e2e).
 - `npm --prefix frontend run test`:
-  - `69 passed` (revalidado apos ações contextuais urbanas).
+  - `69 passed` (revalidado após ações contextuais urbanas).
 - `npm --prefix frontend run build`:
-  - build concluido com sucesso.
+  - build concluído com sucesso.
 
 ### Docs
 - Governança de foco sem dispersao consolidada com data de corte em `2026-02-19`:
@@ -3422,7 +3364,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
     - estabilizacao de telas e fluxo decisorio;
     - gates de confiabilidade;
     - fechamento de lacunas criticas de dados;
-    - expansão de escopo somente apos fechamento das etapas anteriores.
+    - expansão de escopo somente após fechamento das etapas anteriores.
 
 ### Fixed
 - Estabilizacao de telas executivas com dados ausentes:
@@ -3468,7 +3410,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `GET /v1/map/layers/coverage`
   - `GET /v1/map/layers/{layer_id}/metadata`
   - Catálogo de camadas com níveis eleitorais (`electoral_zone`, `electoral_section`).
-  - Nova camada `territory_polling_place` (nível `electoral_section`, `layer_kind=point`) filtrando secoes com `metadata.polling_place_name`.
+  - Nova camada `territory_polling_place` (nível `electoral_section`, `layer_kind=point`) filtrando seções com `metadata.polling_place_name`.
 - **Contratos e cliente frontend para rastreabilidade de camadas**:
   - novos tipos em `frontend/src/shared/api/types.ts`;
   - novos clientes em `frontend/src/shared/api/domain.ts` e `frontend/src/shared/api/ops.ts`;
@@ -3543,7 +3485,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - **Strategic engine config (SE-2)** (`configs/strategic_engine.yml` + `strategic_engine_config.py`):
   - YAML externalizado: thresholds (critical: 80, attention: 50), severity_weights, limites de cenários.
   - `ScoringConfig` + `StrategicEngineConfig` dataclasses (frozen).
-  - `load_strategic_engine_config()` com `@lru_cache` — carregamento ?nico.
+  - `load_strategic_engine_config()` com `@lru_cache` — carregamento único.
   - `score_to_status()` + `status_impact()`: delegam para config YAML.
   - SQL CASE statements parametrizados com thresholds do config.
   - `config_version` adicionado ao schema `QgMetadata` (Python + TypeScript).
@@ -3576,7 +3518,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ### Added
 - **Layout B: mapa dominante na Home** (`QgOverviewPage.tsx`):
   - Reescrito para layout map-dominant com ChoroplethMiniMap preenchendo area principal.
-  - Sidebar overlay com glassmorphism (filtros, KPIs, ações rapidas, prioridades, destaques).
+  - Sidebar overlay com glassmorphism (filtros, KPIs, ações rápidas, prioridades, destaques).
   - Barra de estatisticas flutuante (criticos/atencao/monitorados).
   - Botao toggle para exibir/ocultar painel lateral.
 - **Drawer lateral reutilizavel** (`frontend/src/shared/ui/Drawer.tsx`):
@@ -3621,7 +3563,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - Secao 12.1 com tabela de ferramentas de validação (homologation_check, benchmark_api, backend_readiness, quality_suite).
   - 8 telas executivas do frontend incluidas na secao 7.
 - Runbook de operações (`docs/OPERATIONS_RUNBOOK.md`):
-  - 12 secoes: ambiente, pipelines, qualidade, views materializadas, API, frontend, go-live, testes, troubleshooting, conectores especiais, deploy.
+  - 12 seções: ambiente, pipelines, qualidade, views materializadas, API, frontend, go-live, testes, troubleshooting, conectores especiais, deploy.
   - Procedimento de deploy com 11 passos + rollback.
   - 5 cenarios de troubleshooting documentados.
 - Specs v0.1 promovidas a v1.0:
@@ -3652,14 +3594,14 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - `quality.py`: `check_fact_indicator_source_rows()` ampliado de 10 para 15 fontes; `check_ops_pipeline_runs()` ampliado de 9 para 14 jobs.
 - Script de homologação consolidado (`scripts/homologation_check.py`):
   - Orquestra 5 dimensões: backend readiness, quality suite, frontend build, test suites, API smoke.
-  - Produz verdict unico READY/NOT READY com output JSON opcional.
+  - Produz verdict único READY/NOT READY com output JSON opcional.
   - CLI: `--json`, `--strict`.
 - Componente `CollapsiblePanel` (`frontend/src/shared/ui/CollapsiblePanel.tsx`):
-  - Panel colapsavel com chevron, badge de contagem, `aria-expanded`, foco visivel.
+  - Panel colapsavel com chevron, badge de contagem, `aria-expanded`, foco visível.
   - CSS integrado em `global.css` (`.collapsible-toggle`, `.collapsible-chevron`, `.badge-count`).
 - Admin diagnostics refinement (Sprint 5.3 #1):
   - `OpsHealthPage.tsx`: 3 novos paineis colapsaveis — Quality checks, Cobertura de fontes, Registro de conectores.
-  - Consome `getPipelineChecks`, `getOpsSourceCoverage`, `getConnectorRegistry` ja existentes.
+  - Consome `getPipelineChecks`, `getOpsSourceCoverage`, `getConnectorRegistry` já existentes.
 
 ### Changed
 - `QgOverviewPage.tsx`: tabelas "Domínios Onda B/C" (collapsed) e "KPIs executivos" (expanded) usam `CollapsiblePanel` para progressive disclosure.
@@ -3792,10 +3734,10 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - Validação técnica MP-1:
   - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_api_contract.py -p no:cacheprovider`: `5 passed`.
   - `npm --prefix frontend run test`: `14 passed` / `38 passed`.
-  - `npm --prefix frontend run build`: `OK` (Vite build concluido com `QgMapPage` consumindo `GET /v1/map/layers`).
+  - `npm --prefix frontend run build`: `OK` (Vite build concluído com `QgMapPage` consumindo `GET /v1/map/layers`).
   - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_api_contract.py -p no:cacheprovider`: `6 passed` (inclui contrato de `GET /v1/map/style-metadata`).
-  - `npm --prefix frontend run test`: `14 passed` / `38 passed` (revalidado apos consumo de `style-metadata`).
-  - `npm --prefix frontend run build`: `OK` (Vite build concluido apos evolução de legenda/paleta no mapa).
+  - `npm --prefix frontend run test`: `14 passed` / `38 passed` (revalidado após consumo de `style-metadata`).
+  - `npm --prefix frontend run build`: `OK` (Vite build concluído após evolução de legenda/paleta no mapa).
 
 ## 2026-02-12
 
@@ -3818,7 +3760,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - novo painel `Monitor SLO-1` com taxa agregada em `7d` e `1d`.
   - contagem de jobs abaixo da meta em ambas as janelas para leitura operacional imediata.
   - consulta de SLA passou a rodar em duas janelas com `started_from` dedicado.
-- Filtros de domínio do QG padronizados com catálogo unico no frontend:
+- Filtros de domínio do QG padronizados com catálogo único no frontend:
   - `Prioridades`, `Insights`, `Briefs` e `Cenarios` migrados de input livre para `select` com opcoes consistentes.
   - normalizacao de query string para domínio via `normalizeQgDomain` (evita valores invalidos no estado inicial).
   - catálogo compartilhado consolidado em `frontend/src/modules/qg/domainCatalog.ts`.
@@ -3872,20 +3814,20 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 ### Verified
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_ops_routes.py tests/unit/test_qg_routes.py -p no:cacheprovider`: `41 passed`.
 - `npm --prefix frontend run test`: `14 passed` / `38 passed`.
-- `npm --prefix frontend run build`: `OK` (Vite build concluido com integração de readiness em `OpsHealthPage`).
-- `.\.venv\Scripts\python.exe scripts/backend_readiness.py --help`: `OK` (novo parâmetro `--health-window-days` visivel).
+- `npm --prefix frontend run build`: `OK` (Vite build concluído com integração de readiness em `OpsHealthPage`).
+- `.\.venv\Scripts\python.exe scripts/backend_readiness.py --help`: `OK` (novo parâmetro `--health-window-days` visível).
 - `.\.venv\Scripts\python.exe scripts/backend_readiness.py --output-json`: `READY` com novo bloco `slo1_current` e warning contextualizado.
 - `npm --prefix frontend run test`: `14 passed` / `38 passed` (inclui cobertura de `OpsHealthPage` com monitor de janela 7d/1d).
-- `npm --prefix frontend run build`: `OK` (Vite build concluido apos evolução do monitor SLO-1).
+- `npm --prefix frontend run build`: `OK` (Vite build concluído após evolução do monitor SLO-1).
 - `npm --prefix frontend run test`: `14 passed` / `35 passed` (inclui padronizacao de filtros de domínio + prefill por query string em `Prioridades` e `Insights`).
-- `npm --prefix frontend run build`: `OK` (Vite build concluido, revalidado apos padronizacao de filtros e deep-links).
-- `npm --prefix frontend run test`: `14 passed` / `35 passed` (revalidado apos rotulos amigaveis de domínio no QG).
-- `npm --prefix frontend run build`: `OK` (Vite build concluido, revalidado apos refinamento de UX de domínio).
+- `npm --prefix frontend run build`: `OK` (Vite build concluído, revalidado após padronizacao de filtros e deep-links).
+- `npm --prefix frontend run test`: `14 passed` / `35 passed` (revalidado após rotulos amigaveis de domínio no QG).
+- `npm --prefix frontend run build`: `OK` (Vite build concluído, revalidado após refinamento de UX de domínio).
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py tests/unit/test_ops_routes.py -p no:cacheprovider`: `38 passed`.
 - `npm --prefix frontend run test`: `14 passed` / `33 passed`.
-- `npm --prefix frontend run build`: `OK` (Vite build concluido).
-- `npm --prefix frontend run test`: `14 passed` / `35 passed` (revalidado apos padronizacao de rotulos no `TerritoryProfilePage`).
-- `npm --prefix frontend run build`: `OK` (revalidado apos ajuste de rotulos no `TerritoryProfilePage`).
+- `npm --prefix frontend run build`: `OK` (Vite build concluído).
+- `npm --prefix frontend run test`: `14 passed` / `35 passed` (revalidado após padronizacao de rotulos no `TerritoryProfilePage`).
+- `npm --prefix frontend run build`: `OK` (revalidado após ajuste de rotulos no `TerritoryProfilePage`).
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_bootstrap_manual_sources_snis.py tests/unit/test_bootstrap_manual_sources_onda_b.py tests/unit/test_onda_b_connectors.py tests/unit/test_quality_core_checks.py tests/unit/test_prefect_wave3_flow.py -p no:cacheprovider`: `34 passed`.
 - `.\.venv\Scripts\python.exe scripts/bootstrap_manual_sources.py --reference-year 2025 --municipality-name Diamantina --municipality-ibge-code 3121605 --skip-mte --skip-senatran --skip-sejusp --skip-siops --skip-snis`: `INMET/INPE_QUEIMADAS/ANA/ANATEL/ANEEL = ok`.
 - `run_mvp_wave_4(reference_period='2025', dry_run=False)`: todos os jobs `success`.
@@ -3895,7 +3837,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `scripts/backend_readiness.py --output-json`: `READY` com `hard_failures=0` e `warnings=1` (`SLO-1` histórico na janela de 7 dias).
 - `pytest -q -p no:cacheprovider`: `152 passed`.
 - `npm --prefix frontend run test`: `14 passed` / `33 passed`.
-- `npm --prefix frontend run build`: `OK` (Vite build concluido).
+- `npm --prefix frontend run build`: `OK` (Vite build concluído).
 
 ## 2026-02-11
 
@@ -3926,19 +3868,19 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
   - rota executiva `/cenarios` adicionada para simulação simplificada de impacto territorial.
   - motor de cenarios evoluido para calcular ranking antes/depois por indicador, com delta de posicao.
   - rota executiva `/briefs` adicionada para geracao de brief com resumo e evidencias priorizadas.
-  - Home QG evoluida com ações rapidas para `prioridades`, `mapa` e `territorio critico`.
-  - ação rapida `Ver no mapa` na Home passou a abrir o recorte da prioridade mais critica.
+  - Home QG evoluida com ações rápidas para `prioridades`, `mapa` e `territorio critico`.
+  - ação rápida `Ver no mapa` na Home passou a abrir o recorte da prioridade mais critica.
   - Home QG passou a exibir previa real de Top prioridades (limit 5) com cards executivos.
   - `Territorio 360` ganhou atalhos para `briefs` e `cenarios` com contexto do território selecionado.
   - `Briefs` e `Cenarios` passaram a aceitar pre-preenchimento por query string (`territory_id`, `period`, etc.).
-  - `Prioridades` ganhou ordenacao executiva local (criticidade, tendencia e território) e exportacao `CSV`.
+  - `Prioridades` ganhou ordenacao executiva local (criticidade, tendência e território) e exportacao `CSV`.
   - cards de prioridade ganharam ação `Ver no mapa` com deep-link por `metric/period/territory_id`.
   - `Mapa` passou a aceitar prefill por query string (`metric`, `period`, `level`, `territory_id`).
   - `Mapa` ganhou exportacao `CSV` do ranking territorial atual.
   - `Mapa` ganhou exportacao visual direta em `SVG` e `PNG` (download local do recorte atual).
   - contrato de `GET /v1/territory/{id}/profile` evoluiu com `overall_score`, `overall_status` e `overall_trend`.
-  - `Territorio 360` passou a exibir card executivo de status geral com score agregado e tendencia.
-  - `Territorio 360` passou a incluir painel de pares recomendados para comparacao rapida.
+  - `Territorio 360` passou a exibir card executivo de status geral com score agregado e tendência.
+  - `Territorio 360` passou a incluir painel de pares recomendados para comparacao rápida.
   - `Briefs` passou a suportar exportacao em `HTML` e impressao para `PDF` (via dialogo nativo do navegador).
   - cliente HTTP frontend passou a suportar métodos com payload JSON (POST/PUT/PATCH/DELETE), mantendo retries apenas para GET.
 - Endpoint `GET /v1/ops/pipeline-runs` passou a aceitar filtro `run_status` (preferencial) mantendo
@@ -4199,22 +4141,22 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
 ### Verified
 - `pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider`: `10 passed`.
-- `pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider` (apos adicionar cenarios): `12 passed`.
-- `pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider` (apos adicionar briefs): `14 passed`.
+- `pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider` (após adicionar cenarios): `12 passed`.
+- `pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider` (após adicionar briefs): `14 passed`.
 - `pytest -q tests/unit/test_ops_routes.py -p no:cacheprovider`: `18 passed`.
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_ops_routes.py -p no:cacheprovider`: `21 passed`.
-- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_ops_routes.py -p no:cacheprovider` (apos `/ops/source-coverage`): `23 passed`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_ops_routes.py -p no:cacheprovider` (após `/ops/source-coverage`): `23 passed`.
 - `pytest -q tests/unit -p no:cacheprovider`: `96 passed`.
 - `npm --prefix frontend run typecheck`: `OK`.
-- `npm --prefix frontend run typecheck` (apos atalhos e prefill por query string): `OK`.
-- `npm --prefix frontend run typecheck` (apos exportacao CSV e deep-links Prioridades->Mapa): `OK`.
-- `npm --prefix frontend run typecheck` (apos status geral territorial): `OK`.
-- `npm --prefix frontend run typecheck` (apos exportacao de mapa SVG/PNG): `OK`.
-- `npm --prefix frontend run typecheck` (apos pares recomendados no Território 360): `OK`.
-- `npm --prefix frontend run typecheck` (apos exportacao de briefs HTML/PDF): `OK`.
+- `npm --prefix frontend run typecheck` (após atalhos e prefill por query string): `OK`.
+- `npm --prefix frontend run typecheck` (após exportacao CSV e deep-links Prioridades->Mapa): `OK`.
+- `npm --prefix frontend run typecheck` (após status geral territorial): `OK`.
+- `npm --prefix frontend run typecheck` (após exportacao de mapa SVG/PNG): `OK`.
+- `npm --prefix frontend run typecheck` (após pares recomendados no Território 360): `OK`.
+- `npm --prefix frontend run typecheck` (após exportacao de briefs HTML/PDF): `OK`.
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider`: `14 passed`.
-- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider` (apos endpoint peers): `15 passed`.
-- `npm --prefix frontend run typecheck` (revalidacao apos separacao de `/admin` e aliases PT-BR): `OK`.
+- `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider` (após endpoint peers): `15 passed`.
+- `npm --prefix frontend run typecheck` (revalidacao após separacao de `/admin` e aliases PT-BR): `OK`.
 - `npm --prefix frontend run test`: bloqueado no ambiente atual por `spawn EPERM` ao carregar `vite.config.ts`.
 - `npm --prefix frontend run build`: bloqueado no ambiente atual por `spawn EPERM` ao carregar `vite.config.ts`.
 - `pytest -q tests/unit/test_logging_setup.py tests/unit/test_dbt_build.py tests/unit/test_ops_routes.py tests/unit/test_quality_core_checks.py -p no:cacheprovider`: `31 passed`.
@@ -4245,12 +4187,12 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_qg_routes.py -p no:cacheprovider`: `15 passed`.
 - `.\.venv\Scripts\python.exe -m pytest -q tests/unit/test_bootstrap_manual_sources_snis.py tests/unit/test_bootstrap_manual_sources_onda_b.py tests/unit/test_onda_b_connectors.py tests/unit/test_quality_core_checks.py tests/unit/test_prefect_wave3_flow.py -p no:cacheprovider`: `23 passed`.
 - `npm --prefix frontend test`: `10 passed`.
-- `npm --prefix frontend run build`: build concluido (`vite v6.4.1`).
+- `npm --prefix frontend run build`: build concluído (`vite v6.4.1`).
 - `npm --prefix frontend test` (com F3): `12 passed`.
-- `npm --prefix frontend run build` (com F3): build concluido (`vite v6.4.1`).
+- `npm --prefix frontend run build` (com F3): build concluído (`vite v6.4.1`).
 - `npm --prefix frontend test` (com F4): `13 passed`.
-- `npm --prefix frontend run build` (com F4): build concluido com code-splitting por página.
-- `npm --prefix frontend run typecheck` (apos telemetria de API no cliente HTTP): `OK`.
+- `npm --prefix frontend run build` (com F4): build concluído com code-splitting por página.
+- `npm --prefix frontend run typecheck` (após telemetria de API no cliente HTTP): `OK`.
 - `npm --prefix frontend run test -- src/shared/api/http.test.ts src/shared/observability/telemetry.test.ts`:
   bloqueado no ambiente atual por `spawn EPERM` ao carregar `vite.config.ts`.
 - Instalacao de `dbt-core`/`dbt-postgres` bloqueada no ambiente atual por `PIP_NO_INDEX=1`.
@@ -4372,7 +4314,7 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 - `python -m pip check`: `No broken requirements found.`
 - `pytest -q -p no:cacheprovider`: `82 passed`.
 - `npm run test` (frontend, terminal do usuario): `7 passed`.
-- `npm run build` (frontend, terminal do usuario): build concluido.
+- `npm run build` (frontend, terminal do usuario): build concluído.
 
 ### Documentation
 - `README.md` atualizado para refletir status real dos conectores MVP-1/2/3.
@@ -4445,4 +4387,3 @@ Todas as mudanças relevantes do projeto devem ser registradas aqui.
 
 ### Notes
 - O eixo eleitoral nominal agora já suporta `Prefeito`, `Vereador`, `Presidente`, `Governador`, `Senador`, `Deputado Federal` e `Deputado Estadual` no backend, mas a UI executiva continua tratando o cargo principal do ano como padrão e os demais como seleção controlada.
-

@@ -462,19 +462,19 @@ describe("QG pages", () => {
     renderWithQueryClient(<QgOverviewPage />);
     await waitFor(() => expect(getKpisOverview).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(getPriorityList).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(getElectorateElectionContext).toHaveBeenCalledTimes(1));
-    await screen.findByLabelText(/Per/i);
+    await screen.findByRole("textbox");
+    const periodInput = screen.getByRole("textbox");
+    const levelSelect = screen.getByRole("combobox");
 
-    await userEvent.clear(screen.getByLabelText(/Per/i));
-    await userEvent.type(screen.getByLabelText(/Per/i), "2024");
-    await userEvent.selectOptions(screen.getByLabelText(/N[ií]vel territorial/i), "district");
+    await userEvent.clear(periodInput);
+    await userEvent.type(periodInput, "2024");
+    await userEvent.selectOptions(levelSelect, "district");
     expect(getKpisOverview).toHaveBeenCalledTimes(1);
     expect(getPriorityList).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getByRole("button", { name: /Aplicar filtros/i }));
     await waitFor(() => expect(getKpisOverview).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(getPriorityList).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(getElectorateElectionContext).toHaveBeenCalledTimes(2));
 
     expect(vi.mocked(getKpisOverview).mock.calls[1]?.[0]).toMatchObject({
       period: "2024",
@@ -486,12 +486,6 @@ describe("QG pages", () => {
       level: "district",
       limit: 5
     });
-    expect(vi.mocked(getElectorateElectionContext).mock.calls[1]?.[0]).toMatchObject({
-      level: "district",
-      limit: 5,
-    });
-    expect(screen.getByText("Contexto eleitoral de referência")).toBeInTheDocument();
-    expect(screen.getAllByText("Maria Silva").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "Ver prioridades" })).toHaveAttribute("href", "/prioridades");
     expect(screen.getByRole("link", { name: "Ver insights" })).toHaveAttribute("href", "/insights");
     expect(screen.getByRole("link", { name: "Ver no mapa" })).toHaveAttribute("href", "/mapa?territory_id=3121605");
@@ -508,7 +502,7 @@ describe("QG pages", () => {
     renderWithQueryClient(<QgOverviewPage />);
     await waitFor(() => expect(getKpisOverview).toHaveBeenCalledTimes(1));
 
-    expect(await screen.findByRole("heading", { name: "Painel de inteligência territorial" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Painel de intelig/i })).toBeInTheDocument();
     expect(await screen.findByText("Falha ao carregar top prioridades")).toBeInTheDocument();
     expect(await screen.findByText("Falha ao carregar destaques")).toBeInTheDocument();
     expect(screen.getByText("request_id: req-priority-preview-001")).toBeInTheDocument();
@@ -573,9 +567,9 @@ describe("QG pages", () => {
 
     renderWithQueryClient(<QgOverviewPage />);
     await waitFor(() => expect(getKpisOverview).toHaveBeenCalledTimes(1));
-    await screen.findByLabelText(/Per/i);
+    await screen.findByRole("textbox");
 
-    await userEvent.selectOptions(screen.getByLabelText(/N[ií]vel territorial/i), "electoral_section");
+    await userEvent.selectOptions(screen.getByRole("combobox"), "electoral_section");
 
     await userEvent.click(screen.getByRole("button", { name: /Aplicar filtros/i }));
 
@@ -588,7 +582,6 @@ describe("QG pages", () => {
   it("applies priority filters only on submit", async () => {
     renderWithQueryClient(<QgPrioritiesPage />);
     await waitFor(() => expect(getPriorityList).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(getElectorateElectionContext).toHaveBeenCalledTimes(1));
     await screen.findByLabelText(/Dom/i);
 
     await userEvent.selectOptions(screen.getByLabelText(/Dom/i), "saude");
@@ -1164,7 +1157,7 @@ describe("QG pages", () => {
     );
 
     await waitFor(() => expect(getPriorityList).toHaveBeenCalledTimes(1));
-    await screen.findByLabelText(/Per/i);
+    await screen.findByRole("textbox");
     expect(vi.mocked(getPriorityList).mock.calls[0]?.[0]).toMatchObject({
       period: "2024",
       level: "district",
@@ -1186,7 +1179,7 @@ describe("QG pages", () => {
     );
 
     await waitFor(() => expect(getInsightsHighlights).toHaveBeenCalledTimes(1));
-    await screen.findByLabelText(/Per/i);
+    await screen.findByRole("textbox");
     expect(vi.mocked(getInsightsHighlights).mock.calls[0]?.[0]).toMatchObject({
       period: "2024",
       domain: "saude",

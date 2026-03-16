@@ -476,7 +476,7 @@ export function ElectorateExecutivePage() {
         year: effectiveDisplayYear ?? undefined,
         office: electionContextQuery.data?.office ?? undefined,
         election_round: electionContextQuery.data?.election_round ?? undefined,
-        limit: 15,
+        limit: 200,
       }),
     enabled:
       !isLoading &&

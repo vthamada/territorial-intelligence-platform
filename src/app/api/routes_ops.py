@@ -225,6 +225,32 @@ class _AdminSyncJobManager:
             ],
         }
 
+    def _normalize_stale_persisted_job(self, job: dict[str, Any]) -> dict[str, Any]:
+        if job["status"] not in {"queued", "running"} and not job.get("is_active"):
+            return job
+
+        finished_at = self._utc_now()
+        interrupted_step = job.get("current_step")
+        for step in job["steps"]:
+            if step["status"] == "running" or (interrupted_step and step["name"] == interrupted_step and step["status"] == "pending"):
+                step["status"] = "failed"
+                step["finished_at_utc"] = finished_at
+                step["exit_code"] = step.get("exit_code")
+                step["summary"] = "Etapa interrompida após reinício da API."
+
+        recent_logs = deque(job.get("recent_logs") or [], maxlen=200)
+        message = f"[{finished_at}] Job marcado como interrompido após reinício da API."
+        recent_logs.append(message)
+        job["status"] = "failed"
+        job["finished_at_utc"] = job.get("finished_at_utc") or finished_at
+        job["is_active"] = False
+        job["current_step"] = None
+        job["last_message"] = message
+        job["recent_logs"] = recent_logs
+        self._persist_job(job)
+        job["recent_logs"] = list(recent_logs)
+        return job
+
     def _load_job_from_db(self, *, job_id: str | None = None) -> dict[str, Any] | None:
         try:
             with session_scope() as session:
@@ -290,7 +316,8 @@ class _AdminSyncJobManager:
                     ),
                     {"job_id": job_row["job_id"]},
                 ).mappings().all()
-                return self._hydrate_job_from_db_row(dict(job_row), [dict(row) for row in steps_rows])
+                job = self._hydrate_job_from_db_row(dict(job_row), [dict(row) for row in steps_rows])
+                return self._normalize_stale_persisted_job(job)
         except Exception as exc:  # pragma: no cover - defensive runtime path
             logger.warning("Falha ao carregar admin sync job %s do banco: %s", job_id or "<latest>", exc)
             return None
@@ -429,7 +456,7 @@ class _AdminSyncJobManager:
 
                     raise HTTPException(
                         status_code=409,
-                        detail=f"Ja existe uma execucao administrativa em andamento ({self._active_job_id}).",
+                        detail=f"Já existe uma execução administrativa em andamento ({self._active_job_id}).",
                     )
 
             job_id = str(uuid4())
@@ -511,8 +538,8 @@ class _AdminSyncJobManager:
                     step["exit_code"] = int(exit_code)
                     if exit_code == 0:
                         step["status"] = "success"
-                        step["summary"] = "Etapa concluida com sucesso."
-                        self._append_log(job, f"[{finished_at}] Etapa concluida: {step['name']}")
+                        step["summary"] = "Etapa concluída com sucesso."
+                        self._append_log(job, f"[{finished_at}] Etapa concluída: {step['name']}")
                     else:
                         step["status"] = "failed"
                         step["summary"] = f"Etapa falhou com exit code {exit_code}."
@@ -531,7 +558,7 @@ class _AdminSyncJobManager:
                 job["status"] = "success"
                 job["finished_at_utc"] = finished_at
                 job["current_step"] = None
-                self._append_log(job, f"[{finished_at}] Job concluido com sucesso.")
+                self._append_log(job, f"[{finished_at}] Job concluído com sucesso.")
                 self._persist_job(job)
         except Exception as exc:  # pragma: no cover - defensive runtime path
             with self._lock:
@@ -566,7 +593,7 @@ def require_admin_ops_access(request: Request) -> None:
 
         raise HTTPException(
             status_code=503,
-            detail="admin_ops_token nao configurado para ambiente nao local.",
+            detail="admin_ops_token nÃ£o configurado para ambiente nÃ£o local.",
         )
 
 

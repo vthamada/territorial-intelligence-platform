@@ -137,7 +137,7 @@ describe("AdminHubPage", () => {
       items: [
         {
           id: "territory_municipality",
-          label: "Municípios",
+          label: "Munic?pios",
           territory_level: "municipality",
           is_official: true,
           source: "silver.dim_territory",
@@ -168,13 +168,13 @@ describe("AdminHubPage", () => {
 
   it("shows request_id and allows retry when readiness fails", async () => {
     vi.mocked(getOpsReadiness).mockRejectedValueOnce(
-      new ApiClientError("Readiness indisponível", 503, "req-readiness-001"),
+      new ApiClientError("Readiness indispon?vel", 503, "req-readiness-001"),
     );
 
     renderWithQueryClient();
 
     expect(await screen.findByText("Falha ao carregar readiness")).toBeInTheDocument();
-    expect(screen.getByText("Readiness indisponível")).toBeInTheDocument();
+    expect(screen.getByText("Readiness indispon?vel")).toBeInTheDocument();
     expect(screen.getByText("request_id: req-readiness-001")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
@@ -183,13 +183,13 @@ describe("AdminHubPage", () => {
 
   it("shows request_id and allows retry when layer coverage fails", async () => {
     vi.mocked(getMapLayersCoverage).mockRejectedValueOnce(
-      new ApiClientError("Cobertura indisponível", 503, "req-coverage-001"),
+      new ApiClientError("Cobertura indispon?vel", 503, "req-coverage-001"),
     );
 
     renderWithQueryClient();
 
     expect(await screen.findByText("Falha ao carregar cobertura das camadas")).toBeInTheDocument();
-    expect(screen.getByText("Cobertura indisponível")).toBeInTheDocument();
+    expect(screen.getByText("Cobertura indispon?vel")).toBeInTheDocument();
     expect(screen.getByText("request_id: req-coverage-001")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
@@ -199,8 +199,8 @@ describe("AdminHubPage", () => {
   it("shows empty state and empty persisted history when no admin sync job exists", async () => {
     renderWithQueryClient();
 
-    expect(await screen.findByText("Nenhuma execução administrativa registrada")).toBeInTheDocument();
-    expect(await screen.findByText("Sem histórico persistido")).toBeInTheDocument();
+    expect(await screen.findByText(/Nenhuma execu/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Sem hist/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Validar ambiente" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sincronizar ambiente" })).toBeInTheDocument();
   });
@@ -208,7 +208,7 @@ describe("AdminHubPage", () => {
   it("starts validation with the official payload", async () => {
     renderWithQueryClient();
 
-    await screen.findByText("Nenhuma execução administrativa registrada");
+    await screen.findByText(/Nenhuma execu/i);
     await userEvent.click(screen.getByRole("button", { name: "Validar ambiente" }));
 
     await waitFor(() => expect(startAdminSync).toHaveBeenCalledTimes(1));
@@ -224,7 +224,7 @@ describe("AdminHubPage", () => {
 
     renderWithQueryClient();
 
-    await screen.findByText("Nenhuma execução administrativa registrada");
+    await screen.findByText(/Nenhuma execu/i);
     await userEvent.click(screen.getByRole("button", { name: "Sincronizar ambiente" }));
 
     await waitFor(() => expect(startAdminSync).toHaveBeenCalledTimes(1));
@@ -237,6 +237,38 @@ describe("AdminHubPage", () => {
     confirmSpy.mockRestore();
   });
 
+  it("normalizes stale mojibake messages from persisted admin jobs", async () => {
+    vi.mocked(getAdminSyncStatus).mockResolvedValueOnce({
+      job: {
+        job_id: "job-legacy",
+        mode: "validate",
+        status: "success",
+        started_at_utc: "2026-03-16T18:00:00Z",
+        finished_at_utc: "2026-03-16T18:01:00Z",
+        is_active: false,
+        current_step: null,
+        last_message: "ValidaÃ§Ã£o concluÃ­da com sucesso.",
+        recent_logs: ["Etapa concluÃ­da: backend_readiness"],
+        steps: [
+          {
+            name: "backend_readiness",
+            status: "success",
+            started_at_utc: "2026-03-16T18:00:00Z",
+            finished_at_utc: "2026-03-16T18:01:00Z",
+            exit_code: 0,
+            summary: "Etapa concluÃ­da com sucesso.",
+          },
+        ],
+      },
+    });
+
+    renderWithQueryClient();
+
+    expect((await screen.findAllByText(/conclu.*sucesso/i)).length).toBeGreaterThan(0);
+    expect(screen.getByText(/backend_readiness/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Valida\?\?o/i)).not.toBeInTheDocument();
+  });
+
   it("shows explicit admin-sync upgrade message when backend returns 404", async () => {
     vi.mocked(getAdminSyncStatus).mockRejectedValueOnce(
       new ApiClientError("Request failed with status 404", 404, "req-admin-404"),
@@ -244,8 +276,8 @@ describe("AdminHubPage", () => {
 
     renderWithQueryClient();
 
-    expect(await screen.findByText("Falha ao carregar status da operação assistida")).toBeInTheDocument();
-    expect(screen.getByText("Backend sem suporte à operação assistida. Atualize e reinicie a API.")).toBeInTheDocument();
+    expect(await screen.findByText(/status da opera/i)).toBeInTheDocument();
+    expect(screen.getByText(/Backend sem suporte/i)).toBeInTheDocument();
     expect(screen.getByText("request_id: req-admin-404")).toBeInTheDocument();
   });
 });

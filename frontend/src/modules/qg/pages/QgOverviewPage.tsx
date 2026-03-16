@@ -13,20 +13,16 @@ import { CollapsiblePanel } from "../../../shared/ui/CollapsiblePanel";
 import { Panel } from "../../../shared/ui/Panel";
 import { PriorityItemCard } from "../../../shared/ui/PriorityItemCard";
 import { SourceFreshnessBadge } from "../../../shared/ui/SourceFreshnessBadge";
-import { formatLevelLabel, formatStatusLabel, formatValueWithUnit, humanizeDatasetSource } from "../../../shared/ui/presentation";
+import {
+  formatLevelLabel,
+  formatStatusLabel,
+  formatValueWithUnit,
+  humanizeDatasetSource,
+} from "../../../shared/ui/presentation";
 import { StateBlock } from "../../../shared/ui/StateBlock";
 import { StrategicIndexCard } from "../../../shared/ui/StrategicIndexCard";
 import { getQgDomainLabel, QG_ONDA_BC_SPOTLIGHT } from "../domainCatalog";
-import {
-  buildElectoralMapDeepLink,
-  buildElectorateDeepLink,
-  formatCandidateLabel,
-  formatInteger,
-  formatOfficeLabel,
-  formatPercent,
-  getExecutiveElectionContext,
-  normalizeExecutiveLevel,
-} from "../electionContextUtils";
+import { normalizeExecutiveLevel } from "../electionContextUtils";
 
 type StrategicStatus = "critical" | "attention" | "stable" | "info";
 
@@ -97,10 +93,6 @@ export function QgOverviewPage() {
     queryKey: ["qg", "overview", "insights", baseQuery],
     queryFn: () => getInsightsHighlights({ ...baseQuery, limit: 5 }),
   });
-  const electionContextQuery = useQuery({
-    queryKey: ["qg", "overview", "election-context", appliedLevel],
-    queryFn: () => getExecutiveElectionContext(appliedLevel),
-  });
 
   const isLoading = kpiQuery.isPending || summaryQuery.isPending;
   const firstError = kpiQuery.error ?? summaryQuery.error;
@@ -152,20 +144,16 @@ export function QgOverviewPage() {
   const summary = summaryQuery.data!;
   const prioritiesPreviewItems = prioritiesPreviewQuery.data?.items ?? [];
   const highlightsItems = highlightsQuery.data?.items ?? [];
-
   const prioritiesPreviewError = prioritiesPreviewQuery.error ? formatApiError(prioritiesPreviewQuery.error) : null;
   const highlightsError = highlightsQuery.error ? formatApiError(highlightsQuery.error) : null;
-  const electionContextError = electionContextQuery.error ? formatApiError(electionContextQuery.error) : null;
 
   const strategicScore = resolveStrategicScore(summary.by_status, summary.total_items);
   const strategicStatus = resolveStrategicStatus(strategicScore);
   const strategicTrend = resolveStrategicTrend(summary.by_status);
-  const electionContext = electionContextQuery.data ?? null;
-  const leadingCandidate = electionContext?.items[0] ?? null;
 
   return (
     <main className="page-grid">
-      <Panel title="Painel de inteligência territorial" subtitle="Leitura executiva pronta para decisão">
+      <Panel title={"Painel de inteligência territorial"} subtitle={"Leitura executiva pronta para decisão"}>
         <form
           className="filter-grid compact"
           onSubmit={(event) => {
@@ -174,11 +162,11 @@ export function QgOverviewPage() {
           }}
         >
           <label>
-            Período
+            {"Período"}
             <input value={period} onChange={(event) => setPeriod(event.target.value)} placeholder="2025" />
           </label>
           <label>
-            Nível territorial
+            {"Nível territorial"}
             <select value={level} onChange={(event) => setLevel(event.target.value)}>
               <option value="municipality">{formatLevelLabel("municipality")}</option>
               <option value="district">{formatLevelLabel("district")}</option>
@@ -202,132 +190,21 @@ export function QgOverviewPage() {
             status={strategicStatus}
             helper={strategicTrend}
           />
-          <StrategicIndexCard
-            label="Críticos"
-            value={String(summary.by_status.critical ?? 0)}
-            status="critical"
-            helper="resposta imediata"
-          />
-          <StrategicIndexCard
-            label="Atenção"
-            value={String(summary.by_status.attention ?? 0)}
-            status="attention"
-            helper="monitoramento ativo"
-          />
-          <StrategicIndexCard
-            label="Estáveis"
-            value={String(summary.by_status.stable ?? 0)}
-            status="stable"
-            helper="sob controle"
-          />
+          <StrategicIndexCard label={"Críticos"} value={String(summary.by_status.critical ?? 0)} status="critical" helper="resposta imediata" />
+          <StrategicIndexCard label={"Atenção"} value={String(summary.by_status.attention ?? 0)} status="attention" helper="monitoramento ativo" />
+          <StrategicIndexCard label={"Estáveis"} value={String(summary.by_status.stable ?? 0)} status="stable" helper="sob controle" />
         </div>
 
         <div className="panel-actions-row">
-          <Link className="inline-link" to="/mapa">
-            Abrir mapa
-          </Link>
-          <Link className="inline-link" to="/prioridades">
-            Ver prioridades
-          </Link>
-          <Link className="inline-link" to="/insights">
-            Ver insights
-          </Link>
+          <Link className="inline-link" to="/mapa">Abrir mapa</Link>
+          <Link className="inline-link" to="/prioridades">Ver prioridades</Link>
+          <Link className="inline-link" to="/insights">Ver insights</Link>
         </div>
 
         <SourceFreshnessBadge metadata={summary.metadata} />
       </Panel>
 
-      <Panel
-        title="Contexto eleitoral de referência"
-        subtitle="Cargo principal e liderança nominal do último recorte oficial disponível neste nível."
-      >
-        {electionContextQuery.isPending && !electionContext ? (
-          <StateBlock
-            tone="loading"
-            title="Carregando contexto eleitoral"
-            message="Consultando cargo principal e liderança nominal do recorte."
-          />
-        ) : electionContextError ? (
-          <StateBlock
-            tone="error"
-            title="Falha ao carregar contexto eleitoral"
-            message={electionContextError.message}
-            requestId={electionContextError.requestId}
-            onRetry={() => void electionContextQuery.refetch()}
-          />
-        ) : !electionContext || electionContext.items.length === 0 ? (
-          <StateBlock
-            tone="empty"
-            title="Sem contexto eleitoral nominal"
-            message="Ainda não há dados nominais de candidatos para o nível territorial exibido."
-          />
-        ) : (
-          <>
-            <div className="kpi-grid">
-              <StrategicIndexCard
-                label="Ano eleitoral"
-                value={electionContext.year ? String(electionContext.year) : "-"}
-                status="info"
-                helper="último recorte oficial"
-              />
-              <StrategicIndexCard
-                label="Cargo principal"
-                value={formatOfficeLabel(electionContext.office)}
-                status="info"
-                helper={electionContext.election_round ? `${electionContext.election_round}o turno` : "turno unico"}
-              />
-              <StrategicIndexCard
-                label="Líder do recorte"
-                value={formatCandidateLabel(leadingCandidate?.ballot_name ?? null, leadingCandidate?.candidate_name ?? null)}
-                status="info"
-                helper={formatPercent(leadingCandidate?.share_percent)}
-              />
-              <StrategicIndexCard
-                label="Votos válidos"
-                value={formatInteger(electionContext.total_votes)}
-                status="info"
-                helper={formatLevelLabel(electionContext.level)}
-              />
-            </div>
-
-            <div className="table-wrap" style={{ marginTop: "0.85rem" }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Candidato</th>
-                    <th>Partido</th>
-                    <th>Votos</th>
-                    <th>% do recorte</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {electionContext.items.slice(0, 3).map((item) => (
-                    <tr key={item.candidate_id}>
-                      <td>{formatCandidateLabel(item.ballot_name, item.candidate_name)}</td>
-                      <td>{item.party_abbr ?? item.party_name ?? "-"}</td>
-                      <td>{formatInteger(item.votes)}</td>
-                      <td>{formatPercent(item.share_percent)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="panel-actions-row">
-              <Link className="inline-link" to={buildElectorateDeepLink(electionContext)}>
-                Abrir eleitorado
-              </Link>
-              <Link className="inline-link" to={buildElectoralMapDeepLink(electionContext)}>
-                Abrir mapa eleitoral
-              </Link>
-            </div>
-
-            <SourceFreshnessBadge metadata={electionContext.metadata} />
-          </>
-        )}
-      </Panel>
-
-      <Panel title="Top prioridades" subtitle="Itens com justificativa e ação imediata">
+      <Panel title="Top prioridades" subtitle={"Itens com justificativa e ação imediata"}>
         {prioritiesPreviewQuery.isPending && !prioritiesPreviewQuery.data ? (
           <StateBlock tone="loading" title="Carregando top prioridades" message="Buscando os principais itens do recorte." />
         ) : prioritiesPreviewError ? (
@@ -349,7 +226,7 @@ export function QgOverviewPage() {
         )}
       </Panel>
 
-      <Panel title="Destaques" subtitle="Narrativa curta orientada à decisão">
+      <Panel title="Destaques" subtitle={"Narrativa curta orientada à decisão"}>
         {highlightsQuery.isPending && !highlightsQuery.data ? (
           <StateBlock tone="loading" title="Carregando destaques" message="Consolidando os principais insights do recorte." />
         ) : highlightsError ? (
@@ -372,27 +249,20 @@ export function QgOverviewPage() {
                     <p>{item.explanation[0] ?? "Sem explicação."}</p>
                   </div>
                   <small>
-                    {getQgDomainLabel(item.domain)} | {formatStatusLabel(item.severity)} |{" "}
+                    {getQgDomainLabel(item.domain)} | {formatStatusLabel(item.severity)} | {" "}
                     {humanizeDatasetSource(item.evidence.source, item.evidence.dataset)}
                   </small>
                 </li>
               ))}
             </ul>
             <div className="panel-actions-row">
-              <Link className="inline-link" to="/insights">
-                Ver mais insights
-              </Link>
+              <Link className="inline-link" to="/insights">Ver mais insights</Link>
             </div>
           </>
         )}
       </Panel>
 
-      <CollapsiblePanel
-        title="KPIs executivos"
-        subtitle="Indicadores agregados para consulta rápida"
-        defaultOpen={false}
-        badgeCount={kpis.items.length}
-      >
+      <CollapsiblePanel title="KPIs executivos" subtitle={"Indicadores agregados para consulta rápida"} defaultOpen={false} badgeCount={kpis.items.length}>
         {kpis.items.length === 0 ? (
           <StateBlock tone="empty" title="Sem KPIs" message="Nenhum KPI encontrado para os filtros aplicados." />
         ) : (
@@ -400,10 +270,10 @@ export function QgOverviewPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Domínio</th>
+                  <th>{"Domínio"}</th>
                   <th>Indicador</th>
                   <th>Valor</th>
-                  <th>Nível</th>
+                  <th>{"Nível"}</th>
                 </tr>
               </thead>
               <tbody>
@@ -421,28 +291,21 @@ export function QgOverviewPage() {
         )}
       </CollapsiblePanel>
 
-      <CollapsiblePanel
-        title="Domínios Onda B/C"
-        subtitle="Atalhos para exploração no mapa e prioridades"
-        defaultOpen={false}
-        badgeCount={QG_ONDA_BC_SPOTLIGHT.length}
-      >
+      <CollapsiblePanel title={"Domínios Onda B/C"} subtitle={"Atalhos para exploração no mapa e prioridades"} defaultOpen={false} badgeCount={QG_ONDA_BC_SPOTLIGHT.length}>
         <div className="table-wrap">
-          <table aria-label="Domínios Onda B/C">
+          <table aria-label={"Domínios Onda B/C"}>
             <thead>
               <tr>
-                <th>Domínio</th>
+                <th>{"Domínio"}</th>
                 <th>Fonte</th>
                 <th>Itens no recorte</th>
-                <th>Acoes</th>
+                <th>{"Ações"}</th>
               </tr>
             </thead>
             <tbody>
               {QG_ONDA_BC_SPOTLIGHT.map((item) => {
                 const totalInDomain = summary.by_domain[item.domain] ?? 0;
-                const prioritiesLink = `/prioridades?domain=${encodeURIComponent(item.domain)}&period=${encodeURIComponent(
-                  appliedPeriod,
-                )}&level=${encodeURIComponent(appliedLevel)}`;
+                const prioritiesLink = `/prioridades?domain=${encodeURIComponent(item.domain)}&period=${encodeURIComponent(appliedPeriod)}&level=${encodeURIComponent(appliedLevel)}`;
                 const mapLink = `/mapa?level=${encodeURIComponent(appliedLevel)}`;
                 return (
                   <tr key={item.domain}>
@@ -450,13 +313,9 @@ export function QgOverviewPage() {
                     <td>{item.source}</td>
                     <td>{totalInDomain}</td>
                     <td>
-                      <Link className="inline-link" to={prioritiesLink}>
-                        Abrir prioridades
-                      </Link>{" "}
+                      <Link className="inline-link" to={prioritiesLink}>Abrir prioridades</Link>{" "}
                       |{" "}
-                      <Link className="inline-link" to={mapLink}>
-                        Ver no mapa
-                      </Link>
+                      <Link className="inline-link" to={mapLink}>Ver no mapa</Link>
                     </td>
                   </tr>
                 );

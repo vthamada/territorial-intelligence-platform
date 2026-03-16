@@ -18,6 +18,14 @@ const paths: Record<string, string> = {
     "M5 3h10a1 1 0 011 1v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1zM8 8l2 2 3-3M7 14h6",
   admin:
     "M10 13a3 3 0 100-6 3 3 0 000 6zM16.5 10a6.5 6.5 0 01-.4 2.2l1.4 1.1-1.2 2-1.7-.5a6.5 6.5 0 01-3.8 1.6L10 18l-1.8-1.6a6.5 6.5 0 01-3.8-1.6l-1.7.5-1.2-2 1.4-1.1A6.5 6.5 0 013.5 10c0-.8.1-1.5.4-2.2L2.5 6.7l1.2-2 1.7.5A6.5 6.5 0 019.2 3.6L10 2l.8 1.6a6.5 6.5 0 013.8 1.6l1.7-.5 1.2 2-1.4 1.1c.3.7.4 1.4.4 2.2z",
+  ops_health: "M4 10h12M10 4v12M5 5l10 10",
+  pipeline_runs: "M4 5h12M4 10h8M4 15h12M14 8l3 2-3 2",
+  checks: "M4 10l3 3 9-9",
+  connectors: "M6 6h3v3H6V6zM11 11h3v3h-3v-3zM9 7h2M10 8v2M12 12h2M13 10v2",
+  frontend_events: "M4 13h2l2-6 3 8 2-4h3",
+  source_coverage: "M4 15h3V9H4v6zM8.5 15h3V5h-3v10zM13 15h3v-8h-3v8z",
+  layers: "M10 3l6 3-6 3-6-3 6-3zM4 10l6 3 6-3M4 14l6 3 6-3",
+  territory_indicators: "M10 3a3 3 0 013 3c0 2.5-3 5.5-3 5.5S7 8.5 7 6a3 3 0 013-3zm-4 13h8M8 15h4",
 };
 
 type NavIconProps = {

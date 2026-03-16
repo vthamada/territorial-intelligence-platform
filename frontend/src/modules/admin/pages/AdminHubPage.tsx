@@ -9,6 +9,7 @@ import {
 import { getMapLayers, getMapLayersCoverage } from "../../../shared/api/domain";
 import { ApiClientError, formatApiError } from "../../../shared/api/http";
 import { Panel } from "../../../shared/ui/Panel";
+import { NavIcon } from "../../../shared/ui/NavIcon";
 import { StateBlock } from "../../../shared/ui/StateBlock";
 import type {
   AdminSyncHistoryItem,
@@ -30,49 +31,49 @@ const adminLinks: AdminRouteLink[] = [
     to: "/ops/health",
     label: "Saúde Ops",
     description: "Saúde da API, banco e volume operacional.",
-    icon: "[+]"
+    icon: "ops_health"
   },
   {
     to: "/ops/runs",
     label: "Execuções",
     description: "Histórico de runs de pipeline com filtros e paginação.",
-    icon: ">>"
+    icon: "pipeline_runs"
   },
   {
     to: "/ops/checks",
     label: "Checks",
     description: "Resultados dos checks de qualidade e operação.",
-    icon: "[ok]"
+    icon: "checks"
   },
   {
     to: "/ops/connectors",
     label: "Conectores",
-    description: "Registry de conectores e status por onda.",
-    icon: "[=]"
+    description: "Registro de conectores e status por onda.",
+    icon: "connectors"
   },
   {
     to: "/ops/frontend-events",
     label: "Eventos Frontend",
     description: "Telemetria de erros, web vitals e chamadas API do cliente.",
-    icon: "[~]"
+    icon: "frontend_events"
   },
   {
     to: "/ops/source-coverage",
     label: "Cobertura por Fonte",
     description: "Mostra se as fontes implementadas estão com dados carregados no Silver.",
-    icon: "[#]"
+    icon: "source_coverage"
   },
   {
     to: "/ops/layers",
     label: "Rastreabilidade de Camadas",
     description: "Catálogo territorial, cobertura de geometria e checks de qualidade por camada.",
-    icon: "[map]"
+    icon: "layers"
   },
   {
     to: "/territory/indicators",
     label: "Territórios e Indicadores",
     description: "Consulta técnica para depuração de dados territoriais.",
-    icon: "[pin]"
+    icon: "territory_indicators"
   }
 ];
 
@@ -110,10 +111,22 @@ function AdminSyncErrorState({ title, error, onRetry }: QueryErrorStateProps) {
   return <StateBlock tone="error" title={title} message={message} requestId={requestId} onRetry={onRetry} />;
 }
 
+function normalizeAdminText(value: string) {
+  if (!/[ÃÂ]/.test(value)) {
+    return value;
+  }
+  try {
+    const bytes = Uint8Array.from(Array.from(value, (char) => char.charCodeAt(0) & 0xff));
+    return new TextDecoder("utf-8").decode(bytes);
+  } catch {
+    return value;
+  }
+}
+
 function formatAdminStepLabel(stepName: string) {
   return stepName
     .replace(/_/g, " ")
-    .replace(/\b\w/g, (match) => match.toUpperCase());
+    .replace(/\w/g, (match) => match.toUpperCase());
 }
 
 function getSyncModeLabel(mode: AdminSyncJobStatus["mode"] | AdminSyncHistoryItem["mode"]) {
@@ -310,14 +323,14 @@ function AdminSyncPanel() {
                       <span className={`status-chip ${getStepStatusTone(step.status)}`}>{step.status}</span>
                     </td>
                     <td>{step.exit_code ?? "-"}</td>
-                    <td>{step.summary ?? "-"}</td>
+                    <td>{step.summary ? normalizeAdminText(step.summary) : "-"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <div>
-            <p className="panel-subtitle">Última mensagem: {currentJob.last_message ?? "-"}</p>
+            <p className="panel-subtitle">Última mensagem: {currentJob.last_message ? normalizeAdminText(currentJob.last_message) : "-"}</p>
             <pre
               style={{
                 maxHeight: "14rem",
@@ -331,7 +344,7 @@ function AdminSyncPanel() {
                 whiteSpace: "pre-wrap",
               }}
             >
-              {currentJob.recent_logs.length > 0 ? currentJob.recent_logs.join("\n") : "Sem logs recentes."}
+              {currentJob.recent_logs.length > 0 ? currentJob.recent_logs.map(normalizeAdminText).join("\n") : "Sem logs recentes."}
             </pre>
           </div>
           <div>
@@ -534,12 +547,12 @@ export function AdminHubPage() {
           {adminLinks.map((item) => (
             <article key={item.to} className="admin-link-card">
               <div className="admin-card-header">
-                <span className="admin-card-icon" aria-hidden="true">{item.icon}</span>
-                <h3>{item.label}</h3>
+                <NavIcon name={item.icon} className="admin-card-icon" />
+                <h3>{normalizeAdminText(item.label)}</h3>
               </div>
-              <p>{item.description}</p>
+              <p>{normalizeAdminText(item.description)}</p>
               <Link className="inline-link" to={item.to}>
-                Abrir {item.label}
+                Abrir {normalizeAdminText(item.label)}
               </Link>
             </article>
           ))}

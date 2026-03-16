@@ -1503,3 +1503,42 @@ def test_admin_sync_endpoints_accept_token_when_configured(monkeypatch: Any) -> 
     assert response.status_code == 200
     payload = response.json()
     assert payload["job"] is None
+
+
+
+def test_admin_sync_manager_normalizes_persisted_active_job_after_restart(monkeypatch: Any) -> None:
+    manager = routes_ops._AdminSyncJobManager()
+    persisted: dict[str, Any] = {
+        "job_id": "job-stale-001",
+        "mode": "validate",
+        "status": "queued",
+        "started_at_utc": "2026-03-12T13:00:00Z",
+        "finished_at_utc": None,
+        "is_active": True,
+        "current_step": None,
+        "last_message": "Job enfileirado.",
+        "recent_logs": ["Job enfileirado."],
+        "steps": [
+            {
+                "name": "backend_readiness",
+                "status": "pending",
+                "started_at_utc": None,
+                "finished_at_utc": None,
+                "exit_code": None,
+                "summary": None,
+            }
+        ],
+    }
+    persisted_updates: list[dict[str, Any]] = []
+
+    monkeypatch.setattr(manager, "_persist_job", lambda job: persisted_updates.append(job.copy()))
+    monkeypatch.setattr(manager, "_load_job_from_db", lambda job_id=None: manager._normalize_stale_persisted_job(persisted.copy()))
+
+    job = manager.get_latest_job()
+
+    assert job is not None
+    assert job["status"] == "failed"
+    assert job["is_active"] is False
+    assert job["current_step"] is None
+    assert "interrompido" in str(job["last_message"])
+    assert persisted_updates

@@ -3400,9 +3400,10 @@ textarea:focus-visible {
 }
 
 .admin-card-icon {
-  font-size: 1.3rem;
-  line-height: 1;
+  width: 1.15rem;
+  height: 1.15rem;
   flex-shrink: 0;
+  color: var(--ink-strong);
 }
 
 .admin-link-grid {
