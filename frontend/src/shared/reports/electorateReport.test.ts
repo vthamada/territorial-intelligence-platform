@@ -2,15 +2,15 @@ import { describe, expect, it } from "vitest";
 import { buildElectorateReportHtml } from "./electorateReport";
 
 describe("buildElectorateReportHtml", () => {
-  it("adds print rules that keep section headers attached to the following content", () => {
+  it("keeps table section titles inside thead and hides duplicate indicator for voters", () => {
     const html = buildElectorateReportHtml({
       generatedAt: new Date("2026-03-16T16:46:18Z"),
       year: 2024,
       metricLabel: "Total de eleitores",
       officeLabel: "Prefeito",
       electionTypeLabel: "Municipal",
-      electionRoundLabel: "1? turno",
-      candidateLabel: "Jo?o",
+      electionRoundLabel: "1º turno",
+      candidateLabel: "João",
       sections: ["summary", "history", "election_context", "candidate_territories", "polling_places", "composition"],
       summary: {
         level: "municipality",
@@ -45,7 +45,7 @@ describe("buildElectorateReportHtml", () => {
         metadata: { source_name: "silver.dim_election + silver.dim_candidate + silver.fact_candidate_vote", updated_at: null, coverage_note: "candidate_context", unit: "votes", notes: null },
         total_votes: 10000,
         available_offices: [{ office: "Prefeito", election_round: 1, election_type: "Municipal", total_votes: 10000, is_primary: true }],
-        items: [{ candidate_id: "cand-1", candidate_number: "15", candidate_name: "Jo?o Silva", ballot_name: "Jo?o", party_abbr: "MDB", party_number: "15", party_name: "MDB", votes: 5200, share_percent: 52 }],
+        items: [{ candidate_id: "cand-1", candidate_number: "15", candidate_name: "João Silva", ballot_name: "João", party_abbr: "MDB", party_number: "15", party_name: "MDB", votes: 5200, share_percent: 52 }],
       },
       candidateTerritories: {
         level: "electoral_section",
@@ -56,7 +56,7 @@ describe("buildElectorateReportHtml", () => {
         election_type: "Municipal",
         candidate_id: "cand-1",
         metadata: { source_name: "silver.dim_election + silver.dim_candidate + silver.fact_candidate_vote", updated_at: null, coverage_note: "candidate_territorial", unit: "votes", notes: null },
-        items: [{ territory_id: "pp-1", territory_name: "Escola A", territory_level: "polling_place", candidate_id: "cand-1", candidate_number: "15", candidate_name: "Jo?o Silva", ballot_name: "Jo?o", party_abbr: "MDB", party_number: "15", party_name: "MDB", votes: 1200, share_percent: 24, polling_place_name: "Escola A", polling_place_code: "101", district_name: "Diamantina", zone_codes: ["101"], section_count: 4, sections: ["10", "11", "12", "13"], polling_place_section_count: 5, polling_place_sections: ["10", "11", "12", "13", "14"] }],
+        items: [{ territory_id: "pp-1", territory_name: "Escola A", territory_level: "polling_place", candidate_id: "cand-1", candidate_number: "15", candidate_name: "João Silva", ballot_name: "João", party_abbr: "MDB", party_number: "15", party_name: "MDB", votes: 1200, share_percent: 24, polling_place_name: "Escola A", polling_place_code: "101", district_name: "Diamantina", zone_codes: ["101"], section_count: 4, sections: ["10", "11", "12", "13"], polling_place_section_count: 5, polling_place_sections: ["10", "11", "12", "13", "14"] }],
       },
       pollingPlaces: {
         metric: "voters",
@@ -67,8 +67,13 @@ describe("buildElectorateReportHtml", () => {
       ageBreakdown: [{ label: "16 a 20 anos", voters: 1200, share_percent: 10 }],
     });
 
-    expect(html).toContain(".report-section > table,");
+    expect(html).toContain('class="table-section-title-row"');
+    expect(html).toContain('class="table-column-header-row"');
+    expect(html).toContain("Ranking de locais de votação");
+    expect(html).toContain(".table-section-title");
+    expect(html).toContain(".report-section-table { gap: 0; }");
     expect(html).toContain("thead { display: table-header-group; }");
-    expect(html).toContain(".report-section-header { page-break-inside: avoid; break-inside: avoid; page-break-after: avoid; break-after: avoid-page; }");
+    expect(html).toContain(".table-column-header-row { page-break-after: avoid; break-after: avoid-page; }");
+    expect(html).not.toContain(">Indicador<");
   });
 });

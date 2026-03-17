@@ -47,15 +47,22 @@ export type BuildElectorateReportInput = {
 
 function escapeHtml(value: string) {
   return value
-    .split("&").join("&amp;")
-    .split("<").join("&lt;")
-    .split(">").join("&gt;")
-    .split('"').join("&quot;")
-    .split("'").join("&#39;");
+    .split("&")
+    .join("&amp;")
+    .split("<")
+    .join("&lt;")
+    .split(">")
+    .join("&gt;")
+    .split('"')
+    .join("&quot;")
+    .split("'")
+    .join("&#39;");
 }
 
 export function sanitizeFilePart(value: string) {
-  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "relatorio";
+  return (
+    value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "relatorio"
+  );
 }
 
 function formatPercent(value: number | null) {
@@ -75,7 +82,12 @@ function formatMetricValue(metric: ElectoratePollingPlacesResponse["metric"], va
   return formatPercent(value);
 }
 
-function renderTable(headers: string[], rows: string[][], emptyLabel: string) {
+function renderTable(
+  headers: string[],
+  rows: string[][],
+  emptyLabel: string,
+  titleBlock?: { title: string; subtitle: string },
+) {
   const body =
     rows.length > 0
       ? rows
@@ -90,10 +102,37 @@ function renderTable(headers: string[], rows: string[][], emptyLabel: string) {
   return `
     <table>
       <thead>
-        <tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>
+        ${
+          titleBlock
+            ? `
+        <tr class="table-section-title-row">
+          <th colspan="${headers.length}">
+            <span class="table-section-title">${escapeHtml(titleBlock.title)}</span>
+            <span class="table-section-subtitle">${escapeHtml(titleBlock.subtitle)}</span>
+          </th>
+        </tr>`
+            : ""
+        }
+        <tr class="table-column-header-row">${headers
+          .map((header) => `<th>${escapeHtml(header)}</th>`)
+          .join("")}</tr>
       </thead>
       <tbody>${body}</tbody>
     </table>
+  `;
+}
+
+function renderTableSection(
+  title: string,
+  subtitle: string,
+  headers: string[],
+  rows: string[][],
+  emptyLabel: string,
+) {
+  return `
+    <section class="report-section report-section-table">
+      ${renderTable(headers, rows, emptyLabel, { title, subtitle })}
+    </section>
   `;
 }
 
@@ -151,14 +190,20 @@ function renderHistorySection(history: ElectorateHistoryResponse) {
     escapeHtml(formatPercent(item.null_rate)),
   ]);
 
-  return renderSection(
+  return renderTableSection(
     "Histórico eleitoral",
     "Evolução anual do eleitorado e das métricas de participação",
-    renderTable(
-      ["Ano", "Eleitores", "Comparecimento", "Taxa comparecimento", "Taxa abstenção", "Brancos", "Nulos"],
-      rows,
-      "Sem série histórica para o recorte.",
-    ),
+    [
+      "Ano",
+      "Eleitores",
+      "Comparecimento",
+      "Taxa comparecimento",
+      "Taxa abstenção",
+      "Brancos",
+      "Nulos",
+    ],
+    rows,
+    "Sem série histórica para o recorte.",
   );
 }
 
@@ -178,6 +223,7 @@ function renderElectionContextSection(context: ElectorateElectionContextResponse
     ["Turno", context.election_round ? `${context.election_round}º turno` : "-"],
     ["Votos válidos no recorte", formatInteger(context.total_votes)],
   ];
+
   const rows = context.items.map((item) => [
     escapeHtml(item.ballot_name || item.candidate_name),
     escapeHtml(item.candidate_number),
@@ -202,7 +248,11 @@ function renderElectionContextSection(context: ElectorateElectionContextResponse
           )
           .join("")}
       </div>
-      ${renderTable(["Candidato", "Número", "Partido", "Votos", "% do recorte"], rows, "Sem candidatos para o recorte.")}
+      ${renderTable(
+        ["Candidato", "Número", "Partido", "Votos", "% do recorte"],
+        rows,
+        "Sem candidatos para o recorte.",
+      )}
     `,
   );
 }
@@ -214,7 +264,9 @@ function renderCandidateTerritoriesSection(
   if (!territories || territories.items.length === 0) {
     return renderSection(
       "Distribuição territorial do candidato",
-      candidateLabel ? `${candidateLabel} por local de votação` : "Distribuição nominal do candidato selecionado",
+      candidateLabel
+        ? `${candidateLabel} por local de votação`
+        : "Distribuição nominal do candidato selecionado",
       `<p class="empty-note">Sem distribuição territorial disponível para o candidato selecionado.</p>`,
     );
   }
@@ -229,18 +281,19 @@ function renderCandidateTerritoriesSection(
     escapeHtml(formatPercent(item.share_percent)),
   ]);
 
-  return renderSection(
+  return renderTableSection(
     "Distribuição territorial do candidato",
-    candidateLabel ? `${candidateLabel} por local de votação` : "Distribuição nominal do candidato selecionado",
-    renderTable(
-      ["Local", "Distrito", "Zonas", "Seções com votos", "Lista de seções", "Votos", "% do candidato"],
-      rows,
-      "Sem distribuição territorial para o candidato selecionado.",
-    ),
+    candidateLabel
+      ? `${candidateLabel} por local de votação`
+      : "Distribuição nominal do candidato selecionado",
+    ["Local", "Distrito", "Zonas", "Seções com votos", "Lista de seções", "Votos", "% do candidato"],
+    rows,
+    "Sem distribuição territorial para o candidato selecionado.",
   );
 }
 
 function renderPollingPlacesSection(pollingPlaces: ElectoratePollingPlacesResponse, metricLabel: string) {
+  const showMetricColumn = pollingPlaces.metric !== "voters";
   const rows = pollingPlaces.items.map((item) => [
     escapeHtml(item.polling_place_name || item.territory_name),
     escapeHtml(item.district_name || "-"),
@@ -249,17 +302,26 @@ function renderPollingPlacesSection(pollingPlaces: ElectoratePollingPlacesRespon
     escapeHtml(item.sections.join(", ") || "-"),
     escapeHtml(formatInteger(item.voters_total)),
     escapeHtml(formatPercent(item.share_percent)),
-    escapeHtml(formatMetricValue(pollingPlaces.metric, item.value)),
+    ...(showMetricColumn ? [escapeHtml(formatMetricValue(pollingPlaces.metric, item.value))] : []),
   ]);
 
-  return renderSection(
+  const headers = [
+    "Local",
+    "Distrito",
+    "Zonas",
+    "Seções",
+    "Lista de seções",
+    "Eleitores",
+    "% do município",
+    ...(showMetricColumn ? ["Indicador"] : []),
+  ];
+
+  return renderTableSection(
     "Ranking de locais de votação",
     `${metricLabel} por local de votação`,
-    renderTable(
-      ["Local", "Distrito", "Zonas", "Seções", "Lista de seções", "Eleitores", "% do município", "Indicador"],
-      rows,
-      "Sem ranking de locais de votação para o recorte.",
-    ),
+    headers,
+    rows,
+    "Sem ranking de locais de votação para o recorte.",
   );
 }
 
@@ -283,14 +345,12 @@ function renderCompositionSection(summary: ElectorateSummaryResponse, ageBreakdo
     escapeHtml(formatPercent(item.share_percent)),
   ]);
 
-  return renderSection(
+  return renderTableSection(
     "Composição do eleitorado",
     "Distribuição por sexo, faixa etária e escolaridade",
-    renderTable(
-      ["Grupo", "Categoria", "Eleitores", "Participação"],
-      [...sexRows, ...ageRows, ...educationRows],
-      "Sem composição do eleitorado para o recorte.",
-    ),
+    ["Grupo", "Categoria", "Eleitores", "Participação"],
+    [...sexRows, ...ageRows, ...educationRows],
+    "Sem composição do eleitorado para o recorte.",
   );
 }
 
@@ -328,9 +388,13 @@ export function buildElectorateReportHtml(input: BuildElectorateReportInput) {
       table { width: 100%; border-collapse: collapse; margin-top: 12px; }
       th, td { border: 1px solid #d1d5db; padding: 8px; font-size: 12px; text-align: left; vertical-align: top; }
       th { background: #f3f4f6; text-transform: uppercase; font-size: 11px; letter-spacing: 0.03em; }
+      .table-section-title-row th { background: transparent; text-transform: none; letter-spacing: normal; border: none; padding: 0 0 10px; }
+      .table-section-title { display: block; font-size: 24px; font-weight: 700; line-height: 1.2; color: #111827; }
+      .table-section-subtitle { display: block; margin-top: 4px; color: #4b5563; font-size: 13px; font-weight: 400; }
       .report-header { display: grid; gap: 8px; margin-bottom: 18px; }
       .report-header p { color: #4b5563; font-size: 13px; }
       .report-section { display: grid; gap: 12px; margin-top: 22px; }
+      .report-section-table { gap: 0; }
       .report-section-header { display: grid; gap: 4px; }
       .report-section-header p { color: #4b5563; font-size: 13px; }
       .report-section > table,
@@ -343,9 +407,16 @@ export function buildElectorateReportHtml(input: BuildElectorateReportInput) {
       .empty-note { color: #6b7280; font-size: 13px; }
       @media print {
         body { margin: 16px; }
+        table { page-break-inside: auto; break-inside: auto; }
         thead { display: table-header-group; }
         tfoot { display: table-footer-group; }
-        tr, td, th { page-break-inside: avoid; break-inside: avoid; }
+        .table-section-title-row,
+        .table-column-header-row { page-break-after: avoid; break-after: avoid-page; }
+        thead,
+        tbody,
+        tr,
+        td,
+        th { page-break-inside: avoid; break-inside: avoid; }
         .report-section-header { page-break-inside: avoid; break-inside: avoid; page-break-after: avoid; break-after: avoid-page; }
         .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }

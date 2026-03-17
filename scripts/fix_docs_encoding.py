@@ -5,11 +5,17 @@ import re
 
 
 DOCS_DIR = Path("docs")
+FRONTEND_DIR = Path("frontend/src")
 BAD_PATTERNS = (
     re.compile("\ufffd"),
     re.compile("\u00c3[\u0080-\u00bf]"),
     re.compile("\u00c2[\u0080-\u00bf]"),
     re.compile("\u00e2[\u0080-\uffff]{1,2}"),
+)
+TARGET_GLOBS = (
+    (DOCS_DIR, "*.md"),
+    (FRONTEND_DIR, "**/*.ts"),
+    (FRONTEND_DIR, "**/*.tsx"),
 )
 CP1252_REVERSE = {
     0x20AC: 0x80,
@@ -49,21 +55,21 @@ def _bad_score(text: str) -> int:
 def _repair_line(line: str) -> str:
     if "\ufffd" in line:
         manual = {
-            "Agrega��o": "Agregação",
-            "et�ria": "etária",
-            "�nico": "único",
-            "composi��o": "composição",
-            "participa��o": "participação",
-            "ordena��o": "ordenação",
-            "espec�fica": "específica",
-            "n�o": "não",
-            "apresenta��o": "apresentação",
-            "agrega��o": "agregação",
-            "ru�do": "ruído",
-            "informa��o": "informação",
-            "Valida��o": "Validação",
-            "�?ndice": "Índice",
-            "�?cones": "Ícones",
+            "Agregação": "Agregação",
+            "etária": "etária",
+            "único": "único",
+            "composição": "composição",
+            "participação": "participação",
+            "ordenação": "ordenação",
+            "específica": "específica",
+            "não": "não",
+            "apresentação": "apresentação",
+            "agregação": "agregação",
+            "ruído": "ruído",
+            "informação": "informação",
+            "Validação": "Validação",
+            "Índice": "Índice",
+            "Ícones": "Ícones",
         }
         for old, new in manual.items():
             line = line.replace(old, new)
@@ -124,9 +130,18 @@ def _repair_text(text: str) -> str:
     return normalized
 
 
+def iter_target_files() -> list[Path]:
+    files: list[Path] = []
+    for base_dir, pattern in TARGET_GLOBS:
+        if not base_dir.exists():
+            continue
+        files.extend(sorted(base_dir.glob(pattern)))
+    return files
+
+
 def normalize_docs() -> list[Path]:
     changed: list[Path] = []
-    for path in sorted(DOCS_DIR.glob("*.md")):
+    for path in iter_target_files():
         original = path.read_text(encoding="utf-8-sig")
         repaired = _repair_text(original)
         normalized_lines = [_repair_line(line) for line in repaired.splitlines()]

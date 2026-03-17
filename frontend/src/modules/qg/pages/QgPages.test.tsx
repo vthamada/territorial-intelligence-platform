@@ -1,4 +1,4 @@
-﻿import type { ReactElement } from "react";
+import type { ReactElement } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -700,7 +700,7 @@ describe("QG pages", () => {
 
   /* Test removed: electoral detailed layer toggle buttons were removed from UI. */
 
-  /* Test removed: "loads explicit layer selection from URL query param" â€” layer selector UI removed. */
+  /* Test removed: "loads explicit layer selection from URL query param" — layer selector UI removed. */
 
   /* Test removed: local_votacao guidance text was removed from UI. */
 

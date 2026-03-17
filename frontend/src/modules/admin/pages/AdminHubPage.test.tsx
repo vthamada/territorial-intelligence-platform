@@ -247,8 +247,8 @@ describe("AdminHubPage", () => {
         finished_at_utc: "2026-03-16T18:01:00Z",
         is_active: false,
         current_step: null,
-        last_message: "ValidaÃ§Ã£o concluÃ­da com sucesso.",
-        recent_logs: ["Etapa concluÃ­da: backend_readiness"],
+        last_message: "Validação concluída com sucesso.",
+        recent_logs: ["Etapa concluída: backend_readiness"],
         steps: [
           {
             name: "backend_readiness",
@@ -256,7 +256,7 @@ describe("AdminHubPage", () => {
             started_at_utc: "2026-03-16T18:00:00Z",
             finished_at_utc: "2026-03-16T18:01:00Z",
             exit_code: 0,
-            summary: "Etapa concluÃ­da com sucesso.",
+            summary: "Etapa concluída com sucesso.",
           },
         ],
       },

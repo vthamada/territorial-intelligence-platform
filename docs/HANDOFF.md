@@ -1,6 +1,49 @@
 # Territorial Intelligence Platform - Handoff
 
-## Atualização técnica (2026-03-16) - relatório eleitoral com quebra de página estável
+## Atualização técnica (2026-03-16) - relatório eleitoral sem coluna duplicada e com cabeçalho tabular impresso
+
+1. Relatório eleitoral/PDF:
+   - `frontend/src/shared/reports/electorateReport.ts` foi reescrito para consolidar a impressão das seções tabulares e eliminar resíduos de mojibake no builder do relatório eleitoral.
+   - `Ranking de locais de votação` agora oculta a coluna `Indicador` quando o ranking está em `Total de eleitores`, evitando duplicação com `Eleitores`.
+   - Os títulos das seções tabulares passaram a ser renderizados dentro do `thead` com linhas dedicadas (`table-section-title-row` e `table-column-header-row`), reduzindo o risco de o título ficar separado da tabela na impressão em PDF.
+2. Governança do repositório:
+   - `.gitignore` passou a ignorar `data/reports/*.json` por padrão, preservando apenas `data/reports/.gitkeep` para impedir novos commits automáticos de artefatos operacionais locais.
+   - Os JSONs já versionados em `data/reports/` continuam rastreados até uma limpeza explícita via Git; a mudança desta rodada evita reincidência, mas não remove histórico retroativamente.
+3. Validação:
+   - `npm --prefix frontend run test -- --run src/shared/reports/electorateReport.test.ts src/modules/electorate/pages/ElectorateExecutivePage.test.tsx`
+   - `npm --prefix frontend run build`
+
+## Atualização técnica (2026-03-16) - guardrails ampliados de UTF-8 para docs e frontend crítico
+
+1. Bootstrap de terminal:
+   - `scripts/enable_utf8_terminal.ps1` foi adicionado para configurar UTF-8 explicitamente na sessão (`chcp 65001`, `InputEncoding`, `OutputEncoding`, `PYTHONUTF8=1`).
+   - `scripts/dev_up.ps1` agora aplica o mesmo bootstrap antes de subir API e frontend.
+2. Guardrail ampliado:
+   - `scripts/fix_docs_encoding.py` passou a normalizar também `frontend/src/**/*.ts` e `frontend/src/**/*.tsx`, além de `docs/*.md`.
+   - `tests/unit/test_text_encoding_guardrails.py` foi adicionado para detectar regressão de mojibake em `docs/` e `frontend/src/`.
+3. Aplicação real:
+   - o normalizador ampliado removeu resíduo real de encoding em arquivos de frontend que ainda continham texto degradado.
+4. Validação:
+   - `powershell -ExecutionPolicy Bypass -File scripts/enable_utf8_terminal.ps1`
+   - `.\.venv\Scripts\python.exe scripts/fix_docs_encoding.py`
+   - `.\.venv\Scripts\python.exe -m pytest tests/unit/test_docs_encoding.py tests/unit/test_text_encoding_guardrails.py -q`
+   - `npm --prefix frontend run test -- --run src/shared/reports/electorateReport.test.ts src/modules/electorate/pages/ElectorateExecutivePage.test.tsx src/modules/admin/pages/AdminHubPage.test.tsx src/modules/qg/pages/QgPages.test.tsx`
+   - `npm --prefix frontend run build`
+
+## Atualização técnica (2026-03-16) - relatório eleitoral com título de tabela acoplado ao conteúdo
+
+1. Relatório eleitoral/PDF:
+   - `frontend/src/shared/reports/electorateReport.ts` foi corrigido de forma estrutural, não apenas via CSS de quebra de página.
+   - As seções tabulares (`Histórico eleitoral`, `Distribuição territorial do candidato`, `Ranking de locais de votação` e `Composição do eleitorado`) passaram a usar `caption` como cabeçalho da própria tabela impressa.
+   - Isso corrige o caso em que o título da seção ficava órfão no final de uma página e a tabela só começava na página seguinte do PDF.
+2. Regressão coberta:
+   - `frontend/src/shared/reports/electorateReport.test.ts` passou a validar `caption`, `table-caption-title` e a regra de impressão do novo layout tabular.
+   - `ElectorateExecutivePage.test.tsx` foi reexecutado para garantir que o fluxo de geração do relatório continua íntegro.
+3. Validação:
+   - `npm --prefix frontend run test -- --run src/shared/reports/electorateReport.test.ts src/modules/electorate/pages/ElectorateExecutivePage.test.tsx`
+   - `npm --prefix frontend run build`
+
+## Atualização técnica (2026-03-16) - primeira tentativa de estabilização da quebra de página do relatório eleitoral
 
 1. Relatório eleitoral/PDF:
    - `frontend/src/shared/reports/electorateReport.ts` passou a aplicar regras de impressão para evitar títulos órfãos em fim de página, manter o cabeçalho da seção junto da tabela subsequente e repetir `thead` nas páginas seguintes do PDF.

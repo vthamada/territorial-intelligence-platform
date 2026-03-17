@@ -5,6 +5,18 @@
 )
 
 $ErrorActionPreference = "Stop"
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+
+[Console]::InputEncoding = $utf8NoBom
+[Console]::OutputEncoding = $utf8NoBom
+$OutputEncoding = $utf8NoBom
+$env:PYTHONUTF8 = "1"
+
+try {
+    chcp 65001 > $null
+} catch {
+    Write-Warning "Nao foi possivel ajustar o code page para 65001 nesta sessao."
+}
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $apiPython = Join-Path $repoRoot ".venv\Scripts\python.exe"
